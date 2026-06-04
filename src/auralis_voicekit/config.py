@@ -37,6 +37,7 @@ class VoiceKitConfig:
     output_backend: str = "null"
     input_device: str | int | None = None
     output_device: str | int | None = None
+    input_file: str | None = None
     capture_block_ms: int = 50
     capture_latency: str | float | None = None
     privacy_mode: bool = True
@@ -67,6 +68,7 @@ class VoiceKitConfig:
             output_backend=os.getenv(prefix + "OUTPUT_BACKEND", "null"),
             input_device=os.getenv(prefix + "INPUT_DEVICE") or None,
             output_device=os.getenv(prefix + "OUTPUT_DEVICE") or None,
+            input_file=os.getenv(prefix + "INPUT_FILE") or None,
             capture_block_ms=_env_int(os.getenv(prefix + "CAPTURE_BLOCK_MS"), 50),
             capture_latency=os.getenv(prefix + "CAPTURE_LATENCY") or None,
             privacy_mode=_env_bool(os.getenv(prefix + "PRIVACY_MODE"), True),

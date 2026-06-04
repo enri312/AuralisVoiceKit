@@ -6,6 +6,17 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-06-04
+
+### Agregado
+
+- Lectura de WAV PCM16 con `read_wav_metadata`, `iter_wav_chunks` y `read_wav`.
+- Metadata `WavMetadata`.
+- Backend de captura `wav` para pruebas offline sin microfono.
+- Configuracion `input_file` y variable `AURALIS_INPUT_FILE`.
+- CLI `auralis wav-info`.
+- Ejemplo `examples/segment_wav.py`.
+
 ## [0.3.0] - 2026-06-04
 
 ### Agregado

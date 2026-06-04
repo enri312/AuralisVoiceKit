@@ -7,6 +7,7 @@ from typing import Callable
 from ..exceptions import BackendNotAvailable
 from .base import BackendInfo, CaptureBackend, SpeechOutputBackend, TranscriptionBackend
 from .null import NullCaptureBackend, NullSpeechOutputBackend, NullTranscriptionBackend
+from .wav_file import WavFileCaptureBackend
 
 
 CaptureFactory = Callable[[], CaptureBackend]
@@ -72,6 +73,7 @@ def _create_sounddevice_capture() -> CaptureBackend:
 def create_default_registry() -> BackendRegistry:
     registry = BackendRegistry()
     registry.register_capture("null", NullCaptureBackend)
+    registry.register_capture("wav", WavFileCaptureBackend)
     registry.register_capture("sounddevice", _create_sounddevice_capture)
     registry.register_transcription("null", NullTranscriptionBackend)
     registry.register_output("null", NullSpeechOutputBackend)

@@ -26,6 +26,7 @@ La meta no es competir con todos los motores de voz a la vez. La meta es constru
 | Eventos | Inicial |
 | CLI `doctor` | Inicial |
 | Backend `null` | Funcional |
+| Backend `wav` | Inicial funcional |
 | Backend `sounddevice` | Inicial funcional |
 | Utilidades de audio | Calibracion y segmentacion inicial |
 | Versionado | Politica inicial |
@@ -226,7 +227,7 @@ Criterio de salida:
 
 - Backend WASAPI dedicado.
 - Backend PyAudio solo como compatibilidad opcional.
-- Soporte para archivos WAV/FLAC como entrada.
+- Soporte para archivos WAV/FLAC como entrada. WAV PCM16 inicial completado.
 - Adaptadores para modelos locales.
 - Adaptadores para APIs externas.
 - Wake word externo.
@@ -239,6 +240,6 @@ Criterio de salida:
 
 1. Probar captura real y segmentacion en hardware Windows, Ubuntu y macOS.
 2. Mejorar `auralis doctor` con diagnostico de permisos y sugerencias por sistema.
-3. Agregar lectura WAV PCM16 para pruebas offline.
-4. Preparar transcripcion inicial con backend opcional.
-5. Crear ejemplo de loop escuchar -> segmentar -> transcribir.
+3. Preparar transcripcion inicial con backend opcional.
+4. Crear ejemplo de loop escuchar -> segmentar -> transcribir.
+5. Explorar soporte FLAC como extra opcional o via libreria estandar si aparece una ruta liviana.

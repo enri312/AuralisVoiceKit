@@ -129,6 +129,31 @@ Ejemplo completo:
 py examples\capture_voice_segments.py --calibrate-seconds 1 --record-seconds 5
 ```
 
+## Flujo offline con WAV
+
+Para desarrollar sin microfono se puede leer un WAV PCM16 y segmentarlo:
+
+```powershell
+py -m auralis_voicekit.cli wav-info sample.wav
+py examples\segment_wav.py sample.wav --output-dir wav_segments
+```
+
+Tambien se puede usar el archivo como backend de captura:
+
+```python
+from auralis_voicekit import AuralisVoiceKit, VoiceKitConfig
+
+chunks = []
+kit = AuralisVoiceKit(
+    VoiceKitConfig(
+        capture_backend="wav",
+        input_file="sample.wav",
+        capture_block_ms=50,
+    )
+)
+kit.start_capture(chunks.append)
+```
+
 ## Arquitectura
 
 ```text
@@ -141,6 +166,7 @@ auralis_voicekit
   backends
     base          Contratos comunes
     null          Backend seguro para pruebas
+    wav_file      Backend offline para WAV PCM16
     sounddevice   Backend opcional de captura real
     registry      Registro de backends
   audio           Utilidades PCM16, calibracion y segmentacion
@@ -152,6 +178,7 @@ auralis_voicekit
 | Backend | Estado | Uso previsto |
 | --- | --- | --- |
 | `null` | incluido | pruebas, demos, integracion temprana |
+| `wav` | inicial funcional | pruebas offline con WAV PCM16 |
 | `sounddevice` | inicial funcional | captura moderna multiplataforma |
 | `wasapi` | pendiente | ruta principal optimizada para Windows |
 | `pyaudio` | pendiente | compatibilidad con proyectos existentes |

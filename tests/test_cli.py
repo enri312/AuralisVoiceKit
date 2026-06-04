@@ -1,8 +1,10 @@
 import contextlib
 import io
+import os
+import tempfile
 import unittest
 
-from auralis_voicekit import __version__
+from auralis_voicekit import AudioChunk, AudioFormat, __version__, write_wav
 from auralis_voicekit.cli import main
 
 
@@ -43,6 +45,20 @@ class CliTests(unittest.TestCase):
         self.assertEqual(exit_code, 0)
         self.assertIn("AuralisVoiceKit", output.getvalue())
         self.assertIn("Null input", output.getvalue())
+
+    def test_wav_info_command(self):
+        audio_format = AudioFormat(sample_rate=8000, channels=1, sample_width=2)
+        output = io.StringIO()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = os.path.join(tmpdir, "sample.wav")
+            write_wav(path, [AudioChunk(data=b"\x00\x00" * 8, format=audio_format)])
+            with contextlib.redirect_stdout(output):
+                exit_code = main(["wav-info", path])
+
+        self.assertEqual(exit_code, 0)
+        self.assertIn("Sample rate: 8000", output.getvalue())
+        self.assertIn("Encoding: pcm16", output.getvalue())
 
 
 if __name__ == "__main__":

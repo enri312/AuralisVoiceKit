@@ -17,5 +17,9 @@ class AudioDeviceNotFound(AuralisError):
     """Raised when a requested audio device cannot be found."""
 
 
+class AudioSourceError(AuralisError):
+    """Raised when an audio file or source cannot be used."""
+
+
 class TranscriptionError(AuralisError):
     """Raised when transcription fails."""

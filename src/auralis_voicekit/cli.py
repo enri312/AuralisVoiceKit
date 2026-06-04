@@ -8,8 +8,9 @@ import platform
 import sys
 
 from ._version import __version__
+from .audio import read_wav_metadata
 from .backends import create_default_registry
-from .exceptions import BackendNotAvailable
+from .exceptions import AudioSourceError, BackendNotAvailable
 from .models import AudioDevice
 
 
@@ -70,6 +71,24 @@ def _print_backends() -> int:
     return 0
 
 
+def _print_wav_info(path: str) -> int:
+    try:
+        metadata = read_wav_metadata(path)
+    except AudioSourceError as exc:
+        print(str(exc))
+        return 1
+
+    audio_format = metadata.format
+    print(f"Path: {metadata.path}")
+    print(f"Sample rate: {audio_format.sample_rate}")
+    print(f"Channels: {audio_format.channels}")
+    print(f"Sample width: {audio_format.sample_width}")
+    print(f"Encoding: {audio_format.encoding.value}")
+    print(f"Frames: {metadata.frames}")
+    print(f"Duration: {metadata.duration_seconds:.3f}s")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="auralis")
     parser.add_argument("--version", action="version", version=f"AuralisVoiceKit {__version__}")
@@ -88,6 +107,8 @@ def main(argv: list[str] | None = None) -> int:
     subparsers.add_parser("backends", help="list registered backends")
     devices_parser = subparsers.add_parser("devices", help="list input devices")
     devices_parser.add_argument("--backend", default="sounddevice", help="capture backend to inspect")
+    wav_info_parser = subparsers.add_parser("wav-info", help="show PCM16 WAV metadata")
+    wav_info_parser.add_argument("path", help="path to a WAV file")
     args = parser.parse_args(argv)
 
     if args.command is None:
@@ -98,6 +119,8 @@ def main(argv: list[str] | None = None) -> int:
         return _print_backends()
     if args.command == "devices":
         return _print_devices(args.backend)
+    if args.command == "wav-info":
+        return _print_wav_info(args.path)
     parser.error(f"Unknown command: {args.command}")
     return 2
 

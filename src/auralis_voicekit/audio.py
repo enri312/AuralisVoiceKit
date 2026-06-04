@@ -4,12 +4,14 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from math import sqrt
+import os
 from statistics import fmean, median
 import struct
-from typing import Iterable
+from typing import Iterable, Iterator
 import wave
 
-from .models import AudioChunk, AudioEncoding
+from .exceptions import AudioSourceError
+from .models import AudioChunk, AudioEncoding, AudioFormat
 
 
 PCM16_MAX = 32768.0
@@ -69,6 +71,19 @@ class VoiceSegment:
     def rms(self) -> float:
         values = [rms_pcm16(chunk) for chunk in self.chunks]
         return fmean(values) if values else 0.0
+
+
+@dataclass(frozen=True, slots=True)
+class WavMetadata:
+    """Basic metadata for a supported PCM WAV file."""
+
+    path: str
+    format: AudioFormat
+    frames: int
+
+    @property
+    def duration_seconds(self) -> float:
+        return self.frames / self.format.sample_rate
 
 
 def _pcm16_samples(chunk: AudioChunk):
@@ -259,3 +274,75 @@ def write_wav(path: str, chunks: list[AudioChunk]) -> None:
         output.setframerate(audio_format.sample_rate)
         for chunk in chunks:
             output.writeframes(chunk.data)
+
+
+def _validate_wav(handle: wave.Wave_read, path: str) -> AudioFormat:
+    if handle.getcomptype() != "NONE":
+        raise AudioSourceError(f"WAV file {path!r} is compressed and cannot be read")
+    sample_width = handle.getsampwidth()
+    if sample_width != 2:
+        raise AudioSourceError(f"WAV file {path!r} must be PCM16; got sample width {sample_width}")
+    return AudioFormat(
+        sample_rate=handle.getframerate(),
+        channels=handle.getnchannels(),
+        sample_width=sample_width,
+        encoding=AudioEncoding.PCM16,
+    )
+
+
+def read_wav_metadata(path: str | os.PathLike[str]) -> WavMetadata:
+    """Read metadata for a PCM16 WAV file."""
+
+    wav_path = os.fspath(path)
+    try:
+        with wave.open(wav_path, "rb") as handle:
+            audio_format = _validate_wav(handle, wav_path)
+            return WavMetadata(path=wav_path, format=audio_format, frames=handle.getnframes())
+    except (OSError, wave.Error) as exc:
+        raise AudioSourceError(f"Cannot read WAV file {wav_path!r}: {exc}") from exc
+
+
+def iter_wav_chunks(
+    path: str | os.PathLike[str],
+    *,
+    chunk_duration_ms: int = 50,
+) -> Iterator[AudioChunk]:
+    """Yield PCM16 chunks from a WAV file."""
+
+    if chunk_duration_ms <= 0:
+        raise ValueError("chunk_duration_ms must be greater than zero")
+
+    wav_path = os.fspath(path)
+    try:
+        with wave.open(wav_path, "rb") as handle:
+            audio_format = _validate_wav(handle, wav_path)
+            frames_per_chunk = max(1, int(audio_format.sample_rate * chunk_duration_ms / 1000))
+            chunk_index = 0
+            frame_offset = 0
+            while True:
+                data = handle.readframes(frames_per_chunk)
+                if not data:
+                    break
+                yield AudioChunk(
+                    data=data,
+                    format=audio_format,
+                    metadata={
+                        "path": wav_path,
+                        "chunk_index": chunk_index,
+                        "frame_offset": frame_offset,
+                    },
+                )
+                chunk_index += 1
+                frame_offset += frames_per_chunk
+    except (OSError, wave.Error) as exc:
+        raise AudioSourceError(f"Cannot read WAV file {wav_path!r}: {exc}") from exc
+
+
+def read_wav(
+    path: str | os.PathLike[str],
+    *,
+    chunk_duration_ms: int = 50,
+) -> list[AudioChunk]:
+    """Read a PCM16 WAV file into audio chunks."""
+
+    return list(iter_wav_chunks(path, chunk_duration_ms=chunk_duration_ms))

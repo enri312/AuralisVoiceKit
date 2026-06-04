@@ -348,6 +348,15 @@ profile = calibrate_noise_pcm16(noise_chunks)
 detector = VoiceActivityDetector(noise_profile=profile)
 segments = detector.segment(recorded_chunks)</code></pre>
         <pre><code>py examples\capture_voice_segments.py --calibrate-seconds 1 --record-seconds 5</code></pre>
+        <h3>WAV offline</h3>
+        <p>Los archivos WAV PCM16 pueden inspeccionarse, leerse por chunks y usarse como backend de captura.</p>
+        <pre><code>py -m auralis_voicekit.cli wav-info sample.wav
+py examples\segment_wav.py sample.wav --output-dir wav_segments</code></pre>
+        <pre><code>from auralis_voicekit import AuralisVoiceKit, VoiceKitConfig
+
+kit = AuralisVoiceKit(
+    VoiceKitConfig(capture_backend="wav", input_file="sample.wav")
+)</code></pre>
       </section>
 
       <section id="arquitectura">
@@ -362,6 +371,7 @@ segments = detector.segment(recorded_chunks)</code></pre>
   backends/
     base.py          Protocolos publicos
     null.py          Backend seguro para pruebas
+    wav_file.py      Backend offline WAV PCM16
     sounddevice.py   Backend opcional funcional
     registry.py      Registro de factories</code></pre>
       </section>
@@ -413,6 +423,11 @@ kit.events.subscribe(
               <td><code>null</code></td>
               <td>Incluido</td>
               <td>Pruebas, demos y desarrollo sin microfono.</td>
+            </tr>
+            <tr>
+              <td><code>wav</code></td>
+              <td>Inicial funcional</td>
+              <td>Captura offline desde archivos WAV PCM16 para pruebas y demos.</td>
             </tr>
             <tr>
               <td><code>sounddevice</code></td>
