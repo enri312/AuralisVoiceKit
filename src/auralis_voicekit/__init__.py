@@ -18,6 +18,7 @@ from .audio import (
     write_wav,
 )
 from .config import VoiceKitConfig
+from .diagnostics import DiagnosticCheck, DiagnosticStatus, DoctorReport, run_doctor
 from .events import EventBus, VoiceEvent, VoiceEventType
 from .exceptions import (
     AuralisError,
@@ -40,6 +41,9 @@ __all__ = [
     "AudioEncoding",
     "AudioFormat",
     "BackendNotAvailable",
+    "DiagnosticCheck",
+    "DiagnosticStatus",
+    "DoctorReport",
     "EventBus",
     "PermissionRequired",
     "TranscriptResult",
@@ -60,6 +64,7 @@ __all__ = [
     "read_wav",
     "read_wav_metadata",
     "rms_pcm16",
+    "run_doctor",
     "segment_voice_pcm16",
     "write_wav",
 ]

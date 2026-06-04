@@ -3,19 +3,14 @@
 from __future__ import annotations
 
 import argparse
-from importlib.util import find_spec
-import platform
-import sys
+import json
 
 from ._version import __version__
 from .audio import read_wav_metadata
 from .backends import create_default_registry
+from .diagnostics import DiagnosticStatus, run_doctor
 from .exceptions import AudioSourceError, BackendNotAvailable
 from .models import AudioDevice
-
-
-def _optional_status(module_name: str) -> str:
-    return "available" if find_spec(module_name) is not None else "missing"
 
 
 def _print_device(device: AudioDevice) -> None:
@@ -43,24 +38,47 @@ def _print_devices(backend_name: str) -> int:
     return 0
 
 
-def _print_doctor(show_devices: bool = False, device_backend: str = "sounddevice") -> int:
-    print(f"AuralisVoiceKit {__version__}")
-    print(f"Python: {sys.version.split()[0]}")
-    print(f"Platform: {platform.platform()}")
-    print(f"Implementation: {platform.python_implementation()}")
+def _print_doctor(
+    show_devices: bool = False,
+    device_backend: str = "sounddevice",
+    json_output: bool = False,
+    wav_path: str | None = None,
+) -> int:
+    report = run_doctor(
+        include_devices=show_devices,
+        capture_backend=device_backend,
+        wav_path=wav_path,
+    )
+
+    if json_output:
+        print(json.dumps(report.to_dict(), indent=2, sort_keys=True))
+        return 1 if report.status is DiagnosticStatus.ERROR else 0
+
+    print(f"AuralisVoiceKit {report.version}")
+    print(f"Python: {report.python}")
+    print(f"Platform: {report.platform}")
+    print(f"Implementation: {report.implementation}")
+    print(f"Status: {report.status.value}")
     print()
-    print("Optional dependencies:")
-    print(f"  sounddevice: {_optional_status('sounddevice')}")
-    print()
-    print("Backend registry:")
-    for info in create_default_registry().backend_info():
-        status = "ok" if info.available else "missing"
-        reason = f" - {info.reason}" if info.reason else ""
-        print(f"  {info.kind}:{info.name} [{status}]{reason}")
-    if show_devices:
-        print()
-        return _print_devices(device_backend)
-    return 0
+    print("Checks:")
+    for check in report.checks:
+        print(f"  [{check.status.value}] {check.name}: {check.message}")
+        if check.hint:
+            print(f"      hint: {check.hint}")
+        if check.name.startswith("devices:"):
+            for device in check.details.get("devices", []):
+                marker = " default" if device.get("is_default") else ""
+                channels = (
+                    f", channels={device.get('channels')}"
+                    if device.get("channels") is not None
+                    else ""
+                )
+                host_api = f", host_api={device.get('host_api')}" if device.get("host_api") else ""
+                print(
+                    f"      [{device.get('id')}] {device.get('name')}{marker} "
+                    f"({device.get('kind')}{channels}{host_api})"
+                )
+    return 1 if report.status is DiagnosticStatus.ERROR else 0
 
 
 def _print_backends() -> int:
@@ -104,6 +122,8 @@ def main(argv: list[str] | None = None) -> int:
         default="sounddevice",
         help="capture backend used when listing devices",
     )
+    doctor_parser.add_argument("--json", action="store_true", help="print a JSON report")
+    doctor_parser.add_argument("--wav", help="validate a PCM16 WAV file")
     subparsers.add_parser("backends", help="list registered backends")
     devices_parser = subparsers.add_parser("devices", help="list input devices")
     devices_parser.add_argument("--backend", default="sounddevice", help="capture backend to inspect")
@@ -114,7 +134,12 @@ def main(argv: list[str] | None = None) -> int:
     if args.command is None:
         return _print_doctor()
     if args.command == "doctor":
-        return _print_doctor(show_devices=args.devices, device_backend=args.backend)
+        return _print_doctor(
+            show_devices=args.devices,
+            device_backend=args.backend,
+            json_output=args.json,
+            wav_path=args.wav,
+        )
     if args.command == "backends":
         return _print_backends()
     if args.command == "devices":

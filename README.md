@@ -154,6 +154,20 @@ kit = AuralisVoiceKit(
 kit.start_capture(chunks.append)
 ```
 
+## Diagnostico
+
+`auralis doctor` genera un reporte de compatibilidad del entorno:
+
+```powershell
+auralis doctor
+auralis doctor --devices --backend wav
+auralis doctor --devices --backend sounddevice
+auralis doctor --wav sample.wav
+auralis doctor --json
+```
+
+La salida distingue entre `ok`, `warning` y `error`. Los warnings no bloquean el uso del core; por ejemplo, `sounddevice` puede faltar y aun asi funcionar `null`, `wav`, lectura WAV y utilidades de audio.
+
 ## Arquitectura
 
 ```text
@@ -171,6 +185,7 @@ auralis_voicekit
     registry      Registro de backends
   audio           Utilidades PCM16, calibracion y segmentacion
   cli             Diagnostico y utilidades
+  diagnostics     Reportes doctor estructurados
 ```
 
 ## Backends previstos

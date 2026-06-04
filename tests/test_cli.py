@@ -1,5 +1,6 @@
 import contextlib
 import io
+import json
 import os
 import tempfile
 import unittest
@@ -45,6 +46,26 @@ class CliTests(unittest.TestCase):
         self.assertEqual(exit_code, 0)
         self.assertIn("AuralisVoiceKit", output.getvalue())
         self.assertIn("Null input", output.getvalue())
+
+    def test_doctor_json_output(self):
+        output = io.StringIO()
+
+        with contextlib.redirect_stdout(output):
+            exit_code = main(["doctor", "--devices", "--backend", "wav", "--json"])
+
+        payload = json.loads(output.getvalue())
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(payload["version"], __version__)
+        self.assertTrue(any(check["name"] == "devices:wav" for check in payload["checks"]))
+
+    def test_doctor_wav_error_returns_nonzero(self):
+        output = io.StringIO()
+
+        with contextlib.redirect_stdout(output):
+            exit_code = main(["doctor", "--wav", "missing.wav"])
+
+        self.assertEqual(exit_code, 1)
+        self.assertIn("Cannot read WAV file", output.getvalue())
 
     def test_wav_info_command(self):
         audio_format = AudioFormat(sample_rate=8000, channels=1, sample_width=2)

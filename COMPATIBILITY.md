@@ -90,6 +90,9 @@ Comandos utiles:
 ```bash
 python -m auralis_voicekit.cli doctor
 python -m auralis_voicekit.cli doctor --devices
+python -m auralis_voicekit.cli doctor --devices --backend wav
+python -m auralis_voicekit.cli doctor --wav sample.wav
+python -m auralis_voicekit.cli doctor --json
 python -m auralis_voicekit.cli devices --backend sounddevice
 python -m auralis_voicekit.cli backends
 ```

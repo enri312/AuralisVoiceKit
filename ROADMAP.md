@@ -31,6 +31,7 @@ La meta no es competir con todos los motores de voz a la vez. La meta es constru
 | Utilidades de audio | Calibracion y segmentacion inicial |
 | Versionado | Politica inicial |
 | Compatibilidad Windows/Linux/macOS | Documentacion inicial |
+| Diagnostico doctor | Inicial estructurado |
 | Transcripcion real | Pendiente |
 | Salida de voz real | Pendiente |
 | CI multiplataforma | Inicial |
@@ -157,15 +158,15 @@ Criterio de salida:
 
 Entregables:
 
-- Mejor diagnostico de permisos de microfono.
-- Mejor reporte de dispositivos y host APIs.
+- Mejor diagnostico de permisos de microfono. Estado: inicial con sugerencias por OS.
+- Mejor reporte de dispositivos y host APIs. Estado: inicial.
 - Investigacion de backend WASAPI dedicado.
 - Mensajes especificos para errores comunes de audio en Windows.
 - Guia de instalacion para PowerShell.
 
 Criterio de salida:
 
-- `auralis doctor` ayuda a diagnosticar microfono, backend y permisos.
+- `auralis doctor` ayuda a diagnosticar microfono, backend y permisos. Estado: inicial.
 - La documentacion explica claramente que hacer cuando no hay audio.
 
 ## Fase 7 - Calidad, CI y empaquetado
@@ -239,7 +240,7 @@ Criterio de salida:
 ## Prioridad inmediata
 
 1. Probar captura real y segmentacion en hardware Windows, Ubuntu y macOS.
-2. Mejorar `auralis doctor` con diagnostico de permisos y sugerencias por sistema.
-3. Preparar transcripcion inicial con backend opcional.
-4. Crear ejemplo de loop escuchar -> segmentar -> transcribir.
-5. Explorar soporte FLAC como extra opcional o via libreria estandar si aparece una ruta liviana.
+2. Preparar transcripcion inicial con backend opcional.
+3. Crear ejemplo de loop escuchar -> segmentar -> transcribir.
+4. Explorar soporte FLAC como extra opcional o via libreria estandar si aparece una ruta liviana.
+5. Mejorar doctor para intentar una prueba corta de apertura de dispositivo cuando el usuario lo pida.

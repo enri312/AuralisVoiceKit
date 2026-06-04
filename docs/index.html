@@ -289,6 +289,7 @@
         <a href="#vision">Vision</a>
         <a href="#instalacion">Instalacion</a>
         <a href="#inicio">Inicio rapido</a>
+        <a href="#diagnostico">Diagnostico</a>
         <a href="#arquitectura">Arquitectura</a>
         <a href="#api">API publica</a>
         <a href="#backends">Backends</a>
@@ -359,11 +360,23 @@ kit = AuralisVoiceKit(
 )</code></pre>
       </section>
 
+      <section id="diagnostico">
+        <h2>Diagnostico</h2>
+        <p><code>auralis doctor</code> produce checks de Python, plataforma, dependencias opcionales, backends, dispositivos y archivos WAV.</p>
+        <pre><code>auralis doctor
+auralis doctor --devices --backend wav
+auralis doctor --devices --backend sounddevice
+auralis doctor --wav sample.wav
+auralis doctor --json</code></pre>
+        <p>Los warnings no bloquean el core. Por ejemplo, <code>sounddevice</code> puede faltar y aun asi funcionar el backend <code>wav</code>.</p>
+      </section>
+
       <section id="arquitectura">
         <h2>Arquitectura</h2>
         <p>La libreria se organiza en contratos pequenos y backends intercambiables.</p>
         <pre><code>src/auralis_voicekit/
   config.py          VoiceKitConfig
+  diagnostics.py     Reporte doctor estructurado
   models.py          AudioChunk, AudioFormat, TranscriptResult
   events.py          EventBus, VoiceEventType
   audio.py           RMS, pico, silencio, calibracion, segmentos y WAV PCM16

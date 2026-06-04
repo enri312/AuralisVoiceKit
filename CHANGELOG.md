@@ -6,6 +6,16 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-06-04
+
+### Agregado
+
+- Modulo `diagnostics` con `DiagnosticCheck`, `DiagnosticStatus`, `DoctorReport` y `run_doctor`.
+- Salida estructurada JSON para `auralis doctor --json`.
+- Validacion WAV desde `auralis doctor --wav archivo.wav`.
+- Sugerencias por sistema operativo en el diagnostico.
+- Checks de dependencias opcionales, backends y dispositivos.
+
 ## [0.4.0] - 2026-06-04
 
 ### Agregado
