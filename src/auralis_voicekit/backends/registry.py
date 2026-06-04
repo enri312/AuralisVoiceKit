@@ -9,6 +9,7 @@ from .base import BackendInfo, CaptureBackend, SpeechOutputBackend, Transcriptio
 from .null import NullCaptureBackend, NullSpeechOutputBackend, NullTranscriptionBackend
 from .openai_transcription import OpenAITranscriptionBackend
 from .wav_file import WavFileCaptureBackend
+from .whisper_transcription import WhisperTranscriptionBackend
 
 
 CaptureFactory = Callable[[], CaptureBackend]
@@ -78,5 +79,6 @@ def create_default_registry() -> BackendRegistry:
     registry.register_capture("sounddevice", _create_sounddevice_capture)
     registry.register_transcription("null", NullTranscriptionBackend)
     registry.register_transcription("openai", OpenAITranscriptionBackend)
+    registry.register_transcription("whisper", WhisperTranscriptionBackend)
     registry.register_output("null", NullSpeechOutputBackend)
     return registry

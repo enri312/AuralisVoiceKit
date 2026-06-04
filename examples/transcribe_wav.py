@@ -8,11 +8,21 @@ from auralis_voicekit import AuralisVoiceKit, VoiceKitConfig, read_audio_as_chun
 from auralis_voicekit.exceptions import AuralisError
 
 
+def _default_model(backend: str, model: str | None) -> str:
+    if model:
+        return model
+    if backend == "whisper":
+        return "base"
+    if backend == "openai":
+        return "gpt-4o-mini-transcribe"
+    return "auto"
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Transcribe a WAV or ffmpeg-supported audio file.")
     parser.add_argument("path", help="input audio path")
-    parser.add_argument("--backend", default="openai", help="transcription backend")
-    parser.add_argument("--model", default="gpt-4o-mini-transcribe", help="transcription model")
+    parser.add_argument("--backend", default="null", help="transcription backend")
+    parser.add_argument("--model", default=None, help="transcription model")
     parser.add_argument("--language", default="es", help="language hint")
     parser.add_argument("--prompt", default=None, help="optional transcription prompt")
     parser.add_argument("--ffmpeg", default="ffmpeg", help="ffmpeg executable for MP3 input")
@@ -20,7 +30,7 @@ def main() -> int:
 
     config = VoiceKitConfig(
         transcription_backend=args.backend,
-        transcription_model=args.model,
+        transcription_model=_default_model(args.backend, args.model),
         transcription_prompt=args.prompt,
         language=args.language,
     )

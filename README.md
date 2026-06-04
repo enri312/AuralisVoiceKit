@@ -10,7 +10,7 @@ AuralisVoiceKit es una libreria moderna de voz para Python, pensada primero para
 
 El objetivo principal es evitar que la captura de microfono dependa obligatoriamente de PyAudio o de wheels que tardan en llegar a las versiones nuevas de Python. El paquete base debe poder instalarse de forma liviana, sin compiladores y sin dependencias nativas obligatorias. Para MP3 y formatos comprimidos, AuralisVoiceKit usa `ffmpeg` como herramienta externa opcional.
 
-> Estado actual: alpha tecnica. El repositorio ya define el core, los contratos de backends, captura real inicial, flujo WAV offline, transcripcion inicial por API, sesiones de voz iniciales, una CLI de diagnostico, documentacion estatica y pruebas basicas. Los backends reales se iran agregando por etapas.
+> Estado actual: alpha tecnica. El repositorio ya define el core, los contratos de backends, captura real inicial, flujo WAV offline, transcripcion inicial por API y local opcional, sesiones de voz iniciales, una CLI de diagnostico, documentacion estatica y pruebas basicas. Los backends reales se iran agregando por etapas.
 
 ## Problema que resuelve
 
@@ -53,6 +53,7 @@ Cuando se agreguen backends opcionales:
 ```powershell
 py -m pip install -e ".[sounddevice]"
 py -m pip install -e ".[openai]"
+py -m pip install -e ".[whisper]"
 ```
 
 Guias por sistema:
@@ -77,7 +78,7 @@ result = kit.transcribe(chunk)
 print(result.text)
 ```
 
-Por defecto se usa un backend `null`. Esto permite probar la integracion sin hardware, sin permisos de microfono y sin dependencias nativas.
+Por defecto se usa un backend `null`. Esto permite probar la integracion sin hardware, sin permisos de microfono, sin credenciales y sin dependencias nativas. En la CLI, `auralis transcribe` y `auralis transcribe-segments` tambien arrancan con `null`; usa `--backend whisper` o `--backend openai` cuando quieras un transcriptor real.
 
 ## Captura real con sounddevice
 
@@ -191,6 +192,12 @@ result = kit.transcribe(chunk)
 print(result.text)
 ```
 
+Segun la documentacion oficial de OpenAI para speech-to-text, los modelos soportados incluyen `gpt-4o-transcribe`, `gpt-4o-mini-transcribe` y `whisper-1`, con limite de carga de archivo de 25 MB:
+
+```text
+https://platform.openai.com/docs/guides/speech-to-text
+```
+
 Para MP3, instala `ffmpeg` y asegurate de que `ffmpeg` este disponible en `PATH`. `auralis doctor` reporta si lo encuentra.
 
 En Windows, la libreria tambien detecta una instalacion portable en:
@@ -201,10 +208,43 @@ En Windows, la libreria tambien detecta una instalacion portable en:
 
 Tambien puedes apuntar a un ejecutable concreto con `AURALIS_FFMPEG_PATH` o con `--ffmpeg` en la CLI.
 
-Segun la documentacion oficial de OpenAI para speech-to-text, los modelos soportados incluyen `gpt-4o-transcribe`, `gpt-4o-mini-transcribe` y `whisper-1`, con limite de carga de archivo de 25 MB:
+## Transcripcion local con Whisper
+
+El backend `whisper` es opcional y usa `faster-whisper` para transcribir en la maquina local. No requiere API key, pero puede descargar modelos en el primer uso y agrega dependencias de ML fuera del core.
+
+```powershell
+py -m pip install -e ".[whisper]"
+auralis transcribe sample.wav --backend whisper --model base --language es
+auralis transcribe sample.mp3 --backend whisper --model base --normalize --json
+auralis transcribe-segments sample.mp3 --backend whisper --model small --normalize --json
+```
+
+Tambien se puede usar desde Python:
+
+```python
+from auralis_voicekit import AuralisVoiceKit, VoiceKitConfig, read_audio_as_chunk
+
+chunk = read_audio_as_chunk("sample.mp3")
+kit = AuralisVoiceKit(
+    VoiceKitConfig(
+        transcription_backend="whisper",
+        transcription_model="base",
+        transcription_device="auto",
+        transcription_compute_type="default",
+        transcription_beam_size=5,
+        transcription_vad_filter=False,
+        language="es",
+    )
+)
+
+result = kit.transcribe(chunk)
+print(result.text)
+```
+
+Referencia del backend local:
 
 ```text
-https://platform.openai.com/docs/guides/speech-to-text
+https://github.com/SYSTRAN/faster-whisper
 ```
 
 ## Loop de asistente
@@ -237,6 +277,7 @@ Desde CLI se puede segmentar y transcribir un WAV:
 ```powershell
 auralis transcribe-segments sample.wav --backend openai --language es --json
 auralis transcribe-segments sample.mp3 --backend openai --language es --json
+auralis transcribe-segments sample.mp3 --backend whisper --model base --language es --json
 auralis transcribe-segments sample.mp3 --backend openai --normalize --json
 auralis transcribe-segments sample.wav --backend null --json
 ```
@@ -277,6 +318,7 @@ auralis_voicekit
     null          Backend seguro para pruebas
     wav_file      Backend offline para WAV PCM16
     sounddevice   Backend opcional de captura real
+    whisper       Backend opcional de transcripcion local
     openai        Backend opcional de transcripcion por API
     registry      Registro de backends
   audio           Utilidades PCM16, calibracion y segmentacion
@@ -294,7 +336,7 @@ auralis_voicekit
 | `sounddevice` | inicial funcional | captura moderna multiplataforma |
 | `wasapi` | pendiente | ruta principal optimizada para Windows |
 | `pyaudio` | pendiente | compatibilidad con proyectos existentes |
-| `whisper` | pendiente | transcripcion local |
+| `whisper` | inicial funcional | transcripcion local opcional con faster-whisper |
 | `openai` | inicial funcional | transcripcion por API |
 
 ## Uso con asistentes
@@ -318,11 +360,11 @@ ROADMAP.md
 
 Prioridad inmediata:
 
-1. Preparar backend local de transcripcion como extra opcional.
-2. Mejorar `VoiceSession` con cancelacion y cierre ordenado para sesiones largas.
-3. Mejorar `auralis doctor` con una prueba corta de apertura de dispositivo bajo demanda.
-4. Ampliar pruebas reales de MP3/formatos comprimidos con `ffmpeg` en Windows, Ubuntu y macOS.
-5. Explorar soporte FLAC sin cargar el core con dependencias nativas.
+1. Mejorar `VoiceSession` con cancelacion y cierre ordenado para sesiones largas.
+2. Mejorar `auralis doctor` con una prueba corta de apertura de dispositivo bajo demanda.
+3. Ampliar pruebas reales de MP3/formatos comprimidos con `ffmpeg` en Windows, Ubuntu y macOS.
+4. Explorar soporte FLAC sin cargar el core con dependencias nativas.
+5. Preparar documentacion de publicacion para PyPI.
 
 ## Documentacion
 

@@ -15,6 +15,16 @@ from auralis_voicekit import (
 from auralis_voicekit.exceptions import AuralisError
 
 
+def _default_model(backend: str, model: str | None) -> str:
+    if model:
+        return model
+    if backend == "whisper":
+        return "base"
+    if backend == "openai":
+        return "gpt-4o-mini-transcribe"
+    return "auto"
+
+
 def _print_turn(turn: VoiceTurn) -> None:
     text = turn.text or "<empty>"
     print(f"[{turn.index}] {turn.duration_seconds:.2f}s rms={turn.rms:.4f}: {text}")
@@ -27,8 +37,8 @@ def main() -> int:
     parser.add_argument("--seconds", type=float, default=5.0, help="recording duration")
     parser.add_argument("--device", default=None, help="input device id, name or 'default'")
     parser.add_argument("--capture-backend", default="sounddevice", help="capture backend")
-    parser.add_argument("--transcription-backend", default="openai", help="transcription backend")
-    parser.add_argument("--model", default="gpt-4o-mini-transcribe", help="transcription model")
+    parser.add_argument("--transcription-backend", default="null", help="transcription backend")
+    parser.add_argument("--model", default=None, help="transcription model")
     parser.add_argument("--language", default="es", help="language hint")
     parser.add_argument("--chunk-ms", type=int, default=50, help="chunk size used for WAV input")
     parser.add_argument("--ffmpeg", default="ffmpeg", help="ffmpeg executable for MP3 input")
@@ -42,7 +52,7 @@ def main() -> int:
         VoiceKitConfig(
             capture_backend=args.capture_backend,
             transcription_backend=args.transcription_backend,
-            transcription_model=args.model,
+            transcription_model=_default_model(args.transcription_backend, args.model),
             language=args.language,
             input_device=args.device,
         )

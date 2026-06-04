@@ -33,7 +33,7 @@ La meta no es competir con todos los motores de voz a la vez. La meta es constru
 | Versionado | Politica inicial |
 | Compatibilidad Windows/Linux/macOS | Documentacion inicial |
 | Diagnostico doctor | Inicial estructurado |
-| Transcripcion real | Inicial por API |
+| Transcripcion real | Inicial por API y local opcional |
 | Salida de voz real | Pendiente |
 | CI multiplataforma | Inicial |
 | Publicacion en PyPI | Pendiente |
@@ -106,7 +106,7 @@ Criterio de salida:
 Entregables:
 
 - Contrato estable para transcriptores.
-- Backend local inicial, preferiblemente Whisper o faster-whisper como extra opcional.
+- Backend local inicial con Whisper/faster-whisper como extra opcional. Estado: inicial con `whisper`.
 - Backend por API como extra opcional. Estado: inicial con `openai`.
 - Resultado con texto, idioma, confianza aproximada y metadatos.
 - Eventos `transcription.started` y `transcription.completed`.
@@ -230,7 +230,7 @@ Criterio de salida:
 - Backend WASAPI dedicado.
 - Backend PyAudio solo como compatibilidad opcional.
 - Soporte para archivos WAV/FLAC como entrada. WAV PCM16 inicial completado.
-- Adaptadores para modelos locales.
+- Adaptadores para modelos locales. Whisper inicial completado.
 - Adaptadores para APIs externas. OpenAI inicial completado.
 - Decodificacion MP3 mediante `ffmpeg` externo opcional. Estado: inicial.
 - Normalizacion de volumen PCM16. Estado: inicial.
@@ -242,8 +242,8 @@ Criterio de salida:
 
 ## Prioridad inmediata
 
-1. Preparar backend local de transcripcion como extra opcional.
-2. Mejorar `VoiceSession` con cancelacion y cierre ordenado para sesiones largas.
-3. Mejorar doctor para intentar una prueba corta de apertura de dispositivo cuando el usuario lo pida.
-4. Ampliar pruebas reales de MP3/formatos comprimidos con `ffmpeg` en Windows, Ubuntu y macOS.
-5. Explorar soporte FLAC como extra opcional o via libreria estandar si aparece una ruta liviana.
+1. Mejorar `VoiceSession` con cancelacion y cierre ordenado para sesiones largas.
+2. Mejorar doctor para intentar una prueba corta de apertura de dispositivo cuando el usuario lo pida.
+3. Ampliar pruebas reales de MP3/formatos comprimidos con `ffmpeg` en Windows, Ubuntu y macOS.
+4. Explorar soporte FLAC como extra opcional o via libreria estandar si aparece una ruta liviana.
+5. Preparar documentacion de publicacion para PyPI.

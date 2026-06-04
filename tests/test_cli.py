@@ -132,6 +132,21 @@ class CliTests(unittest.TestCase):
         self.assertEqual(payload["source"], "null")
         self.assertEqual(payload["text"], "")
 
+    def test_transcribe_command_defaults_to_null_backend(self):
+        audio_format = AudioFormat(sample_rate=8000, channels=1, sample_width=2)
+        output = io.StringIO()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = os.path.join(tmpdir, "sample.wav")
+            write_wav(path, [AudioChunk(data=b"\x00\x00" * 8, format=audio_format)])
+            with contextlib.redirect_stdout(output):
+                exit_code = main(["transcribe", path, "--json"])
+
+        payload = json.loads(output.getvalue())
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(payload["source"], "null")
+        self.assertEqual(payload["text"], "")
+
     def test_transcribe_command_reports_wav_errors(self):
         output = io.StringIO()
 
@@ -212,6 +227,32 @@ class CliTests(unittest.TestCase):
         self.assertEqual(len(payload["turns"]), 1)
         self.assertEqual(payload["turns"][0]["source"], "null")
         self.assertEqual(payload["turns"][0]["metadata"]["segment_index"], 1)
+
+    def test_transcribe_segments_command_defaults_to_null_backend(self):
+        output = io.StringIO()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = os.path.join(tmpdir, "sample.wav")
+            write_wav(path, [_constant_chunk(6000), _constant_chunk(6000), _constant_chunk(0)])
+            with contextlib.redirect_stdout(output):
+                exit_code = main(
+                    [
+                        "transcribe-segments",
+                        path,
+                        "--chunk-ms",
+                        "100",
+                        "--min-voice-ms",
+                        "100",
+                        "--pre-speech-ms",
+                        "0",
+                        "--json",
+                    ]
+                )
+
+        payload = json.loads(output.getvalue())
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(len(payload["turns"]), 1)
+        self.assertEqual(payload["turns"][0]["source"], "null")
 
     def test_transcribe_segments_command_can_normalize_turns(self):
         output = io.StringIO()

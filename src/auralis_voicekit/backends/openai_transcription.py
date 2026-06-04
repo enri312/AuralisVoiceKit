@@ -45,6 +45,12 @@ def _response_metadata(response: object) -> dict[str, Any]:
     return {}
 
 
+def _openai_model_name(config: VoiceKitConfig) -> str:
+    if config.transcription_model in {"auto", "default", ""}:
+        return "gpt-4o-mini-transcribe"
+    return config.transcription_model
+
+
 class OpenAITranscriptionBackend:
     name = "openai"
 
@@ -67,6 +73,7 @@ class OpenAITranscriptionBackend:
 
     def transcribe(self, chunk: AudioChunk, config: VoiceKitConfig) -> TranscriptResult:
         OpenAI = _load_openai_client_class()
+        model_name = _openai_model_name(config)
         wav_bytes = chunk_to_wav_bytes(chunk)
         if len(wav_bytes) > OPENAI_AUDIO_UPLOAD_LIMIT_BYTES:
             raise TranscriptionError("OpenAI transcription audio must be 25 MB or smaller")
@@ -74,7 +81,7 @@ class OpenAITranscriptionBackend:
         audio_file = io.BytesIO(wav_bytes)
         audio_file.name = "audio.wav"
         request: dict[str, Any] = {
-            "model": config.transcription_model,
+            "model": model_name,
             "file": audio_file,
             "response_format": config.transcription_response_format,
         }
@@ -92,7 +99,7 @@ class OpenAITranscriptionBackend:
         metadata = _response_metadata(response)
         metadata.update(
             {
-                "model": config.transcription_model,
+                "model": model_name,
                 "response_format": config.transcription_response_format,
                 "duration_seconds": chunk.duration_seconds,
             }

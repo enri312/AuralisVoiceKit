@@ -323,6 +323,7 @@ py -m pip install -e .</code></pre>
         <p>El core no trae dependencias externas. Los backends reales se instalan como extras opcionales.</p>
         <pre><code>py -m pip install -e ".[sounddevice]"</code></pre>
         <pre><code>py -m pip install -e ".[openai]"</code></pre>
+        <pre><code>py -m pip install -e ".[whisper]"</code></pre>
       </section>
 
       <section id="inicio">
@@ -370,7 +371,32 @@ kit = AuralisVoiceKit(
 
       <section id="transcripcion">
         <h2>Transcripcion</h2>
-        <p>La primera ruta real de transcripcion es el backend opcional <code>openai</code>. El paquete base sigue sin dependencias externas; el cliente se instala solo cuando se necesita este backend. WAV se lee directo y MP3 se decodifica con <code>ffmpeg</code> cuando esta disponible.</p>
+        <p>El backend por defecto es <code>null</code>. Las rutas reales de transcripcion son explicitas: <code>whisper</code> para transcripcion local y <code>openai</code> para transcripcion por API. El paquete base sigue sin dependencias externas; WAV se lee directo y MP3 se decodifica con <code>ffmpeg</code> cuando esta disponible.</p>
+        <h3>Whisper local</h3>
+        <p>El backend <code>whisper</code> usa <code>faster-whisper</code>. No requiere API key, pero puede descargar modelos en el primer uso y agrega dependencias de ML fuera del core.</p>
+        <pre><code>py -m pip install -e ".[whisper]"
+auralis transcribe sample.wav --backend whisper --model base --language es
+auralis transcribe sample.mp3 --backend whisper --model base --normalize --json
+auralis transcribe-segments sample.mp3 --backend whisper --model small --normalize --json</code></pre>
+        <pre><code>from auralis_voicekit import AuralisVoiceKit, VoiceKitConfig, read_audio_as_chunk
+
+chunk = read_audio_as_chunk("sample.mp3")
+kit = AuralisVoiceKit(
+    VoiceKitConfig(
+        transcription_backend="whisper",
+        transcription_model="base",
+        transcription_device="auto",
+        transcription_compute_type="default",
+        transcription_beam_size=5,
+        transcription_vad_filter=False,
+        language="es",
+    )
+)
+
+result = kit.transcribe(chunk)
+print(result.text)</code></pre>
+        <h3>OpenAI por API</h3>
+        <p>El backend opcional <code>openai</code> usa el cliente oficial de OpenAI. Requiere <code>OPENAI_API_KEY</code> y no agrega dependencias nativas de audio al paquete base.</p>
         <pre><code>py -m pip install -e ".[openai]"
 $env:OPENAI_API_KEY="tu_api_key"
 auralis transcribe sample.wav --backend openai --language es
@@ -392,7 +418,7 @@ kit = AuralisVoiceKit(
 
 result = kit.transcribe(chunk)
 print(result.text)</code></pre>
-        <p>El backend convierte el chunk PCM16 a WAV en memoria, envia el archivo al cliente oficial y devuelve un <code>TranscriptResult</code> con texto, idioma, fuente y metadatos. Referencia: <a href="https://platform.openai.com/docs/guides/speech-to-text">OpenAI speech-to-text</a>.</p>
+        <p>Ambos backends convierten el audio a un flujo compatible y devuelven un <code>TranscriptResult</code> con texto, idioma, fuente y metadatos. Referencias: <a href="https://github.com/SYSTRAN/faster-whisper">faster-whisper</a> y <a href="https://platform.openai.com/docs/guides/speech-to-text">OpenAI speech-to-text</a>.</p>
       </section>
 
       <section id="sesiones">
@@ -402,8 +428,8 @@ print(result.text)</code></pre>
 
 kit = AuralisVoiceKit(
     VoiceKitConfig(
-        transcription_backend="openai",
-        transcription_model="gpt-4o-mini-transcribe",
+                transcription_backend="whisper",
+                transcription_model="base",
         language="es",
     )
 )
@@ -412,11 +438,12 @@ session = VoiceSession(kit)
 for turn in session.transcribe_file("sample.mp3"):
     print(turn.index, turn.text)</code></pre>
         <p>La CLI tambien puede segmentar y transcribir audio por turnos.</p>
-        <pre><code>auralis transcribe-segments sample.wav --backend openai --language es --json
+        <pre><code>auralis transcribe-segments sample.wav --backend whisper --model base --language es --json
+auralis transcribe-segments sample.wav --backend openai --language es --json
 auralis transcribe-segments sample.mp3 --backend openai --language es --json
 auralis transcribe-segments sample.mp3 --backend openai --normalize --json
 auralis transcribe-segments sample.wav --backend null --json
-py examples\assistant_loop.py --file sample.mp3 --transcription-backend openai</code></pre>
+py examples\assistant_loop.py --file sample.mp3 --transcription-backend whisper --model base</code></pre>
       </section>
 
       <section id="diagnostico">
@@ -447,6 +474,7 @@ auralis doctor --json</code></pre>
     null.py          Backend seguro para pruebas
     wav_file.py      Backend offline WAV PCM16
     sounddevice.py   Backend opcional funcional
+    whisper_transcription.py  Backend opcional de transcripcion local
     openai_transcription.py  Backend opcional de transcripcion por API
     registry.py      Registro de factories</code></pre>
       </section>
@@ -522,8 +550,8 @@ live_turns = session.listen_once(5.0)</code></pre>
             </tr>
             <tr>
               <td><code>whisper</code></td>
-              <td>Pendiente</td>
-              <td>Transcripcion local.</td>
+              <td>Inicial funcional</td>
+              <td>Transcripcion local opcional con faster-whisper.</td>
             </tr>
             <tr>
               <td><code>openai</code></td>
@@ -569,7 +597,7 @@ live_turns = session.listen_once(5.0)</code></pre>
             <tr>
               <td>3</td>
               <td>Transcripcion local y por API mediante extras opcionales.</td>
-              <td>Inicial por API</td>
+              <td>Inicial por API y local opcional</td>
             </tr>
             <tr>
               <td>4</td>

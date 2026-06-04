@@ -237,6 +237,10 @@ def run_doctor(
             "openai",
             "Install with: pip install auralisvoicekit[openai]",
         ),
+        _check_optional_dependency(
+            "faster_whisper",
+            "Install with: pip install auralisvoicekit[whisper]",
+        ),
         _check_optional_executable(
             "ffmpeg",
             "Install ffmpeg to decode MP3 and other compressed audio formats.",

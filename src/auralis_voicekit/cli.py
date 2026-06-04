@@ -24,6 +24,16 @@ from .models import AudioDevice
 from .session import VoiceSession, VoiceSessionConfig
 
 
+def _default_transcription_model(backend_name: str, model: str | None) -> str:
+    if model:
+        return model
+    if backend_name == "whisper":
+        return "base"
+    if backend_name == "openai":
+        return "gpt-4o-mini-transcribe"
+    return "auto"
+
+
 def _print_device(device: AudioDevice) -> None:
     marker = " default" if device.is_default else ""
     channels = f", channels={device.channels}" if device.channels is not None else ""
@@ -122,11 +132,15 @@ def _transcribe_audio(
     path: str,
     *,
     backend_name: str,
-    model: str,
+    model: str | None,
     language: str,
     prompt: str | None,
     response_format: str,
     ffmpeg_executable: str,
+    device: str,
+    compute_type: str,
+    beam_size: int,
+    vad_filter: bool,
     normalize: bool,
     target_peak: float,
     max_gain: float,
@@ -135,10 +149,14 @@ def _transcribe_audio(
     try:
         config = VoiceKitConfig(
             transcription_backend=backend_name,
-            transcription_model=model,
+            transcription_model=_default_transcription_model(backend_name, model),
             language=language,
             transcription_prompt=prompt,
             transcription_response_format=response_format,
+            transcription_device=device,
+            transcription_compute_type=compute_type,
+            transcription_beam_size=beam_size,
+            transcription_vad_filter=vad_filter,
         )
         chunk = read_audio_as_chunk(
             path,
@@ -181,7 +199,7 @@ def _transcribe_audio_segments(
     path: str,
     *,
     backend_name: str,
-    model: str,
+    model: str | None,
     language: str,
     prompt: str | None,
     response_format: str,
@@ -192,6 +210,10 @@ def _transcribe_audio_segments(
     pre_speech_ms: int,
     max_turns: int | None,
     ffmpeg_executable: str,
+    device: str,
+    compute_type: str,
+    beam_size: int,
+    vad_filter: bool,
     normalize: bool,
     target_peak: float,
     max_gain: float,
@@ -200,10 +222,14 @@ def _transcribe_audio_segments(
     try:
         kit_config = VoiceKitConfig(
             transcription_backend=backend_name,
-            transcription_model=model,
+            transcription_model=_default_transcription_model(backend_name, model),
             language=language,
             transcription_prompt=prompt,
             transcription_response_format=response_format,
+            transcription_device=device,
+            transcription_compute_type=compute_type,
+            transcription_beam_size=beam_size,
+            transcription_vad_filter=vad_filter,
         )
         session_config = VoiceSessionConfig(
             chunk_duration_ms=chunk_duration_ms,
@@ -315,13 +341,12 @@ def main(argv: list[str] | None = None) -> int:
     transcribe_parser.add_argument("path", help="path to a WAV or ffmpeg-supported audio file")
     transcribe_parser.add_argument(
         "--backend",
-        default="openai",
-        help="transcription backend to use",
+        default="null",
+        help="transcription backend to use (null, whisper, openai)",
     )
     transcribe_parser.add_argument(
         "--model",
-        default="gpt-4o-mini-transcribe",
-        help="model used by API transcription backends",
+        help="transcription model; defaults to auto, base for whisper, or gpt-4o-mini-transcribe for openai",
     )
     transcribe_parser.add_argument("--language", default="es", help="audio language hint")
     transcribe_parser.add_argument("--prompt", help="optional transcription prompt")
@@ -331,6 +356,10 @@ def main(argv: list[str] | None = None) -> int:
         help="backend response format",
     )
     transcribe_parser.add_argument("--ffmpeg", default="ffmpeg", help="ffmpeg executable for MP3 input")
+    transcribe_parser.add_argument("--device", default="auto", help="local whisper device")
+    transcribe_parser.add_argument("--compute-type", default="default", help="local whisper compute type")
+    transcribe_parser.add_argument("--beam-size", type=int, default=5, help="local whisper beam size")
+    transcribe_parser.add_argument("--vad-filter", action="store_true", help="enable local whisper VAD filter")
     transcribe_parser.add_argument("--normalize", action="store_true", help="normalize audio before transcribing")
     transcribe_parser.add_argument("--target-peak", type=float, default=0.95, help="target normalized peak")
     transcribe_parser.add_argument("--max-gain", type=float, default=8.0, help="maximum gain multiplier")
@@ -342,13 +371,12 @@ def main(argv: list[str] | None = None) -> int:
     segments_parser.add_argument("path", help="path to a WAV or ffmpeg-supported audio file")
     segments_parser.add_argument(
         "--backend",
-        default="openai",
-        help="transcription backend to use",
+        default="null",
+        help="transcription backend to use (null, whisper, openai)",
     )
     segments_parser.add_argument(
         "--model",
-        default="gpt-4o-mini-transcribe",
-        help="model used by API transcription backends",
+        help="transcription model; defaults to auto, base for whisper, or gpt-4o-mini-transcribe for openai",
     )
     segments_parser.add_argument("--language", default="es", help="audio language hint")
     segments_parser.add_argument("--prompt", help="optional transcription prompt")
@@ -384,6 +412,10 @@ def main(argv: list[str] | None = None) -> int:
     )
     segments_parser.add_argument("--max-turns", type=int, help="maximum turns to transcribe")
     segments_parser.add_argument("--ffmpeg", default="ffmpeg", help="ffmpeg executable for MP3 input")
+    segments_parser.add_argument("--device", default="auto", help="local whisper device")
+    segments_parser.add_argument("--compute-type", default="default", help="local whisper compute type")
+    segments_parser.add_argument("--beam-size", type=int, default=5, help="local whisper beam size")
+    segments_parser.add_argument("--vad-filter", action="store_true", help="enable local whisper VAD filter")
     segments_parser.add_argument("--normalize", action="store_true", help="normalize each segment before transcribing")
     segments_parser.add_argument("--target-peak", type=float, default=0.95, help="target normalized peak")
     segments_parser.add_argument("--max-gain", type=float, default=8.0, help="maximum gain multiplier")
@@ -423,6 +455,10 @@ def main(argv: list[str] | None = None) -> int:
             prompt=args.prompt,
             response_format=args.response_format,
             ffmpeg_executable=args.ffmpeg,
+            device=args.device,
+            compute_type=args.compute_type,
+            beam_size=args.beam_size,
+            vad_filter=args.vad_filter,
             normalize=args.normalize,
             target_peak=args.target_peak,
             max_gain=args.max_gain,
@@ -443,6 +479,10 @@ def main(argv: list[str] | None = None) -> int:
             pre_speech_ms=args.pre_speech_ms,
             max_turns=args.max_turns,
             ffmpeg_executable=args.ffmpeg,
+            device=args.device,
+            compute_type=args.compute_type,
+            beam_size=args.beam_size,
+            vad_filter=args.vad_filter,
             normalize=args.normalize,
             target_peak=args.target_peak,
             max_gain=args.max_gain,

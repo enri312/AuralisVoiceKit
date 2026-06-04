@@ -34,9 +34,13 @@ class VoiceKitConfig:
     language: str = "es"
     capture_backend: str = "null"
     transcription_backend: str = "null"
-    transcription_model: str = "gpt-4o-mini-transcribe"
+    transcription_model: str = "auto"
     transcription_prompt: str | None = None
     transcription_response_format: str = "json"
+    transcription_device: str = "auto"
+    transcription_compute_type: str = "default"
+    transcription_beam_size: int = 5
+    transcription_vad_filter: bool = False
     output_backend: str = "null"
     input_device: str | int | None = None
     output_device: str | int | None = None
@@ -56,6 +60,8 @@ class VoiceKitConfig:
             raise ValueError("sample_width must be greater than zero")
         if self.capture_block_ms <= 0:
             raise ValueError("capture_block_ms must be greater than zero")
+        if self.transcription_beam_size <= 0:
+            raise ValueError("transcription_beam_size must be greater than zero")
 
     @classmethod
     def from_env(cls, prefix: str = "AURALIS_") -> "VoiceKitConfig":
@@ -68,9 +74,13 @@ class VoiceKitConfig:
             language=os.getenv(prefix + "LANGUAGE", "es"),
             capture_backend=os.getenv(prefix + "CAPTURE_BACKEND", "null"),
             transcription_backend=os.getenv(prefix + "TRANSCRIPTION_BACKEND", "null"),
-            transcription_model=os.getenv(prefix + "TRANSCRIPTION_MODEL", "gpt-4o-mini-transcribe"),
+            transcription_model=os.getenv(prefix + "TRANSCRIPTION_MODEL", "auto"),
             transcription_prompt=os.getenv(prefix + "TRANSCRIPTION_PROMPT") or None,
             transcription_response_format=os.getenv(prefix + "TRANSCRIPTION_RESPONSE_FORMAT", "json"),
+            transcription_device=os.getenv(prefix + "TRANSCRIPTION_DEVICE", "auto"),
+            transcription_compute_type=os.getenv(prefix + "TRANSCRIPTION_COMPUTE_TYPE", "default"),
+            transcription_beam_size=_env_int(os.getenv(prefix + "TRANSCRIPTION_BEAM_SIZE"), 5),
+            transcription_vad_filter=_env_bool(os.getenv(prefix + "TRANSCRIPTION_VAD_FILTER"), False),
             output_backend=os.getenv(prefix + "OUTPUT_BACKEND", "null"),
             input_device=os.getenv(prefix + "INPUT_DEVICE") or None,
             output_device=os.getenv(prefix + "OUTPUT_DEVICE") or None,

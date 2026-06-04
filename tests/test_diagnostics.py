@@ -20,6 +20,7 @@ class DiagnosticsTests(unittest.TestCase):
         self.assertIn("checks", report.to_dict())
         self.assertTrue(any(check.name == "python" for check in report.checks))
         self.assertTrue(any(check.name == "dependency:openai" for check in report.checks))
+        self.assertTrue(any(check.name == "dependency:faster_whisper" for check in report.checks))
         self.assertTrue(any(check.name == "executable:ffmpeg" for check in report.checks))
         self.assertTrue(any(check.name == "devices:wav" for check in report.checks))
 

@@ -6,6 +6,22 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-06-04
+
+### Agregado
+
+- Backend opcional `whisper` para transcripcion local usando `faster-whisper`.
+- Extra `whisper` para instalar dependencias locales de ML sin afectar el paquete base.
+- Configuracion `transcription_device`, `transcription_compute_type`, `transcription_beam_size` y `transcription_vad_filter`.
+- Variables de entorno `AURALIS_TRANSCRIPTION_DEVICE`, `AURALIS_TRANSCRIPTION_COMPUTE_TYPE`, `AURALIS_TRANSCRIPTION_BEAM_SIZE` y `AURALIS_TRANSCRIPTION_VAD_FILTER`.
+- Flags `--device`, `--compute-type`, `--beam-size` y `--vad-filter` en `auralis transcribe` y `auralis transcribe-segments`.
+- Check de diagnostico para la dependencia opcional `faster-whisper`.
+
+### Cambiado
+
+- `auralis transcribe` y `auralis transcribe-segments` usan `null` como backend por defecto. OpenAI y Whisper ahora se eligen de forma explicita con `--backend openai` o `--backend whisper`.
+- `VoiceKitConfig.transcription_model` usa `auto` por defecto; cada backend real resuelve su modelo interno cuando se selecciona de forma explicita.
+
 ## [0.8.0] - 2026-06-04
 
 ### Agregado
