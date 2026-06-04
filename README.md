@@ -105,6 +105,7 @@ from auralis_voicekit import (
     VoiceActivityDetector,
     calibrate_noise_pcm16,
     is_silent_pcm16,
+    normalize_pcm16,
     peak_pcm16,
     rms_pcm16,
     write_wav,
@@ -113,6 +114,7 @@ from auralis_voicekit import (
 energy = rms_pcm16(chunk)
 peak = peak_pcm16(chunk)
 silent = is_silent_pcm16(chunk, threshold=0.01)
+normalized = normalize_pcm16(chunk, target_peak=0.95)
 write_wav("capture.wav", [chunk])
 ```
 
@@ -128,6 +130,8 @@ Ejemplo completo:
 
 ```powershell
 py examples\capture_voice_segments.py --calibrate-seconds 1 --record-seconds 5
+auralis normalize sample.mp3 normalized.wav --target-peak 0.95
+py examples\normalize_audio.py sample.mp3 normalized.wav
 ```
 
 ## Flujo offline con WAV
@@ -164,6 +168,7 @@ py -m pip install -e ".[openai]"
 $env:OPENAI_API_KEY="tu_api_key"
 auralis transcribe sample.wav --backend openai --language es
 auralis transcribe sample.mp3 --backend openai --language es
+auralis transcribe sample.mp3 --backend openai --normalize --target-peak 0.95
 auralis transcribe sample.wav --backend openai --model gpt-4o-transcribe --json
 py examples\transcribe_wav.py sample.mp3 --backend openai
 ```
@@ -232,6 +237,7 @@ Desde CLI se puede segmentar y transcribir un WAV:
 ```powershell
 auralis transcribe-segments sample.wav --backend openai --language es --json
 auralis transcribe-segments sample.mp3 --backend openai --language es --json
+auralis transcribe-segments sample.mp3 --backend openai --normalize --json
 auralis transcribe-segments sample.wav --backend null --json
 ```
 
@@ -312,10 +318,10 @@ ROADMAP.md
 
 Prioridad inmediata:
 
-1. Agregar normalizacion basica de volumen.
-2. Preparar backend local de transcripcion como extra opcional.
-3. Mejorar `VoiceSession` con cancelacion y cierre ordenado para sesiones largas.
-4. Mejorar `auralis doctor` con una prueba corta de apertura de dispositivo bajo demanda.
+1. Preparar backend local de transcripcion como extra opcional.
+2. Mejorar `VoiceSession` con cancelacion y cierre ordenado para sesiones largas.
+3. Mejorar `auralis doctor` con una prueba corta de apertura de dispositivo bajo demanda.
+4. Ampliar pruebas reales de MP3/formatos comprimidos con `ffmpeg` en Windows, Ubuntu y macOS.
 5. Explorar soporte FLAC sin cargar el core con dependencias nativas.
 
 ## Documentacion

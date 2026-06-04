@@ -8,6 +8,7 @@ import unittest
 from unittest.mock import patch
 
 from auralis_voicekit import AudioChunk, AudioFormat, __version__, write_wav
+from auralis_voicekit.audio import peak_pcm16, read_wav_as_chunk
 from auralis_voicekit.cli import main
 
 
@@ -89,6 +90,33 @@ class CliTests(unittest.TestCase):
         self.assertIn("Sample rate: 8000", output.getvalue())
         self.assertIn("Encoding: pcm16", output.getvalue())
 
+    def test_normalize_command_writes_wav(self):
+        output = io.StringIO()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            input_path = os.path.join(tmpdir, "input.wav")
+            output_path = os.path.join(tmpdir, "output.wav")
+            write_wav(input_path, [_constant_chunk(1000, samples=100, sample_rate=1000)])
+            with contextlib.redirect_stdout(output):
+                exit_code = main(
+                    [
+                        "normalize",
+                        input_path,
+                        output_path,
+                        "--target-peak",
+                        "0.5",
+                        "--max-gain",
+                        "100",
+                        "--json",
+                    ]
+                )
+            normalized = read_wav_as_chunk(output_path)
+
+        payload = json.loads(output.getvalue())
+        self.assertEqual(exit_code, 0)
+        self.assertAlmostEqual(peak_pcm16(normalized), 0.5, places=3)
+        self.assertGreater(payload["gain"], 1.0)
+
     def test_transcribe_command_can_use_null_backend(self):
         audio_format = AudioFormat(sample_rate=8000, channels=1, sample_width=2)
         output = io.StringIO()
@@ -130,6 +158,32 @@ class CliTests(unittest.TestCase):
         self.assertEqual(payload["source"], "null")
         self.assertEqual(payload["metadata"]["duration_seconds"], 0.0005)
 
+    def test_transcribe_command_can_normalize_before_transcribing(self):
+        output = io.StringIO()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = os.path.join(tmpdir, "sample.wav")
+            write_wav(path, [_constant_chunk(1000, samples=100, sample_rate=1000)])
+            with contextlib.redirect_stdout(output):
+                exit_code = main(
+                    [
+                        "transcribe",
+                        path,
+                        "--backend",
+                        "null",
+                        "--normalize",
+                        "--target-peak",
+                        "0.5",
+                        "--max-gain",
+                        "100",
+                        "--json",
+                    ]
+                )
+
+        payload = json.loads(output.getvalue())
+        self.assertEqual(exit_code, 0)
+        self.assertIn("normalization_gain", payload["metadata"])
+
     def test_transcribe_segments_command_can_use_null_backend(self):
         output = io.StringIO()
 
@@ -158,6 +212,38 @@ class CliTests(unittest.TestCase):
         self.assertEqual(len(payload["turns"]), 1)
         self.assertEqual(payload["turns"][0]["source"], "null")
         self.assertEqual(payload["turns"][0]["metadata"]["segment_index"], 1)
+
+    def test_transcribe_segments_command_can_normalize_turns(self):
+        output = io.StringIO()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = os.path.join(tmpdir, "sample.wav")
+            write_wav(path, [_constant_chunk(1000), _constant_chunk(1000), _constant_chunk(0)])
+            with contextlib.redirect_stdout(output):
+                exit_code = main(
+                    [
+                        "transcribe-segments",
+                        path,
+                        "--backend",
+                        "null",
+                        "--chunk-ms",
+                        "100",
+                        "--min-voice-ms",
+                        "100",
+                        "--pre-speech-ms",
+                        "0",
+                        "--normalize",
+                        "--target-peak",
+                        "0.5",
+                        "--max-gain",
+                        "100",
+                        "--json",
+                    ]
+                )
+
+        payload = json.loads(output.getvalue())
+        self.assertEqual(exit_code, 0)
+        self.assertIn("normalization_gain", payload["turns"][0]["metadata"])
 
     def test_transcribe_segments_command_accepts_mp3_with_ffmpeg_decoder(self):
         output = io.StringIO()

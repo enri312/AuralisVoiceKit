@@ -18,6 +18,8 @@ from .models import AudioChunk, AudioEncoding, AudioFormat
 
 
 PCM16_MAX = 32768.0
+PCM16_MIN_INT = -32768
+PCM16_MAX_INT = 32767
 DEFAULT_DECODE_SAMPLE_RATE = 16_000
 DEFAULT_DECODE_CHANNELS = 1
 
@@ -121,6 +123,132 @@ def peak_pcm16(chunk: AudioChunk) -> float:
     for sample in _pcm16_samples(chunk):
         peak = max(peak, abs(sample))
     return min(1.0, peak / PCM16_MAX)
+
+
+def _clamp_pcm16(value: float) -> int:
+    return max(PCM16_MIN_INT, min(PCM16_MAX_INT, int(round(value))))
+
+
+def apply_gain_pcm16(chunk: AudioChunk, gain: float) -> AudioChunk:
+    """Apply gain to a PCM16 chunk with clipping protection."""
+
+    if chunk.format.encoding is not AudioEncoding.PCM16 or chunk.format.sample_width != 2:
+        raise ValueError("Only PCM16 chunks are supported")
+    if gain < 0:
+        raise ValueError("gain must be greater than or equal to zero")
+    if not chunk.data:
+        return AudioChunk(data=b"", format=chunk.format, timestamp=chunk.timestamp, metadata=dict(chunk.metadata))
+
+    usable = len(chunk.data) - (len(chunk.data) % 2)
+    output = bytearray()
+    for sample in struct.iter_unpack("<h", chunk.data[:usable]):
+        output.extend(struct.pack("<h", _clamp_pcm16(sample[0] * gain)))
+    if usable < len(chunk.data):
+        output.extend(chunk.data[usable:])
+
+    metadata = dict(chunk.metadata)
+    metadata["gain"] = gain
+    return AudioChunk(
+        data=bytes(output),
+        format=chunk.format,
+        timestamp=chunk.timestamp,
+        metadata=metadata,
+    )
+
+
+def normalize_pcm16(
+    chunk: AudioChunk,
+    *,
+    target_peak: float = 0.95,
+    max_gain: float = 8.0,
+) -> AudioChunk:
+    """Normalize a PCM16 chunk to a target peak without exceeding max_gain."""
+
+    if target_peak <= 0 or target_peak > 1:
+        raise ValueError("target_peak must be greater than zero and less than or equal to one")
+    if max_gain <= 0:
+        raise ValueError("max_gain must be greater than zero")
+
+    input_peak = peak_pcm16(chunk)
+    if input_peak == 0:
+        metadata = dict(chunk.metadata)
+        metadata.update(
+            {
+                "normalization_gain": 1.0,
+                "normalization_input_peak": input_peak,
+                "normalization_target_peak": target_peak,
+            }
+        )
+        return AudioChunk(
+            data=chunk.data,
+            format=chunk.format,
+            timestamp=chunk.timestamp,
+            metadata=metadata,
+        )
+
+    gain = min(max_gain, target_peak / input_peak)
+    normalized = apply_gain_pcm16(chunk, gain)
+    metadata = dict(normalized.metadata)
+    metadata.pop("gain", None)
+    metadata.update(
+        {
+            "normalization_gain": gain,
+            "normalization_input_peak": input_peak,
+            "normalization_output_peak": peak_pcm16(normalized),
+            "normalization_target_peak": target_peak,
+        }
+    )
+    return AudioChunk(
+        data=normalized.data,
+        format=normalized.format,
+        timestamp=normalized.timestamp,
+        metadata=metadata,
+    )
+
+
+def normalize_chunks_pcm16(
+    chunks: Iterable[AudioChunk],
+    *,
+    target_peak: float = 0.95,
+    max_gain: float = 8.0,
+) -> list[AudioChunk]:
+    """Normalize several PCM16 chunks with one shared gain value."""
+
+    chunk_list = list(chunks)
+    if not chunk_list:
+        return []
+    if target_peak <= 0 or target_peak > 1:
+        raise ValueError("target_peak must be greater than zero and less than or equal to one")
+    if max_gain <= 0:
+        raise ValueError("max_gain must be greater than zero")
+
+    input_peak = max(peak_pcm16(chunk) for chunk in chunk_list)
+    if input_peak == 0:
+        gain = 1.0
+    else:
+        gain = min(max_gain, target_peak / input_peak)
+
+    normalized_chunks = []
+    for chunk in chunk_list:
+        normalized = apply_gain_pcm16(chunk, gain)
+        metadata = dict(normalized.metadata)
+        metadata.pop("gain", None)
+        metadata.update(
+            {
+                "normalization_gain": gain,
+                "normalization_input_peak": input_peak,
+                "normalization_target_peak": target_peak,
+            }
+        )
+        normalized_chunks.append(
+            AudioChunk(
+                data=normalized.data,
+                format=normalized.format,
+                timestamp=normalized.timestamp,
+                metadata=metadata,
+            )
+        )
+    return normalized_chunks
 
 
 def is_silent_pcm16(chunk: AudioChunk, threshold: float = 0.01) -> bool:

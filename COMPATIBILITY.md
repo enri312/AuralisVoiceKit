@@ -133,6 +133,7 @@ python -m auralis_voicekit.cli doctor --wav sample.wav
 python -m auralis_voicekit.cli doctor --json
 python -m auralis_voicekit.cli devices --backend sounddevice
 python -m auralis_voicekit.cli backends
+python -m auralis_voicekit.cli normalize sample.mp3 normalized.wav
 python -m auralis_voicekit.cli transcribe sample.wav --backend null --json
 python -m auralis_voicekit.cli transcribe sample.mp3 --backend null --json
 python -m auralis_voicekit.cli transcribe-segments sample.wav --backend null --json

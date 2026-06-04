@@ -29,7 +29,7 @@ La meta no es competir con todos los motores de voz a la vez. La meta es constru
 | Backend `null` | Funcional |
 | Backend `wav` | Inicial funcional |
 | Backend `sounddevice` | Inicial funcional |
-| Utilidades de audio | Calibracion y segmentacion inicial |
+| Utilidades de audio | Normalizacion, calibracion y segmentacion inicial |
 | Versionado | Politica inicial |
 | Compatibilidad Windows/Linux/macOS | Documentacion inicial |
 | Diagnostico doctor | Inicial estructurado |
@@ -91,7 +91,7 @@ Entregables:
 - Calibracion de ruido ambiente. Estado: inicial.
 - Deteccion simple de silencio. Estado: inicial.
 - Segmentacion por voz/silencio. Estado: inicial.
-- Normalizacion basica de volumen.
+- Normalizacion basica de volumen. Estado: inicial.
 - Guardado opcional a WAV para depuracion. Estado: inicial.
 
 Criterio de salida:
@@ -233,6 +233,7 @@ Criterio de salida:
 - Adaptadores para modelos locales.
 - Adaptadores para APIs externas. OpenAI inicial completado.
 - Decodificacion MP3 mediante `ffmpeg` externo opcional. Estado: inicial.
+- Normalizacion de volumen PCM16. Estado: inicial.
 - Wake word externo.
 - Medidor de energia en tiempo real.
 - Grabacion temporal con borrado seguro.
@@ -241,8 +242,8 @@ Criterio de salida:
 
 ## Prioridad inmediata
 
-1. Agregar normalizacion basica de volumen.
-2. Preparar backend local de transcripcion como extra opcional.
-3. Mejorar `VoiceSession` con cancelacion y cierre ordenado para sesiones largas.
+1. Preparar backend local de transcripcion como extra opcional.
+2. Mejorar `VoiceSession` con cancelacion y cierre ordenado para sesiones largas.
+3. Mejorar doctor para intentar una prueba corta de apertura de dispositivo cuando el usuario lo pida.
 4. Ampliar pruebas reales de MP3/formatos comprimidos con `ffmpeg` en Windows, Ubuntu y macOS.
-5. Mejorar doctor para intentar una prueba corta de apertura de dispositivo cuando el usuario lo pida.
+5. Explorar soporte FLAC como extra opcional o via libreria estandar si aparece una ruta liviana.

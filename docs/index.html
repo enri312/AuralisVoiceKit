@@ -346,12 +346,17 @@ py -m auralis_voicekit.cli devices --backend sounddevice
 py examples\capture_microphone.py --seconds 3 --output capture.wav</code></pre>
         <h3>Segmentacion de voz</h3>
         <p>El core puede calibrar ruido y agrupar chunks en segmentos de voz sin instalar modelos ni NumPy.</p>
-        <pre><code>from auralis_voicekit import VoiceActivityDetector, calibrate_noise_pcm16
+        <pre><code>from auralis_voicekit import VoiceActivityDetector, calibrate_noise_pcm16, normalize_pcm16
 
 profile = calibrate_noise_pcm16(noise_chunks)
 detector = VoiceActivityDetector(noise_profile=profile)
-segments = detector.segment(recorded_chunks)</code></pre>
+segments = detector.segment(recorded_chunks)
+normalized = normalize_pcm16(recorded_chunks[0], target_peak=0.95)</code></pre>
         <pre><code>py examples\capture_voice_segments.py --calibrate-seconds 1 --record-seconds 5</code></pre>
+        <h3>Normalizacion</h3>
+        <p>La normalizacion PCM16 ajusta volumen con proteccion de clipping y puede generar un WAV listo para inspeccionar o transcribir.</p>
+        <pre><code>auralis normalize sample.mp3 normalized.wav --target-peak 0.95
+py examples\normalize_audio.py sample.mp3 normalized.wav</code></pre>
         <h3>WAV offline</h3>
         <p>Los archivos WAV PCM16 pueden inspeccionarse, leerse por chunks y usarse como backend de captura.</p>
         <pre><code>py -m auralis_voicekit.cli wav-info sample.wav
@@ -370,6 +375,7 @@ kit = AuralisVoiceKit(
 $env:OPENAI_API_KEY="tu_api_key"
 auralis transcribe sample.wav --backend openai --language es
 auralis transcribe sample.mp3 --backend openai --language es
+auralis transcribe sample.mp3 --backend openai --normalize --target-peak 0.95
 auralis transcribe sample.wav --backend openai --model gpt-4o-transcribe --json
 py examples\transcribe_wav.py sample.mp3 --backend openai</code></pre>
         <p>Desde Python, se lee un archivo de audio como <code>AudioChunk</code> y se llama a <code>kit.transcribe()</code>.</p>
@@ -408,6 +414,7 @@ for turn in session.transcribe_file("sample.mp3"):
         <p>La CLI tambien puede segmentar y transcribir audio por turnos.</p>
         <pre><code>auralis transcribe-segments sample.wav --backend openai --language es --json
 auralis transcribe-segments sample.mp3 --backend openai --language es --json
+auralis transcribe-segments sample.mp3 --backend openai --normalize --json
 auralis transcribe-segments sample.wav --backend null --json
 py examples\assistant_loop.py --file sample.mp3 --transcription-backend openai</code></pre>
       </section>
@@ -431,7 +438,7 @@ auralis doctor --json</code></pre>
   diagnostics.py     Reporte doctor estructurado
   models.py          AudioChunk, AudioFormat, TranscriptResult
   events.py          EventBus, VoiceEventType
-  audio.py           RMS, pico, silencio, calibracion, segmentos y WAV PCM16
+  audio.py           RMS, pico, silencio, normalizacion, segmentos y WAV PCM16
   kit.py             AuralisVoiceKit
   session.py         VoiceSession, VoiceSessionConfig, VoiceTurn
   ffmpeg             Decodificacion opcional de MP3 a PCM16

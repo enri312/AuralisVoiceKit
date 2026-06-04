@@ -85,6 +85,29 @@ class VoiceSessionTests(unittest.TestCase):
         read_audio.assert_called_once()
         self.assertEqual(read_audio.call_args.kwargs["ffmpeg_executable"], "ffmpeg")
 
+    def test_transcribe_chunks_can_normalize_segments(self):
+        chunks = [_constant_chunk(1000), _constant_chunk(1000), _constant_chunk(0)]
+        session = VoiceSession(
+            AuralisVoiceKit(),
+            VoiceSessionConfig(
+                voice_activity=VoiceActivityConfig(
+                    threshold=0.01,
+                    min_voice_ms=100,
+                    max_silence_ms=200,
+                    pre_speech_ms=0,
+                ),
+                normalize_segments=True,
+                normalization_target_peak=0.5,
+                normalization_max_gain=100.0,
+            ),
+        )
+
+        turns = session.transcribe_chunks(chunks)
+
+        self.assertEqual(len(turns), 1)
+        self.assertIn("normalization_gain", turns[0].transcript.metadata)
+        self.assertAlmostEqual(turns[0].transcript.metadata["normalization_target_peak"], 0.5)
+
     def test_max_turns_limits_transcription(self):
         chunks = [
             _constant_chunk(6000),

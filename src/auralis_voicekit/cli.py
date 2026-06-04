@@ -6,7 +6,15 @@ import argparse
 import json
 
 from ._version import __version__
-from .audio import VoiceActivityConfig, read_audio_as_chunk, read_wav_metadata
+from .audio import (
+    VoiceActivityConfig,
+    normalize_pcm16,
+    peak_pcm16,
+    read_audio_as_chunk,
+    read_wav_metadata,
+    rms_pcm16,
+    write_wav,
+)
 from .backends import create_default_registry
 from .config import VoiceKitConfig
 from .diagnostics import DiagnosticStatus, run_doctor
@@ -119,6 +127,9 @@ def _transcribe_audio(
     prompt: str | None,
     response_format: str,
     ffmpeg_executable: str,
+    normalize: bool,
+    target_peak: float,
+    max_gain: float,
     json_output: bool,
 ) -> int:
     try:
@@ -135,6 +146,8 @@ def _transcribe_audio(
             channels=config.channels,
             ffmpeg_executable=ffmpeg_executable,
         )
+        if normalize:
+            chunk = normalize_pcm16(chunk, target_peak=target_peak, max_gain=max_gain)
         result = AuralisVoiceKit(config=config).transcribe(chunk)
     except (AudioSourceError, BackendNotAvailable, TranscriptionError, ValueError) as exc:
         if json_output:
@@ -152,7 +165,7 @@ def _transcribe_audio(
                     "confidence": result.confidence,
                     "is_final": result.is_final,
                     "source": result.source,
-                    "metadata": result.metadata,
+                    "metadata": {**chunk.metadata, **result.metadata},
                 },
                 indent=2,
                 sort_keys=True,
@@ -179,6 +192,9 @@ def _transcribe_audio_segments(
     pre_speech_ms: int,
     max_turns: int | None,
     ffmpeg_executable: str,
+    normalize: bool,
+    target_peak: float,
+    max_gain: float,
     json_output: bool,
 ) -> int:
     try:
@@ -199,6 +215,9 @@ def _transcribe_audio_segments(
             ),
             max_turns=max_turns,
             ffmpeg_executable=ffmpeg_executable,
+            normalize_segments=normalize,
+            normalization_target_peak=target_peak,
+            normalization_max_gain=max_gain,
         )
         turns = VoiceSession(
             AuralisVoiceKit(config=kit_config),
@@ -220,6 +239,46 @@ def _transcribe_audio_segments(
         return 0
     for turn in turns:
         print(turn.text)
+    return 0
+
+
+def _normalize_audio_file(
+    input_path: str,
+    output_path: str,
+    *,
+    ffmpeg_executable: str,
+    target_peak: float,
+    max_gain: float,
+    json_output: bool,
+) -> int:
+    try:
+        chunk = read_audio_as_chunk(input_path, ffmpeg_executable=ffmpeg_executable)
+        normalized = normalize_pcm16(chunk, target_peak=target_peak, max_gain=max_gain)
+        write_wav(output_path, [normalized])
+    except (AudioSourceError, ValueError) as exc:
+        if json_output:
+            print(json.dumps({"error": str(exc)}, indent=2, sort_keys=True))
+        else:
+            print(str(exc))
+        return 1
+
+    payload = {
+        "input": input_path,
+        "output": output_path,
+        "duration_seconds": normalized.duration_seconds,
+        "input_peak": normalized.metadata.get("normalization_input_peak"),
+        "output_peak": peak_pcm16(normalized),
+        "rms": rms_pcm16(normalized),
+        "gain": normalized.metadata.get("normalization_gain"),
+        "target_peak": target_peak,
+    }
+    if json_output:
+        print(json.dumps(payload, indent=2, sort_keys=True))
+    else:
+        print(
+            f"Wrote {output_path} "
+            f"(gain={payload['gain']:.3f}, peak={payload['output_peak']:.3f})"
+        )
     return 0
 
 
@@ -245,6 +304,13 @@ def main(argv: list[str] | None = None) -> int:
     devices_parser.add_argument("--backend", default="sounddevice", help="capture backend to inspect")
     wav_info_parser = subparsers.add_parser("wav-info", help="show PCM16 WAV metadata")
     wav_info_parser.add_argument("path", help="path to a WAV file")
+    normalize_parser = subparsers.add_parser("normalize", help="normalize audio to a PCM16 WAV file")
+    normalize_parser.add_argument("input", help="path to a WAV or ffmpeg-supported audio file")
+    normalize_parser.add_argument("output", help="output WAV path")
+    normalize_parser.add_argument("--target-peak", type=float, default=0.95, help="target normalized peak")
+    normalize_parser.add_argument("--max-gain", type=float, default=8.0, help="maximum gain multiplier")
+    normalize_parser.add_argument("--ffmpeg", default="ffmpeg", help="ffmpeg executable for MP3 input")
+    normalize_parser.add_argument("--json", action="store_true", help="print a JSON result")
     transcribe_parser = subparsers.add_parser("transcribe", help="transcribe an audio file")
     transcribe_parser.add_argument("path", help="path to a WAV or ffmpeg-supported audio file")
     transcribe_parser.add_argument(
@@ -265,6 +331,9 @@ def main(argv: list[str] | None = None) -> int:
         help="backend response format",
     )
     transcribe_parser.add_argument("--ffmpeg", default="ffmpeg", help="ffmpeg executable for MP3 input")
+    transcribe_parser.add_argument("--normalize", action="store_true", help="normalize audio before transcribing")
+    transcribe_parser.add_argument("--target-peak", type=float, default=0.95, help="target normalized peak")
+    transcribe_parser.add_argument("--max-gain", type=float, default=8.0, help="maximum gain multiplier")
     transcribe_parser.add_argument("--json", action="store_true", help="print a JSON result")
     segments_parser = subparsers.add_parser(
         "transcribe-segments",
@@ -315,6 +384,9 @@ def main(argv: list[str] | None = None) -> int:
     )
     segments_parser.add_argument("--max-turns", type=int, help="maximum turns to transcribe")
     segments_parser.add_argument("--ffmpeg", default="ffmpeg", help="ffmpeg executable for MP3 input")
+    segments_parser.add_argument("--normalize", action="store_true", help="normalize each segment before transcribing")
+    segments_parser.add_argument("--target-peak", type=float, default=0.95, help="target normalized peak")
+    segments_parser.add_argument("--max-gain", type=float, default=8.0, help="maximum gain multiplier")
     segments_parser.add_argument("--json", action="store_true", help="print a JSON result")
     args = parser.parse_args(argv)
 
@@ -333,6 +405,15 @@ def main(argv: list[str] | None = None) -> int:
         return _print_devices(args.backend)
     if args.command == "wav-info":
         return _print_wav_info(args.path)
+    if args.command == "normalize":
+        return _normalize_audio_file(
+            args.input,
+            args.output,
+            ffmpeg_executable=args.ffmpeg,
+            target_peak=args.target_peak,
+            max_gain=args.max_gain,
+            json_output=args.json,
+        )
     if args.command == "transcribe":
         return _transcribe_audio(
             args.path,
@@ -342,6 +423,9 @@ def main(argv: list[str] | None = None) -> int:
             prompt=args.prompt,
             response_format=args.response_format,
             ffmpeg_executable=args.ffmpeg,
+            normalize=args.normalize,
+            target_peak=args.target_peak,
+            max_gain=args.max_gain,
             json_output=args.json,
         )
     if args.command == "transcribe-segments":
@@ -359,6 +443,9 @@ def main(argv: list[str] | None = None) -> int:
             pre_speech_ms=args.pre_speech_ms,
             max_turns=args.max_turns,
             ffmpeg_executable=args.ffmpeg,
+            normalize=args.normalize,
+            target_peak=args.target_peak,
+            max_gain=args.max_gain,
             json_output=args.json,
         )
     parser.error(f"Unknown command: {args.command}")

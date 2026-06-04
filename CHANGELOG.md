@@ -6,6 +6,17 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-06-04
+
+### Agregado
+
+- Normalizacion PCM16 pura con `apply_gain_pcm16`, `normalize_pcm16` y `normalize_chunks_pcm16`.
+- CLI `auralis normalize input output.wav` para generar WAV normalizado desde WAV o MP3.
+- Flags `--normalize`, `--target-peak` y `--max-gain` en `auralis transcribe`.
+- Normalizacion opcional de segmentos en `VoiceSession` y `auralis transcribe-segments`.
+- Ejemplo `examples/normalize_audio.py`.
+- Pruebas de ganancia, clipping, normalizacion por chunks, CLI y sesiones.
+
 ## [0.7.0] - 2026-06-04
 
 ### Agregado

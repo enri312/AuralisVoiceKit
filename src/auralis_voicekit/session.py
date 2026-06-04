@@ -6,7 +6,14 @@ from dataclasses import dataclass, field, replace
 import time
 from typing import Callable, Iterable
 
-from .audio import VoiceActivityConfig, VoiceSegment, read_audio, read_wav, segment_voice_pcm16
+from .audio import (
+    VoiceActivityConfig,
+    VoiceSegment,
+    normalize_pcm16,
+    read_audio,
+    read_wav,
+    segment_voice_pcm16,
+)
 from .kit import AuralisVoiceKit
 from .models import AudioChunk, TranscriptResult
 
@@ -22,12 +29,21 @@ class VoiceSessionConfig:
     voice_activity: VoiceActivityConfig = field(default_factory=VoiceActivityConfig)
     max_turns: int | None = None
     ffmpeg_executable: str = "ffmpeg"
+    normalize_segments: bool = False
+    normalization_target_peak: float = 0.95
+    normalization_max_gain: float = 8.0
 
     def __post_init__(self) -> None:
         if self.chunk_duration_ms <= 0:
             raise ValueError("chunk_duration_ms must be greater than zero")
         if self.max_turns is not None and self.max_turns <= 0:
             raise ValueError("max_turns must be greater than zero")
+        if self.normalization_target_peak <= 0 or self.normalization_target_peak > 1:
+            raise ValueError(
+                "normalization_target_peak must be greater than zero and less than or equal to one"
+            )
+        if self.normalization_max_gain <= 0:
+            raise ValueError("normalization_max_gain must be greater than zero")
 
 
 @dataclass(frozen=True, slots=True)
@@ -94,8 +110,14 @@ class VoiceSession:
             format=segment.chunks[0].format,
             metadata=metadata,
         )
+        if self.config.normalize_segments:
+            chunk = normalize_pcm16(
+                chunk,
+                target_peak=self.config.normalization_target_peak,
+                max_gain=self.config.normalization_max_gain,
+            )
         result = self.kit.transcribe(chunk)
-        merged_metadata = {**result.metadata, **metadata}
+        merged_metadata = {**result.metadata, **chunk.metadata}
         result = replace(result, metadata=merged_metadata)
         return VoiceTurn(index=index, segment=segment, transcript=result)
 

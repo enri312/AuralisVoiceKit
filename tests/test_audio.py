@@ -11,6 +11,7 @@ from auralis_voicekit import (
     AudioFormat,
     VoiceActivityConfig,
     VoiceActivityDetector,
+    apply_gain_pcm16,
     calibrate_noise_pcm16,
     chunk_audio,
     chunk_to_wav_bytes,
@@ -18,6 +19,8 @@ from auralis_voicekit import (
     ffmpeg_available,
     iter_wav_chunks,
     is_silent_pcm16,
+    normalize_chunks_pcm16,
+    normalize_pcm16,
     peak_pcm16,
     read_audio,
     read_audio_as_chunk,
@@ -77,6 +80,59 @@ class AudioHelperTests(unittest.TestCase):
         with wave.open(io.BytesIO(payload), "rb") as wav_file:
             self.assertEqual(wav_file.getframerate(), 8000)
             self.assertEqual(wav_file.getnframes(), 8)
+
+    def test_apply_gain_pcm16_scales_and_clips(self):
+        chunk = AudioChunk(
+            data=struct.pack("<hhh", 1000, -1000, 20000),
+            format=AudioFormat(sample_rate=8000, channels=1, sample_width=2),
+        )
+
+        amplified = apply_gain_pcm16(chunk, 2.0)
+
+        samples = struct.unpack("<hhh", amplified.data)
+        self.assertEqual(samples, (2000, -2000, 32767))
+        self.assertEqual(amplified.metadata["gain"], 2.0)
+
+    def test_normalize_pcm16_reaches_target_peak(self):
+        chunk = _constant_chunk(1000, samples=100, sample_rate=1000)
+
+        normalized = normalize_pcm16(chunk, target_peak=0.5, max_gain=100.0)
+
+        self.assertAlmostEqual(peak_pcm16(normalized), 0.5, places=3)
+        self.assertGreater(normalized.metadata["normalization_gain"], 1.0)
+        self.assertAlmostEqual(normalized.metadata["normalization_target_peak"], 0.5)
+
+    def test_normalize_pcm16_respects_max_gain(self):
+        chunk = _constant_chunk(1000, samples=100, sample_rate=1000)
+
+        normalized = normalize_pcm16(chunk, target_peak=0.9, max_gain=2.0)
+
+        self.assertAlmostEqual(normalized.metadata["normalization_gain"], 2.0)
+        self.assertLess(peak_pcm16(normalized), 0.9)
+
+    def test_normalize_pcm16_keeps_silence_silent(self):
+        chunk = _constant_chunk(0, samples=100, sample_rate=1000)
+
+        normalized = normalize_pcm16(chunk)
+
+        self.assertEqual(normalized.data, chunk.data)
+        self.assertEqual(normalized.metadata["normalization_gain"], 1.0)
+
+    def test_normalize_chunks_pcm16_uses_shared_gain(self):
+        chunks = [
+            _constant_chunk(1000, samples=100, sample_rate=1000),
+            _constant_chunk(2000, samples=100, sample_rate=1000),
+        ]
+
+        normalized = normalize_chunks_pcm16(chunks, target_peak=0.5, max_gain=100.0)
+
+        self.assertEqual(len(normalized), 2)
+        self.assertAlmostEqual(peak_pcm16(normalized[1]), 0.5, places=3)
+        self.assertLess(peak_pcm16(normalized[0]), peak_pcm16(normalized[1]))
+        self.assertEqual(
+            normalized[0].metadata["normalization_gain"],
+            normalized[1].metadata["normalization_gain"],
+        )
 
     def test_chunk_audio_splits_pcm16_chunk(self):
         chunk = _constant_chunk(1000, samples=100, sample_rate=1000)
