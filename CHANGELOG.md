@@ -6,8 +6,22 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-06-04
+
+### Agregado
+
+- `VoiceSession.cancel()` para pedir que los loops activos se detengan de forma ordenada.
+- `VoiceSession.reset_cancel()` para reutilizar una sesion cancelada.
+- `VoiceSession.close()` y soporte de contexto `with VoiceSession(...)` para detener captura activa al salir.
+- Propiedades `VoiceSession.is_cancelled` y `VoiceSession.is_closed`.
+- `VoiceSessionConfig.capture_poll_interval_ms` para controlar la rapidez con que una captura despierta ante cancelacion.
+- Callbacks `on_turn` y `on_chunk` que pueden devolver `False` para cancelar el flujo actual.
+- Parametro `on_chunk` en `VoiceSession.listen_once()`.
+- Pruebas de cancelacion por hilo externo, callback, cierre y contexto.
+
 ### Cambiado
 
+- `examples/assistant_loop.py` usa cierre con contexto y maneja `KeyboardInterrupt` con salida ordenada.
 - Renombrada la documentacion HTML principal de `docs/index.html` a `docs/auralisvoicekit-documentacion.html`.
 
 ## [0.9.0] - 2026-06-04

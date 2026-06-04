@@ -266,10 +266,19 @@ kit = AuralisVoiceKit(
         language="es",
     )
 )
-session = VoiceSession(kit, VoiceSessionConfig(chunk_duration_ms=50))
+with VoiceSession(kit, VoiceSessionConfig(chunk_duration_ms=50)) as session:
+    for turn in session.transcribe_wav("sample.wav"):
+        print(turn.index, turn.text)
+```
 
-for turn in session.transcribe_wav("sample.wav"):
-    print(turn.index, turn.text)
+Las sesiones se pueden cancelar desde otro hilo, desde un callback o con cierre de contexto:
+
+```python
+with VoiceSession(kit) as session:
+    turns = session.listen_once(
+        30.0,
+        on_turn=lambda turn: False,  # devuelve False para detener el loop
+    )
 ```
 
 Desde CLI se puede segmentar y transcribir un WAV:
@@ -287,6 +296,7 @@ Ejemplo completo de loop:
 ```powershell
 py examples\assistant_loop.py --file sample.mp3 --transcription-backend openai
 py examples\assistant_loop.py --seconds 5 --capture-backend sounddevice --transcription-backend openai
+py examples\assistant_loop.py --seconds 30 --capture-backend sounddevice --transcription-backend whisper --model base
 ```
 
 ## Diagnostico
@@ -360,11 +370,11 @@ ROADMAP.md
 
 Prioridad inmediata:
 
-1. Mejorar `VoiceSession` con cancelacion y cierre ordenado para sesiones largas.
-2. Mejorar `auralis doctor` con una prueba corta de apertura de dispositivo bajo demanda.
-3. Ampliar pruebas reales de MP3/formatos comprimidos con `ffmpeg` en Windows, Ubuntu y macOS.
-4. Explorar soporte FLAC sin cargar el core con dependencias nativas.
-5. Preparar documentacion de publicacion para PyPI.
+1. Mejorar `auralis doctor` con una prueba corta de apertura de dispositivo bajo demanda.
+2. Ampliar pruebas reales de MP3/formatos comprimidos con `ffmpeg` en Windows, Ubuntu y macOS.
+3. Explorar soporte FLAC sin cargar el core con dependencias nativas.
+4. Preparar documentacion de publicacion para PyPI.
+5. Evaluar primer backend de salida de voz real como extra opcional.
 
 ## Documentacion
 

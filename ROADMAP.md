@@ -24,7 +24,7 @@ La meta no es competir con todos los motores de voz a la vez. La meta es constru
 | Core Python | Inicial funcional |
 | Modelos de audio | Inicial |
 | Eventos | Inicial |
-| Sesiones de voz | Inicial funcional |
+| Sesiones de voz | Inicial funcional con cancelacion |
 | CLI `doctor` | Inicial |
 | Backend `null` | Funcional |
 | Backend `wav` | Inicial funcional |
@@ -146,7 +146,7 @@ Entregables:
 - Hooks para wake word o activacion externa.
 - Integracion limpia con loops de agente externos.
 - Ejemplo `examples/assistant_loop.py`. Estado: creado.
-- Cancelacion y cierre ordenado.
+- Cancelacion y cierre ordenado. Estado: inicial.
 
 Criterio de salida:
 
@@ -242,8 +242,8 @@ Criterio de salida:
 
 ## Prioridad inmediata
 
-1. Mejorar `VoiceSession` con cancelacion y cierre ordenado para sesiones largas.
-2. Mejorar doctor para intentar una prueba corta de apertura de dispositivo cuando el usuario lo pida.
-3. Ampliar pruebas reales de MP3/formatos comprimidos con `ffmpeg` en Windows, Ubuntu y macOS.
-4. Explorar soporte FLAC como extra opcional o via libreria estandar si aparece una ruta liviana.
-5. Preparar documentacion de publicacion para PyPI.
+1. Mejorar doctor para intentar una prueba corta de apertura de dispositivo cuando el usuario lo pida.
+2. Ampliar pruebas reales de MP3/formatos comprimidos con `ffmpeg` en Windows, Ubuntu y macOS.
+3. Explorar soporte FLAC como extra opcional o via libreria estandar si aparece una ruta liviana.
+4. Preparar documentacion de publicacion para PyPI.
+5. Evaluar primer backend de salida de voz real como extra opcional.

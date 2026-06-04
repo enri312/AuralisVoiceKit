@@ -1,5 +1,7 @@
 import os
 import struct
+import threading
+import time
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -133,6 +135,41 @@ class VoiceSessionTests(unittest.TestCase):
 
         self.assertEqual(len(turns), 1)
 
+    def test_on_turn_can_cancel_remaining_transcriptions(self):
+        chunks = [
+            _constant_chunk(6000),
+            _constant_chunk(0),
+            _constant_chunk(0),
+            _constant_chunk(6000),
+            _constant_chunk(0),
+        ]
+        session = VoiceSession(
+            AuralisVoiceKit(),
+            VoiceSessionConfig(
+                voice_activity=VoiceActivityConfig(
+                    threshold=0.01,
+                    min_voice_ms=100,
+                    max_silence_ms=100,
+                    pre_speech_ms=0,
+                ),
+            ),
+        )
+
+        turns = session.transcribe_chunks(chunks, on_turn=lambda turn: False)
+
+        self.assertEqual(len(turns), 1)
+        self.assertTrue(session.is_cancelled)
+
+    def test_cancelled_session_skips_transcription_until_reset(self):
+        session = _session()
+        chunks = [_constant_chunk(6000), _constant_chunk(0)]
+
+        session.cancel()
+        self.assertEqual(session.transcribe_chunks(chunks), [])
+
+        session.reset_cancel()
+        self.assertEqual(len(session.transcribe_chunks(chunks)), 1)
+
     def test_capture_for_starts_and_stops_null_capture(self):
         kit = AuralisVoiceKit()
         session = VoiceSession(kit)
@@ -141,6 +178,87 @@ class VoiceSessionTests(unittest.TestCase):
 
         self.assertEqual(chunks, [])
         self.assertFalse(kit.capture.is_running)
+
+    def test_capture_for_can_be_cancelled_from_another_thread(self):
+        kit = AuralisVoiceKit()
+        session = VoiceSession(
+            kit,
+            VoiceSessionConfig(capture_poll_interval_ms=5),
+        )
+        result = []
+
+        worker = threading.Thread(target=lambda: result.extend(session.capture_for(5.0)))
+        worker.start()
+        self._wait_for(lambda: kit.capture.is_running)
+
+        session.cancel()
+        worker.join(timeout=1.0)
+
+        self.assertFalse(worker.is_alive())
+        self.assertEqual(result, [])
+        self.assertFalse(kit.capture.is_running)
+        self.assertTrue(session.is_cancelled)
+
+    def test_capture_for_callback_can_request_cancel(self):
+        kit = AuralisVoiceKit()
+        session = VoiceSession(
+            kit,
+            VoiceSessionConfig(capture_poll_interval_ms=5),
+        )
+        result = []
+
+        worker = threading.Thread(
+            target=lambda: result.extend(
+                session.capture_for(5.0, on_chunk=lambda chunk: False)
+            )
+        )
+        worker.start()
+        self._wait_for(lambda: kit.capture.is_running)
+        kit.capture.push(_constant_chunk(6000))
+        worker.join(timeout=1.0)
+
+        self.assertFalse(worker.is_alive())
+        self.assertEqual(len(result), 1)
+        self.assertFalse(kit.capture.is_running)
+        self.assertTrue(session.is_cancelled)
+
+    def test_close_stops_active_capture(self):
+        kit = AuralisVoiceKit()
+        session = VoiceSession(
+            kit,
+            VoiceSessionConfig(capture_poll_interval_ms=5),
+        )
+        worker = threading.Thread(target=lambda: session.capture_for(5.0))
+        worker.start()
+        self._wait_for(lambda: kit.capture.is_running)
+
+        session.close()
+        worker.join(timeout=1.0)
+
+        self.assertFalse(worker.is_alive())
+        self.assertFalse(kit.capture.is_running)
+        self.assertTrue(session.is_closed)
+
+    def test_context_manager_closes_session(self):
+        with VoiceSession() as session:
+            self.assertFalse(session.is_closed)
+
+        self.assertTrue(session.is_closed)
+        with self.assertRaises(RuntimeError):
+            session.capture_for(0)
+
+    def test_session_config_rejects_invalid_capture_poll_interval(self):
+        with self.assertRaises(ValueError):
+            VoiceSessionConfig(capture_poll_interval_ms=0)
+
+    @staticmethod
+    def _wait_for(predicate, timeout: float = 1.0) -> None:
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            if predicate():
+                return
+            time.sleep(0.005)
+        raise AssertionError("condition was not met before timeout")
 
 
 if __name__ == "__main__":

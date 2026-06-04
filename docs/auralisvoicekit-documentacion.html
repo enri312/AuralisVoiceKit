@@ -423,27 +423,33 @@ print(result.text)</code></pre>
 
       <section id="sesiones">
         <h2>Sesiones</h2>
-        <p><code>VoiceSession</code> ofrece un flujo de alto nivel para leer o capturar audio, segmentar voz y transcribir cada turno.</p>
+        <p><code>VoiceSession</code> ofrece un flujo de alto nivel para leer o capturar audio, segmentar voz y transcribir cada turno. Tambien puede cancelarse desde otro hilo, desde callbacks o al salir de un contexto.</p>
         <pre><code>from auralis_voicekit import AuralisVoiceKit, VoiceKitConfig, VoiceSession
 
 kit = AuralisVoiceKit(
     VoiceKitConfig(
-                transcription_backend="whisper",
-                transcription_model="base",
+        transcription_backend="whisper",
+        transcription_model="base",
         language="es",
     )
 )
-session = VoiceSession(kit)
 
-for turn in session.transcribe_file("sample.mp3"):
-    print(turn.index, turn.text)</code></pre>
+with VoiceSession(kit) as session:
+    for turn in session.transcribe_file("sample.mp3"):
+        print(turn.index, turn.text)</code></pre>
+        <pre><code>with VoiceSession(kit) as session:
+    turns = session.listen_once(
+        30.0,
+        on_turn=lambda turn: False,
+    )</code></pre>
         <p>La CLI tambien puede segmentar y transcribir audio por turnos.</p>
         <pre><code>auralis transcribe-segments sample.wav --backend whisper --model base --language es --json
 auralis transcribe-segments sample.wav --backend openai --language es --json
 auralis transcribe-segments sample.mp3 --backend openai --language es --json
 auralis transcribe-segments sample.mp3 --backend openai --normalize --json
 auralis transcribe-segments sample.wav --backend null --json
-py examples\assistant_loop.py --file sample.mp3 --transcription-backend whisper --model base</code></pre>
+py examples\assistant_loop.py --file sample.mp3 --transcription-backend whisper --model base
+py examples\assistant_loop.py --seconds 30 --capture-backend sounddevice --transcription-backend whisper --model base</code></pre>
       </section>
 
       <section id="diagnostico">
@@ -511,10 +517,11 @@ kit.events.subscribe(
 )</code></pre>
 
         <h3>VoiceSession</h3>
-        <p>Une captura o lectura de archivos de audio con segmentacion y transcripcion por turnos.</p>
-        <pre><code>session = VoiceSession(kit)
-turns = session.transcribe_file("sample.mp3")
-live_turns = session.listen_once(5.0)</code></pre>
+        <p>Une captura o lectura de archivos de audio con segmentacion y transcripcion por turnos. Expone cancelacion y cierre ordenado para loops largos.</p>
+        <pre><code>with VoiceSession(kit) as session:
+    turns = session.transcribe_file("sample.mp3")
+    live_turns = session.listen_once(5.0)
+    session.cancel()</code></pre>
       </section>
 
       <section id="backends">
@@ -607,7 +614,7 @@ live_turns = session.listen_once(5.0)</code></pre>
             <tr>
               <td>5+</td>
               <td>Loop de asistente, Windows primero, CI, beta publica y version 1.0.</td>
-              <td>Loop inicial</td>
+              <td>Loop inicial cancelable</td>
             </tr>
           </tbody>
         </table>

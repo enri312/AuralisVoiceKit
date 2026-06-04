@@ -46,6 +46,7 @@ def main() -> int:
     parser.add_argument("--min-voice-ms", type=int, default=120, help="minimum voice duration")
     parser.add_argument("--max-silence-ms", type=int, default=350, help="silence duration that closes a turn")
     parser.add_argument("--pre-speech-ms", type=int, default=100, help="silence kept before speech")
+    parser.add_argument("--capture-poll-ms", type=int, default=50, help="capture cancellation poll interval")
     args = parser.parse_args()
 
     kit = AuralisVoiceKit(
@@ -57,27 +58,30 @@ def main() -> int:
             input_device=args.device,
         )
     )
-    session = VoiceSession(
-        kit,
-        VoiceSessionConfig(
-            chunk_duration_ms=args.chunk_ms,
-            voice_activity=VoiceActivityConfig(
-                threshold=args.threshold,
-                min_voice_ms=args.min_voice_ms,
-                max_silence_ms=args.max_silence_ms,
-                pre_speech_ms=args.pre_speech_ms,
-            ),
-            ffmpeg_executable=args.ffmpeg,
+    session_config = VoiceSessionConfig(
+        chunk_duration_ms=args.chunk_ms,
+        voice_activity=VoiceActivityConfig(
+            threshold=args.threshold,
+            min_voice_ms=args.min_voice_ms,
+            max_silence_ms=args.max_silence_ms,
+            pre_speech_ms=args.pre_speech_ms,
         ),
+        ffmpeg_executable=args.ffmpeg,
+        capture_poll_interval_ms=args.capture_poll_ms,
     )
+    turns = []
 
     try:
-        input_file = args.file or args.wav
-        if input_file:
-            turns = session.transcribe_file(input_file, on_turn=_print_turn)
-        else:
-            print(f"Listening for {args.seconds:.1f}s...")
-            turns = session.listen_once(args.seconds, on_turn=_print_turn)
+        with VoiceSession(kit, session_config) as session:
+            input_file = args.file or args.wav
+            if input_file:
+                turns = session.transcribe_file(input_file, on_turn=_print_turn)
+            else:
+                print(f"Listening for {args.seconds:.1f}s...")
+                turns = session.listen_once(args.seconds, on_turn=_print_turn)
+    except KeyboardInterrupt:
+        print("Interrupted.")
+        return 130
     except (AuralisError, ValueError) as exc:
         print(str(exc))
         return 1
