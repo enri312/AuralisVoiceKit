@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import io
 from math import sqrt
 import os
 from statistics import fmean, median
@@ -276,6 +277,21 @@ def write_wav(path: str, chunks: list[AudioChunk]) -> None:
             output.writeframes(chunk.data)
 
 
+def chunk_to_wav_bytes(chunk: AudioChunk) -> bytes:
+    """Encode a PCM16 chunk as WAV bytes."""
+
+    if chunk.format.encoding is not AudioEncoding.PCM16 or chunk.format.sample_width != 2:
+        raise ValueError("Only PCM16 WAV output is supported")
+
+    buffer = io.BytesIO()
+    with wave.open(buffer, "wb") as output:
+        output.setnchannels(chunk.format.channels)
+        output.setsampwidth(chunk.format.sample_width)
+        output.setframerate(chunk.format.sample_rate)
+        output.writeframes(chunk.data)
+    return buffer.getvalue()
+
+
 def _validate_wav(handle: wave.Wave_read, path: str) -> AudioFormat:
     if handle.getcomptype() != "NONE":
         raise AudioSourceError(f"WAV file {path!r} is compressed and cannot be read")
@@ -346,3 +362,18 @@ def read_wav(
     """Read a PCM16 WAV file into audio chunks."""
 
     return list(iter_wav_chunks(path, chunk_duration_ms=chunk_duration_ms))
+
+
+def read_wav_as_chunk(path: str | os.PathLike[str]) -> AudioChunk:
+    """Read a PCM16 WAV file into a single audio chunk."""
+
+    chunks = read_wav(path)
+    if not chunks:
+        metadata = read_wav_metadata(path)
+        return AudioChunk(data=b"", format=metadata.format, metadata={"path": metadata.path})
+    audio_format = chunks[0].format
+    return AudioChunk(
+        data=b"".join(chunk.data for chunk in chunks),
+        format=audio_format,
+        metadata={"path": os.fspath(path), "chunks": len(chunks)},
+    )

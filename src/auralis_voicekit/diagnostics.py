@@ -215,6 +215,10 @@ def run_doctor(
             "sounddevice",
             "Install with: pip install auralisvoicekit[sounddevice]",
         ),
+        _check_optional_dependency(
+            "openai",
+            "Install with: pip install auralisvoicekit[openai]",
+        ),
     ]
     checks.extend(_backend_checks())
 

@@ -34,6 +34,9 @@ class VoiceKitConfig:
     language: str = "es"
     capture_backend: str = "null"
     transcription_backend: str = "null"
+    transcription_model: str = "gpt-4o-mini-transcribe"
+    transcription_prompt: str | None = None
+    transcription_response_format: str = "json"
     output_backend: str = "null"
     input_device: str | int | None = None
     output_device: str | int | None = None
@@ -65,6 +68,9 @@ class VoiceKitConfig:
             language=os.getenv(prefix + "LANGUAGE", "es"),
             capture_backend=os.getenv(prefix + "CAPTURE_BACKEND", "null"),
             transcription_backend=os.getenv(prefix + "TRANSCRIPTION_BACKEND", "null"),
+            transcription_model=os.getenv(prefix + "TRANSCRIPTION_MODEL", "gpt-4o-mini-transcribe"),
+            transcription_prompt=os.getenv(prefix + "TRANSCRIPTION_PROMPT") or None,
+            transcription_response_format=os.getenv(prefix + "TRANSCRIPTION_RESPONSE_FORMAT", "json"),
             output_backend=os.getenv(prefix + "OUTPUT_BACKEND", "null"),
             input_device=os.getenv(prefix + "INPUT_DEVICE") or None,
             output_device=os.getenv(prefix + "OUTPUT_DEVICE") or None,

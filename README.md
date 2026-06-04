@@ -10,7 +10,7 @@ AuralisVoiceKit es una libreria moderna de voz para Python, pensada primero para
 
 El objetivo principal es evitar que la captura de microfono dependa obligatoriamente de PyAudio o de wheels que tardan en llegar a las versiones nuevas de Python. El paquete base debe poder instalarse de forma liviana, sin compiladores y sin dependencias nativas obligatorias.
 
-> Estado actual: alpha tecnica. El repositorio ya define el core, los contratos de backends, una CLI de diagnostico, documentacion estatica y pruebas basicas. Los backends reales de captura/transcripcion se iran agregando por etapas.
+> Estado actual: alpha tecnica. El repositorio ya define el core, los contratos de backends, captura real inicial, flujo WAV offline, transcripcion inicial por API, una CLI de diagnostico, documentacion estatica y pruebas basicas. Los backends reales se iran agregando por etapas.
 
 ## Problema que resuelve
 
@@ -52,6 +52,7 @@ Cuando se agreguen backends opcionales:
 
 ```powershell
 py -m pip install -e ".[sounddevice]"
+py -m pip install -e ".[openai]"
 ```
 
 Guias por sistema:
@@ -154,6 +155,42 @@ kit = AuralisVoiceKit(
 kit.start_capture(chunks.append)
 ```
 
+## Transcripcion por API con OpenAI
+
+El backend `openai` es opcional. Permite transcribir un WAV PCM16 usando la API de audio de OpenAI sin agregar dependencias nativas al paquete base.
+
+```powershell
+py -m pip install -e ".[openai]"
+$env:OPENAI_API_KEY="tu_api_key"
+auralis transcribe sample.wav --backend openai --language es
+auralis transcribe sample.wav --backend openai --model gpt-4o-transcribe --json
+py examples\transcribe_wav.py sample.wav --backend openai
+```
+
+Tambien se puede usar desde Python:
+
+```python
+from auralis_voicekit import AuralisVoiceKit, VoiceKitConfig, read_wav_as_chunk
+
+chunk = read_wav_as_chunk("sample.wav")
+kit = AuralisVoiceKit(
+    VoiceKitConfig(
+        transcription_backend="openai",
+        transcription_model="gpt-4o-mini-transcribe",
+        language="es",
+    )
+)
+
+result = kit.transcribe(chunk)
+print(result.text)
+```
+
+Segun la documentacion oficial de OpenAI para speech-to-text, los modelos soportados incluyen `gpt-4o-transcribe`, `gpt-4o-mini-transcribe` y `whisper-1`, con limite de carga de archivo de 25 MB:
+
+```text
+https://platform.openai.com/docs/guides/speech-to-text
+```
+
 ## Diagnostico
 
 `auralis doctor` genera un reporte de compatibilidad del entorno:
@@ -182,6 +219,7 @@ auralis_voicekit
     null          Backend seguro para pruebas
     wav_file      Backend offline para WAV PCM16
     sounddevice   Backend opcional de captura real
+    openai        Backend opcional de transcripcion por API
     registry      Registro de backends
   audio           Utilidades PCM16, calibracion y segmentacion
   cli             Diagnostico y utilidades
@@ -198,7 +236,7 @@ auralis_voicekit
 | `wasapi` | pendiente | ruta principal optimizada para Windows |
 | `pyaudio` | pendiente | compatibilidad con proyectos existentes |
 | `whisper` | pendiente | transcripcion local |
-| `openai` | pendiente | transcripcion por API |
+| `openai` | inicial funcional | transcripcion por API |
 
 ## Uso con asistentes
 
@@ -221,11 +259,11 @@ ROADMAP.md
 
 Prioridad inmediata:
 
-1. Completar backend `sounddevice`.
-2. Agregar ejemplo de captura real.
-3. Agregar pruebas con mocks de `sounddevice`.
-4. Mejorar `auralis doctor` para listar dispositivos cuando el backend este instalado.
-5. Agregar utilidades de energia y calibracion de ruido.
+1. Crear ejemplo de loop escuchar -> segmentar -> transcribir.
+2. Agregar normalizacion basica de volumen.
+3. Preparar backend local de transcripcion como extra opcional.
+4. Mejorar `auralis doctor` con una prueba corta de apertura de dispositivo bajo demanda.
+5. Explorar soporte FLAC sin cargar el core con dependencias nativas.
 
 ## Documentacion
 

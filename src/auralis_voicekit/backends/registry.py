@@ -7,6 +7,7 @@ from typing import Callable
 from ..exceptions import BackendNotAvailable
 from .base import BackendInfo, CaptureBackend, SpeechOutputBackend, TranscriptionBackend
 from .null import NullCaptureBackend, NullSpeechOutputBackend, NullTranscriptionBackend
+from .openai_transcription import OpenAITranscriptionBackend
 from .wav_file import WavFileCaptureBackend
 
 
@@ -76,5 +77,6 @@ def create_default_registry() -> BackendRegistry:
     registry.register_capture("wav", WavFileCaptureBackend)
     registry.register_capture("sounddevice", _create_sounddevice_capture)
     registry.register_transcription("null", NullTranscriptionBackend)
+    registry.register_transcription("openai", OpenAITranscriptionBackend)
     registry.register_output("null", NullSpeechOutputBackend)
     return registry

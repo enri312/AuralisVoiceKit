@@ -1,3 +1,4 @@
+import io
 import os
 import struct
 import tempfile
@@ -10,10 +11,12 @@ from auralis_voicekit import (
     VoiceActivityConfig,
     VoiceActivityDetector,
     calibrate_noise_pcm16,
+    chunk_to_wav_bytes,
     iter_wav_chunks,
     is_silent_pcm16,
     peak_pcm16,
     read_wav,
+    read_wav_as_chunk,
     read_wav_metadata,
     rms_pcm16,
     segment_voice_pcm16,
@@ -57,6 +60,17 @@ class AudioHelperTests(unittest.TestCase):
                 self.assertEqual(wav_file.getsampwidth(), 2)
                 self.assertEqual(wav_file.getnframes(), 8)
 
+    def test_chunk_to_wav_bytes(self):
+        audio_format = AudioFormat(sample_rate=8000, channels=1, sample_width=2)
+        chunk = AudioChunk(data=b"\x00\x00" * 8, format=audio_format)
+
+        payload = chunk_to_wav_bytes(chunk)
+
+        self.assertTrue(payload.startswith(b"RIFF"))
+        with wave.open(io.BytesIO(payload), "rb") as wav_file:
+            self.assertEqual(wav_file.getframerate(), 8000)
+            self.assertEqual(wav_file.getnframes(), 8)
+
     def test_read_wav_metadata_and_chunks(self):
         audio_format = AudioFormat(sample_rate=1000, channels=1, sample_width=2)
         chunks = [
@@ -79,6 +93,22 @@ class AudioHelperTests(unittest.TestCase):
         self.assertEqual(len(iter_chunks), 2)
         self.assertEqual(read_chunks[0].metadata["chunk_index"], 0)
         self.assertEqual(read_chunks[1].metadata["frame_offset"], 50)
+
+    def test_read_wav_as_chunk(self):
+        chunks = [
+            _constant_chunk(1000, samples=50, sample_rate=1000),
+            _constant_chunk(2000, samples=50, sample_rate=1000),
+        ]
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = os.path.join(tmpdir, "sample.wav")
+            write_wav(path, chunks)
+
+            chunk = read_wav_as_chunk(path)
+
+        self.assertEqual(chunk.format.sample_rate, 1000)
+        self.assertEqual(len(chunk.data), 200)
+        self.assertEqual(chunk.metadata["chunks"], 2)
 
     def test_calibrate_noise_profile(self):
         chunks = [_constant_chunk(100), _constant_chunk(120), _constant_chunk(80)]

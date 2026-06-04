@@ -289,6 +289,7 @@
         <a href="#vision">Vision</a>
         <a href="#instalacion">Instalacion</a>
         <a href="#inicio">Inicio rapido</a>
+        <a href="#transcripcion">Transcripcion</a>
         <a href="#diagnostico">Diagnostico</a>
         <a href="#arquitectura">Arquitectura</a>
         <a href="#api">API publica</a>
@@ -320,6 +321,7 @@
 py -m pip install -e .</code></pre>
         <p>El core no trae dependencias externas. Los backends reales se instalan como extras opcionales.</p>
         <pre><code>py -m pip install -e ".[sounddevice]"</code></pre>
+        <pre><code>py -m pip install -e ".[openai]"</code></pre>
       </section>
 
       <section id="inicio">
@@ -360,6 +362,31 @@ kit = AuralisVoiceKit(
 )</code></pre>
       </section>
 
+      <section id="transcripcion">
+        <h2>Transcripcion</h2>
+        <p>La primera ruta real de transcripcion es el backend opcional <code>openai</code>. El paquete base sigue sin dependencias externas; el cliente se instala solo cuando se necesita este backend.</p>
+        <pre><code>py -m pip install -e ".[openai]"
+$env:OPENAI_API_KEY="tu_api_key"
+auralis transcribe sample.wav --backend openai --language es
+auralis transcribe sample.wav --backend openai --model gpt-4o-transcribe --json
+py examples\transcribe_wav.py sample.wav --backend openai</code></pre>
+        <p>Desde Python, se lee un WAV PCM16 como <code>AudioChunk</code> y se llama a <code>kit.transcribe()</code>.</p>
+        <pre><code>from auralis_voicekit import AuralisVoiceKit, VoiceKitConfig, read_wav_as_chunk
+
+chunk = read_wav_as_chunk("sample.wav")
+kit = AuralisVoiceKit(
+    VoiceKitConfig(
+        transcription_backend="openai",
+        transcription_model="gpt-4o-mini-transcribe",
+        language="es",
+    )
+)
+
+result = kit.transcribe(chunk)
+print(result.text)</code></pre>
+        <p>El backend convierte el chunk PCM16 a WAV en memoria, envia el archivo al cliente oficial y devuelve un <code>TranscriptResult</code> con texto, idioma, fuente y metadatos. Referencia: <a href="https://platform.openai.com/docs/guides/speech-to-text">OpenAI speech-to-text</a>.</p>
+      </section>
+
       <section id="diagnostico">
         <h2>Diagnostico</h2>
         <p><code>auralis doctor</code> produce checks de Python, plataforma, dependencias opcionales, backends, dispositivos y archivos WAV.</p>
@@ -386,6 +413,7 @@ auralis doctor --json</code></pre>
     null.py          Backend seguro para pruebas
     wav_file.py      Backend offline WAV PCM16
     sounddevice.py   Backend opcional funcional
+    openai_transcription.py  Backend opcional de transcripcion por API
     registry.py      Registro de factories</code></pre>
       </section>
 
@@ -459,7 +487,7 @@ kit.events.subscribe(
             </tr>
             <tr>
               <td><code>openai</code></td>
-              <td>Pendiente</td>
+              <td>Inicial funcional</td>
               <td>Transcripcion por API.</td>
             </tr>
           </tbody>
@@ -501,7 +529,7 @@ kit.events.subscribe(
             <tr>
               <td>3</td>
               <td>Transcripcion local y por API mediante extras opcionales.</td>
-              <td>Pendiente</td>
+              <td>Inicial por API</td>
             </tr>
             <tr>
               <td>4</td>

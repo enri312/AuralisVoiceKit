@@ -81,6 +81,30 @@ class CliTests(unittest.TestCase):
         self.assertIn("Sample rate: 8000", output.getvalue())
         self.assertIn("Encoding: pcm16", output.getvalue())
 
+    def test_transcribe_command_can_use_null_backend(self):
+        audio_format = AudioFormat(sample_rate=8000, channels=1, sample_width=2)
+        output = io.StringIO()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = os.path.join(tmpdir, "sample.wav")
+            write_wav(path, [AudioChunk(data=b"\x00\x00" * 8, format=audio_format)])
+            with contextlib.redirect_stdout(output):
+                exit_code = main(["transcribe", path, "--backend", "null", "--json"])
+
+        payload = json.loads(output.getvalue())
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(payload["source"], "null")
+        self.assertEqual(payload["text"], "")
+
+    def test_transcribe_command_reports_wav_errors(self):
+        output = io.StringIO()
+
+        with contextlib.redirect_stdout(output):
+            exit_code = main(["transcribe", "missing.wav", "--backend", "null"])
+
+        self.assertEqual(exit_code, 1)
+        self.assertIn("Cannot read WAV file", output.getvalue())
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -21,7 +21,7 @@ La meta no es competir con todos los motores de voz a la vez. La meta es constru
 
 | Area | Estado |
 | --- | --- |
-| Core Python | Scaffold inicial |
+| Core Python | Inicial funcional |
 | Modelos de audio | Inicial |
 | Eventos | Inicial |
 | CLI `doctor` | Inicial |
@@ -32,7 +32,7 @@ La meta no es competir con todos los motores de voz a la vez. La meta es constru
 | Versionado | Politica inicial |
 | Compatibilidad Windows/Linux/macOS | Documentacion inicial |
 | Diagnostico doctor | Inicial estructurado |
-| Transcripcion real | Pendiente |
+| Transcripcion real | Inicial por API |
 | Salida de voz real | Pendiente |
 | CI multiplataforma | Inicial |
 | Publicacion en PyPI | Pendiente |
@@ -106,7 +106,7 @@ Entregables:
 
 - Contrato estable para transcriptores.
 - Backend local inicial, preferiblemente Whisper o faster-whisper como extra opcional.
-- Backend por API como extra opcional.
+- Backend por API como extra opcional. Estado: inicial con `openai`.
 - Resultado con texto, idioma, confianza aproximada y metadatos.
 - Eventos `transcription.started` y `transcription.completed`.
 - Manejo claro de errores y timeouts.
@@ -230,7 +230,7 @@ Criterio de salida:
 - Backend PyAudio solo como compatibilidad opcional.
 - Soporte para archivos WAV/FLAC como entrada. WAV PCM16 inicial completado.
 - Adaptadores para modelos locales.
-- Adaptadores para APIs externas.
+- Adaptadores para APIs externas. OpenAI inicial completado.
 - Wake word externo.
 - Medidor de energia en tiempo real.
 - Grabacion temporal con borrado seguro.
@@ -239,8 +239,8 @@ Criterio de salida:
 
 ## Prioridad inmediata
 
-1. Probar captura real y segmentacion en hardware Windows, Ubuntu y macOS.
-2. Preparar transcripcion inicial con backend opcional.
-3. Crear ejemplo de loop escuchar -> segmentar -> transcribir.
+1. Crear ejemplo de loop escuchar -> segmentar -> transcribir.
+2. Probar captura real y segmentacion en hardware Windows, Ubuntu y macOS.
+3. Preparar backend local de transcripcion como extra opcional.
 4. Explorar soporte FLAC como extra opcional o via libreria estandar si aparece una ruta liviana.
 5. Mejorar doctor para intentar una prueba corta de apertura de dispositivo cuando el usuario lo pida.

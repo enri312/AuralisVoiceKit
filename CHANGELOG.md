@@ -6,6 +6,18 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-06-04
+
+### Agregado
+
+- Backend opcional `openai` para transcripcion por API usando WAV PCM16.
+- Extra `openai` para instalar el cliente oficial sin afectar el paquete base.
+- CLI `auralis transcribe archivo.wav` con salida de texto o JSON.
+- Configuracion `transcription_model`, `transcription_prompt` y `transcription_response_format`.
+- Variables de entorno `AURALIS_TRANSCRIPTION_MODEL`, `AURALIS_TRANSCRIPTION_PROMPT` y `AURALIS_TRANSCRIPTION_RESPONSE_FORMAT`.
+- Helpers `chunk_to_wav_bytes` y `read_wav_as_chunk`.
+- Checks de diagnostico para la dependencia opcional `openai`.
+
 ## [0.5.0] - 2026-06-04
 
 ### Agregado

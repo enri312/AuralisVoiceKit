@@ -7,6 +7,8 @@ El backend `sounddevice` es opcional. Segun la documentacion de `python-sounddev
 - https://python-sounddevice.readthedocs.io/
 - https://python-sounddevice.readthedocs.io/en/0.4.7/installation.html
 
+El backend `openai` tambien es opcional. Usa el cliente oficial de OpenAI y no agrega dependencias nativas de audio al core. Requiere una variable `OPENAI_API_KEY` configurada por el usuario cuando se llama al backend real.
+
 ## Python
 
 Version base soportada:
@@ -41,6 +43,14 @@ py -m pip install -e ".[sounddevice]"
 py -m auralis_voicekit.cli doctor --devices
 ```
 
+Con transcripcion por OpenAI:
+
+```powershell
+py -m pip install -e ".[openai]"
+$env:OPENAI_API_KEY="tu_api_key"
+py -m auralis_voicekit.cli transcribe sample.wav --backend openai
+```
+
 ## Ubuntu/Linux
 
 Instalacion de desarrollo:
@@ -60,6 +70,14 @@ sudo apt update
 sudo apt install libportaudio2
 python -m pip install -e ".[sounddevice]"
 python -m auralis_voicekit.cli doctor --devices
+```
+
+Con transcripcion por OpenAI:
+
+```bash
+python -m pip install -e ".[openai]"
+export OPENAI_API_KEY="tu_api_key"
+python -m auralis_voicekit.cli transcribe sample.wav --backend openai
 ```
 
 ## macOS
@@ -83,6 +101,14 @@ python -m auralis_voicekit.cli doctor --devices
 
 Si hay un problema con PortAudio, revisar la instalacion del backend con el gestor del sistema o con `conda-forge`.
 
+Con transcripcion por OpenAI:
+
+```bash
+python -m pip install -e ".[openai]"
+export OPENAI_API_KEY="tu_api_key"
+python -m auralis_voicekit.cli transcribe sample.wav --backend openai
+```
+
 ## Diagnostico
 
 Comandos utiles:
@@ -95,6 +121,7 @@ python -m auralis_voicekit.cli doctor --wav sample.wav
 python -m auralis_voicekit.cli doctor --json
 python -m auralis_voicekit.cli devices --backend sounddevice
 python -m auralis_voicekit.cli backends
+python -m auralis_voicekit.cli transcribe sample.wav --backend null --json
 ```
 
 El comando `doctor` debe poder ejecutarse aunque los extras no esten instalados.

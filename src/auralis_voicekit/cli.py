@@ -6,10 +6,12 @@ import argparse
 import json
 
 from ._version import __version__
-from .audio import read_wav_metadata
+from .audio import read_wav_as_chunk, read_wav_metadata
 from .backends import create_default_registry
+from .config import VoiceKitConfig
 from .diagnostics import DiagnosticStatus, run_doctor
-from .exceptions import AudioSourceError, BackendNotAvailable
+from .exceptions import AudioSourceError, BackendNotAvailable, TranscriptionError
+from .kit import AuralisVoiceKit
 from .models import AudioDevice
 
 
@@ -107,6 +109,54 @@ def _print_wav_info(path: str) -> int:
     return 0
 
 
+def _transcribe_wav(
+    path: str,
+    *,
+    backend_name: str,
+    model: str,
+    language: str,
+    prompt: str | None,
+    response_format: str,
+    json_output: bool,
+) -> int:
+    try:
+        chunk = read_wav_as_chunk(path)
+        config = VoiceKitConfig(
+            transcription_backend=backend_name,
+            transcription_model=model,
+            language=language,
+            transcription_prompt=prompt,
+            transcription_response_format=response_format,
+        )
+        result = AuralisVoiceKit(config=config).transcribe(chunk)
+    except (AudioSourceError, BackendNotAvailable, TranscriptionError, ValueError) as exc:
+        if json_output:
+            print(json.dumps({"error": str(exc)}, indent=2, sort_keys=True))
+        else:
+            print(str(exc))
+        return 1
+
+    if json_output:
+        print(
+            json.dumps(
+                {
+                    "text": result.text,
+                    "language": result.language,
+                    "confidence": result.confidence,
+                    "is_final": result.is_final,
+                    "source": result.source,
+                    "metadata": result.metadata,
+                },
+                indent=2,
+                sort_keys=True,
+            )
+        )
+        return 0
+
+    print(result.text)
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="auralis")
     parser.add_argument("--version", action="version", version=f"AuralisVoiceKit {__version__}")
@@ -129,6 +179,26 @@ def main(argv: list[str] | None = None) -> int:
     devices_parser.add_argument("--backend", default="sounddevice", help="capture backend to inspect")
     wav_info_parser = subparsers.add_parser("wav-info", help="show PCM16 WAV metadata")
     wav_info_parser.add_argument("path", help="path to a WAV file")
+    transcribe_parser = subparsers.add_parser("transcribe", help="transcribe a PCM16 WAV file")
+    transcribe_parser.add_argument("path", help="path to a PCM16 WAV file")
+    transcribe_parser.add_argument(
+        "--backend",
+        default="openai",
+        help="transcription backend to use",
+    )
+    transcribe_parser.add_argument(
+        "--model",
+        default="gpt-4o-mini-transcribe",
+        help="model used by API transcription backends",
+    )
+    transcribe_parser.add_argument("--language", default="es", help="audio language hint")
+    transcribe_parser.add_argument("--prompt", help="optional transcription prompt")
+    transcribe_parser.add_argument(
+        "--response-format",
+        default="json",
+        help="backend response format",
+    )
+    transcribe_parser.add_argument("--json", action="store_true", help="print a JSON result")
     args = parser.parse_args(argv)
 
     if args.command is None:
@@ -146,6 +216,16 @@ def main(argv: list[str] | None = None) -> int:
         return _print_devices(args.backend)
     if args.command == "wav-info":
         return _print_wav_info(args.path)
+    if args.command == "transcribe":
+        return _transcribe_wav(
+            args.path,
+            backend_name=args.backend,
+            model=args.model,
+            language=args.language,
+            prompt=args.prompt,
+            response_format=args.response_format,
+            json_output=args.json,
+        )
     parser.error(f"Unknown command: {args.command}")
     return 2
 
