@@ -2,11 +2,19 @@ import contextlib
 import io
 import json
 import os
+import struct
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from auralis_voicekit import AudioChunk, AudioFormat, __version__, write_wav
 from auralis_voicekit.cli import main
+
+
+def _constant_chunk(amplitude: int, samples: int = 100, sample_rate: int = 1000) -> AudioChunk:
+    data = struct.pack("<" + "h" * samples, *([amplitude] * samples))
+    audio_format = AudioFormat(sample_rate=sample_rate, channels=1, sample_width=2)
+    return AudioChunk(data=data, format=audio_format)
 
 
 class CliTests(unittest.TestCase):
@@ -104,6 +112,78 @@ class CliTests(unittest.TestCase):
 
         self.assertEqual(exit_code, 1)
         self.assertIn("Cannot read WAV file", output.getvalue())
+
+    def test_transcribe_command_accepts_mp3_with_ffmpeg_decoder(self):
+        output = io.StringIO()
+        chunk = AudioChunk(
+            data=b"\x00\x00" * 8,
+            format=AudioFormat(sample_rate=16000, channels=1, sample_width=2),
+            metadata={"decoder": "ffmpeg", "path": "sample.mp3"},
+        )
+
+        with patch("auralis_voicekit.cli.read_audio_as_chunk", return_value=chunk):
+            with contextlib.redirect_stdout(output):
+                exit_code = main(["transcribe", "sample.mp3", "--backend", "null", "--json"])
+
+        payload = json.loads(output.getvalue())
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(payload["source"], "null")
+        self.assertEqual(payload["metadata"]["duration_seconds"], 0.0005)
+
+    def test_transcribe_segments_command_can_use_null_backend(self):
+        output = io.StringIO()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = os.path.join(tmpdir, "sample.wav")
+            write_wav(path, [_constant_chunk(6000), _constant_chunk(6000), _constant_chunk(0)])
+            with contextlib.redirect_stdout(output):
+                exit_code = main(
+                    [
+                        "transcribe-segments",
+                        path,
+                        "--backend",
+                        "null",
+                        "--chunk-ms",
+                        "100",
+                        "--min-voice-ms",
+                        "100",
+                        "--pre-speech-ms",
+                        "0",
+                        "--json",
+                    ]
+                )
+
+        payload = json.loads(output.getvalue())
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(len(payload["turns"]), 1)
+        self.assertEqual(payload["turns"][0]["source"], "null")
+        self.assertEqual(payload["turns"][0]["metadata"]["segment_index"], 1)
+
+    def test_transcribe_segments_command_accepts_mp3_with_ffmpeg_decoder(self):
+        output = io.StringIO()
+        chunks = [_constant_chunk(6000), _constant_chunk(6000), _constant_chunk(0)]
+
+        with patch("auralis_voicekit.session.read_audio", return_value=chunks):
+            with contextlib.redirect_stdout(output):
+                exit_code = main(
+                    [
+                        "transcribe-segments",
+                        "sample.mp3",
+                        "--backend",
+                        "null",
+                        "--chunk-ms",
+                        "100",
+                        "--min-voice-ms",
+                        "100",
+                        "--pre-speech-ms",
+                        "0",
+                        "--json",
+                    ]
+                )
+
+        payload = json.loads(output.getvalue())
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(len(payload["turns"]), 1)
 
 
 if __name__ == "__main__":

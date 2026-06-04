@@ -290,6 +290,7 @@
         <a href="#instalacion">Instalacion</a>
         <a href="#inicio">Inicio rapido</a>
         <a href="#transcripcion">Transcripcion</a>
+        <a href="#sesiones">Sesiones</a>
         <a href="#diagnostico">Diagnostico</a>
         <a href="#arquitectura">Arquitectura</a>
         <a href="#api">API publica</a>
@@ -304,7 +305,7 @@
         <span class="pill">Alpha tecnica</span>
         <h1>Voz moderna para Python sin depender de PyAudio como base.</h1>
         <p class="lead">
-          AuralisVoiceKit define un core liviano para captura, transcripcion, eventos y salida de voz. La instalacion base no obliga a compilar extensiones ni a esperar wheels de una version especifica de CPython.
+          AuralisVoiceKit define un core liviano para captura, transcripcion, eventos y salida de voz. La instalacion base no obliga a compilar extensiones ni a esperar wheels de una version especifica de CPython. MP3 funciona mediante ffmpeg como herramienta externa opcional.
         </p>
         <div class="signal" aria-label="Flujo de audio">
           <div><strong>Captura</strong><span>Microfono, archivo o backend simulado.</span></div>
@@ -364,16 +365,17 @@ kit = AuralisVoiceKit(
 
       <section id="transcripcion">
         <h2>Transcripcion</h2>
-        <p>La primera ruta real de transcripcion es el backend opcional <code>openai</code>. El paquete base sigue sin dependencias externas; el cliente se instala solo cuando se necesita este backend.</p>
+        <p>La primera ruta real de transcripcion es el backend opcional <code>openai</code>. El paquete base sigue sin dependencias externas; el cliente se instala solo cuando se necesita este backend. WAV se lee directo y MP3 se decodifica con <code>ffmpeg</code> cuando esta disponible.</p>
         <pre><code>py -m pip install -e ".[openai]"
 $env:OPENAI_API_KEY="tu_api_key"
 auralis transcribe sample.wav --backend openai --language es
+auralis transcribe sample.mp3 --backend openai --language es
 auralis transcribe sample.wav --backend openai --model gpt-4o-transcribe --json
-py examples\transcribe_wav.py sample.wav --backend openai</code></pre>
-        <p>Desde Python, se lee un WAV PCM16 como <code>AudioChunk</code> y se llama a <code>kit.transcribe()</code>.</p>
-        <pre><code>from auralis_voicekit import AuralisVoiceKit, VoiceKitConfig, read_wav_as_chunk
+py examples\transcribe_wav.py sample.mp3 --backend openai</code></pre>
+        <p>Desde Python, se lee un archivo de audio como <code>AudioChunk</code> y se llama a <code>kit.transcribe()</code>.</p>
+        <pre><code>from auralis_voicekit import AuralisVoiceKit, VoiceKitConfig, read_audio_as_chunk
 
-chunk = read_wav_as_chunk("sample.wav")
+chunk = read_audio_as_chunk("sample.mp3")
 kit = AuralisVoiceKit(
     VoiceKitConfig(
         transcription_backend="openai",
@@ -385,6 +387,29 @@ kit = AuralisVoiceKit(
 result = kit.transcribe(chunk)
 print(result.text)</code></pre>
         <p>El backend convierte el chunk PCM16 a WAV en memoria, envia el archivo al cliente oficial y devuelve un <code>TranscriptResult</code> con texto, idioma, fuente y metadatos. Referencia: <a href="https://platform.openai.com/docs/guides/speech-to-text">OpenAI speech-to-text</a>.</p>
+      </section>
+
+      <section id="sesiones">
+        <h2>Sesiones</h2>
+        <p><code>VoiceSession</code> ofrece un flujo de alto nivel para leer o capturar audio, segmentar voz y transcribir cada turno.</p>
+        <pre><code>from auralis_voicekit import AuralisVoiceKit, VoiceKitConfig, VoiceSession
+
+kit = AuralisVoiceKit(
+    VoiceKitConfig(
+        transcription_backend="openai",
+        transcription_model="gpt-4o-mini-transcribe",
+        language="es",
+    )
+)
+session = VoiceSession(kit)
+
+for turn in session.transcribe_file("sample.mp3"):
+    print(turn.index, turn.text)</code></pre>
+        <p>La CLI tambien puede segmentar y transcribir audio por turnos.</p>
+        <pre><code>auralis transcribe-segments sample.wav --backend openai --language es --json
+auralis transcribe-segments sample.mp3 --backend openai --language es --json
+auralis transcribe-segments sample.wav --backend null --json
+py examples\assistant_loop.py --file sample.mp3 --transcription-backend openai</code></pre>
       </section>
 
       <section id="diagnostico">
@@ -408,6 +433,8 @@ auralis doctor --json</code></pre>
   events.py          EventBus, VoiceEventType
   audio.py           RMS, pico, silencio, calibracion, segmentos y WAV PCM16
   kit.py             AuralisVoiceKit
+  session.py         VoiceSession, VoiceSessionConfig, VoiceTurn
+  ffmpeg             Decodificacion opcional de MP3 a PCM16
   backends/
     base.py          Protocolos publicos
     null.py          Backend seguro para pruebas
@@ -447,6 +474,12 @@ kit.events.subscribe(
     VoiceEventType.TRANSCRIPTION_COMPLETED,
     lambda event: print(event.payload),
 )</code></pre>
+
+        <h3>VoiceSession</h3>
+        <p>Une captura o lectura de archivos de audio con segmentacion y transcripcion por turnos.</p>
+        <pre><code>session = VoiceSession(kit)
+turns = session.transcribe_file("sample.mp3")
+live_turns = session.listen_once(5.0)</code></pre>
       </section>
 
       <section id="backends">
@@ -539,7 +572,7 @@ kit.events.subscribe(
             <tr>
               <td>5+</td>
               <td>Loop de asistente, Windows primero, CI, beta publica y version 1.0.</td>
-              <td>Pendiente</td>
+              <td>Loop inicial</td>
             </tr>
           </tbody>
         </table>

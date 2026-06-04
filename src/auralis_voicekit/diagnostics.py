@@ -6,11 +6,12 @@ from dataclasses import asdict, dataclass, field
 from enum import Enum
 from importlib.util import find_spec
 import platform
+import shutil
 import sys
 from typing import Any
 
 from ._version import __version__
-from .audio import read_wav_metadata
+from .audio import read_wav_metadata, resolve_ffmpeg_executable
 from .backends import create_default_registry
 from .exceptions import AudioSourceError, BackendNotAvailable
 
@@ -104,6 +105,23 @@ def _check_optional_dependency(module_name: str, install_hint: str) -> Diagnosti
         name=f"dependency:{module_name}",
         status=DiagnosticStatus.WARNING,
         message=f"Optional dependency {module_name!r} is not installed.",
+        hint=install_hint,
+    )
+
+
+def _check_optional_executable(executable: str, install_hint: str) -> DiagnosticCheck:
+    path = resolve_ffmpeg_executable(executable) if executable == "ffmpeg" else shutil.which(executable)
+    if path is not None:
+        return DiagnosticCheck(
+            name=f"executable:{executable}",
+            status=DiagnosticStatus.OK,
+            message=f"Optional executable {executable!r} is available.",
+            details={"path": path},
+        )
+    return DiagnosticCheck(
+        name=f"executable:{executable}",
+        status=DiagnosticStatus.WARNING,
+        message=f"Optional executable {executable!r} is not installed.",
         hint=install_hint,
     )
 
@@ -218,6 +236,10 @@ def run_doctor(
         _check_optional_dependency(
             "openai",
             "Install with: pip install auralisvoicekit[openai]",
+        ),
+        _check_optional_executable(
+            "ffmpeg",
+            "Install ffmpeg to decode MP3 and other compressed audio formats.",
         ),
     ]
     checks.extend(_backend_checks())

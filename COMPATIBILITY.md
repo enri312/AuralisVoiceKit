@@ -9,6 +9,14 @@ El backend `sounddevice` es opcional. Segun la documentacion de `python-sounddev
 
 El backend `openai` tambien es opcional. Usa el cliente oficial de OpenAI y no agrega dependencias nativas de audio al core. Requiere una variable `OPENAI_API_KEY` configurada por el usuario cuando se llama al backend real.
 
+MP3 y otros formatos comprimidos usan `ffmpeg` como herramienta externa opcional. El core sigue sin depender de `ffmpeg` para instalarse, importar o procesar WAV PCM16.
+
+La busqueda de `ffmpeg` usa este orden:
+
+1. Ejecutable disponible en `PATH`.
+2. Variable `AURALIS_FFMPEG_PATH`.
+3. Instalacion portable en `%LOCALAPPDATA%\AuralisTools\ffmpeg\bin\ffmpeg.exe` en Windows.
+
 ## Python
 
 Version base soportada:
@@ -48,7 +56,8 @@ Con transcripcion por OpenAI:
 ```powershell
 py -m pip install -e ".[openai]"
 $env:OPENAI_API_KEY="tu_api_key"
-py -m auralis_voicekit.cli transcribe sample.wav --backend openai
+choco install ffmpeg -y
+py -m auralis_voicekit.cli transcribe sample.mp3 --backend openai
 ```
 
 ## Ubuntu/Linux
@@ -77,7 +86,9 @@ Con transcripcion por OpenAI:
 ```bash
 python -m pip install -e ".[openai]"
 export OPENAI_API_KEY="tu_api_key"
-python -m auralis_voicekit.cli transcribe sample.wav --backend openai
+sudo apt update
+sudo apt install ffmpeg
+python -m auralis_voicekit.cli transcribe sample.mp3 --backend openai
 ```
 
 ## macOS
@@ -106,7 +117,8 @@ Con transcripcion por OpenAI:
 ```bash
 python -m pip install -e ".[openai]"
 export OPENAI_API_KEY="tu_api_key"
-python -m auralis_voicekit.cli transcribe sample.wav --backend openai
+brew install ffmpeg
+python -m auralis_voicekit.cli transcribe sample.mp3 --backend openai
 ```
 
 ## Diagnostico
@@ -122,6 +134,9 @@ python -m auralis_voicekit.cli doctor --json
 python -m auralis_voicekit.cli devices --backend sounddevice
 python -m auralis_voicekit.cli backends
 python -m auralis_voicekit.cli transcribe sample.wav --backend null --json
+python -m auralis_voicekit.cli transcribe sample.mp3 --backend null --json
+python -m auralis_voicekit.cli transcribe-segments sample.wav --backend null --json
+python -m auralis_voicekit.cli transcribe-segments sample.mp3 --backend null --json
 ```
 
 El comando `doctor` debe poder ejecutarse aunque los extras no esten instalados.

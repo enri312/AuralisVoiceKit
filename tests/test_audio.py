@@ -3,6 +3,7 @@ import os
 import struct
 import tempfile
 import unittest
+from unittest.mock import patch
 import wave
 
 from auralis_voicekit import (
@@ -11,13 +12,19 @@ from auralis_voicekit import (
     VoiceActivityConfig,
     VoiceActivityDetector,
     calibrate_noise_pcm16,
+    chunk_audio,
     chunk_to_wav_bytes,
+    decode_audio_with_ffmpeg,
+    ffmpeg_available,
     iter_wav_chunks,
     is_silent_pcm16,
     peak_pcm16,
+    read_audio,
+    read_audio_as_chunk,
     read_wav,
     read_wav_as_chunk,
     read_wav_metadata,
+    resolve_ffmpeg_executable,
     rms_pcm16,
     segment_voice_pcm16,
     write_wav,
@@ -71,6 +78,15 @@ class AudioHelperTests(unittest.TestCase):
             self.assertEqual(wav_file.getframerate(), 8000)
             self.assertEqual(wav_file.getnframes(), 8)
 
+    def test_chunk_audio_splits_pcm16_chunk(self):
+        chunk = _constant_chunk(1000, samples=100, sample_rate=1000)
+
+        chunks = list(chunk_audio(chunk, chunk_duration_ms=50))
+
+        self.assertEqual(len(chunks), 2)
+        self.assertEqual(len(chunks[0].data), 100)
+        self.assertEqual(chunks[1].metadata["frame_offset"], 50)
+
     def test_read_wav_metadata_and_chunks(self):
         audio_format = AudioFormat(sample_rate=1000, channels=1, sample_width=2)
         chunks = [
@@ -109,6 +125,66 @@ class AudioHelperTests(unittest.TestCase):
         self.assertEqual(chunk.format.sample_rate, 1000)
         self.assertEqual(len(chunk.data), 200)
         self.assertEqual(chunk.metadata["chunks"], 2)
+
+    def test_read_audio_as_chunk_uses_wav_reader_for_wav(self):
+        chunks = [_constant_chunk(1000, samples=50, sample_rate=1000)]
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = os.path.join(tmpdir, "sample.wav")
+            write_wav(path, chunks)
+
+            chunk = read_audio_as_chunk(path)
+
+        self.assertEqual(chunk.format.sample_rate, 1000)
+        self.assertEqual(chunk.metadata["path"], path)
+
+    def test_decode_audio_with_ffmpeg_returns_pcm16_chunk(self):
+        completed = type(
+            "Completed",
+            (),
+            {"returncode": 0, "stdout": b"\x00\x00" * 8, "stderr": b""},
+        )()
+
+        with patch("auralis_voicekit.audio.shutil.which", return_value="ffmpeg.exe"):
+            with patch("auralis_voicekit.audio.subprocess.run", return_value=completed) as run:
+                chunk = decode_audio_with_ffmpeg("sample.mp3", sample_rate=8000, channels=1)
+
+        self.assertEqual(chunk.data, b"\x00\x00" * 8)
+        self.assertEqual(chunk.format.sample_rate, 8000)
+        self.assertEqual(chunk.metadata["decoder"], "ffmpeg")
+        self.assertEqual(chunk.metadata["source_format"], "mp3")
+        self.assertIn("-i", run.call_args.args[0])
+
+    def test_decode_audio_with_ffmpeg_reports_missing_executable(self):
+        with patch("auralis_voicekit.audio.resolve_ffmpeg_executable", return_value=None):
+            with self.assertRaisesRegex(Exception, "ffmpeg is required"):
+                decode_audio_with_ffmpeg("sample.mp3")
+
+    def test_read_audio_chunks_decoded_audio(self):
+        completed = type(
+            "Completed",
+            (),
+            {"returncode": 0, "stdout": b"\x00\x00" * 100, "stderr": b""},
+        )()
+
+        with patch("auralis_voicekit.audio.shutil.which", return_value="ffmpeg.exe"):
+            with patch("auralis_voicekit.audio.subprocess.run", return_value=completed):
+                chunks = read_audio("sample.mp3", chunk_duration_ms=50, sample_rate=1000)
+
+        self.assertEqual(len(chunks), 2)
+        self.assertEqual(chunks[0].metadata["decoder"], "ffmpeg")
+
+    def test_ffmpeg_available_checks_path(self):
+        with patch("auralis_voicekit.audio.shutil.which", return_value="ffmpeg.exe"):
+            self.assertTrue(ffmpeg_available())
+
+    def test_resolve_ffmpeg_executable_checks_portable_install(self):
+        portable = os.path.join("C:\\Users\\test", "AuralisTools", "ffmpeg", "bin", "ffmpeg.exe")
+
+        with patch("auralis_voicekit.audio.shutil.which", return_value=None):
+            with patch.dict(os.environ, {"LOCALAPPDATA": "C:\\Users\\test"}, clear=True):
+                with patch("auralis_voicekit.audio.os.path.exists", return_value=True):
+                    self.assertEqual(resolve_ffmpeg_executable(), portable)
 
     def test_calibrate_noise_profile(self):
         chunks = [_constant_chunk(100), _constant_chunk(120), _constant_chunk(80)]

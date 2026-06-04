@@ -8,9 +8,9 @@
 
 AuralisVoiceKit es una libreria moderna de voz para Python, pensada primero para Windows y para asistentes personales, agentes locales y herramientas de automatizacion por voz.
 
-El objetivo principal es evitar que la captura de microfono dependa obligatoriamente de PyAudio o de wheels que tardan en llegar a las versiones nuevas de Python. El paquete base debe poder instalarse de forma liviana, sin compiladores y sin dependencias nativas obligatorias.
+El objetivo principal es evitar que la captura de microfono dependa obligatoriamente de PyAudio o de wheels que tardan en llegar a las versiones nuevas de Python. El paquete base debe poder instalarse de forma liviana, sin compiladores y sin dependencias nativas obligatorias. Para MP3 y formatos comprimidos, AuralisVoiceKit usa `ffmpeg` como herramienta externa opcional.
 
-> Estado actual: alpha tecnica. El repositorio ya define el core, los contratos de backends, captura real inicial, flujo WAV offline, transcripcion inicial por API, una CLI de diagnostico, documentacion estatica y pruebas basicas. Los backends reales se iran agregando por etapas.
+> Estado actual: alpha tecnica. El repositorio ya define el core, los contratos de backends, captura real inicial, flujo WAV offline, transcripcion inicial por API, sesiones de voz iniciales, una CLI de diagnostico, documentacion estatica y pruebas basicas. Los backends reales se iran agregando por etapas.
 
 ## Problema que resuelve
 
@@ -157,22 +157,23 @@ kit.start_capture(chunks.append)
 
 ## Transcripcion por API con OpenAI
 
-El backend `openai` es opcional. Permite transcribir un WAV PCM16 usando la API de audio de OpenAI sin agregar dependencias nativas al paquete base.
+El backend `openai` es opcional. Permite transcribir WAV PCM16, MP3 u otros formatos soportados por `ffmpeg` usando la API de audio de OpenAI sin agregar dependencias nativas al paquete base.
 
 ```powershell
 py -m pip install -e ".[openai]"
 $env:OPENAI_API_KEY="tu_api_key"
 auralis transcribe sample.wav --backend openai --language es
+auralis transcribe sample.mp3 --backend openai --language es
 auralis transcribe sample.wav --backend openai --model gpt-4o-transcribe --json
-py examples\transcribe_wav.py sample.wav --backend openai
+py examples\transcribe_wav.py sample.mp3 --backend openai
 ```
 
 Tambien se puede usar desde Python:
 
 ```python
-from auralis_voicekit import AuralisVoiceKit, VoiceKitConfig, read_wav_as_chunk
+from auralis_voicekit import AuralisVoiceKit, VoiceKitConfig, read_audio_as_chunk
 
-chunk = read_wav_as_chunk("sample.wav")
+chunk = read_audio_as_chunk("sample.mp3")
 kit = AuralisVoiceKit(
     VoiceKitConfig(
         transcription_backend="openai",
@@ -185,10 +186,60 @@ result = kit.transcribe(chunk)
 print(result.text)
 ```
 
+Para MP3, instala `ffmpeg` y asegurate de que `ffmpeg` este disponible en `PATH`. `auralis doctor` reporta si lo encuentra.
+
+En Windows, la libreria tambien detecta una instalacion portable en:
+
+```text
+%LOCALAPPDATA%\AuralisTools\ffmpeg\bin\ffmpeg.exe
+```
+
+Tambien puedes apuntar a un ejecutable concreto con `AURALIS_FFMPEG_PATH` o con `--ffmpeg` en la CLI.
+
 Segun la documentacion oficial de OpenAI para speech-to-text, los modelos soportados incluyen `gpt-4o-transcribe`, `gpt-4o-mini-transcribe` y `whisper-1`, con limite de carga de archivo de 25 MB:
 
 ```text
 https://platform.openai.com/docs/guides/speech-to-text
+```
+
+## Loop de asistente
+
+`VoiceSession` ofrece un flujo de alto nivel para leer o capturar audio, segmentar voz y transcribir cada turno:
+
+```python
+from auralis_voicekit import (
+    AuralisVoiceKit,
+    VoiceKitConfig,
+    VoiceSession,
+    VoiceSessionConfig,
+)
+
+kit = AuralisVoiceKit(
+    VoiceKitConfig(
+        transcription_backend="openai",
+        transcription_model="gpt-4o-mini-transcribe",
+        language="es",
+    )
+)
+session = VoiceSession(kit, VoiceSessionConfig(chunk_duration_ms=50))
+
+for turn in session.transcribe_wav("sample.wav"):
+    print(turn.index, turn.text)
+```
+
+Desde CLI se puede segmentar y transcribir un WAV:
+
+```powershell
+auralis transcribe-segments sample.wav --backend openai --language es --json
+auralis transcribe-segments sample.mp3 --backend openai --language es --json
+auralis transcribe-segments sample.wav --backend null --json
+```
+
+Ejemplo completo de loop:
+
+```powershell
+py examples\assistant_loop.py --file sample.mp3 --transcription-backend openai
+py examples\assistant_loop.py --seconds 5 --capture-backend sounddevice --transcription-backend openai
 ```
 
 ## Diagnostico
@@ -214,6 +265,7 @@ auralis_voicekit
     models        AudioChunk, AudioFormat, TranscriptResult, AudioDevice
     events        EventBus y eventos de voz
     kit           Fachada principal AuralisVoiceKit
+    session       VoiceSession, VoiceSessionConfig y VoiceTurn
   backends
     base          Contratos comunes
     null          Backend seguro para pruebas
@@ -222,6 +274,7 @@ auralis_voicekit
     openai        Backend opcional de transcripcion por API
     registry      Registro de backends
   audio           Utilidades PCM16, calibracion y segmentacion
+  ffmpeg          Decodificacion opcional de MP3 a PCM16
   cli             Diagnostico y utilidades
   diagnostics     Reportes doctor estructurados
 ```
@@ -259,9 +312,9 @@ ROADMAP.md
 
 Prioridad inmediata:
 
-1. Crear ejemplo de loop escuchar -> segmentar -> transcribir.
-2. Agregar normalizacion basica de volumen.
-3. Preparar backend local de transcripcion como extra opcional.
+1. Agregar normalizacion basica de volumen.
+2. Preparar backend local de transcripcion como extra opcional.
+3. Mejorar `VoiceSession` con cancelacion y cierre ordenado para sesiones largas.
 4. Mejorar `auralis doctor` con una prueba corta de apertura de dispositivo bajo demanda.
 5. Explorar soporte FLAC sin cargar el core con dependencias nativas.
 

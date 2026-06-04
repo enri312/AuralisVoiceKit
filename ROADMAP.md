@@ -24,6 +24,7 @@ La meta no es competir con todos los motores de voz a la vez. La meta es constru
 | Core Python | Inicial funcional |
 | Modelos de audio | Inicial |
 | Eventos | Inicial |
+| Sesiones de voz | Inicial funcional |
 | CLI `doctor` | Inicial |
 | Backend `null` | Funcional |
 | Backend `wav` | Inicial funcional |
@@ -141,10 +142,10 @@ Criterio de salida:
 
 Entregables:
 
-- API de alto nivel para sesiones de voz.
+- API de alto nivel para sesiones de voz. Estado: inicial con `VoiceSession`.
 - Hooks para wake word o activacion externa.
 - Integracion limpia con loops de agente externos.
-- Ejemplo `examples/assistant_loop.py`.
+- Ejemplo `examples/assistant_loop.py`. Estado: creado.
 - Cancelacion y cierre ordenado.
 
 Criterio de salida:
@@ -231,6 +232,7 @@ Criterio de salida:
 - Soporte para archivos WAV/FLAC como entrada. WAV PCM16 inicial completado.
 - Adaptadores para modelos locales.
 - Adaptadores para APIs externas. OpenAI inicial completado.
+- Decodificacion MP3 mediante `ffmpeg` externo opcional. Estado: inicial.
 - Wake word externo.
 - Medidor de energia en tiempo real.
 - Grabacion temporal con borrado seguro.
@@ -239,8 +241,8 @@ Criterio de salida:
 
 ## Prioridad inmediata
 
-1. Crear ejemplo de loop escuchar -> segmentar -> transcribir.
-2. Probar captura real y segmentacion en hardware Windows, Ubuntu y macOS.
-3. Preparar backend local de transcripcion como extra opcional.
-4. Explorar soporte FLAC como extra opcional o via libreria estandar si aparece una ruta liviana.
+1. Agregar normalizacion basica de volumen.
+2. Preparar backend local de transcripcion como extra opcional.
+3. Mejorar `VoiceSession` con cancelacion y cierre ordenado para sesiones largas.
+4. Ampliar pruebas reales de MP3/formatos comprimidos con `ffmpeg` en Windows, Ubuntu y macOS.
 5. Mejorar doctor para intentar una prueba corta de apertura de dispositivo cuando el usuario lo pida.

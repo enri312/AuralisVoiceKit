@@ -6,8 +6,10 @@ from dataclasses import dataclass
 import io
 from math import sqrt
 import os
+import shutil
 from statistics import fmean, median
 import struct
+import subprocess
 from typing import Iterable, Iterator
 import wave
 
@@ -16,6 +18,8 @@ from .models import AudioChunk, AudioEncoding, AudioFormat
 
 
 PCM16_MAX = 32768.0
+DEFAULT_DECODE_SAMPLE_RATE = 16_000
+DEFAULT_DECODE_CHANNELS = 1
 
 
 @dataclass(frozen=True, slots=True)
@@ -277,6 +281,40 @@ def write_wav(path: str, chunks: list[AudioChunk]) -> None:
             output.writeframes(chunk.data)
 
 
+def chunk_audio(
+    chunk: AudioChunk,
+    *,
+    chunk_duration_ms: int = 50,
+) -> Iterator[AudioChunk]:
+    """Split a PCM16 chunk into smaller PCM16 chunks."""
+
+    if chunk_duration_ms <= 0:
+        raise ValueError("chunk_duration_ms must be greater than zero")
+    if chunk.format.encoding is not AudioEncoding.PCM16 or chunk.format.sample_width != 2:
+        raise ValueError("Only PCM16 chunks are supported")
+
+    bytes_per_frame = chunk.format.channels * chunk.format.sample_width
+    frames_per_chunk = max(1, int(chunk.format.sample_rate * chunk_duration_ms / 1000))
+    bytes_per_chunk = frames_per_chunk * bytes_per_frame
+    offset = 0
+    index = 0
+    while offset < len(chunk.data):
+        data = chunk.data[offset : offset + bytes_per_chunk]
+        if not data:
+            break
+        yield AudioChunk(
+            data=data,
+            format=chunk.format,
+            metadata={
+                **chunk.metadata,
+                "chunk_index": index,
+                "frame_offset": offset // bytes_per_frame,
+            },
+        )
+        offset += bytes_per_chunk
+        index += 1
+
+
 def chunk_to_wav_bytes(chunk: AudioChunk) -> bytes:
     """Encode a PCM16 chunk as WAV bytes."""
 
@@ -377,3 +415,142 @@ def read_wav_as_chunk(path: str | os.PathLike[str]) -> AudioChunk:
         format=audio_format,
         metadata={"path": os.fspath(path), "chunks": len(chunks)},
     )
+
+
+def resolve_ffmpeg_executable(executable: str = "ffmpeg") -> str | None:
+    """Return a usable ffmpeg executable path, if available."""
+
+    resolved = shutil.which(executable)
+    if resolved is not None:
+        return resolved
+
+    env_path = os.getenv("AURALIS_FFMPEG_PATH")
+    if env_path and os.path.exists(env_path):
+        return env_path
+
+    if executable == "ffmpeg":
+        local_app_data = os.getenv("LOCALAPPDATA")
+        if local_app_data:
+            portable = os.path.join(
+                local_app_data,
+                "AuralisTools",
+                "ffmpeg",
+                "bin",
+                "ffmpeg.exe",
+            )
+            if os.path.exists(portable):
+                return portable
+    return None
+
+
+def ffmpeg_available(executable: str = "ffmpeg") -> bool:
+    """Return whether the ffmpeg executable can be found."""
+
+    return resolve_ffmpeg_executable(executable) is not None
+
+
+def decode_audio_with_ffmpeg(
+    path: str | os.PathLike[str],
+    *,
+    sample_rate: int = DEFAULT_DECODE_SAMPLE_RATE,
+    channels: int = DEFAULT_DECODE_CHANNELS,
+    executable: str = "ffmpeg",
+) -> AudioChunk:
+    """Decode an audio file to PCM16 using an external ffmpeg executable."""
+
+    if sample_rate <= 0:
+        raise ValueError("sample_rate must be greater than zero")
+    if channels <= 0:
+        raise ValueError("channels must be greater than zero")
+
+    audio_path = os.fspath(path)
+    ffmpeg_path = resolve_ffmpeg_executable(executable)
+    if ffmpeg_path is None:
+        raise AudioSourceError(
+            "ffmpeg is required to decode MP3 or compressed audio. "
+            "Install ffmpeg and make sure it is available on PATH."
+        )
+
+    command = [
+        ffmpeg_path,
+        "-hide_banner",
+        "-loglevel",
+        "error",
+        "-i",
+        audio_path,
+        "-f",
+        "s16le",
+        "-acodec",
+        "pcm_s16le",
+        "-ac",
+        str(channels),
+        "-ar",
+        str(sample_rate),
+        "-",
+    ]
+    try:
+        completed = subprocess.run(command, check=False, capture_output=True)
+    except OSError as exc:
+        raise AudioSourceError(f"Cannot run ffmpeg for {audio_path!r}: {exc}") from exc
+
+    if completed.returncode != 0:
+        stderr = completed.stderr.decode("utf-8", "replace").strip()
+        message = stderr or f"ffmpeg exited with code {completed.returncode}"
+        raise AudioSourceError(f"ffmpeg could not decode {audio_path!r}: {message}")
+
+    return AudioChunk(
+        data=completed.stdout,
+        format=AudioFormat(
+            sample_rate=sample_rate,
+            channels=channels,
+            sample_width=2,
+            encoding=AudioEncoding.PCM16,
+        ),
+        metadata={
+            "path": audio_path,
+            "decoder": "ffmpeg",
+            "source_format": os.path.splitext(audio_path)[1].lstrip(".").lower(),
+        },
+    )
+
+
+def read_audio_as_chunk(
+    path: str | os.PathLike[str],
+    *,
+    sample_rate: int = DEFAULT_DECODE_SAMPLE_RATE,
+    channels: int = DEFAULT_DECODE_CHANNELS,
+    ffmpeg_executable: str = "ffmpeg",
+) -> AudioChunk:
+    """Read WAV directly or decode compressed audio with ffmpeg."""
+
+    audio_path = os.fspath(path)
+    if audio_path.lower().endswith(".wav"):
+        return read_wav_as_chunk(audio_path)
+    return decode_audio_with_ffmpeg(
+        audio_path,
+        sample_rate=sample_rate,
+        channels=channels,
+        executable=ffmpeg_executable,
+    )
+
+
+def read_audio(
+    path: str | os.PathLike[str],
+    *,
+    chunk_duration_ms: int = 50,
+    sample_rate: int = DEFAULT_DECODE_SAMPLE_RATE,
+    channels: int = DEFAULT_DECODE_CHANNELS,
+    ffmpeg_executable: str = "ffmpeg",
+) -> list[AudioChunk]:
+    """Read WAV directly or decode compressed audio into PCM16 chunks."""
+
+    audio_path = os.fspath(path)
+    if audio_path.lower().endswith(".wav"):
+        return read_wav(audio_path, chunk_duration_ms=chunk_duration_ms)
+    chunk = decode_audio_with_ffmpeg(
+        audio_path,
+        sample_rate=sample_rate,
+        channels=channels,
+        executable=ffmpeg_executable,
+    )
+    return list(chunk_audio(chunk, chunk_duration_ms=chunk_duration_ms))

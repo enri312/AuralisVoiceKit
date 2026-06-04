@@ -6,6 +6,23 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-06-04
+
+### Agregado
+
+- `VoiceSession`, `VoiceSessionConfig` y `VoiceTurn` para flujos escuchar -> segmentar -> transcribir.
+- Metodo `VoiceSession.transcribe_file()` para procesar WAV, MP3 y audio soportado por `ffmpeg`.
+- Metodo `VoiceSession.listen_once()` para capturar durante un intervalo y transcribir segmentos.
+- CLI `auralis transcribe-segments archivo.wav` con salida de texto o JSON.
+- Lectura generica `read_audio_as_chunk()` y `read_audio()` con decodificacion opcional mediante `ffmpeg`.
+- Check `executable:ffmpeg` en `auralis doctor`.
+- Ejemplo `examples/assistant_loop.py`.
+- Pruebas de sesion, callbacks, segmentacion por WAV y CLI.
+
+### Cambiado
+
+- El workflow de release opta por Node 24 para evitar la advertencia de acciones Node 20.
+
 ## [0.6.0] - 2026-06-04
 
 ### Agregado
