@@ -6,6 +6,10 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+### Cambiado
+
+- Renombrada la documentacion HTML principal de `docs/index.html` a `docs/auralisvoicekit-documentacion.html`.
+
 ## [0.9.0] - 2026-06-04
 
 ### Agregado

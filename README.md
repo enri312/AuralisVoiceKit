@@ -368,10 +368,10 @@ Prioridad inmediata:
 
 ## Documentacion
 
-La documentacion HTML inicial esta en:
+La documentacion HTML principal esta en:
 
 ```text
-docs/index.html
+docs/auralisvoicekit-documentacion.html
 ```
 
 Se puede abrir directamente en el navegador; no requiere servidor local.
