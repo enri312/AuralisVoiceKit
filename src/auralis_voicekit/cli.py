@@ -72,6 +72,7 @@ def _print_backends() -> int:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="auralis")
+    parser.add_argument("--version", action="version", version=f"AuralisVoiceKit {__version__}")
     subparsers = parser.add_subparsers(dest="command")
     doctor_parser = subparsers.add_parser("doctor", help="show runtime compatibility information")
     doctor_parser.add_argument(

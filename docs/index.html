@@ -335,6 +335,11 @@ chunk = AudioChunk(
 
 result = kit.transcribe(chunk)
 print(result.text)</code></pre>
+        <h3>Captura real</h3>
+        <p>Con el extra <code>sounddevice</code>, se puede listar dispositivos y grabar a WAV desde el ejemplo incluido.</p>
+        <pre><code>py -m pip install -e ".[sounddevice]"
+py -m auralis_voicekit.cli devices --backend sounddevice
+py examples\capture_microphone.py --seconds 3 --output capture.wav</code></pre>
       </section>
 
       <section id="arquitectura">
@@ -344,11 +349,12 @@ print(result.text)</code></pre>
   config.py          VoiceKitConfig
   models.py          AudioChunk, AudioFormat, TranscriptResult
   events.py          EventBus, VoiceEventType
+  audio.py           RMS, pico, silencio y WAV PCM16
   kit.py             AuralisVoiceKit
   backends/
     base.py          Protocolos publicos
     null.py          Backend seguro para pruebas
-    sounddevice.py   Backend opcional
+    sounddevice.py   Backend opcional funcional
     registry.py      Registro de factories</code></pre>
       </section>
 
@@ -402,8 +408,8 @@ kit.events.subscribe(
             </tr>
             <tr>
               <td><code>sounddevice</code></td>
-              <td>Scaffold inicial</td>
-              <td>Captura moderna con dependencia opcional.</td>
+              <td>Inicial funcional</td>
+              <td>Captura moderna con dependencia opcional, seleccion de dispositivo y cierre robusto.</td>
             </tr>
             <tr>
               <td><code>wasapi</code></td>
@@ -449,12 +455,12 @@ kit.events.subscribe(
             <tr>
               <td>1</td>
               <td>Captura real de microfono con <code>sounddevice</code>.</td>
-              <td>Siguiente</td>
+              <td>Inicial</td>
             </tr>
             <tr>
               <td>2</td>
               <td>Utilidades de energia, silencio, calibracion y WAV.</td>
-              <td>Pendiente</td>
+              <td>Inicial</td>
             </tr>
             <tr>
               <td>3</td>

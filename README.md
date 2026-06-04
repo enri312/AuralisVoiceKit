@@ -78,6 +78,36 @@ print(result.text)
 
 Por defecto se usa un backend `null`. Esto permite probar la integracion sin hardware, sin permisos de microfono y sin dependencias nativas.
 
+## Captura real con sounddevice
+
+El backend `sounddevice` es opcional y permite capturar audio PCM16 desde microfono sin depender de PyAudio:
+
+```powershell
+py -m pip install -e ".[sounddevice]"
+py -m auralis_voicekit.cli devices --backend sounddevice
+py examples\capture_microphone.py --seconds 3 --output capture.wav
+```
+
+Tambien se puede seleccionar dispositivo por id, nombre o `default`:
+
+```powershell
+py examples\capture_microphone.py --device default --seconds 3
+py examples\capture_microphone.py --device "Nombre del microfono" --seconds 3
+```
+
+## Utilidades de audio
+
+El core incluye helpers puros para PCM16, sin NumPy ni dependencias externas:
+
+```python
+from auralis_voicekit import is_silent_pcm16, peak_pcm16, rms_pcm16, write_wav
+
+energy = rms_pcm16(chunk)
+peak = peak_pcm16(chunk)
+silent = is_silent_pcm16(chunk, threshold=0.01)
+write_wav("capture.wav", [chunk])
+```
+
 ## Arquitectura
 
 ```text
@@ -90,8 +120,9 @@ auralis_voicekit
   backends
     base          Contratos comunes
     null          Backend seguro para pruebas
-    sounddevice   Backend opcional de captura
+    sounddevice   Backend opcional de captura real
     registry      Registro de backends
+  audio           Utilidades PCM16 puras
   cli             Diagnostico y utilidades
 ```
 
@@ -100,7 +131,7 @@ auralis_voicekit
 | Backend | Estado | Uso previsto |
 | --- | --- | --- |
 | `null` | incluido | pruebas, demos, integracion temprana |
-| `sounddevice` | scaffold inicial | captura moderna multiplataforma |
+| `sounddevice` | inicial funcional | captura moderna multiplataforma |
 | `wasapi` | pendiente | ruta principal optimizada para Windows |
 | `pyaudio` | pendiente | compatibilidad con proyectos existentes |
 | `whisper` | pendiente | transcripcion local |

@@ -26,12 +26,13 @@ La meta no es competir con todos los motores de voz a la vez. La meta es constru
 | Eventos | Inicial |
 | CLI `doctor` | Inicial |
 | Backend `null` | Funcional |
-| Backend `sounddevice` | Scaffold opcional |
+| Backend `sounddevice` | Inicial funcional |
+| Utilidades de audio | Inicial |
 | Versionado | Politica inicial |
 | Compatibilidad Windows/Linux/macOS | Documentacion inicial |
 | Transcripcion real | Pendiente |
 | Salida de voz real | Pendiente |
-| CI multiplataforma | Pendiente |
+| CI multiplataforma | Inicial |
 | Publicacion en PyPI | Pendiente |
 
 ## Fase 0 - Base del proyecto
@@ -55,7 +56,7 @@ Criterio de salida:
 - `python -m auralis_voicekit.cli doctor` corre sin instalar extras.
 - `import auralis_voicekit` no intenta cargar backends nativos.
 
-Estado: en progreso, con primer scaffold ya creado.
+Estado: completada para la base inicial.
 
 ## Fase 1 - Captura real de microfono
 
@@ -63,13 +64,13 @@ Estado: en progreso, con primer scaffold ya creado.
 
 Entregables:
 
-- Backend `sounddevice` funcional para captura PCM16.
-- Enumeracion de dispositivos de entrada.
-- Seleccion de dispositivo por id, nombre o default.
-- Start/stop robusto sin dejar streams abiertos.
+- Backend `sounddevice` funcional para captura PCM16. Estado: inicial.
+- Enumeracion de dispositivos de entrada. Estado: inicial.
+- Seleccion de dispositivo por id, nombre o default. Estado: inicial.
+- Start/stop robusto sin dejar streams abiertos. Estado: inicial.
 - Eventos `capture.started`, `audio.chunk`, `capture.stopped` con payload seguro.
-- Ejemplo `examples/capture_microphone.py`.
-- Tests con mocks para no depender de hardware.
+- Ejemplo `examples/capture_microphone.py`. Estado: creado.
+- Tests con mocks para no depender de hardware. Estado: inicial.
 
 Criterio de salida:
 
@@ -83,12 +84,12 @@ Criterio de salida:
 
 Entregables:
 
-- Calculo de RMS y nivel de energia.
+- Calculo de RMS y nivel de energia. Estado: inicial.
 - Calibracion de ruido ambiente.
-- Deteccion simple de silencio.
+- Deteccion simple de silencio. Estado: inicial.
 - Segmentacion por voz/silencio.
 - Normalizacion basica de volumen.
-- Guardado opcional a WAV para depuracion.
+- Guardado opcional a WAV para depuracion. Estado: inicial.
 
 Criterio de salida:
 
@@ -236,8 +237,8 @@ Criterio de salida:
 
 ## Prioridad inmediata
 
-1. Completar backend `sounddevice`.
-2. Agregar ejemplo de captura real.
-3. Agregar pruebas con mocks de `sounddevice`.
-4. Mejorar `auralis doctor` para listar dispositivos cuando el backend este instalado.
-5. Agregar utilidades de energia y calibracion de ruido.
+1. Probar captura real en hardware Windows, Ubuntu y macOS.
+2. Agregar calibracion de ruido ambiente.
+3. Agregar segmentacion voz/silencio.
+4. Mejorar `auralis doctor` con diagnostico de permisos y sugerencias por sistema.
+5. Preparar transcripcion inicial con backend opcional.

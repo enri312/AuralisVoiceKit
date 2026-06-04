@@ -22,6 +22,8 @@ Politica:
 - Probar versiones estables y prereleases cuando sea viable.
 - Aislar dependencias nativas en extras opcionales.
 
+CI prueba Python 3.10 a 3.14 en Windows, Ubuntu/Linux y macOS. Tambien hay un job experimental con `3.15-dev` en Ubuntu; ese job es de observacion temprana y puede fallar sin bloquear el desarrollo.
+
 ## Windows
 
 Instalacion de desarrollo:

@@ -37,6 +37,8 @@ class VoiceKitConfig:
     output_backend: str = "null"
     input_device: str | int | None = None
     output_device: str | int | None = None
+    capture_block_ms: int = 50
+    capture_latency: str | float | None = None
     privacy_mode: bool = True
     log_level: str = "INFO"
     metadata: dict[str, Any] = field(default_factory=dict)
@@ -48,6 +50,8 @@ class VoiceKitConfig:
             raise ValueError("channels must be greater than zero")
         if self.sample_width <= 0:
             raise ValueError("sample_width must be greater than zero")
+        if self.capture_block_ms <= 0:
+            raise ValueError("capture_block_ms must be greater than zero")
 
     @classmethod
     def from_env(cls, prefix: str = "AURALIS_") -> "VoiceKitConfig":
@@ -63,6 +67,8 @@ class VoiceKitConfig:
             output_backend=os.getenv(prefix + "OUTPUT_BACKEND", "null"),
             input_device=os.getenv(prefix + "INPUT_DEVICE") or None,
             output_device=os.getenv(prefix + "OUTPUT_DEVICE") or None,
+            capture_block_ms=_env_int(os.getenv(prefix + "CAPTURE_BLOCK_MS"), 50),
+            capture_latency=os.getenv(prefix + "CAPTURE_LATENCY") or None,
             privacy_mode=_env_bool(os.getenv(prefix + "PRIVACY_MODE"), True),
             log_level=os.getenv(prefix + "LOG_LEVEL", "INFO"),
         )
@@ -75,3 +81,9 @@ class VoiceKitConfig:
             channels=self.channels,
             sample_width=self.sample_width,
         )
+
+    @property
+    def capture_block_frames(self) -> int:
+        """Return the number of frames per capture callback."""
+
+        return max(1, int(self.sample_rate * self.capture_block_ms / 1000))

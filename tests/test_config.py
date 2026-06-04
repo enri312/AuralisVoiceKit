@@ -19,6 +19,7 @@ class VoiceKitConfigTests(unittest.TestCase):
             "AURALIS_SAMPLE_RATE": "48000",
             "AURALIS_CHANNELS": "2",
             "AURALIS_CAPTURE_BACKEND": "sounddevice",
+            "AURALIS_CAPTURE_BLOCK_MS": "25",
             "AURALIS_PRIVACY_MODE": "false",
         }
 
@@ -28,6 +29,8 @@ class VoiceKitConfigTests(unittest.TestCase):
         self.assertEqual(config.sample_rate, 48000)
         self.assertEqual(config.channels, 2)
         self.assertEqual(config.capture_backend, "sounddevice")
+        self.assertEqual(config.capture_block_ms, 25)
+        self.assertEqual(config.capture_block_frames, 1200)
         self.assertFalse(config.privacy_mode)
 
 
