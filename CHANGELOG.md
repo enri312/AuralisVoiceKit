@@ -6,6 +6,19 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.16.0] - 2026-06-04
+
+### Agregado
+
+- Backend de captura `wasapi` para Windows, construido sobre el extra opcional `sounddevice`.
+- Filtrado de dispositivos por host API WASAPI y seleccion de dispositivo WASAPI por defecto.
+- Pruebas unitarias para disponibilidad, filtrado de dispositivos, seleccion default y apertura simulada de stream WASAPI.
+
+### Cambiado
+
+- El roadmap marca WASAPI como backend inicial y mueve la prioridad inmediata a benchmarks de latencia.
+- La documentacion ahora muestra `auralis devices --backend wasapi` y configuracion Python con `capture_backend="wasapi"`.
+
 ## [0.15.0] - 2026-06-04
 
 ### Agregado

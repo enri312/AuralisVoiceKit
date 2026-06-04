@@ -7,6 +7,8 @@ El backend `sounddevice` es opcional. Segun la documentacion de `python-sounddev
 - https://python-sounddevice.readthedocs.io/
 - https://python-sounddevice.readthedocs.io/en/0.4.7/installation.html
 
+El backend `wasapi` es opcional y solo funciona en Windows. Reutiliza el extra `sounddevice`, pero filtra dispositivos por la host API WASAPI para dar una ruta mas directa al stack moderno de audio de Windows.
+
 El backend `openai` tambien es opcional. Usa el cliente oficial de OpenAI y no agrega dependencias nativas de audio al core. Requiere una variable `OPENAI_API_KEY` configurada por el usuario cuando se llama al backend real.
 
 El backend `whisper` tambien es opcional. Usa `faster-whisper` para transcripcion local, puede descargar modelos en el primer uso y puede requerir dependencias de ML mas pesadas segun plataforma. No cambia el paquete base.
@@ -53,6 +55,7 @@ Con captura por `sounddevice`:
 ```powershell
 py -m pip install -e ".[sounddevice]"
 py -m auralis_voicekit.cli doctor --devices
+py -m auralis_voicekit.cli devices --backend wasapi
 ```
 
 Con transcripcion por OpenAI:
@@ -157,11 +160,13 @@ Comandos utiles:
 python -m auralis_voicekit.cli doctor
 python -m auralis_voicekit.cli doctor --devices
 python -m auralis_voicekit.cli doctor --devices --backend wav
+python -m auralis_voicekit.cli doctor --devices --backend wasapi
 python -m auralis_voicekit.cli doctor --capture-test --backend sounddevice --capture-seconds 0.25
 python -m auralis_voicekit.cli doctor --capture-test --backend sounddevice --device default --json
 python -m auralis_voicekit.cli doctor --wav sample.wav
 python -m auralis_voicekit.cli doctor --json
 python -m auralis_voicekit.cli devices --backend sounddevice
+python -m auralis_voicekit.cli devices --backend wasapi
 python -m auralis_voicekit.cli backends
 python -m auralis_voicekit.cli speak "Hola" --backend null --json
 python -m auralis_voicekit.cli speak "Hola" --backend system

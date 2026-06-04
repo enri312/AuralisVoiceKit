@@ -95,6 +95,7 @@ El backend `sounddevice` es opcional y permite capturar audio PCM16 desde microf
 ```powershell
 py -m pip install -e ".[sounddevice]"
 py -m auralis_voicekit.cli devices --backend sounddevice
+py -m auralis_voicekit.cli devices --backend wasapi
 py examples\capture_microphone.py --seconds 3 --output capture.wav
 ```
 
@@ -103,6 +104,19 @@ Tambien se puede seleccionar dispositivo por id, nombre o `default`:
 ```powershell
 py examples\capture_microphone.py --device default --seconds 3
 py examples\capture_microphone.py --device "Nombre del microfono" --seconds 3
+```
+
+En Windows tambien existe un backend `wasapi` inicial. Usa el extra `sounddevice`, pero filtra dispositivos por la host API WASAPI:
+
+```python
+from auralis_voicekit import AuralisVoiceKit, VoiceKitConfig
+
+kit = AuralisVoiceKit(
+    VoiceKitConfig(
+        capture_backend="wasapi",
+        input_device="default",
+    )
+)
 ```
 
 ## Salida de voz del sistema
@@ -378,6 +392,7 @@ auralis_voicekit
     null          Backend seguro para pruebas
     wav_file      Backend offline para WAV PCM16
     sounddevice   Backend opcional de captura real
+    wasapi        Backend inicial de captura Windows WASAPI
     whisper       Backend opcional de transcripcion local
     openai        Backend opcional de transcripcion por API
     system        Backend opcional de salida de voz del sistema
@@ -395,7 +410,7 @@ auralis_voicekit
 | `null` | incluido | pruebas, demos, integracion temprana |
 | `wav` | inicial funcional | pruebas offline con WAV PCM16 |
 | `sounddevice` | inicial funcional | captura moderna multiplataforma |
-| `wasapi` | pendiente | ruta principal optimizada para Windows |
+| `wasapi` | inicial funcional | captura Windows filtrada por host API WASAPI |
 | `pyaudio` | pendiente | compatibilidad con proyectos existentes |
 | `whisper` | inicial funcional | transcripcion local opcional con faster-whisper |
 | `openai` | inicial funcional | transcripcion por API |
@@ -422,11 +437,11 @@ ROADMAP.md
 
 Prioridad inmediata:
 
-1. Investigar backend WASAPI dedicado para Windows.
-2. Agregar benchmarks basicos de latencia para captura, segmentacion y transcripcion offline.
-3. Endurecer mensajes de error para archivos comprimidos cuando `ffmpeg` falta o falla.
-4. Preparar una pagina de documentacion API mas completa para usuarios de PyPI.
-5. Mejorar la configuracion de voces para el backend `system`.
+1. Agregar benchmarks basicos de latencia para captura, segmentacion y transcripcion offline.
+2. Endurecer mensajes de error para archivos comprimidos cuando `ffmpeg` falta o falla.
+3. Preparar una pagina de documentacion API mas completa para usuarios de PyPI.
+4. Mejorar la configuracion de voces para el backend `system`.
+5. Robustecer WASAPI con pruebas manuales en hardware Windows real.
 
 ## Documentacion
 

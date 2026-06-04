@@ -22,6 +22,7 @@ keywords = [
   "windows",
   "linux",
   "ubuntu",
+  "wasapi",
   "macos",
   "microphone"
 ]

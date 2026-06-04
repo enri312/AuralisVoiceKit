@@ -29,6 +29,7 @@ La meta no es competir con todos los motores de voz a la vez. La meta es constru
 | Backend `null` | Funcional |
 | Backend `wav` | Inicial funcional |
 | Backend `sounddevice` | Inicial funcional |
+| Backend `wasapi` | Inicial funcional |
 | Utilidades de audio | Normalizacion, calibracion y segmentacion inicial |
 | Versionado | Politica inicial |
 | Compatibilidad Windows/Linux/macOS | Documentacion inicial |
@@ -68,6 +69,7 @@ Estado: completada para la base inicial.
 Entregables:
 
 - Backend `sounddevice` funcional para captura PCM16. Estado: inicial.
+- Backend `wasapi` funcional para captura Windows con host API WASAPI. Estado: inicial.
 - Enumeracion de dispositivos de entrada. Estado: inicial.
 - Seleccion de dispositivo por id, nombre o default. Estado: inicial.
 - Start/stop robusto sin dejar streams abiertos. Estado: inicial.
@@ -162,7 +164,7 @@ Entregables:
 
 - Mejor diagnostico de permisos de microfono. Estado: inicial con sugerencias por OS y test de apertura bajo demanda.
 - Mejor reporte de dispositivos y host APIs. Estado: inicial.
-- Investigacion de backend WASAPI dedicado.
+- Investigacion de backend WASAPI dedicado. Estado: inicial.
 - Mensajes especificos para errores comunes de audio en Windows.
 - Guia de instalacion para PowerShell.
 
@@ -230,7 +232,7 @@ Criterio de salida:
 
 ## Backlog tecnico
 
-- Backend WASAPI dedicado.
+- Backend WASAPI dedicado. Estado: inicial sobre `sounddevice`.
 - Backend PyAudio solo como compatibilidad opcional.
 - Backend de salida `system`. Estado: inicial.
 - Soporte para archivos WAV/FLAC como entrada. WAV PCM16 completado; FLAC inicial validado via `ffmpeg`.
@@ -247,8 +249,8 @@ Criterio de salida:
 
 ## Prioridad inmediata
 
-1. Investigar backend WASAPI dedicado para Windows.
-2. Agregar benchmarks basicos de latencia para captura, segmentacion y transcripcion offline.
-3. Endurecer mensajes de error para archivos comprimidos cuando `ffmpeg` falta o falla.
-4. Preparar una pagina de documentacion API mas completa para usuarios de PyPI.
-5. Mejorar la configuracion de voces para el backend `system`.
+1. Agregar benchmarks basicos de latencia para captura, segmentacion y transcripcion offline.
+2. Endurecer mensajes de error para archivos comprimidos cuando `ffmpeg` falta o falla.
+3. Preparar una pagina de documentacion API mas completa para usuarios de PyPI.
+4. Mejorar la configuracion de voces para el backend `system`.
+5. Robustecer WASAPI con pruebas manuales en hardware Windows real.
