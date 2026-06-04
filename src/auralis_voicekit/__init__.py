@@ -1,7 +1,18 @@
 """Public package surface for AuralisVoiceKit."""
 
 from ._version import __version__
-from .audio import is_silent_pcm16, peak_pcm16, rms_pcm16, write_wav
+from .audio import (
+    NoiseProfile,
+    VoiceActivityConfig,
+    VoiceActivityDetector,
+    VoiceSegment,
+    calibrate_noise_pcm16,
+    is_silent_pcm16,
+    peak_pcm16,
+    rms_pcm16,
+    segment_voice_pcm16,
+    write_wav,
+)
 from .config import VoiceKitConfig
 from .events import EventBus, VoiceEvent, VoiceEventType
 from .exceptions import (
@@ -30,9 +41,15 @@ __all__ = [
     "VoiceEvent",
     "VoiceEventType",
     "VoiceKitConfig",
+    "NoiseProfile",
+    "VoiceActivityConfig",
+    "VoiceActivityDetector",
+    "VoiceSegment",
     "__version__",
+    "calibrate_noise_pcm16",
     "is_silent_pcm16",
     "peak_pcm16",
     "rms_pcm16",
+    "segment_voice_pcm16",
     "write_wav",
 ]

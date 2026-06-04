@@ -100,12 +100,33 @@ py examples\capture_microphone.py --device "Nombre del microfono" --seconds 3
 El core incluye helpers puros para PCM16, sin NumPy ni dependencias externas:
 
 ```python
-from auralis_voicekit import is_silent_pcm16, peak_pcm16, rms_pcm16, write_wav
+from auralis_voicekit import (
+    VoiceActivityDetector,
+    calibrate_noise_pcm16,
+    is_silent_pcm16,
+    peak_pcm16,
+    rms_pcm16,
+    write_wav,
+)
 
 energy = rms_pcm16(chunk)
 peak = peak_pcm16(chunk)
 silent = is_silent_pcm16(chunk, threshold=0.01)
 write_wav("capture.wav", [chunk])
+```
+
+Tambien se puede calibrar ruido ambiente y segmentar voz sin depender de modelos externos:
+
+```python
+profile = calibrate_noise_pcm16(noise_chunks)
+detector = VoiceActivityDetector(noise_profile=profile)
+segments = detector.segment(recorded_chunks)
+```
+
+Ejemplo completo:
+
+```powershell
+py examples\capture_voice_segments.py --calibrate-seconds 1 --record-seconds 5
 ```
 
 ## Arquitectura
@@ -122,7 +143,7 @@ auralis_voicekit
     null          Backend seguro para pruebas
     sounddevice   Backend opcional de captura real
     registry      Registro de backends
-  audio           Utilidades PCM16 puras
+  audio           Utilidades PCM16, calibracion y segmentacion
   cli             Diagnostico y utilidades
 ```
 

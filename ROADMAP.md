@@ -27,7 +27,7 @@ La meta no es competir con todos los motores de voz a la vez. La meta es constru
 | CLI `doctor` | Inicial |
 | Backend `null` | Funcional |
 | Backend `sounddevice` | Inicial funcional |
-| Utilidades de audio | Inicial |
+| Utilidades de audio | Calibracion y segmentacion inicial |
 | Versionado | Politica inicial |
 | Compatibilidad Windows/Linux/macOS | Documentacion inicial |
 | Transcripcion real | Pendiente |
@@ -85,9 +85,9 @@ Criterio de salida:
 Entregables:
 
 - Calculo de RMS y nivel de energia. Estado: inicial.
-- Calibracion de ruido ambiente.
+- Calibracion de ruido ambiente. Estado: inicial.
 - Deteccion simple de silencio. Estado: inicial.
-- Segmentacion por voz/silencio.
+- Segmentacion por voz/silencio. Estado: inicial.
 - Normalizacion basica de volumen.
 - Guardado opcional a WAV para depuracion. Estado: inicial.
 
@@ -237,8 +237,8 @@ Criterio de salida:
 
 ## Prioridad inmediata
 
-1. Probar captura real en hardware Windows, Ubuntu y macOS.
-2. Agregar calibracion de ruido ambiente.
-3. Agregar segmentacion voz/silencio.
-4. Mejorar `auralis doctor` con diagnostico de permisos y sugerencias por sistema.
-5. Preparar transcripcion inicial con backend opcional.
+1. Probar captura real y segmentacion en hardware Windows, Ubuntu y macOS.
+2. Mejorar `auralis doctor` con diagnostico de permisos y sugerencias por sistema.
+3. Agregar lectura WAV PCM16 para pruebas offline.
+4. Preparar transcripcion inicial con backend opcional.
+5. Crear ejemplo de loop escuchar -> segmentar -> transcribir.

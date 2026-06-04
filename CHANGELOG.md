@@ -6,6 +6,16 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-06-04
+
+### Agregado
+
+- `NoiseProfile`, `VoiceActivityConfig`, `VoiceSegment` y `VoiceActivityDetector`.
+- Calibracion de ruido ambiente con `calibrate_noise_pcm16`.
+- Segmentacion voz/silencio con `segment_voice_pcm16`.
+- Ejemplo `examples/capture_voice_segments.py` para calibrar ruido, grabar y guardar segmentos WAV.
+- Publicacion automatica de assets en GitHub Releases desde el workflow de release.
+
 ## [0.2.0] - 2026-06-04
 
 ### Agregado
