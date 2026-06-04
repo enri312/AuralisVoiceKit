@@ -15,7 +15,7 @@ El backend `whisper` tambien es opcional. Usa `faster-whisper` para transcripcio
 
 MP3, FLAC y otros formatos comprimidos usan `ffmpeg` como herramienta externa opcional. El core sigue sin depender de `ffmpeg` para instalarse, importar o procesar WAV PCM16.
 
-El backend de salida `system` usa herramientas del sistema operativo cuando estan disponibles: PowerShell/SAPI en Windows, `say` en macOS y `spd-say` o `espeak` en Ubuntu/Linux. El backend `null` sigue siendo el default.
+El backend de salida `system` usa herramientas del sistema operativo cuando estan disponibles: PowerShell/SAPI en Windows, `say` en macOS y `spd-say` o `espeak` en Ubuntu/Linux. Puede listar voces y aplicar voz, velocidad o volumen cuando el comando de la plataforma lo soporta. El backend `null` sigue siendo el default.
 
 La busqueda de `ffmpeg` usa este orden:
 
@@ -192,6 +192,8 @@ python -m auralis_voicekit.cli devices --backend wasapi
 python -m auralis_voicekit.cli backends
 python -m auralis_voicekit.cli speak "Hola" --backend null --json
 python -m auralis_voicekit.cli speak "Hola" --backend system
+python -m auralis_voicekit.cli voices --backend system
+python -m auralis_voicekit.cli speak "Hola" --backend system --voice es --rate 160 --volume 80
 python -m auralis_voicekit.cli normalize sample.mp3 normalized.wav
 python -m auralis_voicekit.cli normalize sample.flac normalized.wav
 python -m auralis_voicekit.cli transcribe sample.wav --backend null --json

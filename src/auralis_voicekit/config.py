@@ -24,6 +24,15 @@ def _env_int(value: str | None, default: int) -> int:
         return default
 
 
+def _env_optional_int(value: str | None) -> int | None:
+    if value is None or value.strip() == "":
+        return None
+    try:
+        return int(value)
+    except ValueError:
+        return None
+
+
 @dataclass(slots=True)
 class VoiceKitConfig:
     """Runtime configuration for capture, transcription and voice events."""
@@ -44,6 +53,9 @@ class VoiceKitConfig:
     output_backend: str = "null"
     input_device: str | int | None = None
     output_device: str | int | None = None
+    output_voice: str | None = None
+    output_rate: int | None = None
+    output_volume: int | None = None
     input_file: str | None = None
     capture_block_ms: int = 50
     capture_latency: str | float | None = None
@@ -62,6 +74,8 @@ class VoiceKitConfig:
             raise ValueError("capture_block_ms must be greater than zero")
         if self.transcription_beam_size <= 0:
             raise ValueError("transcription_beam_size must be greater than zero")
+        if self.output_volume is not None and not 0 <= self.output_volume <= 100:
+            raise ValueError("output_volume must be between 0 and 100")
 
     @classmethod
     def from_env(cls, prefix: str = "AURALIS_") -> "VoiceKitConfig":
@@ -84,6 +98,9 @@ class VoiceKitConfig:
             output_backend=os.getenv(prefix + "OUTPUT_BACKEND", "null"),
             input_device=os.getenv(prefix + "INPUT_DEVICE") or None,
             output_device=os.getenv(prefix + "OUTPUT_DEVICE") or None,
+            output_voice=os.getenv(prefix + "OUTPUT_VOICE") or None,
+            output_rate=_env_optional_int(os.getenv(prefix + "OUTPUT_RATE")),
+            output_volume=_env_optional_int(os.getenv(prefix + "OUTPUT_VOLUME")),
             input_file=os.getenv(prefix + "INPUT_FILE") or None,
             capture_block_ms=_env_int(os.getenv(prefix + "CAPTURE_BLOCK_MS"), 50),
             capture_latency=os.getenv(prefix + "CAPTURE_LATENCY") or None,

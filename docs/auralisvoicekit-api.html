@@ -387,7 +387,10 @@ config = VoiceKitConfig(
     language="es",
     capture_backend="wav",
     transcription_backend="null",
-    output_backend="null",
+    output_backend="system",
+    output_voice="Microsoft Helena",
+    output_rate=2,
+    output_volume=80,
     privacy_mode=True,
 )</code></pre>
         <h3>Variables de entorno</h3>
@@ -397,7 +400,10 @@ AURALIS_LANGUAGE=es
 AURALIS_CAPTURE_BACKEND=sounddevice
 AURALIS_TRANSCRIPTION_BACKEND=whisper
 AURALIS_TRANSCRIPTION_MODEL=base
-AURALIS_OUTPUT_BACKEND=system</code></pre>
+AURALIS_OUTPUT_BACKEND=system
+AURALIS_OUTPUT_VOICE=Microsoft Helena
+AURALIS_OUTPUT_RATE=2
+AURALIS_OUTPUT_VOLUME=80</code></pre>
       </section>
 
       <section id="facade">
@@ -425,7 +431,7 @@ AURALIS_OUTPUT_BACKEND=system</code></pre>
             </tr>
             <tr>
               <td><code>speak(text)</code></td>
-              <td>Envia texto al backend de salida.</td>
+              <td>Envia texto al backend de salida. Con <code>output_backend="system"</code> puede usar voz, velocidad y volumen.</td>
             </tr>
             <tr>
               <td><code>backend_report()</code></td>
@@ -590,6 +596,26 @@ for result in report.results:
       <section id="backends">
         <h2>Backends personalizados</h2>
         <p>Los contratos viven en <code>auralis_voicekit.backends.base</code>. Un backend custom implementa los metodos requeridos y se registra en un <code>BackendRegistry</code>.</p>
+        <h3>Salida system</h3>
+        <p>El backend <code>system</code> vive en <code>auralis_voicekit.backends</code>. Puede listar voces del sistema como <code>SystemVoice</code> y aplicar parametros de salida segun plataforma.</p>
+        <pre><code>from auralis_voicekit import AuralisVoiceKit, VoiceKitConfig
+from auralis_voicekit.backends import SystemSpeechOutputBackend, SystemVoice
+
+backend = SystemSpeechOutputBackend()
+voices: tuple[SystemVoice, ...] = backend.list_voices()
+
+kit = AuralisVoiceKit(
+    VoiceKitConfig(
+        output_backend="system",
+        output_voice=voices[0].id if voices else None,
+        output_rate=2,
+        output_volume=80,
+    )
+)
+kit.speak("Hola desde AuralisVoiceKit")</code></pre>
+        <pre><code>auralis voices --backend system --json
+auralis speak "Hola" --backend system --voice es --rate 160 --volume 80</code></pre>
+        <h3>Registro custom</h3>
         <pre><code>from auralis_voicekit import AuralisVoiceKit, TranscriptResult, VoiceKitConfig
 from auralis_voicekit.backends import BackendRegistry, create_default_registry
 

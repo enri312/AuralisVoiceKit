@@ -12,7 +12,7 @@ English: AuralisVoiceKit is a modern voice toolkit for Python assistants, local 
 
 El objetivo principal es evitar que la captura de microfono dependa obligatoriamente de PyAudio o de wheels que tardan en llegar a las versiones nuevas de Python. El paquete base debe poder instalarse de forma liviana, sin compiladores y sin dependencias nativas obligatorias. Para MP3, FLAC y formatos comprimidos, AuralisVoiceKit usa `ffmpeg` como herramienta externa opcional.
 
-> Estado actual: alpha tecnica. El repositorio ya define el core, los contratos de backends, captura real inicial, flujo WAV offline, transcripcion inicial por API y local opcional, sesiones de voz iniciales, una CLI de diagnostico, benchmarks offline de latencia, errores accionables para `ffmpeg`, documentacion estatica, pruebas unitarias y pruebas reales de MP3/FLAC. Los backends reales se iran agregando por etapas.
+> Estado actual: alpha tecnica. El repositorio ya define el core, los contratos de backends, captura real inicial, flujo WAV offline, transcripcion inicial por API y local opcional, sesiones de voz iniciales, una CLI de diagnostico, benchmarks offline de latencia, errores accionables para `ffmpeg`, documentacion estatica, salida de voz del sistema con voces configurables, pruebas unitarias y pruebas reales de MP3/FLAC. Los backends reales se iran agregando por etapas.
 
 ## Problema que resuelve
 
@@ -126,6 +126,8 @@ El backend `system` permite hablar usando herramientas ya presentes o instalable
 ```powershell
 auralis speak "Hola desde AuralisVoiceKit" --backend null --json
 auralis speak "Hola desde AuralisVoiceKit" --backend system
+auralis voices --backend system
+auralis speak "Hola desde AuralisVoiceKit" --backend system --voice "Microsoft Helena" --rate 2 --volume 80
 ```
 
 Desde Python:
@@ -133,15 +135,24 @@ Desde Python:
 ```python
 from auralis_voicekit import AuralisVoiceKit, VoiceKitConfig
 
-kit = AuralisVoiceKit(VoiceKitConfig(output_backend="system"))
+kit = AuralisVoiceKit(
+    VoiceKitConfig(
+        output_backend="system",
+        output_voice="Microsoft Helena",
+        output_rate=2,
+        output_volume=80,
+    )
+)
 kit.speak("Hola desde AuralisVoiceKit")
 ```
 
 Rutas usadas por plataforma:
 
-- Windows: PowerShell con SAPI.
-- macOS: comando `say`.
-- Ubuntu/Linux: `spd-say` o `espeak`.
+- Windows: PowerShell con SAPI, listado de voces instaladas, voz, velocidad y volumen.
+- macOS: comando `say`, listado de voces, voz y velocidad.
+- Ubuntu/Linux: `spd-say` o `espeak`; `espeak` permite voz, velocidad, volumen y listado de voces.
+
+English: the `system` output backend can list voices and select voice/rate/volume when the operating system command supports those options.
 
 ## Utilidades de audio
 
@@ -461,7 +472,7 @@ auralis_voicekit
 | `pyaudio` | pendiente | compatibilidad con proyectos existentes |
 | `whisper` | inicial funcional | transcripcion local opcional con faster-whisper |
 | `openai` | inicial funcional | transcripcion por API |
-| `system` | inicial funcional | salida de voz con herramientas del sistema operativo |
+| `system` | inicial con voces configurables | salida de voz con herramientas del sistema operativo |
 
 ## Uso con asistentes
 
@@ -484,11 +495,11 @@ ROADMAP.md
 
 Prioridad inmediata:
 
-1. Mejorar la configuracion de voces para el backend `system`.
-2. Robustecer WASAPI con pruebas manuales en hardware Windows real.
-3. Agregar benchmarks comparativos opcionales para `whisper` en hardware real.
-4. Preparar un ejemplo pequeno de integracion para usuarios de PyPI.
-5. Agregar una guia de privacidad y manejo de logs.
+1. Robustecer WASAPI con pruebas manuales en hardware Windows real.
+2. Agregar benchmarks comparativos opcionales para `whisper` en hardware real.
+3. Preparar un ejemplo pequeno de integracion para usuarios de PyPI.
+4. Agregar una guia de privacidad y manejo de logs.
+5. Documentar patrones de backends de salida personalizados.
 
 ## Documentacion
 

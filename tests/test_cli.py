@@ -5,9 +5,11 @@ import os
 import struct
 import tempfile
 import unittest
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from auralis_voicekit import AudioChunk, AudioFormat, __version__, write_wav
+from auralis_voicekit.backends import SystemVoice
 from auralis_voicekit.audio import peak_pcm16, read_wav_as_chunk
 from auralis_voicekit.cli import main
 
@@ -163,6 +165,10 @@ class CliTests(unittest.TestCase):
                         "system",
                         "--voice",
                         "test-voice",
+                        "--rate",
+                        "180",
+                        "--volume",
+                        "70",
                         "--json",
                     ]
                 )
@@ -170,9 +176,45 @@ class CliTests(unittest.TestCase):
         payload = json.loads(output.getvalue())
         self.assertEqual(exit_code, 0)
         self.assertEqual(payload["backend"], "system")
+        self.assertEqual(payload["voice"], "test-voice")
+        self.assertEqual(payload["rate"], 180)
+        self.assertEqual(payload["volume"], 70)
         speak.assert_called_once()
         self.assertEqual(speak.call_args.args[0], "Hola")
-        self.assertEqual(speak.call_args.args[1].output_device, "test-voice")
+        self.assertEqual(speak.call_args.args[1].output_voice, "test-voice")
+        self.assertEqual(speak.call_args.args[1].output_rate, 180)
+        self.assertEqual(speak.call_args.args[1].output_volume, 70)
+
+    def test_voices_command_outputs_json_report(self):
+        output = io.StringIO()
+        backend = SimpleNamespace(
+            list_voices=lambda: (
+                SystemVoice(id="Monica", name="Monica", language="es_ES"),
+            )
+        )
+        registry = SimpleNamespace(create_output=lambda name: backend)
+
+        with patch("auralis_voicekit.cli.create_default_registry", return_value=registry):
+            with contextlib.redirect_stdout(output):
+                exit_code = main(["voices", "--backend", "system", "--json"])
+
+        payload = json.loads(output.getvalue())
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(payload["backend"], "system")
+        self.assertEqual(payload["voices"][0]["id"], "Monica")
+        self.assertEqual(payload["voices"][0]["language"], "es_ES")
+
+    def test_voices_command_reports_unsupported_backend(self):
+        output = io.StringIO()
+        registry = SimpleNamespace(create_output=lambda name: SimpleNamespace())
+
+        with patch("auralis_voicekit.cli.create_default_registry", return_value=registry):
+            with contextlib.redirect_stdout(output):
+                exit_code = main(["voices", "--backend", "null", "--json"])
+
+        payload = json.loads(output.getvalue())
+        self.assertEqual(exit_code, 1)
+        self.assertIn("cannot list voices", payload["error"])
 
     def test_benchmark_command_outputs_json_report(self):
         output = io.StringIO()

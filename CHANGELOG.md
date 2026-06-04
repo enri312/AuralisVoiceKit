@@ -6,6 +6,23 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.20.0] - 2026-06-04
+
+### Agregado
+
+- Modelo `SystemVoice` para representar voces del sistema operativo.
+- Metodo `list_voices()` en el backend de salida `system`.
+- CLI `auralis voices --backend system` con salida de texto o JSON.
+- Configuracion `output_voice`, `output_rate` y `output_volume` en `VoiceKitConfig`.
+- Variables de entorno `AURALIS_OUTPUT_VOICE`, `AURALIS_OUTPUT_RATE` y `AURALIS_OUTPUT_VOLUME`.
+- Flags `--voice`, `--rate` y `--volume` para `auralis speak`.
+
+### Cambiado
+
+- El backend `system` aplica voz, velocidad y volumen cuando Windows/SAPI, macOS `say`, `spd-say` o `espeak` lo soportan.
+- README, roadmap y documentacion HTML describen la configuracion de voces del sistema.
+- El roadmap mueve la prioridad inmediata a robustecer WASAPI con pruebas manuales en hardware Windows real.
+
 ## [0.19.0] - 2026-06-04
 
 ### Agregado

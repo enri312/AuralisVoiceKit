@@ -329,12 +329,19 @@ def _speak_text(
     *,
     backend_name: str,
     voice: str | None,
+    rate: int | None,
+    volume: int | None,
     json_output: bool,
 ) -> int:
     try:
-        config = VoiceKitConfig(output_backend=backend_name, output_device=voice)
+        config = VoiceKitConfig(
+            output_backend=backend_name,
+            output_voice=voice,
+            output_rate=rate,
+            output_volume=volume,
+        )
         AuralisVoiceKit(config=config).speak(text)
-    except BackendNotAvailable as exc:
+    except (BackendNotAvailable, ValueError) as exc:
         if json_output:
             print(json.dumps({"error": str(exc)}, indent=2, sort_keys=True))
         else:
@@ -344,12 +351,57 @@ def _speak_text(
     payload = {
         "backend": backend_name,
         "characters": len(text),
+        "voice": voice,
+        "rate": rate,
+        "volume": volume,
         "spoken": True,
     }
     if json_output:
         print(json.dumps(payload, indent=2, sort_keys=True))
     else:
         print(f"Spoken with output backend {backend_name!r}.")
+    return 0
+
+
+def _print_output_voices(
+    *,
+    backend_name: str,
+    json_output: bool,
+) -> int:
+    try:
+        backend = create_default_registry().create_output(backend_name)
+        list_voices = getattr(backend, "list_voices", None)
+        if list_voices is None:
+            raise BackendNotAvailable(f"Output backend {backend_name!r} cannot list voices.")
+        voices = tuple(list_voices())
+    except BackendNotAvailable as exc:
+        if json_output:
+            print(json.dumps({"error": str(exc)}, indent=2, sort_keys=True))
+        else:
+            print(str(exc))
+        return 1
+
+    if json_output:
+        print(
+            json.dumps(
+                {
+                    "backend": backend_name,
+                    "voices": [voice.to_dict() for voice in voices],
+                },
+                indent=2,
+                sort_keys=True,
+            )
+        )
+        return 0
+
+    print(f"Output voices from backend {backend_name!r}:")
+    if not voices:
+        print("  No voices were reported by this backend.")
+        return 0
+    for voice in voices:
+        language = f", language={voice.language}" if voice.language else ""
+        gender = f", gender={voice.gender}" if voice.gender else ""
+        print(f"  [{voice.id}] {voice.name}{language}{gender}")
     return 0
 
 
@@ -488,7 +540,12 @@ def main(argv: list[str] | None = None) -> int:
         help="output backend to use (null, system)",
     )
     speak_parser.add_argument("--voice", help="system voice selector when supported")
+    speak_parser.add_argument("--rate", type=int, help="system speech rate when supported")
+    speak_parser.add_argument("--volume", type=int, help="system speech volume from 0 to 100 when supported")
     speak_parser.add_argument("--json", action="store_true", help="print a JSON result")
+    voices_parser = subparsers.add_parser("voices", help="list output voices")
+    voices_parser.add_argument("--backend", default="system", help="output backend to inspect")
+    voices_parser.add_argument("--json", action="store_true", help="print a JSON result")
     benchmark_parser = subparsers.add_parser(
         "benchmark",
         help="run offline latency benchmarks",
@@ -637,6 +694,13 @@ def main(argv: list[str] | None = None) -> int:
             args.text,
             backend_name=args.backend,
             voice=args.voice,
+            rate=args.rate,
+            volume=args.volume,
+            json_output=args.json,
+        )
+    if args.command == "voices":
+        return _print_output_voices(
+            backend_name=args.backend,
             json_output=args.json,
         )
     if args.command == "benchmark":

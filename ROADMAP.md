@@ -35,7 +35,7 @@ La meta no es competir con todos los motores de voz a la vez. La meta es constru
 | Compatibilidad Windows/Linux/macOS | Documentacion inicial |
 | Diagnostico doctor | Inicial estructurado con test de apertura |
 | Transcripcion real | Inicial por API y local opcional |
-| Salida de voz real | Inicial con backend `system` |
+| Salida de voz real | Inicial con backend `system`, listado de voces y parametros de voz |
 | CI multiplataforma | Inicial con pruebas reales de MP3 y FLAC |
 | Publicacion en PyPI | Preparada con workflow manual |
 | Benchmarks de latencia | Inicial offline para captura, segmentacion y transcripcion |
@@ -132,6 +132,8 @@ Entregables:
 - Contrato estable para salida de voz.
 - Backend `null` para pruebas.
 - Backend `system` inicial para TTS local por sistema operativo. Estado: inicial.
+- Listado de voces disponibles en Windows, macOS y Linux con `espeak`. Estado: inicial.
+- Seleccion de voz, velocidad y volumen cuando el comando del sistema lo soporta. Estado: inicial.
 - Backend Windows inicial para TTS local si es viable. Estado: inicial via PowerShell/SAPI.
 - Backend por API como extra opcional.
 - Cola simple de reproduccion.
@@ -140,6 +142,7 @@ Entregables:
 Criterio de salida:
 
 - Un asistente puede llamar `kit.speak("texto")` sin conocer el backend. Estado: inicial.
+- El usuario puede inspeccionar voces con `auralis voices --backend system`. Estado: inicial.
 - El backend de salida puede reemplazarse por uno custom.
 
 ## Fase 5 - Loop de asistente
@@ -240,7 +243,7 @@ Criterio de salida:
 
 - Backend WASAPI dedicado. Estado: inicial sobre `sounddevice`.
 - Backend PyAudio solo como compatibilidad opcional.
-- Backend de salida `system`. Estado: inicial.
+- Backend de salida `system`. Estado: inicial con listado de voces, seleccion de voz, velocidad y volumen.
 - Soporte para archivos WAV/FLAC como entrada. WAV PCM16 completado; FLAC inicial validado via `ffmpeg`.
 - Adaptadores para modelos locales. Whisper inicial completado.
 - Adaptadores para APIs externas. OpenAI inicial completado.
@@ -255,8 +258,8 @@ Criterio de salida:
 
 ## Prioridad inmediata
 
-1. Mejorar la configuracion de voces para el backend `system`.
-2. Robustecer WASAPI con pruebas manuales en hardware Windows real.
-3. Agregar benchmarks comparativos opcionales para `whisper` en hardware real.
-4. Preparar un ejemplo pequeno de integracion para usuarios de PyPI.
-5. Agregar una guia de privacidad y manejo de logs.
+1. Robustecer WASAPI con pruebas manuales en hardware Windows real.
+2. Agregar benchmarks comparativos opcionales para `whisper` en hardware real.
+3. Preparar un ejemplo pequeno de integracion para usuarios de PyPI.
+4. Agregar una guia de privacidad y manejo de logs.
+5. Documentar patrones de backends de salida personalizados.

@@ -473,11 +473,21 @@ py examples\assistant_loop.py --seconds 30 --capture-backend sounddevice --trans
 
       <section id="salida">
         <h2>Salida de voz</h2>
-        <p>El backend <code>system</code> permite hablar con herramientas del sistema operativo. Windows usa PowerShell/SAPI, macOS usa <code>say</code> y Ubuntu/Linux usa <code>spd-say</code> o <code>espeak</code> cuando estan disponibles.</p>
+        <p>El backend <code>system</code> permite hablar con herramientas del sistema operativo. Windows usa PowerShell/SAPI, macOS usa <code>say</code> y Ubuntu/Linux usa <code>spd-say</code> o <code>espeak</code> cuando estan disponibles. Tambien puede listar voces y aplicar voz, velocidad o volumen cuando la plataforma lo soporta.</p>
         <pre><code>auralis speak "Hola desde AuralisVoiceKit" --backend null --json
-auralis speak "Hola desde AuralisVoiceKit" --backend system</code></pre>
-        <pre><code>kit = AuralisVoiceKit(VoiceKitConfig(output_backend="system"))
+auralis speak "Hola desde AuralisVoiceKit" --backend system
+auralis voices --backend system
+auralis speak "Hola desde AuralisVoiceKit" --backend system --voice "Microsoft Helena" --rate 2 --volume 80</code></pre>
+        <pre><code>kit = AuralisVoiceKit(
+    VoiceKitConfig(
+        output_backend="system",
+        output_voice="Microsoft Helena",
+        output_rate=2,
+        output_volume=80,
+    )
+)
 kit.speak("Hola desde AuralisVoiceKit")</code></pre>
+        <p>English: the system output backend supports voice listing and voice/rate/volume selection where the operating system command exposes those controls.</p>
       </section>
 
       <section id="diagnostico">
@@ -624,8 +634,8 @@ python -m auralis_voicekit.cli doctor</code></pre>
             </tr>
             <tr>
               <td><code>system</code></td>
-              <td>Inicial funcional</td>
-              <td>Salida de voz con herramientas del sistema operativo.</td>
+              <td>Inicial con voces configurables</td>
+              <td>Salida de voz con herramientas del sistema operativo, listado de voces y parametros de voz.</td>
             </tr>
           </tbody>
         </table>
@@ -680,12 +690,12 @@ gh workflow run publish-pypi.yml -f index=pypi -f tag=v0.14.0</code></pre>
             <tr>
               <td>4</td>
               <td>Salida de voz, cola de reproduccion y eventos de salida.</td>
-              <td>Backend system inicial</td>
+              <td>Backend system inicial con listado de voces, voz, velocidad y volumen</td>
             </tr>
             <tr>
               <td>5+</td>
               <td>Loop de asistente, Windows primero, CI, beta publica y version 1.0.</td>
-              <td>Loop inicial cancelable, pruebas MP3/FLAC, errores ffmpeg accionables, benchmarks offline, referencia API inicial, PyPI preparada y salida system inicial</td>
+              <td>Loop inicial cancelable, pruebas MP3/FLAC, errores ffmpeg accionables, benchmarks offline, referencia API inicial, PyPI preparada y salida system configurable</td>
             </tr>
           </tbody>
         </table>
