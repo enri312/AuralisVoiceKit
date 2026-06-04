@@ -56,7 +56,8 @@ Homepage = "https://github.com/enri312/AuralisVoiceKit"
 Repository = "https://github.com/enri312/AuralisVoiceKit"
 Issues = "https://github.com/enri312/AuralisVoiceKit/issues"
 Changelog = "https://github.com/enri312/AuralisVoiceKit/blob/main/CHANGELOG.md"
-Documentation = "https://github.com/enri312/AuralisVoiceKit/blob/main/docs/auralisvoicekit-documentacion.html"
+Documentation = "https://github.com/enri312/AuralisVoiceKit/blob/main/docs/auralisvoicekit-api.html"
+UserGuide = "https://github.com/enri312/AuralisVoiceKit/blob/main/docs/auralisvoicekit-documentacion.html"
 
 [project.optional-dependencies]
 openai = [

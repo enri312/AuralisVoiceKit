@@ -296,6 +296,7 @@
         <a href="#benchmarks">Benchmarks</a>
         <a href="#arquitectura">Arquitectura</a>
         <a href="#api">API publica</a>
+        <a href="#referencia-api">Referencia API</a>
         <a href="#backends">Backends</a>
         <a href="#privacidad">Privacidad</a>
         <a href="#publicacion">Publicacion</a>
@@ -573,6 +574,13 @@ kit.events.subscribe(
     session.cancel()</code></pre>
       </section>
 
+      <section id="referencia-api">
+        <h2>Referencia API</h2>
+        <p>La referencia API para usuarios de PyPI vive en <a href="auralisvoicekit-api.html">docs/auralisvoicekit-api.html</a>. Resume todos los simbolos publicos exportados desde <code>auralis_voicekit</code>, ejemplos de importacion, errores, diagnostico, benchmarks y contratos para backends personalizados.</p>
+        <pre><code>python -m pip install auralisvoicekit
+python -m auralis_voicekit.cli doctor</code></pre>
+      </section>
+
       <section id="backends">
         <h2>Backends</h2>
         <table>
@@ -677,7 +685,7 @@ gh workflow run publish-pypi.yml -f index=pypi -f tag=v0.14.0</code></pre>
             <tr>
               <td>5+</td>
               <td>Loop de asistente, Windows primero, CI, beta publica y version 1.0.</td>
-              <td>Loop inicial cancelable, pruebas MP3/FLAC, errores ffmpeg accionables, benchmarks offline, PyPI preparada y salida system inicial</td>
+              <td>Loop inicial cancelable, pruebas MP3/FLAC, errores ffmpeg accionables, benchmarks offline, referencia API inicial, PyPI preparada y salida system inicial</td>
             </tr>
           </tbody>
         </table>

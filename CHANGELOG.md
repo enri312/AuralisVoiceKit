@@ -6,6 +6,20 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.19.0] - 2026-06-04
+
+### Agregado
+
+- Pagina `docs/auralisvoicekit-api.html` como referencia API inicial para usuarios de PyPI.
+- Documentacion de modelos, configuracion, fachada, utilidades de audio, sesiones, eventos, diagnostico, benchmarks, errores y backends personalizados.
+- Prueba de documentacion que verifica que todos los simbolos publicos exportados desde `auralis_voicekit` aparezcan en la referencia API.
+
+### Cambiado
+
+- La metadata `Documentation` de PyPI apunta ahora a la referencia API.
+- README y documentacion HTML principal enlazan la nueva pagina API.
+- El roadmap marca la documentacion API para PyPI como estado inicial y mueve la prioridad inmediata a configuracion de voces del backend `system`.
+
 ## [0.18.0] - 2026-06-04
 
 ### Agregado

@@ -484,11 +484,11 @@ ROADMAP.md
 
 Prioridad inmediata:
 
-1. Preparar una pagina de documentacion API mas completa para usuarios de PyPI.
-2. Mejorar la configuracion de voces para el backend `system`.
-3. Robustecer WASAPI con pruebas manuales en hardware Windows real.
-4. Agregar benchmarks comparativos opcionales para `whisper` en hardware real.
-5. Preparar un ejemplo pequeno de integracion para usuarios de PyPI.
+1. Mejorar la configuracion de voces para el backend `system`.
+2. Robustecer WASAPI con pruebas manuales en hardware Windows real.
+3. Agregar benchmarks comparativos opcionales para `whisper` en hardware real.
+4. Preparar un ejemplo pequeno de integracion para usuarios de PyPI.
+5. Agregar una guia de privacidad y manejo de logs.
 
 ## Documentacion
 
@@ -499,6 +499,12 @@ docs/auralisvoicekit-documentacion.html
 ```
 
 Se puede abrir directamente en el navegador; no requiere servidor local.
+
+La referencia API para usuarios de PyPI esta en:
+
+```text
+docs/auralisvoicekit-api.html
+```
 
 Tambien hay documentos de soporte:
 

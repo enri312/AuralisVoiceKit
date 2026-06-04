@@ -40,6 +40,7 @@ La meta no es competir con todos los motores de voz a la vez. La meta es constru
 | Publicacion en PyPI | Preparada con workflow manual |
 | Benchmarks de latencia | Inicial offline para captura, segmentacion y transcripcion |
 | Errores de ffmpeg | Inicial con diagnostico accionable |
+| Documentacion API | Inicial para usuarios de PyPI |
 
 ## Fase 0 - Base del proyecto
 
@@ -205,6 +206,7 @@ Criterio de salida:
 Entregables:
 
 - Documentacion de API estable.
+- Referencia API HTML para usuarios de PyPI. Estado: inicial.
 - Guias de captura, transcripcion, salida y privacidad.
 - Ejemplos completos.
 - Integracion piloto con un asistente local de referencia.
@@ -253,8 +255,8 @@ Criterio de salida:
 
 ## Prioridad inmediata
 
-1. Preparar una pagina de documentacion API mas completa para usuarios de PyPI.
-2. Mejorar la configuracion de voces para el backend `system`.
-3. Robustecer WASAPI con pruebas manuales en hardware Windows real.
-4. Agregar benchmarks comparativos opcionales para `whisper` en hardware real.
-5. Preparar un ejemplo pequeno de integracion para usuarios de PyPI.
+1. Mejorar la configuracion de voces para el backend `system`.
+2. Robustecer WASAPI con pruebas manuales en hardware Windows real.
+3. Agregar benchmarks comparativos opcionales para `whisper` en hardware real.
+4. Preparar un ejemplo pequeno de integracion para usuarios de PyPI.
+5. Agregar una guia de privacidad y manejo de logs.
