@@ -26,6 +26,14 @@ class DiagnosticsTests(unittest.TestCase):
         self.assertTrue(any(check.name == "backend:output:system" for check in report.checks))
         self.assertTrue(any(check.name == "devices:wav" for check in report.checks))
 
+    def test_run_doctor_includes_ffmpeg_search_details(self):
+        report = run_doctor()
+
+        checks = {check.name: check for check in report.checks}
+        check = checks["executable:ffmpeg"]
+        self.assertIn("search", check.details)
+        self.assertTrue(check.details["search"])
+
     def test_run_doctor_can_test_null_capture_opening(self):
         report = run_doctor(
             include_capture_test=True,

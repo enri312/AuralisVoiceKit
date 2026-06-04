@@ -25,6 +25,9 @@ keywords = [
   "wasapi",
   "benchmark",
   "latency",
+  "ffmpeg",
+  "mp3",
+  "flac",
   "macos",
   "microphone"
 ]

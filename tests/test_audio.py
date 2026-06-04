@@ -17,6 +17,8 @@ from auralis_voicekit import (
     chunk_to_wav_bytes,
     decode_audio_with_ffmpeg,
     ffmpeg_available,
+    ffmpeg_install_hint,
+    ffmpeg_search_locations,
     iter_wav_chunks,
     is_silent_pcm16,
     normalize_chunks_pcm16,
@@ -208,10 +210,118 @@ class AudioHelperTests(unittest.TestCase):
         self.assertEqual(chunk.data, b"\x00\x00" * 8)
         self.assertEqual(chunk.format.sample_rate, 8000)
         self.assertEqual(chunk.metadata["decoder"], "ffmpeg")
+        self.assertEqual(chunk.metadata["ffmpeg_executable"], "ffmpeg.exe")
         self.assertEqual(chunk.metadata["source_format"], "mp3")
         self.assertIn("-i", run.call_args.args[0])
 
     def test_decode_audio_with_ffmpeg_reports_missing_executable(self):
+        with patch("auralis_voicekit.audio.shutil.which", return_value=None):
+            with patch.dict(os.environ, {}, clear=True):
+                with self.assertRaisesRegex(Exception, "ffmpeg is required.*Search:"):
+                    decode_audio_with_ffmpeg("sample.mp3")
+
+    def test_decode_audio_with_ffmpeg_reports_invalid_env_path(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            missing = os.path.join(tmpdir, "missing-ffmpeg.exe")
+            with patch("auralis_voicekit.audio.shutil.which", return_value=None):
+                with patch.dict(os.environ, {"AURALIS_FFMPEG_PATH": missing}, clear=True):
+                    with self.assertRaises(Exception) as raised:
+                        decode_audio_with_ffmpeg("sample.mp3")
+
+        message = str(raised.exception)
+        self.assertIn("AURALIS_FFMPEG_PATH", message)
+        self.assertIn("missing", message)
+
+    def test_decode_audio_with_ffmpeg_reports_process_failure(self):
+        completed = type(
+            "Completed",
+            (),
+            {"returncode": 1, "stdout": b"", "stderr": b"Invalid data found"},
+        )()
+
+        with patch("auralis_voicekit.audio.shutil.which", return_value="ffmpeg.exe"):
+            with patch("auralis_voicekit.audio.subprocess.run", return_value=completed):
+                with self.assertRaises(Exception) as raised:
+                    decode_audio_with_ffmpeg("broken.mp3")
+
+        message = str(raised.exception)
+        self.assertIn("ffmpeg failed while decoding", message)
+        self.assertIn("exit code 1", message)
+        self.assertIn("Invalid data found", message)
+        self.assertIn("ffmpeg -hide_banner -i", message)
+
+    def test_decode_audio_with_ffmpeg_reports_empty_output(self):
+        completed = type(
+            "Completed",
+            (),
+            {"returncode": 0, "stdout": b"", "stderr": b""},
+        )()
+
+        with patch("auralis_voicekit.audio.shutil.which", return_value="ffmpeg.exe"):
+            with patch("auralis_voicekit.audio.subprocess.run", return_value=completed):
+                with self.assertRaisesRegex(Exception, "produced no PCM16 audio"):
+                    decode_audio_with_ffmpeg("empty.mp3")
+
+    def test_decode_audio_with_ffmpeg_reports_os_error(self):
+        with patch("auralis_voicekit.audio.shutil.which", return_value="ffmpeg.exe"):
+            with patch("auralis_voicekit.audio.subprocess.run", side_effect=OSError("denied")):
+                with self.assertRaises(Exception) as raised:
+                    decode_audio_with_ffmpeg("sample.mp3")
+
+        self.assertIn("Cannot run ffmpeg", str(raised.exception))
+        self.assertIn("ffmpeg.exe", str(raised.exception))
+
+    def test_ffmpeg_search_locations_reports_path_env_and_portable(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            executable = os.path.join(tmpdir, "ffmpeg.exe")
+            with open(executable, "wb") as handle:
+                handle.write(b"")
+            with patch.dict(os.environ, {"AURALIS_FFMPEG_PATH": executable}, clear=True):
+                locations = ffmpeg_search_locations(executable)
+
+        self.assertTrue(any("explicit path" in item for item in locations))
+        self.assertTrue(any("AURALIS_FFMPEG_PATH" in item for item in locations))
+
+    def test_ffmpeg_install_hint_is_os_specific(self):
+        self.assertIn("winget", ffmpeg_install_hint("Windows"))
+        self.assertIn("apt install ffmpeg", ffmpeg_install_hint("Linux"))
+        self.assertIn("brew install ffmpeg", ffmpeg_install_hint("Darwin"))
+
+    def test_resolve_ffmpeg_executable_accepts_explicit_path(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            executable = os.path.join(tmpdir, "ffmpeg.exe")
+            with open(executable, "wb") as handle:
+                handle.write(b"")
+
+            self.assertEqual(resolve_ffmpeg_executable(executable), executable)
+
+    def test_read_audio_as_chunk_reports_missing_ffmpeg_for_compressed_audio(self):
+        with patch("auralis_voicekit.audio.shutil.which", return_value=None):
+            with patch.dict(os.environ, {}, clear=True):
+                with self.assertRaisesRegex(Exception, "MP3, FLAC or other compressed audio"):
+                    read_audio_as_chunk("sample.flac")
+
+    def test_decode_audio_with_ffmpeg_rejects_empty_executable_name(self):
+        with self.assertRaisesRegex(Exception, "No ffmpeg executable name was provided|ffmpeg is required"):
+            decode_audio_with_ffmpeg("sample.mp3", executable="")
+
+    def test_decode_audio_with_ffmpeg_truncates_long_stderr(self):
+        completed = type(
+            "Completed",
+            (),
+            {"returncode": 1, "stdout": b"", "stderr": b"x" * 2000},
+        )()
+
+        with patch("auralis_voicekit.audio.shutil.which", return_value="ffmpeg.exe"):
+            with patch("auralis_voicekit.audio.subprocess.run", return_value=completed):
+                with self.assertRaises(Exception) as raised:
+                    decode_audio_with_ffmpeg("broken.mp3")
+
+        message = str(raised.exception)
+        self.assertIn("[truncated]", message)
+        self.assertLess(len(message), 1600)
+
+    def test_decode_audio_with_ffmpeg_keeps_existing_missing_message_prefix(self):
         with patch("auralis_voicekit.audio.resolve_ffmpeg_executable", return_value=None):
             with self.assertRaisesRegex(Exception, "ffmpeg is required"):
                 decode_audio_with_ffmpeg("sample.mp3")

@@ -6,6 +6,7 @@ from dataclasses import dataclass
 import io
 from math import sqrt
 import os
+import platform
 import shutil
 from statistics import fmean, median
 import struct
@@ -22,6 +23,7 @@ PCM16_MIN_INT = -32768
 PCM16_MAX_INT = 32767
 DEFAULT_DECODE_SAMPLE_RATE = 16_000
 DEFAULT_DECODE_CHANNELS = 1
+MAX_FFMPEG_ERROR_CHARS = 900
 
 
 @dataclass(frozen=True, slots=True)
@@ -545,29 +547,112 @@ def read_wav_as_chunk(path: str | os.PathLike[str]) -> AudioChunk:
     )
 
 
+def _looks_like_path(value: str) -> bool:
+    return os.sep in value or (os.altsep is not None and os.altsep in value)
+
+
+def _expanded_path(value: str) -> str:
+    return os.path.expandvars(os.path.expanduser(value))
+
+
+def _portable_ffmpeg_path() -> str | None:
+    local_app_data = os.getenv("LOCALAPPDATA")
+    if not local_app_data:
+        return None
+    return os.path.join(
+        local_app_data,
+        "AuralisTools",
+        "ffmpeg",
+        "bin",
+        "ffmpeg.exe",
+    )
+
+
+def ffmpeg_install_hint(system: str | None = None) -> str:
+    """Return an OS-specific ffmpeg installation hint."""
+
+    active_system = platform.system() if system is None else system
+    if active_system == "Windows":
+        return (
+            "Install ffmpeg with winget install Gyan.FFmpeg, choco install ffmpeg -y, "
+            "or place ffmpeg.exe at %LOCALAPPDATA%\\AuralisTools\\ffmpeg\\bin\\ffmpeg.exe. "
+            "You can also set AURALIS_FFMPEG_PATH or pass --ffmpeg."
+        )
+    if active_system == "Linux":
+        return (
+            "Install ffmpeg with sudo apt update && sudo apt install ffmpeg, "
+            "then confirm it with ffmpeg -version. You can also set AURALIS_FFMPEG_PATH."
+        )
+    if active_system == "Darwin":
+        return (
+            "Install ffmpeg with brew install ffmpeg, then confirm it with ffmpeg -version. "
+            "You can also set AURALIS_FFMPEG_PATH."
+        )
+    return (
+        "Install ffmpeg and make sure it is available on PATH, set AURALIS_FFMPEG_PATH, "
+        "or pass --ffmpeg with the executable path."
+    )
+
+
+def ffmpeg_search_locations(executable: str = "ffmpeg") -> tuple[str, ...]:
+    """Describe where AuralisVoiceKit will look for ffmpeg."""
+
+    if not executable:
+        return ("No ffmpeg executable name was provided.",)
+
+    locations: list[str] = []
+    expanded_executable = _expanded_path(executable)
+    if _looks_like_path(executable):
+        status = "found" if os.path.exists(expanded_executable) else "missing"
+        locations.append(f"explicit path: {expanded_executable} ({status})")
+    else:
+        resolved = shutil.which(executable)
+        if resolved is None:
+            locations.append(f"PATH lookup for {executable!r}: missing")
+        else:
+            locations.append(f"PATH lookup for {executable!r}: {resolved}")
+
+    env_path = os.getenv("AURALIS_FFMPEG_PATH")
+    if env_path:
+        expanded_env_path = _expanded_path(env_path)
+        status = "found" if os.path.exists(expanded_env_path) else "missing"
+        locations.append(f"AURALIS_FFMPEG_PATH: {expanded_env_path} ({status})")
+    else:
+        locations.append("AURALIS_FFMPEG_PATH: not set")
+
+    portable = _portable_ffmpeg_path() if executable == "ffmpeg" else None
+    if portable is not None:
+        status = "found" if os.path.exists(portable) else "missing"
+        locations.append(f"Windows portable path: {portable} ({status})")
+    elif executable == "ffmpeg":
+        locations.append("Windows portable path: unavailable because LOCALAPPDATA is not set")
+    return tuple(locations)
+
+
 def resolve_ffmpeg_executable(executable: str = "ffmpeg") -> str | None:
     """Return a usable ffmpeg executable path, if available."""
+
+    if not executable:
+        return None
+
+    expanded_executable = _expanded_path(executable)
+    if _looks_like_path(executable) and os.path.exists(expanded_executable):
+        return expanded_executable
 
     resolved = shutil.which(executable)
     if resolved is not None:
         return resolved
 
     env_path = os.getenv("AURALIS_FFMPEG_PATH")
-    if env_path and os.path.exists(env_path):
-        return env_path
+    if env_path:
+        expanded_env_path = _expanded_path(env_path)
+        if os.path.exists(expanded_env_path):
+            return expanded_env_path
 
     if executable == "ffmpeg":
-        local_app_data = os.getenv("LOCALAPPDATA")
-        if local_app_data:
-            portable = os.path.join(
-                local_app_data,
-                "AuralisTools",
-                "ffmpeg",
-                "bin",
-                "ffmpeg.exe",
-            )
-            if os.path.exists(portable):
-                return portable
+        portable = _portable_ffmpeg_path()
+        if portable is not None and os.path.exists(portable):
+            return portable
     return None
 
 
@@ -575,6 +660,34 @@ def ffmpeg_available(executable: str = "ffmpeg") -> bool:
     """Return whether the ffmpeg executable can be found."""
 
     return resolve_ffmpeg_executable(executable) is not None
+
+
+def _ffmpeg_search_summary(executable: str) -> str:
+    return "; ".join(ffmpeg_search_locations(executable))
+
+
+def _missing_ffmpeg_message(executable: str) -> str:
+    return (
+        "ffmpeg is required to decode MP3, FLAC or other compressed audio. "
+        f"Executable requested: {executable!r}. "
+        f"Search: {_ffmpeg_search_summary(executable)}. "
+        f"Hint: {ffmpeg_install_hint()}"
+    )
+
+
+def _decode_process_text(data: bytes) -> str:
+    text = data.decode("utf-8", "replace").strip()
+    if len(text) <= MAX_FFMPEG_ERROR_CHARS:
+        return text
+    return text[:MAX_FFMPEG_ERROR_CHARS] + "... [truncated]"
+
+
+def _format_ffmpeg_command(command: list[str]) -> str:
+    return subprocess.list2cmdline(command)
+
+
+def _ffmpeg_probe_hint(audio_path: str) -> str:
+    return f"Try: ffmpeg -hide_banner -i {audio_path!r}"
 
 
 def decode_audio_with_ffmpeg(
@@ -594,10 +707,7 @@ def decode_audio_with_ffmpeg(
     audio_path = os.fspath(path)
     ffmpeg_path = resolve_ffmpeg_executable(executable)
     if ffmpeg_path is None:
-        raise AudioSourceError(
-            "ffmpeg is required to decode MP3 or compressed audio. "
-            "Install ffmpeg and make sure it is available on PATH."
-        )
+        raise AudioSourceError(_missing_ffmpeg_message(executable))
 
     command = [
         ffmpeg_path,
@@ -616,15 +726,32 @@ def decode_audio_with_ffmpeg(
         str(sample_rate),
         "-",
     ]
+    command_text = _format_ffmpeg_command(command)
     try:
         completed = subprocess.run(command, check=False, capture_output=True)
     except OSError as exc:
-        raise AudioSourceError(f"Cannot run ffmpeg for {audio_path!r}: {exc}") from exc
+        raise AudioSourceError(
+            f"Cannot run ffmpeg while decoding {audio_path!r}: {exc}. "
+            f"Executable resolved to: {ffmpeg_path!r}. "
+            f"Command: {command_text}. Hint: {ffmpeg_install_hint()}"
+        ) from exc
 
     if completed.returncode != 0:
-        stderr = completed.stderr.decode("utf-8", "replace").strip()
-        message = stderr or f"ffmpeg exited with code {completed.returncode}"
-        raise AudioSourceError(f"ffmpeg could not decode {audio_path!r}: {message}")
+        stderr = _decode_process_text(completed.stderr)
+        stderr_message = f" stderr: {stderr}" if stderr else " ffmpeg did not print stderr."
+        raise AudioSourceError(
+            f"ffmpeg failed while decoding {audio_path!r} "
+            f"(exit code {completed.returncode}). Command: {command_text}.{stderr_message} "
+            f"Hint: check that the file exists, contains an audio stream, and is supported by ffmpeg. "
+            f"{_ffmpeg_probe_hint(audio_path)}"
+        )
+
+    if not completed.stdout:
+        raise AudioSourceError(
+            f"ffmpeg produced no PCM16 audio while decoding {audio_path!r}. "
+            f"Command: {command_text}. "
+            f"Hint: check that the file contains an audio stream. {_ffmpeg_probe_hint(audio_path)}"
+        )
 
     return AudioChunk(
         data=completed.stdout,
@@ -637,6 +764,7 @@ def decode_audio_with_ffmpeg(
         metadata={
             "path": audio_path,
             "decoder": "ffmpeg",
+            "ffmpeg_executable": ffmpeg_path,
             "source_format": os.path.splitext(audio_path)[1].lstrip(".").lower(),
         },
     )

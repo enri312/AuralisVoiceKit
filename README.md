@@ -12,7 +12,7 @@ English: AuralisVoiceKit is a modern voice toolkit for Python assistants, local 
 
 El objetivo principal es evitar que la captura de microfono dependa obligatoriamente de PyAudio o de wheels que tardan en llegar a las versiones nuevas de Python. El paquete base debe poder instalarse de forma liviana, sin compiladores y sin dependencias nativas obligatorias. Para MP3, FLAC y formatos comprimidos, AuralisVoiceKit usa `ffmpeg` como herramienta externa opcional.
 
-> Estado actual: alpha tecnica. El repositorio ya define el core, los contratos de backends, captura real inicial, flujo WAV offline, transcripcion inicial por API y local opcional, sesiones de voz iniciales, una CLI de diagnostico, benchmarks offline de latencia, documentacion estatica, pruebas unitarias y pruebas reales de MP3/FLAC con `ffmpeg`. Los backends reales se iran agregando por etapas.
+> Estado actual: alpha tecnica. El repositorio ya define el core, los contratos de backends, captura real inicial, flujo WAV offline, transcripcion inicial por API y local opcional, sesiones de voz iniciales, una CLI de diagnostico, benchmarks offline de latencia, errores accionables para `ffmpeg`, documentacion estatica, pruebas unitarias y pruebas reales de MP3/FLAC. Los backends reales se iran agregando por etapas.
 
 ## Problema que resuelve
 
@@ -246,7 +246,16 @@ Segun la documentacion oficial de OpenAI para speech-to-text, los modelos soport
 https://platform.openai.com/docs/guides/speech-to-text
 ```
 
-Para MP3, FLAC y otros formatos comprimidos, instala `ffmpeg` y asegurate de que `ffmpeg` este disponible en `PATH`. `auralis doctor` reporta si lo encuentra.
+Para MP3, FLAC y otros formatos comprimidos, instala `ffmpeg` y asegurate de que `ffmpeg` este disponible en `PATH`. `auralis doctor` reporta si lo encuentra y muestra donde lo busco.
+
+Si `ffmpeg` falta o falla, AuralisVoiceKit devuelve un error accionable con:
+
+- ejecutable solicitado;
+- rutas revisadas, incluyendo `AURALIS_FFMPEG_PATH`;
+- sugerencia de instalacion segun Windows, Ubuntu/Linux o macOS;
+- comando de `ffmpeg` usado para decodificar;
+- `stderr` de `ffmpeg`, truncado si es demasiado largo;
+- comando de inspeccion para probar el archivo manualmente.
 
 En Windows, la libreria tambien detecta una instalacion portable en:
 
@@ -255,6 +264,21 @@ En Windows, la libreria tambien detecta una instalacion portable en:
 ```
 
 Tambien puedes apuntar a un ejecutable concreto con `AURALIS_FFMPEG_PATH` o con `--ffmpeg` en la CLI.
+
+```powershell
+$env:AURALIS_FFMPEG_PATH="C:\Tools\ffmpeg\bin\ffmpeg.exe"
+auralis transcribe sample.mp3 --backend null --ffmpeg "C:\Tools\ffmpeg\bin\ffmpeg.exe"
+auralis doctor --json
+```
+
+Desde Python tambien puedes consultar las rutas y sugerencias:
+
+```python
+from auralis_voicekit import ffmpeg_install_hint, ffmpeg_search_locations
+
+print(ffmpeg_install_hint())
+print(ffmpeg_search_locations())
+```
 
 Las pruebas de integracion reales para MP3 y FLAC se ejecutan solo cuando se activa una variable de entorno, asi el paquete base sigue testeandose sin herramientas externas:
 
@@ -421,7 +445,7 @@ auralis_voicekit
     registry      Registro de backends
   audio           Utilidades PCM16, calibracion y segmentacion
   benchmarks      Latencia offline para captura, segmentacion y transcripcion
-  ffmpeg          Decodificacion opcional de MP3/FLAC a PCM16
+  ffmpeg          Decodificacion opcional de MP3/FLAC a PCM16 con errores accionables
   cli             Diagnostico y utilidades
   diagnostics     Reportes doctor estructurados
 ```
@@ -460,11 +484,11 @@ ROADMAP.md
 
 Prioridad inmediata:
 
-1. Endurecer mensajes de error para archivos comprimidos cuando `ffmpeg` falta o falla.
-2. Preparar una pagina de documentacion API mas completa para usuarios de PyPI.
-3. Mejorar la configuracion de voces para el backend `system`.
-4. Robustecer WASAPI con pruebas manuales en hardware Windows real.
-5. Agregar benchmarks comparativos opcionales para `whisper` en hardware real.
+1. Preparar una pagina de documentacion API mas completa para usuarios de PyPI.
+2. Mejorar la configuracion de voces para el backend `system`.
+3. Robustecer WASAPI con pruebas manuales en hardware Windows real.
+4. Agregar benchmarks comparativos opcionales para `whisper` en hardware real.
+5. Preparar un ejemplo pequeno de integracion para usuarios de PyPI.
 
 ## Documentacion
 

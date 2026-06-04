@@ -12,7 +12,12 @@ import time
 from typing import Any
 
 from ._version import __version__
-from .audio import read_wav_metadata, resolve_ffmpeg_executable
+from .audio import (
+    ffmpeg_install_hint,
+    ffmpeg_search_locations,
+    read_wav_metadata,
+    resolve_ffmpeg_executable,
+)
 from .backends import create_default_registry
 from .config import VoiceKitConfig
 from .exceptions import AudioSourceError, BackendNotAvailable
@@ -120,13 +125,18 @@ def _check_optional_executable(executable: str, install_hint: str) -> Diagnostic
             name=f"executable:{executable}",
             status=DiagnosticStatus.OK,
             message=f"Optional executable {executable!r} is available.",
-            details={"path": path},
+            details={
+                "path": path,
+                "search": list(ffmpeg_search_locations(executable)) if executable == "ffmpeg" else [],
+            },
         )
+    hint = ffmpeg_install_hint() if executable == "ffmpeg" else install_hint
     return DiagnosticCheck(
         name=f"executable:{executable}",
         status=DiagnosticStatus.WARNING,
-        message=f"Optional executable {executable!r} is not installed.",
-        hint=install_hint,
+        message=f"Optional executable {executable!r} is not installed or could not be resolved.",
+        hint=hint,
+        details={"search": list(ffmpeg_search_locations(executable)) if executable == "ffmpeg" else []},
     )
 
 

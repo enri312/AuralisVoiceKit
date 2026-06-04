@@ -39,6 +39,7 @@ La meta no es competir con todos los motores de voz a la vez. La meta es constru
 | CI multiplataforma | Inicial con pruebas reales de MP3 y FLAC |
 | Publicacion en PyPI | Preparada con workflow manual |
 | Benchmarks de latencia | Inicial offline para captura, segmentacion y transcripcion |
+| Errores de ffmpeg | Inicial con diagnostico accionable |
 
 ## Fase 0 - Base del proyecto
 
@@ -186,6 +187,7 @@ Entregables:
 - Matriz de Python estable y prerelease.
 - Pruebas reales de MP3 y FLAC con `ffmpeg` en Windows, Ubuntu/Linux y macOS. Estado: inicial.
 - Benchmarks basicos de latencia para captura offline, segmentacion y transcripcion. Estado: inicial.
+- Mensajes accionables cuando `ffmpeg` falta, falla o no produce audio. Estado: inicial.
 - Build de wheel y sdist.
 - Versionado semantico.
 - Licencia y metadata final.
@@ -240,7 +242,7 @@ Criterio de salida:
 - Soporte para archivos WAV/FLAC como entrada. WAV PCM16 completado; FLAC inicial validado via `ffmpeg`.
 - Adaptadores para modelos locales. Whisper inicial completado.
 - Adaptadores para APIs externas. OpenAI inicial completado.
-- Decodificacion MP3/FLAC mediante `ffmpeg` externo opcional. Estado: inicial con pruebas CI multiplataforma.
+- Decodificacion MP3/FLAC mediante `ffmpeg` externo opcional. Estado: inicial con pruebas CI multiplataforma y errores accionables.
 - Normalizacion de volumen PCM16. Estado: inicial.
 - Wake word externo.
 - Medidor de energia en tiempo real.
@@ -251,8 +253,8 @@ Criterio de salida:
 
 ## Prioridad inmediata
 
-1. Endurecer mensajes de error para archivos comprimidos cuando `ffmpeg` falta o falla.
-2. Preparar una pagina de documentacion API mas completa para usuarios de PyPI.
-3. Mejorar la configuracion de voces para el backend `system`.
-4. Robustecer WASAPI con pruebas manuales en hardware Windows real.
-5. Agregar benchmarks comparativos opcionales para `whisper` en hardware real.
+1. Preparar una pagina de documentacion API mas completa para usuarios de PyPI.
+2. Mejorar la configuracion de voces para el backend `system`.
+3. Robustecer WASAPI con pruebas manuales en hardware Windows real.
+4. Agregar benchmarks comparativos opcionales para `whisper` en hardware real.
+5. Preparar un ejemplo pequeno de integracion para usuarios de PyPI.

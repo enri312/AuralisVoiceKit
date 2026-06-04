@@ -428,6 +428,15 @@ kit = AuralisVoiceKit(
 result = kit.transcribe(chunk)
 print(result.text)</code></pre>
         <p>Ambos backends convierten el audio a un flujo compatible y devuelven un <code>TranscriptResult</code> con texto, idioma, fuente y metadatos. Referencias: <a href="https://github.com/SYSTRAN/faster-whisper">faster-whisper</a> y <a href="https://platform.openai.com/docs/guides/speech-to-text">OpenAI speech-to-text</a>.</p>
+        <h3>Diagnostico de ffmpeg</h3>
+        <p>Para MP3, FLAC y otros formatos comprimidos, la libreria usa <code>ffmpeg</code> como herramienta externa opcional. Si falta o falla, el error incluye rutas revisadas, sugerencia de instalacion por sistema operativo, comando usado, <code>stderr</code> truncado y una prueba manual con <code>ffmpeg -hide_banner -i</code>.</p>
+        <pre><code>$env:AURALIS_FFMPEG_PATH="C:\Tools\ffmpeg\bin\ffmpeg.exe"
+auralis transcribe sample.mp3 --backend null --ffmpeg "C:\Tools\ffmpeg\bin\ffmpeg.exe"
+auralis doctor --json</code></pre>
+        <pre><code>from auralis_voicekit import ffmpeg_install_hint, ffmpeg_search_locations
+
+print(ffmpeg_install_hint())
+print(ffmpeg_search_locations())</code></pre>
       </section>
 
       <section id="sesiones">
@@ -472,7 +481,7 @@ kit.speak("Hola desde AuralisVoiceKit")</code></pre>
 
       <section id="diagnostico">
         <h2>Diagnostico</h2>
-        <p><code>auralis doctor</code> produce checks de Python, plataforma, dependencias opcionales, backends, dispositivos y archivos WAV. MP3 y FLAC se validan con pruebas de integracion reales cuando <code>ffmpeg</code> esta disponible.</p>
+        <p><code>auralis doctor</code> produce checks de Python, plataforma, dependencias opcionales, backends, dispositivos, archivos WAV y busqueda de <code>ffmpeg</code>. MP3 y FLAC se validan con pruebas de integracion reales cuando <code>ffmpeg</code> esta disponible.</p>
         <pre><code>auralis doctor
 auralis doctor --devices --backend wav
 auralis doctor --devices --backend sounddevice
@@ -512,7 +521,7 @@ for result in report.results:
   benchmarks.py      Benchmarks offline de captura, segmentacion y transcripcion
   kit.py             AuralisVoiceKit
   session.py         VoiceSession, VoiceSessionConfig, VoiceTurn
-  ffmpeg             Decodificacion opcional de MP3/FLAC a PCM16
+  ffmpeg             Decodificacion opcional de MP3/FLAC a PCM16 con errores accionables
   backends/
     base.py          Protocolos publicos
     null.py          Backend seguro para pruebas
@@ -668,7 +677,7 @@ gh workflow run publish-pypi.yml -f index=pypi -f tag=v0.14.0</code></pre>
             <tr>
               <td>5+</td>
               <td>Loop de asistente, Windows primero, CI, beta publica y version 1.0.</td>
-              <td>Loop inicial cancelable, pruebas MP3/FLAC, benchmarks offline, PyPI preparada y salida system inicial</td>
+              <td>Loop inicial cancelable, pruebas MP3/FLAC, errores ffmpeg accionables, benchmarks offline, PyPI preparada y salida system inicial</td>
             </tr>
           </tbody>
         </table>

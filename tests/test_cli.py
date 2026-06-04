@@ -272,6 +272,30 @@ class CliTests(unittest.TestCase):
         self.assertEqual(exit_code, 1)
         self.assertIn("Cannot read WAV file", output.getvalue())
 
+    def test_transcribe_command_reports_missing_ffmpeg_as_json(self):
+        output = io.StringIO()
+
+        with patch("auralis_voicekit.audio.shutil.which", return_value=None):
+            with patch.dict(os.environ, {}, clear=True):
+                with contextlib.redirect_stdout(output):
+                    exit_code = main(
+                        [
+                            "transcribe",
+                            "sample.mp3",
+                            "--backend",
+                            "null",
+                            "--ffmpeg",
+                            "missing-ffmpeg",
+                            "--json",
+                        ]
+                    )
+
+        payload = json.loads(output.getvalue())
+        self.assertEqual(exit_code, 1)
+        self.assertIn("ffmpeg is required", payload["error"])
+        self.assertIn("missing-ffmpeg", payload["error"])
+        self.assertIn("Search:", payload["error"])
+
     def test_transcribe_command_accepts_mp3_with_ffmpeg_decoder(self):
         output = io.StringIO()
         chunk = AudioChunk(
@@ -314,6 +338,26 @@ class CliTests(unittest.TestCase):
         payload = json.loads(output.getvalue())
         self.assertEqual(exit_code, 0)
         self.assertIn("normalization_gain", payload["metadata"])
+
+    def test_normalize_command_reports_missing_ffmpeg(self):
+        output = io.StringIO()
+
+        with patch("auralis_voicekit.audio.shutil.which", return_value=None):
+            with patch.dict(os.environ, {}, clear=True):
+                with contextlib.redirect_stdout(output):
+                    exit_code = main(
+                        [
+                            "normalize",
+                            "sample.flac",
+                            "out.wav",
+                            "--ffmpeg",
+                            "missing-ffmpeg",
+                        ]
+                    )
+
+        self.assertEqual(exit_code, 1)
+        self.assertIn("ffmpeg is required", output.getvalue())
+        self.assertIn("Search:", output.getvalue())
 
     def test_transcribe_segments_command_can_use_null_backend(self):
         output = io.StringIO()

@@ -19,9 +19,21 @@ El backend de salida `system` usa herramientas del sistema operativo cuando esta
 
 La busqueda de `ffmpeg` usa este orden:
 
-1. Ejecutable disponible en `PATH`.
-2. Variable `AURALIS_FFMPEG_PATH`.
-3. Instalacion portable en `%LOCALAPPDATA%\AuralisTools\ffmpeg\bin\ffmpeg.exe` en Windows.
+1. Ruta explicita pasada por `--ffmpeg` o por la API, cuando contiene separadores de ruta.
+2. Ejecutable disponible en `PATH`.
+3. Variable `AURALIS_FFMPEG_PATH`.
+4. Instalacion portable en `%LOCALAPPDATA%\AuralisTools\ffmpeg\bin\ffmpeg.exe` en Windows.
+
+Cuando `ffmpeg` falta o falla, el error incluye el ejecutable solicitado, las rutas revisadas, sugerencia de instalacion por sistema operativo, comando usado, `stderr` truncado y un comando de inspeccion con `ffmpeg -hide_banner -i`.
+
+Helpers disponibles desde Python:
+
+```python
+from auralis_voicekit import ffmpeg_install_hint, ffmpeg_search_locations
+
+print(ffmpeg_install_hint())
+print(ffmpeg_search_locations())
+```
 
 ## Python
 
@@ -65,6 +77,13 @@ py -m pip install -e ".[openai]"
 $env:OPENAI_API_KEY="tu_api_key"
 choco install ffmpeg -y
 py -m auralis_voicekit.cli transcribe sample.mp3 --backend openai
+```
+
+Alternativa con ruta explicita:
+
+```powershell
+$env:AURALIS_FFMPEG_PATH="C:\Tools\ffmpeg\bin\ffmpeg.exe"
+py -m auralis_voicekit.cli transcribe sample.mp3 --backend null --ffmpeg "C:\Tools\ffmpeg\bin\ffmpeg.exe"
 ```
 
 Con transcripcion local por Whisper:
@@ -167,6 +186,7 @@ python -m auralis_voicekit.cli doctor --wav sample.wav
 python -m auralis_voicekit.cli doctor --json
 python -m auralis_voicekit.cli benchmark --iterations 5
 python -m auralis_voicekit.cli benchmark --iterations 5 --json
+python -m auralis_voicekit.cli transcribe sample.mp3 --backend null --ffmpeg /path/to/ffmpeg
 python -m auralis_voicekit.cli devices --backend sounddevice
 python -m auralis_voicekit.cli devices --backend wasapi
 python -m auralis_voicekit.cli backends
