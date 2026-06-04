@@ -34,7 +34,7 @@ Politica:
 - Probar versiones estables y prereleases cuando sea viable.
 - Aislar dependencias nativas en extras opcionales.
 
-CI prueba Python 3.10 a 3.14 en Windows, Ubuntu/Linux y macOS. Tambien hay un job experimental con `3.15-dev` en Ubuntu; ese job es de observacion temprana y puede fallar sin bloquear el desarrollo.
+CI prueba Python 3.10 a 3.14 en Windows, Ubuntu/Linux y macOS. Tambien hay un job experimental con `3.15-dev` en Ubuntu; ese job es de observacion temprana y puede fallar sin bloquear el desarrollo. La ruta de audio comprimido se valida aparte con `ffmpeg` real en Windows, Ubuntu/Linux y macOS.
 
 ## Windows
 
@@ -171,3 +171,17 @@ python -m auralis_voicekit.cli transcribe-segments sample.mp3 --backend whisper 
 ```
 
 El comando `doctor` debe poder ejecutarse aunque los extras no esten instalados.
+
+Para ejecutar las pruebas reales de MP3 localmente se necesita `ffmpeg` disponible:
+
+```bash
+AURALIS_RUN_FFMPEG_INTEGRATION=1 python -m unittest tests.test_ffmpeg_integration
+```
+
+En PowerShell:
+
+```powershell
+$env:AURALIS_RUN_FFMPEG_INTEGRATION="1"
+py -m unittest tests.test_ffmpeg_integration
+Remove-Item Env:\AURALIS_RUN_FFMPEG_INTEGRATION
+```

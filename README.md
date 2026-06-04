@@ -12,7 +12,7 @@ English: AuralisVoiceKit is a modern voice toolkit for Python assistants, local 
 
 El objetivo principal es evitar que la captura de microfono dependa obligatoriamente de PyAudio o de wheels que tardan en llegar a las versiones nuevas de Python. El paquete base debe poder instalarse de forma liviana, sin compiladores y sin dependencias nativas obligatorias. Para MP3 y formatos comprimidos, AuralisVoiceKit usa `ffmpeg` como herramienta externa opcional.
 
-> Estado actual: alpha tecnica. El repositorio ya define el core, los contratos de backends, captura real inicial, flujo WAV offline, transcripcion inicial por API y local opcional, sesiones de voz iniciales, una CLI de diagnostico, documentacion estatica y pruebas basicas. Los backends reales se iran agregando por etapas.
+> Estado actual: alpha tecnica. El repositorio ya define el core, los contratos de backends, captura real inicial, flujo WAV offline, transcripcion inicial por API y local opcional, sesiones de voz iniciales, una CLI de diagnostico, documentacion estatica, pruebas unitarias y pruebas reales de MP3 con `ffmpeg`. Los backends reales se iran agregando por etapas.
 
 ## Problema que resuelve
 
@@ -210,6 +210,20 @@ En Windows, la libreria tambien detecta una instalacion portable en:
 
 Tambien puedes apuntar a un ejecutable concreto con `AURALIS_FFMPEG_PATH` o con `--ffmpeg` en la CLI.
 
+Las pruebas de integracion reales para MP3 se ejecutan solo cuando se activa una variable de entorno, asi el paquete base sigue testeandose sin herramientas externas:
+
+```powershell
+$env:AURALIS_RUN_FFMPEG_INTEGRATION="1"
+py -m unittest tests.test_ffmpeg_integration
+Remove-Item Env:\AURALIS_RUN_FFMPEG_INTEGRATION
+```
+
+En Ubuntu/Linux o macOS:
+
+```bash
+AURALIS_RUN_FFMPEG_INTEGRATION=1 python -m unittest tests.test_ffmpeg_integration
+```
+
 ## Transcripcion local con Whisper
 
 El backend `whisper` es opcional y usa `faster-whisper` para transcribir en la maquina local. No requiere API key, pero puede descargar modelos en el primer uso y agrega dependencias de ML fuera del core.
@@ -374,11 +388,11 @@ ROADMAP.md
 
 Prioridad inmediata:
 
-1. Ampliar pruebas reales de MP3/formatos comprimidos con `ffmpeg` en Windows, Ubuntu y macOS.
-2. Explorar soporte FLAC sin cargar el core con dependencias nativas.
-3. Preparar documentacion de publicacion para PyPI.
-4. Evaluar primer backend de salida de voz real como extra opcional.
-5. Investigar backend WASAPI dedicado para Windows.
+1. Explorar soporte FLAC sin cargar el core con dependencias nativas.
+2. Preparar documentacion de publicacion para PyPI.
+3. Evaluar primer backend de salida de voz real como extra opcional.
+4. Investigar backend WASAPI dedicado para Windows.
+5. Agregar benchmarks basicos de latencia para captura, segmentacion y transcripcion offline.
 
 ## Documentacion
 

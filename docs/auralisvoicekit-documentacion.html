@@ -454,7 +454,7 @@ py examples\assistant_loop.py --seconds 30 --capture-backend sounddevice --trans
 
       <section id="diagnostico">
         <h2>Diagnostico</h2>
-        <p><code>auralis doctor</code> produce checks de Python, plataforma, dependencias opcionales, backends, dispositivos y archivos WAV.</p>
+        <p><code>auralis doctor</code> produce checks de Python, plataforma, dependencias opcionales, backends, dispositivos y archivos WAV. MP3 se valida con pruebas de integracion reales cuando <code>ffmpeg</code> esta disponible.</p>
         <pre><code>auralis doctor
 auralis doctor --devices --backend wav
 auralis doctor --devices --backend sounddevice
@@ -463,6 +463,9 @@ auralis doctor --capture-test --backend sounddevice --device default --json
 auralis doctor --wav sample.wav
 auralis doctor --json</code></pre>
         <p>Los warnings no bloquean el core. Por ejemplo, <code>sounddevice</code> puede faltar y aun asi funcionar el backend <code>wav</code>. El flag <code>--capture-test</code> intenta abrir brevemente el backend seleccionado para diagnosticar permisos o errores de dispositivo.</p>
+        <pre><code>$env:AURALIS_RUN_FFMPEG_INTEGRATION="1"
+py -m unittest tests.test_ffmpeg_integration
+Remove-Item Env:\AURALIS_RUN_FFMPEG_INTEGRATION</code></pre>
       </section>
 
       <section id="arquitectura">
@@ -616,7 +619,7 @@ kit.events.subscribe(
             <tr>
               <td>5+</td>
               <td>Loop de asistente, Windows primero, CI, beta publica y version 1.0.</td>
-              <td>Loop inicial cancelable</td>
+              <td>Loop inicial cancelable y pruebas MP3 multiplataforma</td>
             </tr>
           </tbody>
         </table>
