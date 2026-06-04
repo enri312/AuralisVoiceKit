@@ -8,6 +8,7 @@ from ..exceptions import BackendNotAvailable
 from .base import BackendInfo, CaptureBackend, SpeechOutputBackend, TranscriptionBackend
 from .null import NullCaptureBackend, NullSpeechOutputBackend, NullTranscriptionBackend
 from .openai_transcription import OpenAITranscriptionBackend
+from .system_output import SystemSpeechOutputBackend
 from .wav_file import WavFileCaptureBackend
 from .whisper_transcription import WhisperTranscriptionBackend
 
@@ -81,4 +82,5 @@ def create_default_registry() -> BackendRegistry:
     registry.register_transcription("openai", OpenAITranscriptionBackend)
     registry.register_transcription("whisper", WhisperTranscriptionBackend)
     registry.register_output("null", NullSpeechOutputBackend)
+    registry.register_output("system", SystemSpeechOutputBackend)
     return registry

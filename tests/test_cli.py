@@ -139,6 +139,41 @@ class CliTests(unittest.TestCase):
         self.assertAlmostEqual(peak_pcm16(normalized), 0.5, places=3)
         self.assertGreater(payload["gain"], 1.0)
 
+    def test_speak_command_can_use_null_backend(self):
+        output = io.StringIO()
+
+        with contextlib.redirect_stdout(output):
+            exit_code = main(["speak", "Hola", "--backend", "null", "--json"])
+
+        payload = json.loads(output.getvalue())
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(payload["backend"], "null")
+        self.assertTrue(payload["spoken"])
+
+    def test_speak_command_can_use_system_backend(self):
+        output = io.StringIO()
+
+        with patch("auralis_voicekit.backends.system_output.SystemSpeechOutputBackend.speak") as speak:
+            with contextlib.redirect_stdout(output):
+                exit_code = main(
+                    [
+                        "speak",
+                        "Hola",
+                        "--backend",
+                        "system",
+                        "--voice",
+                        "test-voice",
+                        "--json",
+                    ]
+                )
+
+        payload = json.loads(output.getvalue())
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(payload["backend"], "system")
+        speak.assert_called_once()
+        self.assertEqual(speak.call_args.args[0], "Hola")
+        self.assertEqual(speak.call_args.args[1].output_device, "test-voice")
+
     def test_transcribe_command_can_use_null_backend(self):
         audio_format = AudioFormat(sample_rate=8000, channels=1, sample_width=2)
         output = io.StringIO()

@@ -323,6 +323,35 @@ def _normalize_audio_file(
     return 0
 
 
+def _speak_text(
+    text: str,
+    *,
+    backend_name: str,
+    voice: str | None,
+    json_output: bool,
+) -> int:
+    try:
+        config = VoiceKitConfig(output_backend=backend_name, output_device=voice)
+        AuralisVoiceKit(config=config).speak(text)
+    except BackendNotAvailable as exc:
+        if json_output:
+            print(json.dumps({"error": str(exc)}, indent=2, sort_keys=True))
+        else:
+            print(str(exc))
+        return 1
+
+    payload = {
+        "backend": backend_name,
+        "characters": len(text),
+        "spoken": True,
+    }
+    if json_output:
+        print(json.dumps(payload, indent=2, sort_keys=True))
+    else:
+        print(f"Spoken with output backend {backend_name!r}.")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="auralis")
     parser.add_argument("--version", action="version", version=f"AuralisVoiceKit {__version__}")
@@ -364,6 +393,15 @@ def main(argv: list[str] | None = None) -> int:
     normalize_parser.add_argument("--max-gain", type=float, default=8.0, help="maximum gain multiplier")
     normalize_parser.add_argument("--ffmpeg", default="ffmpeg", help="ffmpeg executable for MP3 input")
     normalize_parser.add_argument("--json", action="store_true", help="print a JSON result")
+    speak_parser = subparsers.add_parser("speak", help="speak text through an output backend")
+    speak_parser.add_argument("text", help="text to speak")
+    speak_parser.add_argument(
+        "--backend",
+        default="null",
+        help="output backend to use (null, system)",
+    )
+    speak_parser.add_argument("--voice", help="system voice selector when supported")
+    speak_parser.add_argument("--json", action="store_true", help="print a JSON result")
     transcribe_parser = subparsers.add_parser("transcribe", help="transcribe an audio file")
     transcribe_parser.add_argument("path", help="path to a WAV or ffmpeg-supported audio file")
     transcribe_parser.add_argument(
@@ -474,6 +512,13 @@ def main(argv: list[str] | None = None) -> int:
             ffmpeg_executable=args.ffmpeg,
             target_peak=args.target_peak,
             max_gain=args.max_gain,
+            json_output=args.json,
+        )
+    if args.command == "speak":
+        return _speak_text(
+            args.text,
+            backend_name=args.backend,
+            voice=args.voice,
             json_output=args.json,
         )
     if args.command == "transcribe":

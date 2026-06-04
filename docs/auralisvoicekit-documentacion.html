@@ -291,6 +291,7 @@
         <a href="#inicio">Inicio rapido</a>
         <a href="#transcripcion">Transcripcion</a>
         <a href="#sesiones">Sesiones</a>
+        <a href="#salida">Salida</a>
         <a href="#diagnostico">Diagnostico</a>
         <a href="#arquitectura">Arquitectura</a>
         <a href="#api">API publica</a>
@@ -455,6 +456,15 @@ py examples\assistant_loop.py --file sample.mp3 --transcription-backend whisper 
 py examples\assistant_loop.py --seconds 30 --capture-backend sounddevice --transcription-backend whisper --model base</code></pre>
       </section>
 
+      <section id="salida">
+        <h2>Salida de voz</h2>
+        <p>El backend <code>system</code> permite hablar con herramientas del sistema operativo. Windows usa PowerShell/SAPI, macOS usa <code>say</code> y Ubuntu/Linux usa <code>spd-say</code> o <code>espeak</code> cuando estan disponibles.</p>
+        <pre><code>auralis speak "Hola desde AuralisVoiceKit" --backend null --json
+auralis speak "Hola desde AuralisVoiceKit" --backend system</code></pre>
+        <pre><code>kit = AuralisVoiceKit(VoiceKitConfig(output_backend="system"))
+kit.speak("Hola desde AuralisVoiceKit")</code></pre>
+      </section>
+
       <section id="diagnostico">
         <h2>Diagnostico</h2>
         <p><code>auralis doctor</code> produce checks de Python, plataforma, dependencias opcionales, backends, dispositivos y archivos WAV. MP3 y FLAC se validan con pruebas de integracion reales cuando <code>ffmpeg</code> esta disponible.</p>
@@ -490,6 +500,7 @@ Remove-Item Env:\AURALIS_RUN_FFMPEG_INTEGRATION</code></pre>
     sounddevice.py   Backend opcional funcional
     whisper_transcription.py  Backend opcional de transcripcion local
     openai_transcription.py  Backend opcional de transcripcion por API
+    system_output.py Backend opcional de salida de voz del sistema
     registry.py      Registro de factories</code></pre>
       </section>
 
@@ -573,6 +584,11 @@ kit.events.subscribe(
               <td>Inicial funcional</td>
               <td>Transcripcion por API.</td>
             </tr>
+            <tr>
+              <td><code>system</code></td>
+              <td>Inicial funcional</td>
+              <td>Salida de voz con herramientas del sistema operativo.</td>
+            </tr>
           </tbody>
         </table>
       </section>
@@ -626,12 +642,12 @@ gh workflow run publish-pypi.yml -f index=pypi -f tag=v0.14.0</code></pre>
             <tr>
               <td>4</td>
               <td>Salida de voz, cola de reproduccion y eventos de salida.</td>
-              <td>Pendiente</td>
+              <td>Backend system inicial</td>
             </tr>
             <tr>
               <td>5+</td>
               <td>Loop de asistente, Windows primero, CI, beta publica y version 1.0.</td>
-              <td>Loop inicial cancelable, pruebas MP3/FLAC y publicacion PyPI preparada</td>
+              <td>Loop inicial cancelable, pruebas MP3/FLAC, PyPI preparada y salida system inicial</td>
             </tr>
           </tbody>
         </table>

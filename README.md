@@ -105,6 +105,30 @@ py examples\capture_microphone.py --device default --seconds 3
 py examples\capture_microphone.py --device "Nombre del microfono" --seconds 3
 ```
 
+## Salida de voz del sistema
+
+El backend `system` permite hablar usando herramientas ya presentes o instalables en el sistema operativo. El backend `null` sigue siendo el default para evitar reproducir audio por accidente.
+
+```powershell
+auralis speak "Hola desde AuralisVoiceKit" --backend null --json
+auralis speak "Hola desde AuralisVoiceKit" --backend system
+```
+
+Desde Python:
+
+```python
+from auralis_voicekit import AuralisVoiceKit, VoiceKitConfig
+
+kit = AuralisVoiceKit(VoiceKitConfig(output_backend="system"))
+kit.speak("Hola desde AuralisVoiceKit")
+```
+
+Rutas usadas por plataforma:
+
+- Windows: PowerShell con SAPI.
+- macOS: comando `say`.
+- Ubuntu/Linux: `spd-say` o `espeak`.
+
 ## Utilidades de audio
 
 El core incluye helpers puros para PCM16, sin NumPy ni dependencias externas:
@@ -356,6 +380,7 @@ auralis_voicekit
     sounddevice   Backend opcional de captura real
     whisper       Backend opcional de transcripcion local
     openai        Backend opcional de transcripcion por API
+    system        Backend opcional de salida de voz del sistema
     registry      Registro de backends
   audio           Utilidades PCM16, calibracion y segmentacion
   ffmpeg          Decodificacion opcional de MP3/FLAC a PCM16
@@ -374,6 +399,7 @@ auralis_voicekit
 | `pyaudio` | pendiente | compatibilidad con proyectos existentes |
 | `whisper` | inicial funcional | transcripcion local opcional con faster-whisper |
 | `openai` | inicial funcional | transcripcion por API |
+| `system` | inicial funcional | salida de voz con herramientas del sistema operativo |
 
 ## Uso con asistentes
 
@@ -396,11 +422,11 @@ ROADMAP.md
 
 Prioridad inmediata:
 
-1. Evaluar primer backend de salida de voz real como extra opcional.
-2. Investigar backend WASAPI dedicado para Windows.
-3. Agregar benchmarks basicos de latencia para captura, segmentacion y transcripcion offline.
-4. Endurecer mensajes de error para archivos comprimidos cuando `ffmpeg` falta o falla.
-5. Preparar una pagina de documentacion API mas completa para usuarios de PyPI.
+1. Investigar backend WASAPI dedicado para Windows.
+2. Agregar benchmarks basicos de latencia para captura, segmentacion y transcripcion offline.
+3. Endurecer mensajes de error para archivos comprimidos cuando `ffmpeg` falta o falla.
+4. Preparar una pagina de documentacion API mas completa para usuarios de PyPI.
+5. Mejorar la configuracion de voces para el backend `system`.
 
 ## Documentacion
 

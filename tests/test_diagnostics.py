@@ -22,6 +22,7 @@ class DiagnosticsTests(unittest.TestCase):
         self.assertTrue(any(check.name == "dependency:openai" for check in report.checks))
         self.assertTrue(any(check.name == "dependency:faster_whisper" for check in report.checks))
         self.assertTrue(any(check.name == "executable:ffmpeg" for check in report.checks))
+        self.assertTrue(any(check.name == "backend:output:system" for check in report.checks))
         self.assertTrue(any(check.name == "devices:wav" for check in report.checks))
 
     def test_run_doctor_can_test_null_capture_opening(self):

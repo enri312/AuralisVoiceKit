@@ -34,7 +34,7 @@ La meta no es competir con todos los motores de voz a la vez. La meta es constru
 | Compatibilidad Windows/Linux/macOS | Documentacion inicial |
 | Diagnostico doctor | Inicial estructurado con test de apertura |
 | Transcripcion real | Inicial por API y local opcional |
-| Salida de voz real | Pendiente |
+| Salida de voz real | Inicial con backend `system` |
 | CI multiplataforma | Inicial con pruebas reales de MP3 y FLAC |
 | Publicacion en PyPI | Preparada con workflow manual |
 
@@ -126,14 +126,15 @@ Entregables:
 
 - Contrato estable para salida de voz.
 - Backend `null` para pruebas.
-- Backend Windows inicial para TTS local si es viable.
+- Backend `system` inicial para TTS local por sistema operativo. Estado: inicial.
+- Backend Windows inicial para TTS local si es viable. Estado: inicial via PowerShell/SAPI.
 - Backend por API como extra opcional.
 - Cola simple de reproduccion.
-- Eventos `output.started` y `output.completed`.
+- Eventos `output.started` y `output.completed`. Estado: inicial.
 
 Criterio de salida:
 
-- Un asistente puede llamar `kit.speak("texto")` sin conocer el backend.
+- Un asistente puede llamar `kit.speak("texto")` sin conocer el backend. Estado: inicial.
 - El backend de salida puede reemplazarse por uno custom.
 
 ## Fase 5 - Loop de asistente
@@ -231,6 +232,7 @@ Criterio de salida:
 
 - Backend WASAPI dedicado.
 - Backend PyAudio solo como compatibilidad opcional.
+- Backend de salida `system`. Estado: inicial.
 - Soporte para archivos WAV/FLAC como entrada. WAV PCM16 completado; FLAC inicial validado via `ffmpeg`.
 - Adaptadores para modelos locales. Whisper inicial completado.
 - Adaptadores para APIs externas. OpenAI inicial completado.
@@ -245,8 +247,8 @@ Criterio de salida:
 
 ## Prioridad inmediata
 
-1. Evaluar primer backend de salida de voz real como extra opcional.
-2. Investigar backend WASAPI dedicado para Windows.
-3. Agregar benchmarks basicos de latencia para captura, segmentacion y transcripcion offline.
-4. Endurecer mensajes de error para archivos comprimidos cuando `ffmpeg` falta o falla.
-5. Preparar una pagina de documentacion API mas completa para usuarios de PyPI.
+1. Investigar backend WASAPI dedicado para Windows.
+2. Agregar benchmarks basicos de latencia para captura, segmentacion y transcripcion offline.
+3. Endurecer mensajes de error para archivos comprimidos cuando `ffmpeg` falta o falla.
+4. Preparar una pagina de documentacion API mas completa para usuarios de PyPI.
+5. Mejorar la configuracion de voces para el backend `system`.

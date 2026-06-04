@@ -29,6 +29,17 @@ class AuralisVoiceKitTests(unittest.TestCase):
         self.assertIn("duration_seconds", seen[0])
         self.assertNotIn("bytes", seen[0])
 
+    def test_speak_emits_output_events(self):
+        kit = AuralisVoiceKit()
+        seen = []
+        kit.events.subscribe(VoiceEventType.OUTPUT_STARTED, lambda event: seen.append(event.payload))
+        kit.events.subscribe(VoiceEventType.OUTPUT_COMPLETED, lambda event: seen.append(event.payload))
+
+        kit.speak("Hola")
+
+        self.assertEqual(seen, [{"backend": "null"}, {"backend": "null"}])
+        self.assertEqual(kit.output.utterances, ["Hola"])
+
 
 if __name__ == "__main__":
     unittest.main()

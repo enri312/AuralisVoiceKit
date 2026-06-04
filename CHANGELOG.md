@@ -6,6 +6,19 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.15.0] - 2026-06-04
+
+### Agregado
+
+- Backend de salida `system` para hablar usando herramientas del sistema operativo.
+- Soporte inicial de salida real: Windows con PowerShell/SAPI, macOS con `say`, Ubuntu/Linux con `spd-say` o `espeak`.
+- CLI `auralis speak "texto" --backend system` con salida JSON opcional.
+- Pruebas unitarias para comandos de salida por sistema, CLI `speak`, eventos de salida y diagnostico.
+
+### Cambiado
+
+- El roadmap marca salida de voz real como estado inicial y mueve la prioridad inmediata a WASAPI dedicado.
+
 ## [0.14.0] - 2026-06-04
 
 ### Agregado
