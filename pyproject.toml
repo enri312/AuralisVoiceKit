@@ -1,0 +1,66 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "auralisvoicekit"
+dynamic = ["version"]
+description = "Modern voice toolkit for Python assistants, with optional audio backends."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [
+  { name = "AuralisVoiceKit contributors" }
+]
+keywords = [
+  "voice",
+  "audio",
+  "speech",
+  "assistant",
+  "windows",
+  "linux",
+  "ubuntu",
+  "macos",
+  "microphone"
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Operating System :: MacOS",
+  "Operating System :: Microsoft :: Windows",
+  "Operating System :: POSIX :: Linux",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Topic :: Multimedia :: Sound/Audio",
+  "Topic :: Software Development :: Libraries :: Python Modules"
+]
+dependencies = []
+
+[project.optional-dependencies]
+sounddevice = [
+  "sounddevice>=0.5.0"
+]
+dev = [
+  "pytest>=8.0",
+  "ruff>=0.8"
+]
+
+[project.scripts]
+auralis = "auralis_voicekit.cli:main"
+
+[tool.hatch.version]
+path = "src/auralis_voicekit/_version.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/auralis_voicekit"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]

@@ -1,0 +1,77 @@
+"""Configuration primitives for AuralisVoiceKit."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+import os
+from typing import Any
+
+from .models import AudioFormat
+
+
+def _env_bool(value: str | None, default: bool) -> bool:
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _env_int(value: str | None, default: int) -> int:
+    if value is None:
+        return default
+    try:
+        return int(value)
+    except ValueError:
+        return default
+
+
+@dataclass(slots=True)
+class VoiceKitConfig:
+    """Runtime configuration for capture, transcription and voice events."""
+
+    sample_rate: int = 16_000
+    channels: int = 1
+    sample_width: int = 2
+    language: str = "es"
+    capture_backend: str = "null"
+    transcription_backend: str = "null"
+    output_backend: str = "null"
+    input_device: str | int | None = None
+    output_device: str | int | None = None
+    privacy_mode: bool = True
+    log_level: str = "INFO"
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        if self.sample_rate <= 0:
+            raise ValueError("sample_rate must be greater than zero")
+        if self.channels <= 0:
+            raise ValueError("channels must be greater than zero")
+        if self.sample_width <= 0:
+            raise ValueError("sample_width must be greater than zero")
+
+    @classmethod
+    def from_env(cls, prefix: str = "AURALIS_") -> "VoiceKitConfig":
+        """Create config from environment variables."""
+
+        return cls(
+            sample_rate=_env_int(os.getenv(prefix + "SAMPLE_RATE"), 16_000),
+            channels=_env_int(os.getenv(prefix + "CHANNELS"), 1),
+            sample_width=_env_int(os.getenv(prefix + "SAMPLE_WIDTH"), 2),
+            language=os.getenv(prefix + "LANGUAGE", "es"),
+            capture_backend=os.getenv(prefix + "CAPTURE_BACKEND", "null"),
+            transcription_backend=os.getenv(prefix + "TRANSCRIPTION_BACKEND", "null"),
+            output_backend=os.getenv(prefix + "OUTPUT_BACKEND", "null"),
+            input_device=os.getenv(prefix + "INPUT_DEVICE") or None,
+            output_device=os.getenv(prefix + "OUTPUT_DEVICE") or None,
+            privacy_mode=_env_bool(os.getenv(prefix + "PRIVACY_MODE"), True),
+            log_level=os.getenv(prefix + "LOG_LEVEL", "INFO"),
+        )
+
+    def audio_format(self) -> AudioFormat:
+        """Return the current PCM audio format."""
+
+        return AudioFormat(
+            sample_rate=self.sample_rate,
+            channels=self.channels,
+            sample_width=self.sample_width,
+        )
