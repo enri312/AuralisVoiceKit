@@ -140,7 +140,7 @@ Entregables:
 
 - API de alto nivel para sesiones de voz.
 - Hooks para wake word o activacion externa.
-- Integracion limpia con Alice o cualquier `AgentLoop`.
+- Integracion limpia con loops de agente externos.
 - Ejemplo `examples/assistant_loop.py`.
 - Cancelacion y cierre ordenado.
 
@@ -194,7 +194,7 @@ Entregables:
 - Documentacion de API estable.
 - Guias de captura, transcripcion, salida y privacidad.
 - Ejemplos completos.
-- Integracion piloto con Alice.
+- Integracion piloto con un asistente local de referencia.
 - Politica de compatibilidad y cambios.
 - Checklist de bugs conocidos.
 
@@ -214,7 +214,7 @@ Entregables:
 - Tests de regresion para flujos clave.
 - Documentacion completa.
 - Publicacion en PyPI.
-- Integracion estable con Alice.
+- Integracion estable con asistentes locales y agentes externos.
 
 Criterio de salida:
 

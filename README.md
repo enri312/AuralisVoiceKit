@@ -1,6 +1,12 @@
 # AuralisVoiceKit
 
-AuralisVoiceKit es una libreria moderna de voz para Python, pensada primero para Windows y para asistentes personales como Alice.
+[![CI](https://github.com/enri312/AuralisVoiceKit/actions/workflows/ci.yml/badge.svg)](https://github.com/enri312/AuralisVoiceKit/actions/workflows/ci.yml)
+[![Release](https://github.com/enri312/AuralisVoiceKit/actions/workflows/release.yml/badge.svg)](https://github.com/enri312/AuralisVoiceKit/actions/workflows/release.yml)
+[![Version](https://img.shields.io/github/v/release/enri312/AuralisVoiceKit?include_prereleases&label=version)](https://github.com/enri312/AuralisVoiceKit/releases)
+[![Python](https://img.shields.io/badge/python-3.10%2B-3776AB.svg)](https://github.com/enri312/AuralisVoiceKit/blob/main/COMPATIBILITY.md)
+[![License](https://img.shields.io/badge/license-MIT-2f855a.svg)](LICENSE)
+
+AuralisVoiceKit es una libreria moderna de voz para Python, pensada primero para Windows y para asistentes personales, agentes locales y herramientas de automatizacion por voz.
 
 El objetivo principal es evitar que la captura de microfono dependa obligatoriamente de PyAudio o de wheels que tardan en llegar a las versiones nuevas de Python. El paquete base debe poder instalarse de forma liviana, sin compiladores y sin dependencias nativas obligatorias.
 
@@ -100,15 +106,15 @@ auralis_voicekit
 | `whisper` | pendiente | transcripcion local |
 | `openai` | pendiente | transcripcion por API |
 
-## Relacion con Alice
+## Uso con asistentes
 
-AuralisVoiceKit puede convertirse en la capa de voz de Alice:
+AuralisVoiceKit puede funcionar como capa de voz para asistentes personales y agentes locales:
 
 - escuchar comandos hablados;
 - detectar dispositivos de microfono;
 - calibrar ruido ambiente;
 - enviar audio a un reconocedor;
-- devolver texto limpio al `AgentLoop`;
+- devolver texto limpio a un loop de agente;
 - registrar eventos de voz sin exponer datos privados.
 
 ## Roadmap
