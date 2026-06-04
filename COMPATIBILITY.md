@@ -165,6 +165,8 @@ python -m auralis_voicekit.cli doctor --capture-test --backend sounddevice --cap
 python -m auralis_voicekit.cli doctor --capture-test --backend sounddevice --device default --json
 python -m auralis_voicekit.cli doctor --wav sample.wav
 python -m auralis_voicekit.cli doctor --json
+python -m auralis_voicekit.cli benchmark --iterations 5
+python -m auralis_voicekit.cli benchmark --iterations 5 --json
 python -m auralis_voicekit.cli devices --backend sounddevice
 python -m auralis_voicekit.cli devices --backend wasapi
 python -m auralis_voicekit.cli backends

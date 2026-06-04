@@ -6,6 +6,20 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.17.0] - 2026-06-04
+
+### Agregado
+
+- Modulo `benchmarks` con reportes estructurados para latencia offline de captura, segmentacion y transcripcion.
+- Generador determinista de audio PCM16 sintetico para medir sin microfono, red ni dependencias externas.
+- CLI `auralis benchmark` con salida de texto o JSON.
+- Pruebas unitarias para la API publica de benchmarks y el comando CLI.
+
+### Cambiado
+
+- El roadmap marca benchmarks de latencia como estado inicial y mueve la prioridad inmediata a endurecer errores de `ffmpeg`.
+- La documentacion incluye comandos para medir la linea base `transcription:null` y backends reales como `whisper` cuando esten instalados.
+
 ## [0.16.0] - 2026-06-04
 
 ### Agregado

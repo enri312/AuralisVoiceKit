@@ -23,6 +23,8 @@ keywords = [
   "linux",
   "ubuntu",
   "wasapi",
+  "benchmark",
+  "latency",
   "macos",
   "microphone"
 ]

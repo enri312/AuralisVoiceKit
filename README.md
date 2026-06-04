@@ -12,7 +12,7 @@ English: AuralisVoiceKit is a modern voice toolkit for Python assistants, local 
 
 El objetivo principal es evitar que la captura de microfono dependa obligatoriamente de PyAudio o de wheels que tardan en llegar a las versiones nuevas de Python. El paquete base debe poder instalarse de forma liviana, sin compiladores y sin dependencias nativas obligatorias. Para MP3, FLAC y formatos comprimidos, AuralisVoiceKit usa `ffmpeg` como herramienta externa opcional.
 
-> Estado actual: alpha tecnica. El repositorio ya define el core, los contratos de backends, captura real inicial, flujo WAV offline, transcripcion inicial por API y local opcional, sesiones de voz iniciales, una CLI de diagnostico, documentacion estatica, pruebas unitarias y pruebas reales de MP3/FLAC con `ffmpeg`. Los backends reales se iran agregando por etapas.
+> Estado actual: alpha tecnica. El repositorio ya define el core, los contratos de backends, captura real inicial, flujo WAV offline, transcripcion inicial por API y local opcional, sesiones de voz iniciales, una CLI de diagnostico, benchmarks offline de latencia, documentacion estatica, pruebas unitarias y pruebas reales de MP3/FLAC con `ffmpeg`. Los backends reales se iran agregando por etapas.
 
 ## Problema que resuelve
 
@@ -377,6 +377,28 @@ auralis doctor --json
 
 La salida distingue entre `ok`, `warning` y `error`. Los warnings no bloquean el uso del core; por ejemplo, `sounddevice` puede faltar y aun asi funcionar `null`, `wav`, lectura WAV y utilidades de audio. El flag `--capture-test` intenta abrir brevemente el backend de captura seleccionado y es util para diagnosticar permisos de microfono o errores de dispositivo.
 
+## Benchmarks de latencia
+
+`auralis benchmark` mide una linea base offline y determinista sin microfono, red ni extras nativos. Genera audio PCM16 sintetico, lo captura desde el backend `wav`, segmenta por RMS y transcribe los segmentos con el backend elegido.
+
+```powershell
+auralis benchmark
+auralis benchmark --iterations 10 --duration 3 --json
+auralis benchmark --transcription-backend whisper --model base --iterations 3
+```
+
+Por defecto se usa `transcription:null`; eso mide el costo del pipeline, no un modelo real. Para medir transcripcion local real instala `.[whisper]` y usa `--transcription-backend whisper`.
+
+Desde Python:
+
+```python
+from auralis_voicekit import run_offline_benchmarks
+
+report = run_offline_benchmarks(iterations=5)
+for result in report.results:
+    print(result.name, result.mean_ms, result.p95_ms)
+```
+
 ## Arquitectura
 
 ```text
@@ -398,6 +420,7 @@ auralis_voicekit
     system        Backend opcional de salida de voz del sistema
     registry      Registro de backends
   audio           Utilidades PCM16, calibracion y segmentacion
+  benchmarks      Latencia offline para captura, segmentacion y transcripcion
   ffmpeg          Decodificacion opcional de MP3/FLAC a PCM16
   cli             Diagnostico y utilidades
   diagnostics     Reportes doctor estructurados
@@ -437,11 +460,11 @@ ROADMAP.md
 
 Prioridad inmediata:
 
-1. Agregar benchmarks basicos de latencia para captura, segmentacion y transcripcion offline.
-2. Endurecer mensajes de error para archivos comprimidos cuando `ffmpeg` falta o falla.
-3. Preparar una pagina de documentacion API mas completa para usuarios de PyPI.
-4. Mejorar la configuracion de voces para el backend `system`.
-5. Robustecer WASAPI con pruebas manuales en hardware Windows real.
+1. Endurecer mensajes de error para archivos comprimidos cuando `ffmpeg` falta o falla.
+2. Preparar una pagina de documentacion API mas completa para usuarios de PyPI.
+3. Mejorar la configuracion de voces para el backend `system`.
+4. Robustecer WASAPI con pruebas manuales en hardware Windows real.
+5. Agregar benchmarks comparativos opcionales para `whisper` en hardware real.
 
 ## Documentacion
 

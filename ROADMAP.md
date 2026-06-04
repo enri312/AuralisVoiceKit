@@ -38,6 +38,7 @@ La meta no es competir con todos los motores de voz a la vez. La meta es constru
 | Salida de voz real | Inicial con backend `system` |
 | CI multiplataforma | Inicial con pruebas reales de MP3 y FLAC |
 | Publicacion en PyPI | Preparada con workflow manual |
+| Benchmarks de latencia | Inicial offline para captura, segmentacion y transcripcion |
 
 ## Fase 0 - Base del proyecto
 
@@ -184,6 +185,7 @@ Entregables:
 - CI para Windows, Ubuntu/Linux y macOS.
 - Matriz de Python estable y prerelease.
 - Pruebas reales de MP3 y FLAC con `ffmpeg` en Windows, Ubuntu/Linux y macOS. Estado: inicial.
+- Benchmarks basicos de latencia para captura offline, segmentacion y transcripcion. Estado: inicial.
 - Build de wheel y sdist.
 - Versionado semantico.
 - Licencia y metadata final.
@@ -244,13 +246,13 @@ Criterio de salida:
 - Medidor de energia en tiempo real.
 - Grabacion temporal con borrado seguro.
 - Exportacion de logs sin contenido sensible.
-- Benchmarks de latencia.
+- Benchmarks de latencia. Estado: inicial offline.
 - Publicacion en PyPI. Estado: workflow y guia inicial.
 
 ## Prioridad inmediata
 
-1. Agregar benchmarks basicos de latencia para captura, segmentacion y transcripcion offline.
-2. Endurecer mensajes de error para archivos comprimidos cuando `ffmpeg` falta o falla.
-3. Preparar una pagina de documentacion API mas completa para usuarios de PyPI.
-4. Mejorar la configuracion de voces para el backend `system`.
-5. Robustecer WASAPI con pruebas manuales en hardware Windows real.
+1. Endurecer mensajes de error para archivos comprimidos cuando `ffmpeg` falta o falla.
+2. Preparar una pagina de documentacion API mas completa para usuarios de PyPI.
+3. Mejorar la configuracion de voces para el backend `system`.
+4. Robustecer WASAPI con pruebas manuales en hardware Windows real.
+5. Agregar benchmarks comparativos opcionales para `whisper` en hardware real.

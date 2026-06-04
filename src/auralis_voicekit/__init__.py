@@ -28,6 +28,12 @@ from .audio import (
     segment_voice_pcm16,
     write_wav,
 )
+from .benchmarks import (
+    BenchmarkReport,
+    BenchmarkResult,
+    generate_synthetic_audio_chunks,
+    run_offline_benchmarks,
+)
 from .config import VoiceKitConfig
 from .diagnostics import DiagnosticCheck, DiagnosticStatus, DoctorReport, run_doctor
 from .events import EventBus, VoiceEvent, VoiceEventType
@@ -53,6 +59,8 @@ __all__ = [
     "AudioEncoding",
     "AudioFormat",
     "BackendNotAvailable",
+    "BenchmarkReport",
+    "BenchmarkResult",
     "DiagnosticCheck",
     "DiagnosticStatus",
     "DoctorReport",
@@ -78,6 +86,7 @@ __all__ = [
     "chunk_to_wav_bytes",
     "decode_audio_with_ffmpeg",
     "ffmpeg_available",
+    "generate_synthetic_audio_chunks",
     "iter_wav_chunks",
     "is_silent_pcm16",
     "normalize_chunks_pcm16",
@@ -91,6 +100,7 @@ __all__ = [
     "resolve_ffmpeg_executable",
     "rms_pcm16",
     "run_doctor",
+    "run_offline_benchmarks",
     "segment_voice_pcm16",
     "write_wav",
 ]

@@ -16,6 +16,7 @@ from .audio import (
     write_wav,
 )
 from .backends import create_default_registry
+from .benchmarks import BenchmarkReport, run_offline_benchmarks
 from .config import VoiceKitConfig
 from .diagnostics import DiagnosticStatus, run_doctor
 from .exceptions import AudioSourceError, BackendNotAvailable, TranscriptionError
@@ -352,6 +353,92 @@ def _speak_text(
     return 0
 
 
+def _print_benchmark_report(report: BenchmarkReport) -> None:
+    print(f"AuralisVoiceKit {report.version} benchmark")
+    print(
+        f"Audio: {report.duration_seconds:.3f}s, "
+        f"{report.sample_rate} Hz, {report.channels} channel(s), "
+        f"chunk={report.chunk_duration_ms} ms"
+    )
+    print(
+        f"Iterations: {report.iterations}, warmups: {report.warmup_iterations}, "
+        f"chunks: {report.chunks}, segments: {report.segments}"
+    )
+    print(f"Transcription backend: {report.transcription_backend}")
+    if report.warnings:
+        print("Warnings:")
+        for warning in report.warnings:
+            print(f"  - {warning}")
+    print()
+    print("Results:")
+    for result in report.results:
+        print(
+            f"  {result.name}: "
+            f"mean={result.mean_ms:.3f}ms, "
+            f"median={result.median_ms:.3f}ms, "
+            f"p95={result.p95_ms:.3f}ms, "
+            f"min={result.min_ms:.3f}ms, "
+            f"max={result.max_ms:.3f}ms"
+        )
+
+
+def _run_benchmark(
+    *,
+    iterations: int,
+    warmups: int,
+    duration_seconds: float,
+    sample_rate: int,
+    channels: int,
+    chunk_duration_ms: int,
+    threshold: float,
+    min_voice_ms: int,
+    max_silence_ms: int,
+    pre_speech_ms: int,
+    transcription_backend: str,
+    model: str | None,
+    language: str,
+    device: str,
+    compute_type: str,
+    beam_size: int,
+    vad_filter: bool,
+    json_output: bool,
+) -> int:
+    try:
+        report = run_offline_benchmarks(
+            iterations=iterations,
+            warmup_iterations=warmups,
+            duration_seconds=duration_seconds,
+            sample_rate=sample_rate,
+            channels=channels,
+            chunk_duration_ms=chunk_duration_ms,
+            voice_activity=VoiceActivityConfig(
+                threshold=threshold,
+                min_voice_ms=min_voice_ms,
+                max_silence_ms=max_silence_ms,
+                pre_speech_ms=pre_speech_ms,
+            ),
+            transcription_backend=transcription_backend,
+            transcription_model=model or _default_transcription_model(transcription_backend, model),
+            language=language,
+            transcription_device=device,
+            transcription_compute_type=compute_type,
+            transcription_beam_size=beam_size,
+            transcription_vad_filter=vad_filter,
+        )
+    except (BackendNotAvailable, TranscriptionError, ValueError) as exc:
+        if json_output:
+            print(json.dumps({"error": str(exc)}, indent=2, sort_keys=True))
+        else:
+            print(str(exc))
+        return 1
+
+    if json_output:
+        print(json.dumps(report.to_dict(), indent=2, sort_keys=True))
+    else:
+        _print_benchmark_report(report)
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="auralis")
     parser.add_argument("--version", action="version", version=f"AuralisVoiceKit {__version__}")
@@ -402,6 +489,37 @@ def main(argv: list[str] | None = None) -> int:
     )
     speak_parser.add_argument("--voice", help="system voice selector when supported")
     speak_parser.add_argument("--json", action="store_true", help="print a JSON result")
+    benchmark_parser = subparsers.add_parser(
+        "benchmark",
+        help="run offline latency benchmarks",
+    )
+    benchmark_parser.add_argument("--iterations", type=int, default=5, help="measured iterations")
+    benchmark_parser.add_argument("--warmups", type=int, default=1, help="warmup iterations")
+    benchmark_parser.add_argument("--duration", type=float, default=2.0, help="synthetic audio duration")
+    benchmark_parser.add_argument("--sample-rate", type=int, default=16000, help="synthetic audio sample rate")
+    benchmark_parser.add_argument("--channels", type=int, default=1, help="synthetic audio channels")
+    benchmark_parser.add_argument("--chunk-ms", type=int, default=50, help="chunk size in milliseconds")
+    benchmark_parser.add_argument("--threshold", type=float, default=0.01, help="voice RMS threshold")
+    benchmark_parser.add_argument("--min-voice-ms", type=int, default=120, help="minimum voice duration")
+    benchmark_parser.add_argument(
+        "--max-silence-ms",
+        type=int,
+        default=350,
+        help="silence duration that closes a segment",
+    )
+    benchmark_parser.add_argument("--pre-speech-ms", type=int, default=100, help="silence kept before speech")
+    benchmark_parser.add_argument(
+        "--transcription-backend",
+        default="null",
+        help="transcription backend to benchmark (null, whisper, openai)",
+    )
+    benchmark_parser.add_argument("--model", help="transcription model")
+    benchmark_parser.add_argument("--language", default="es", help="audio language hint")
+    benchmark_parser.add_argument("--device", default="auto", help="local whisper device")
+    benchmark_parser.add_argument("--compute-type", default="default", help="local whisper compute type")
+    benchmark_parser.add_argument("--beam-size", type=int, default=5, help="local whisper beam size")
+    benchmark_parser.add_argument("--vad-filter", action="store_true", help="enable local whisper VAD filter")
+    benchmark_parser.add_argument("--json", action="store_true", help="print a JSON report")
     transcribe_parser = subparsers.add_parser("transcribe", help="transcribe an audio file")
     transcribe_parser.add_argument("path", help="path to a WAV or ffmpeg-supported audio file")
     transcribe_parser.add_argument(
@@ -519,6 +637,27 @@ def main(argv: list[str] | None = None) -> int:
             args.text,
             backend_name=args.backend,
             voice=args.voice,
+            json_output=args.json,
+        )
+    if args.command == "benchmark":
+        return _run_benchmark(
+            iterations=args.iterations,
+            warmups=args.warmups,
+            duration_seconds=args.duration,
+            sample_rate=args.sample_rate,
+            channels=args.channels,
+            chunk_duration_ms=args.chunk_ms,
+            threshold=args.threshold,
+            min_voice_ms=args.min_voice_ms,
+            max_silence_ms=args.max_silence_ms,
+            pre_speech_ms=args.pre_speech_ms,
+            transcription_backend=args.transcription_backend,
+            model=args.model,
+            language=args.language,
+            device=args.device,
+            compute_type=args.compute_type,
+            beam_size=args.beam_size,
+            vad_filter=args.vad_filter,
             json_output=args.json,
         )
     if args.command == "transcribe":

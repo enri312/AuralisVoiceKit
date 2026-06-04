@@ -293,6 +293,7 @@
         <a href="#sesiones">Sesiones</a>
         <a href="#salida">Salida</a>
         <a href="#diagnostico">Diagnostico</a>
+        <a href="#benchmarks">Benchmarks</a>
         <a href="#arquitectura">Arquitectura</a>
         <a href="#api">API publica</a>
         <a href="#backends">Backends</a>
@@ -482,7 +483,21 @@ auralis doctor --json</code></pre>
         <p>Los warnings no bloquean el core. Por ejemplo, <code>sounddevice</code> puede faltar y aun asi funcionar el backend <code>wav</code>. El flag <code>--capture-test</code> intenta abrir brevemente el backend seleccionado para diagnosticar permisos o errores de dispositivo.</p>
         <pre><code>$env:AURALIS_RUN_FFMPEG_INTEGRATION="1"
 py -m unittest tests.test_ffmpeg_integration
-Remove-Item Env:\AURALIS_RUN_FFMPEG_INTEGRATION</code></pre>
+        Remove-Item Env:\AURALIS_RUN_FFMPEG_INTEGRATION</code></pre>
+      </section>
+
+      <section id="benchmarks">
+        <h2>Benchmarks de latencia</h2>
+        <p><code>auralis benchmark</code> mide una linea base offline y determinista sin microfono, red ni extras nativos. Genera audio PCM16 sintetico, lo captura desde el backend <code>wav</code>, segmenta por RMS y transcribe los segmentos con el backend elegido.</p>
+        <pre><code>auralis benchmark
+auralis benchmark --iterations 10 --duration 3 --json
+auralis benchmark --transcription-backend whisper --model base --iterations 3</code></pre>
+        <p>Por defecto se usa <code>transcription:null</code>; eso mide el costo del pipeline, no un modelo real. Para medir transcripcion local real instala <code>.[whisper]</code> y usa <code>--transcription-backend whisper</code>.</p>
+        <pre><code>from auralis_voicekit import run_offline_benchmarks
+
+report = run_offline_benchmarks(iterations=5)
+for result in report.results:
+    print(result.name, result.mean_ms, result.p95_ms)</code></pre>
       </section>
 
       <section id="arquitectura">
@@ -494,6 +509,7 @@ Remove-Item Env:\AURALIS_RUN_FFMPEG_INTEGRATION</code></pre>
   models.py          AudioChunk, AudioFormat, TranscriptResult
   events.py          EventBus, VoiceEventType
   audio.py           RMS, pico, silencio, normalizacion, segmentos y WAV PCM16
+  benchmarks.py      Benchmarks offline de captura, segmentacion y transcripcion
   kit.py             AuralisVoiceKit
   session.py         VoiceSession, VoiceSessionConfig, VoiceTurn
   ffmpeg             Decodificacion opcional de MP3/FLAC a PCM16
@@ -652,7 +668,7 @@ gh workflow run publish-pypi.yml -f index=pypi -f tag=v0.14.0</code></pre>
             <tr>
               <td>5+</td>
               <td>Loop de asistente, Windows primero, CI, beta publica y version 1.0.</td>
-              <td>Loop inicial cancelable, pruebas MP3/FLAC, PyPI preparada y salida system inicial</td>
+              <td>Loop inicial cancelable, pruebas MP3/FLAC, benchmarks offline, PyPI preparada y salida system inicial</td>
             </tr>
           </tbody>
         </table>

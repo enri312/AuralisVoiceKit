@@ -174,6 +174,65 @@ class CliTests(unittest.TestCase):
         self.assertEqual(speak.call_args.args[0], "Hola")
         self.assertEqual(speak.call_args.args[1].output_device, "test-voice")
 
+    def test_benchmark_command_outputs_json_report(self):
+        output = io.StringIO()
+
+        with contextlib.redirect_stdout(output):
+            exit_code = main(
+                [
+                    "benchmark",
+                    "--iterations",
+                    "1",
+                    "--warmups",
+                    "0",
+                    "--duration",
+                    "0.5",
+                    "--sample-rate",
+                    "1000",
+                    "--chunk-ms",
+                    "100",
+                    "--min-voice-ms",
+                    "100",
+                    "--max-silence-ms",
+                    "100",
+                    "--pre-speech-ms",
+                    "0",
+                    "--json",
+                ]
+            )
+
+        payload = json.loads(output.getvalue())
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(payload["transcription_backend"], "null")
+        self.assertEqual(len(payload["results"]), 3)
+        self.assertIn("capture:wav", {result["name"] for result in payload["results"]})
+
+    def test_benchmark_command_outputs_text_report(self):
+        output = io.StringIO()
+
+        with contextlib.redirect_stdout(output):
+            exit_code = main(
+                [
+                    "benchmark",
+                    "--iterations",
+                    "1",
+                    "--warmups",
+                    "0",
+                    "--duration",
+                    "0.5",
+                    "--sample-rate",
+                    "1000",
+                    "--chunk-ms",
+                    "100",
+                    "--min-voice-ms",
+                    "100",
+                ]
+            )
+
+        self.assertEqual(exit_code, 0)
+        self.assertIn("AuralisVoiceKit", output.getvalue())
+        self.assertIn("segmentation:rms", output.getvalue())
+
     def test_transcribe_command_can_use_null_backend(self):
         audio_format = AudioFormat(sample_rate=8000, channels=1, sample_width=2)
         output = io.StringIO()
