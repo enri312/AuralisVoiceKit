@@ -62,12 +62,18 @@ def _print_devices(backend_name: str) -> int:
 def _print_doctor(
     show_devices: bool = False,
     device_backend: str = "sounddevice",
+    capture_test: bool = False,
+    capture_seconds: float = 0.25,
+    capture_device: str | None = None,
     json_output: bool = False,
     wav_path: str | None = None,
 ) -> int:
     report = run_doctor(
         include_devices=show_devices,
         capture_backend=device_backend,
+        include_capture_test=capture_test,
+        capture_test_seconds=capture_seconds,
+        capture_device=capture_device,
         wav_path=wav_path,
     )
 
@@ -98,6 +104,15 @@ def _print_doctor(
                 print(
                     f"      [{device.get('id')}] {device.get('name')}{marker} "
                     f"({device.get('kind')}{channels}{host_api})"
+                )
+        if check.name.startswith("capture-test:"):
+            chunks = check.details.get("chunks_received")
+            bytes_received = check.details.get("bytes_received")
+            elapsed = check.details.get("elapsed_seconds")
+            if chunks is not None and bytes_received is not None:
+                print(
+                    f"      chunks={chunks}, bytes={bytes_received}, "
+                    f"elapsed={elapsed}s"
                 )
     return 1 if report.status is DiagnosticStatus.ERROR else 0
 
@@ -321,8 +336,20 @@ def main(argv: list[str] | None = None) -> int:
     doctor_parser.add_argument(
         "--backend",
         default="sounddevice",
-        help="capture backend used when listing devices",
+        help="capture backend used when listing devices or testing capture",
     )
+    doctor_parser.add_argument(
+        "--capture-test",
+        action="store_true",
+        help="try to open the selected capture backend briefly",
+    )
+    doctor_parser.add_argument(
+        "--capture-seconds",
+        type=float,
+        default=0.25,
+        help="duration for --capture-test",
+    )
+    doctor_parser.add_argument("--device", help="input device selector for --capture-test")
     doctor_parser.add_argument("--json", action="store_true", help="print a JSON report")
     doctor_parser.add_argument("--wav", help="validate a PCM16 WAV file")
     subparsers.add_parser("backends", help="list registered backends")
@@ -428,6 +455,9 @@ def main(argv: list[str] | None = None) -> int:
         return _print_doctor(
             show_devices=args.devices,
             device_backend=args.backend,
+            capture_test=args.capture_test,
+            capture_seconds=args.capture_seconds,
+            capture_device=args.device,
             json_output=args.json,
             wav_path=args.wav,
         )

@@ -67,6 +67,28 @@ class CliTests(unittest.TestCase):
         self.assertEqual(payload["version"], __version__)
         self.assertTrue(any(check["name"] == "devices:wav" for check in payload["checks"]))
 
+    def test_doctor_json_output_can_include_capture_test(self):
+        output = io.StringIO()
+
+        with contextlib.redirect_stdout(output):
+            exit_code = main(
+                [
+                    "doctor",
+                    "--capture-test",
+                    "--capture-seconds",
+                    "0.001",
+                    "--backend",
+                    "null",
+                    "--json",
+                ]
+            )
+
+        payload = json.loads(output.getvalue())
+        self.assertEqual(exit_code, 0)
+        checks = {check["name"]: check for check in payload["checks"]}
+        self.assertEqual(checks["capture-test:null"]["status"], "ok")
+        self.assertEqual(checks["capture-test:null"]["details"]["chunks_received"], 0)
+
     def test_doctor_wav_error_returns_nonzero(self):
         output = io.StringIO()
 

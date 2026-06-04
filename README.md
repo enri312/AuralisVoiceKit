@@ -8,6 +8,8 @@
 
 AuralisVoiceKit es una libreria moderna de voz para Python, pensada primero para Windows y para asistentes personales, agentes locales y herramientas de automatizacion por voz.
 
+English: AuralisVoiceKit is a modern voice toolkit for Python assistants, local agents and voice automation tools.
+
 El objetivo principal es evitar que la captura de microfono dependa obligatoriamente de PyAudio o de wheels que tardan en llegar a las versiones nuevas de Python. El paquete base debe poder instalarse de forma liviana, sin compiladores y sin dependencias nativas obligatorias. Para MP3 y formatos comprimidos, AuralisVoiceKit usa `ffmpeg` como herramienta externa opcional.
 
 > Estado actual: alpha tecnica. El repositorio ya define el core, los contratos de backends, captura real inicial, flujo WAV offline, transcripcion inicial por API y local opcional, sesiones de voz iniciales, una CLI de diagnostico, documentacion estatica y pruebas basicas. Los backends reales se iran agregando por etapas.
@@ -307,11 +309,13 @@ py examples\assistant_loop.py --seconds 30 --capture-backend sounddevice --trans
 auralis doctor
 auralis doctor --devices --backend wav
 auralis doctor --devices --backend sounddevice
+auralis doctor --capture-test --backend sounddevice --capture-seconds 0.25
+auralis doctor --capture-test --backend sounddevice --device default --json
 auralis doctor --wav sample.wav
 auralis doctor --json
 ```
 
-La salida distingue entre `ok`, `warning` y `error`. Los warnings no bloquean el uso del core; por ejemplo, `sounddevice` puede faltar y aun asi funcionar `null`, `wav`, lectura WAV y utilidades de audio.
+La salida distingue entre `ok`, `warning` y `error`. Los warnings no bloquean el uso del core; por ejemplo, `sounddevice` puede faltar y aun asi funcionar `null`, `wav`, lectura WAV y utilidades de audio. El flag `--capture-test` intenta abrir brevemente el backend de captura seleccionado y es util para diagnosticar permisos de microfono o errores de dispositivo.
 
 ## Arquitectura
 
@@ -370,11 +374,11 @@ ROADMAP.md
 
 Prioridad inmediata:
 
-1. Mejorar `auralis doctor` con una prueba corta de apertura de dispositivo bajo demanda.
-2. Ampliar pruebas reales de MP3/formatos comprimidos con `ffmpeg` en Windows, Ubuntu y macOS.
-3. Explorar soporte FLAC sin cargar el core con dependencias nativas.
-4. Preparar documentacion de publicacion para PyPI.
-5. Evaluar primer backend de salida de voz real como extra opcional.
+1. Ampliar pruebas reales de MP3/formatos comprimidos con `ffmpeg` en Windows, Ubuntu y macOS.
+2. Explorar soporte FLAC sin cargar el core con dependencias nativas.
+3. Preparar documentacion de publicacion para PyPI.
+4. Evaluar primer backend de salida de voz real como extra opcional.
+5. Investigar backend WASAPI dedicado para Windows.
 
 ## Documentacion
 

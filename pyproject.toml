@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "auralisvoicekit"
 dynamic = ["version"]
-description = "Modern voice toolkit for Python assistants, with optional audio backends."
+description = "Kit moderno de voz para asistentes Python / Modern voice toolkit for Python assistants."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }

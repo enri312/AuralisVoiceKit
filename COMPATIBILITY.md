@@ -155,6 +155,8 @@ Comandos utiles:
 python -m auralis_voicekit.cli doctor
 python -m auralis_voicekit.cli doctor --devices
 python -m auralis_voicekit.cli doctor --devices --backend wav
+python -m auralis_voicekit.cli doctor --capture-test --backend sounddevice --capture-seconds 0.25
+python -m auralis_voicekit.cli doctor --capture-test --backend sounddevice --device default --json
 python -m auralis_voicekit.cli doctor --wav sample.wav
 python -m auralis_voicekit.cli doctor --json
 python -m auralis_voicekit.cli devices --backend sounddevice

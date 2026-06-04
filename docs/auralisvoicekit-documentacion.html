@@ -305,7 +305,7 @@
         <span class="pill">Alpha tecnica</span>
         <h1>Voz moderna para Python sin depender de PyAudio como base.</h1>
         <p class="lead">
-          AuralisVoiceKit define un core liviano para captura, transcripcion, eventos y salida de voz. La instalacion base no obliga a compilar extensiones ni a esperar wheels de una version especifica de CPython. MP3 funciona mediante ffmpeg como herramienta externa opcional.
+          AuralisVoiceKit define un core liviano para captura, transcripcion, eventos y salida de voz. English: a modern voice toolkit for Python assistants, local agents and voice automation tools. La instalacion base no obliga a compilar extensiones ni a esperar wheels de una version especifica de CPython. MP3 funciona mediante ffmpeg como herramienta externa opcional.
         </p>
         <div class="signal" aria-label="Flujo de audio">
           <div><strong>Captura</strong><span>Microfono, archivo o backend simulado.</span></div>
@@ -458,9 +458,11 @@ py examples\assistant_loop.py --seconds 30 --capture-backend sounddevice --trans
         <pre><code>auralis doctor
 auralis doctor --devices --backend wav
 auralis doctor --devices --backend sounddevice
+auralis doctor --capture-test --backend sounddevice --capture-seconds 0.25
+auralis doctor --capture-test --backend sounddevice --device default --json
 auralis doctor --wav sample.wav
 auralis doctor --json</code></pre>
-        <p>Los warnings no bloquean el core. Por ejemplo, <code>sounddevice</code> puede faltar y aun asi funcionar el backend <code>wav</code>.</p>
+        <p>Los warnings no bloquean el core. Por ejemplo, <code>sounddevice</code> puede faltar y aun asi funcionar el backend <code>wav</code>. El flag <code>--capture-test</code> intenta abrir brevemente el backend seleccionado para diagnosticar permisos o errores de dispositivo.</p>
       </section>
 
       <section id="arquitectura">

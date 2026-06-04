@@ -25,14 +25,14 @@ La meta no es competir con todos los motores de voz a la vez. La meta es constru
 | Modelos de audio | Inicial |
 | Eventos | Inicial |
 | Sesiones de voz | Inicial funcional con cancelacion |
-| CLI `doctor` | Inicial |
+| CLI `doctor` | Inicial con test de captura |
 | Backend `null` | Funcional |
 | Backend `wav` | Inicial funcional |
 | Backend `sounddevice` | Inicial funcional |
 | Utilidades de audio | Normalizacion, calibracion y segmentacion inicial |
 | Versionado | Politica inicial |
 | Compatibilidad Windows/Linux/macOS | Documentacion inicial |
-| Diagnostico doctor | Inicial estructurado |
+| Diagnostico doctor | Inicial estructurado con test de apertura |
 | Transcripcion real | Inicial por API y local opcional |
 | Salida de voz real | Pendiente |
 | CI multiplataforma | Inicial |
@@ -159,7 +159,7 @@ Criterio de salida:
 
 Entregables:
 
-- Mejor diagnostico de permisos de microfono. Estado: inicial con sugerencias por OS.
+- Mejor diagnostico de permisos de microfono. Estado: inicial con sugerencias por OS y test de apertura bajo demanda.
 - Mejor reporte de dispositivos y host APIs. Estado: inicial.
 - Investigacion de backend WASAPI dedicado.
 - Mensajes especificos para errores comunes de audio en Windows.
@@ -167,7 +167,7 @@ Entregables:
 
 Criterio de salida:
 
-- `auralis doctor` ayuda a diagnosticar microfono, backend y permisos. Estado: inicial.
+- `auralis doctor` ayuda a diagnosticar microfono, backend y permisos. Estado: inicial con `--capture-test`.
 - La documentacion explica claramente que hacer cuando no hay audio.
 
 ## Fase 7 - Calidad, CI y empaquetado
@@ -242,8 +242,8 @@ Criterio de salida:
 
 ## Prioridad inmediata
 
-1. Mejorar doctor para intentar una prueba corta de apertura de dispositivo cuando el usuario lo pida.
-2. Ampliar pruebas reales de MP3/formatos comprimidos con `ffmpeg` en Windows, Ubuntu y macOS.
-3. Explorar soporte FLAC como extra opcional o via libreria estandar si aparece una ruta liviana.
-4. Preparar documentacion de publicacion para PyPI.
-5. Evaluar primer backend de salida de voz real como extra opcional.
+1. Ampliar pruebas reales de MP3/formatos comprimidos con `ffmpeg` en Windows, Ubuntu y macOS.
+2. Explorar soporte FLAC como extra opcional o via libreria estandar si aparece una ruta liviana.
+3. Preparar documentacion de publicacion para PyPI.
+4. Evaluar primer backend de salida de voz real como extra opcional.
+5. Investigar backend WASAPI dedicado para Windows.

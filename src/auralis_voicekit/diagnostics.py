@@ -8,12 +8,16 @@ from importlib.util import find_spec
 import platform
 import shutil
 import sys
+import time
 from typing import Any
 
 from ._version import __version__
 from .audio import read_wav_metadata, resolve_ffmpeg_executable
 from .backends import create_default_registry
+from .config import VoiceKitConfig
 from .exceptions import AudioSourceError, BackendNotAvailable
+from .kit import AuralisVoiceKit
+from .models import AudioChunk
 
 
 class DiagnosticStatus(str, Enum):
@@ -211,10 +215,85 @@ def _wav_check(path: str) -> DiagnosticCheck:
     )
 
 
+def _capture_test_check(
+    capture_backend: str,
+    *,
+    seconds: float,
+    input_device: str | int | None,
+) -> DiagnosticCheck:
+    name = f"capture-test:{capture_backend}"
+    if seconds <= 0:
+        return DiagnosticCheck(
+            name=name,
+            status=DiagnosticStatus.ERROR,
+            message="Capture test duration must be greater than zero.",
+            hint="Use --capture-seconds with a positive value such as 0.25.",
+            details={"requested_seconds": seconds},
+        )
+
+    chunks_received = 0
+    bytes_received = 0
+
+    def handle_chunk(chunk: AudioChunk) -> None:
+        nonlocal chunks_received, bytes_received
+        chunks_received += 1
+        bytes_received += len(chunk.data)
+
+    config = VoiceKitConfig(
+        capture_backend=capture_backend,
+        input_device=input_device,
+        privacy_mode=True,
+    )
+    started = False
+    started_at = time.monotonic()
+    try:
+        kit = AuralisVoiceKit(config)
+        kit.start_capture(handle_chunk)
+        started = True
+        time.sleep(seconds)
+    except Exception as exc:
+        return DiagnosticCheck(
+            name=name,
+            status=DiagnosticStatus.ERROR,
+            message=f"Capture backend {capture_backend!r} could not be opened: {exc}",
+            hint=_platform_hint(platform.system()),
+            details={
+                "backend": capture_backend,
+                "input_device": input_device,
+                "requested_seconds": seconds,
+                "elapsed_seconds": round(time.monotonic() - started_at, 6),
+                "error_type": type(exc).__name__,
+            },
+        )
+    finally:
+        if started:
+            try:
+                kit.stop_capture()
+            except Exception:
+                pass
+
+    return DiagnosticCheck(
+        name=name,
+        status=DiagnosticStatus.OK,
+        message=f"Capture backend {capture_backend!r} opened for {seconds:.3f}s.",
+        details={
+            "backend": capture_backend,
+            "input_device": input_device,
+            "requested_seconds": seconds,
+            "elapsed_seconds": round(time.monotonic() - started_at, 6),
+            "chunks_received": chunks_received,
+            "bytes_received": bytes_received,
+        },
+    )
+
+
 def run_doctor(
     *,
     include_devices: bool = False,
     capture_backend: str = "sounddevice",
+    include_capture_test: bool = False,
+    capture_test_seconds: float = 0.25,
+    capture_device: str | int | None = None,
     wav_path: str | None = None,
 ) -> DoctorReport:
     """Run environment diagnostics and return a structured report."""
@@ -250,6 +329,14 @@ def run_doctor(
 
     if include_devices:
         checks.append(_device_check(capture_backend))
+    if include_capture_test:
+        checks.append(
+            _capture_test_check(
+                capture_backend,
+                seconds=capture_test_seconds,
+                input_device=capture_device,
+            )
+        )
     if wav_path:
         checks.append(_wav_check(wav_path))
 

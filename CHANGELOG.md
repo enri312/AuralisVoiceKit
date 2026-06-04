@@ -6,6 +6,20 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-06-04
+
+### Agregado
+
+- Check bajo demanda `capture-test:<backend>` en `auralis doctor` para probar apertura breve de captura.
+- Flags `auralis doctor --capture-test`, `--capture-seconds` y `--device`.
+- Detalles JSON del test de captura: backend, dispositivo, duracion solicitada, duracion real, chunks y bytes recibidos.
+- Pruebas de diagnostico y CLI para captura `null`, errores de backend e intervalos invalidos.
+
+### Cambiado
+
+- La descripcion publica del repositorio y la metadata del paquete ahora son bilingues: espanol e ingles.
+- El roadmap marca el test de apertura de captura como estado inicial y mueve la prioridad siguiente.
+
 ## [0.10.0] - 2026-06-04
 
 ### Agregado
