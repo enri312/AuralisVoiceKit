@@ -10,9 +10,9 @@ AuralisVoiceKit es una libreria moderna de voz para Python, pensada primero para
 
 English: AuralisVoiceKit is a modern voice toolkit for Python assistants, local agents and voice automation tools.
 
-El objetivo principal es evitar que la captura de microfono dependa obligatoriamente de PyAudio o de wheels que tardan en llegar a las versiones nuevas de Python. El paquete base debe poder instalarse de forma liviana, sin compiladores y sin dependencias nativas obligatorias. Para MP3 y formatos comprimidos, AuralisVoiceKit usa `ffmpeg` como herramienta externa opcional.
+El objetivo principal es evitar que la captura de microfono dependa obligatoriamente de PyAudio o de wheels que tardan en llegar a las versiones nuevas de Python. El paquete base debe poder instalarse de forma liviana, sin compiladores y sin dependencias nativas obligatorias. Para MP3, FLAC y formatos comprimidos, AuralisVoiceKit usa `ffmpeg` como herramienta externa opcional.
 
-> Estado actual: alpha tecnica. El repositorio ya define el core, los contratos de backends, captura real inicial, flujo WAV offline, transcripcion inicial por API y local opcional, sesiones de voz iniciales, una CLI de diagnostico, documentacion estatica, pruebas unitarias y pruebas reales de MP3 con `ffmpeg`. Los backends reales se iran agregando por etapas.
+> Estado actual: alpha tecnica. El repositorio ya define el core, los contratos de backends, captura real inicial, flujo WAV offline, transcripcion inicial por API y local opcional, sesiones de voz iniciales, una CLI de diagnostico, documentacion estatica, pruebas unitarias y pruebas reales de MP3/FLAC con `ffmpeg`. Los backends reales se iran agregando por etapas.
 
 ## Problema que resuelve
 
@@ -134,6 +134,7 @@ Ejemplo completo:
 ```powershell
 py examples\capture_voice_segments.py --calibrate-seconds 1 --record-seconds 5
 auralis normalize sample.mp3 normalized.wav --target-peak 0.95
+auralis normalize sample.flac normalized.wav --target-peak 0.95
 py examples\normalize_audio.py sample.mp3 normalized.wav
 ```
 
@@ -164,13 +165,14 @@ kit.start_capture(chunks.append)
 
 ## Transcripcion por API con OpenAI
 
-El backend `openai` es opcional. Permite transcribir WAV PCM16, MP3 u otros formatos soportados por `ffmpeg` usando la API de audio de OpenAI sin agregar dependencias nativas al paquete base.
+El backend `openai` es opcional. Permite transcribir WAV PCM16, MP3, FLAC u otros formatos soportados por `ffmpeg` usando la API de audio de OpenAI sin agregar dependencias nativas al paquete base.
 
 ```powershell
 py -m pip install -e ".[openai]"
 $env:OPENAI_API_KEY="tu_api_key"
 auralis transcribe sample.wav --backend openai --language es
 auralis transcribe sample.mp3 --backend openai --language es
+auralis transcribe sample.flac --backend openai --language es
 auralis transcribe sample.mp3 --backend openai --normalize --target-peak 0.95
 auralis transcribe sample.wav --backend openai --model gpt-4o-transcribe --json
 py examples\transcribe_wav.py sample.mp3 --backend openai
@@ -200,7 +202,7 @@ Segun la documentacion oficial de OpenAI para speech-to-text, los modelos soport
 https://platform.openai.com/docs/guides/speech-to-text
 ```
 
-Para MP3, instala `ffmpeg` y asegurate de que `ffmpeg` este disponible en `PATH`. `auralis doctor` reporta si lo encuentra.
+Para MP3, FLAC y otros formatos comprimidos, instala `ffmpeg` y asegurate de que `ffmpeg` este disponible en `PATH`. `auralis doctor` reporta si lo encuentra.
 
 En Windows, la libreria tambien detecta una instalacion portable en:
 
@@ -210,7 +212,7 @@ En Windows, la libreria tambien detecta una instalacion portable en:
 
 Tambien puedes apuntar a un ejecutable concreto con `AURALIS_FFMPEG_PATH` o con `--ffmpeg` en la CLI.
 
-Las pruebas de integracion reales para MP3 se ejecutan solo cuando se activa una variable de entorno, asi el paquete base sigue testeandose sin herramientas externas:
+Las pruebas de integracion reales para MP3 y FLAC se ejecutan solo cuando se activa una variable de entorno, asi el paquete base sigue testeandose sin herramientas externas:
 
 ```powershell
 $env:AURALIS_RUN_FFMPEG_INTEGRATION="1"
@@ -350,7 +352,7 @@ auralis_voicekit
     openai        Backend opcional de transcripcion por API
     registry      Registro de backends
   audio           Utilidades PCM16, calibracion y segmentacion
-  ffmpeg          Decodificacion opcional de MP3 a PCM16
+  ffmpeg          Decodificacion opcional de MP3/FLAC a PCM16
   cli             Diagnostico y utilidades
   diagnostics     Reportes doctor estructurados
 ```
@@ -388,11 +390,11 @@ ROADMAP.md
 
 Prioridad inmediata:
 
-1. Explorar soporte FLAC sin cargar el core con dependencias nativas.
-2. Preparar documentacion de publicacion para PyPI.
-3. Evaluar primer backend de salida de voz real como extra opcional.
-4. Investigar backend WASAPI dedicado para Windows.
-5. Agregar benchmarks basicos de latencia para captura, segmentacion y transcripcion offline.
+1. Preparar documentacion de publicacion para PyPI.
+2. Evaluar primer backend de salida de voz real como extra opcional.
+3. Investigar backend WASAPI dedicado para Windows.
+4. Agregar benchmarks basicos de latencia para captura, segmentacion y transcripcion offline.
+5. Endurecer mensajes de error para archivos comprimidos cuando `ffmpeg` falta o falla.
 
 ## Documentacion
 

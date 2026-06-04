@@ -305,7 +305,7 @@
         <span class="pill">Alpha tecnica</span>
         <h1>Voz moderna para Python sin depender de PyAudio como base.</h1>
         <p class="lead">
-          AuralisVoiceKit define un core liviano para captura, transcripcion, eventos y salida de voz. English: a modern voice toolkit for Python assistants, local agents and voice automation tools. La instalacion base no obliga a compilar extensiones ni a esperar wheels de una version especifica de CPython. MP3 funciona mediante ffmpeg como herramienta externa opcional.
+          AuralisVoiceKit define un core liviano para captura, transcripcion, eventos y salida de voz. English: a modern voice toolkit for Python assistants, local agents and voice automation tools. La instalacion base no obliga a compilar extensiones ni a esperar wheels de una version especifica de CPython. MP3 y FLAC funcionan mediante ffmpeg como herramienta externa opcional.
         </p>
         <div class="signal" aria-label="Flujo de audio">
           <div><strong>Captura</strong><span>Microfono, archivo o backend simulado.</span></div>
@@ -357,6 +357,7 @@ normalized = normalize_pcm16(recorded_chunks[0], target_peak=0.95)</code></pre>
         <h3>Normalizacion</h3>
         <p>La normalizacion PCM16 ajusta volumen con proteccion de clipping y puede generar un WAV listo para inspeccionar o transcribir.</p>
         <pre><code>auralis normalize sample.mp3 normalized.wav --target-peak 0.95
+auralis normalize sample.flac normalized.wav --target-peak 0.95
 py examples\normalize_audio.py sample.mp3 normalized.wav</code></pre>
         <h3>WAV offline</h3>
         <p>Los archivos WAV PCM16 pueden inspeccionarse, leerse por chunks y usarse como backend de captura.</p>
@@ -371,7 +372,7 @@ kit = AuralisVoiceKit(
 
       <section id="transcripcion">
         <h2>Transcripcion</h2>
-        <p>El backend por defecto es <code>null</code>. Las rutas reales de transcripcion son explicitas: <code>whisper</code> para transcripcion local y <code>openai</code> para transcripcion por API. El paquete base sigue sin dependencias externas; WAV se lee directo y MP3 se decodifica con <code>ffmpeg</code> cuando esta disponible.</p>
+        <p>El backend por defecto es <code>null</code>. Las rutas reales de transcripcion son explicitas: <code>whisper</code> para transcripcion local y <code>openai</code> para transcripcion por API. El paquete base sigue sin dependencias externas; WAV se lee directo y MP3/FLAC se decodifican con <code>ffmpeg</code> cuando esta disponible.</p>
         <h3>Whisper local</h3>
         <p>El backend <code>whisper</code> usa <code>faster-whisper</code>. No requiere API key, pero puede descargar modelos en el primer uso y agrega dependencias de ML fuera del core.</p>
         <pre><code>py -m pip install -e ".[whisper]"
@@ -401,6 +402,7 @@ print(result.text)</code></pre>
 $env:OPENAI_API_KEY="tu_api_key"
 auralis transcribe sample.wav --backend openai --language es
 auralis transcribe sample.mp3 --backend openai --language es
+auralis transcribe sample.flac --backend openai --language es
 auralis transcribe sample.mp3 --backend openai --normalize --target-peak 0.95
 auralis transcribe sample.wav --backend openai --model gpt-4o-transcribe --json
 py examples\transcribe_wav.py sample.mp3 --backend openai</code></pre>
@@ -454,7 +456,7 @@ py examples\assistant_loop.py --seconds 30 --capture-backend sounddevice --trans
 
       <section id="diagnostico">
         <h2>Diagnostico</h2>
-        <p><code>auralis doctor</code> produce checks de Python, plataforma, dependencias opcionales, backends, dispositivos y archivos WAV. MP3 se valida con pruebas de integracion reales cuando <code>ffmpeg</code> esta disponible.</p>
+        <p><code>auralis doctor</code> produce checks de Python, plataforma, dependencias opcionales, backends, dispositivos y archivos WAV. MP3 y FLAC se validan con pruebas de integracion reales cuando <code>ffmpeg</code> esta disponible.</p>
         <pre><code>auralis doctor
 auralis doctor --devices --backend wav
 auralis doctor --devices --backend sounddevice
@@ -479,7 +481,7 @@ Remove-Item Env:\AURALIS_RUN_FFMPEG_INTEGRATION</code></pre>
   audio.py           RMS, pico, silencio, normalizacion, segmentos y WAV PCM16
   kit.py             AuralisVoiceKit
   session.py         VoiceSession, VoiceSessionConfig, VoiceTurn
-  ffmpeg             Decodificacion opcional de MP3 a PCM16
+  ffmpeg             Decodificacion opcional de MP3/FLAC a PCM16
   backends/
     base.py          Protocolos publicos
     null.py          Backend seguro para pruebas
@@ -619,7 +621,7 @@ kit.events.subscribe(
             <tr>
               <td>5+</td>
               <td>Loop de asistente, Windows primero, CI, beta publica y version 1.0.</td>
-              <td>Loop inicial cancelable y pruebas MP3 multiplataforma</td>
+              <td>Loop inicial cancelable y pruebas MP3/FLAC multiplataforma</td>
             </tr>
           </tbody>
         </table>

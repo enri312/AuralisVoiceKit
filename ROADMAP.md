@@ -35,7 +35,7 @@ La meta no es competir con todos los motores de voz a la vez. La meta es constru
 | Diagnostico doctor | Inicial estructurado con test de apertura |
 | Transcripcion real | Inicial por API y local opcional |
 | Salida de voz real | Pendiente |
-| CI multiplataforma | Inicial con pruebas reales de MP3 |
+| CI multiplataforma | Inicial con pruebas reales de MP3 y FLAC |
 | Publicacion en PyPI | Pendiente |
 
 ## Fase 0 - Base del proyecto
@@ -180,7 +180,7 @@ Entregables:
 - Linting y formateo.
 - CI para Windows, Ubuntu/Linux y macOS.
 - Matriz de Python estable y prerelease.
-- Pruebas reales de MP3 con `ffmpeg` en Windows, Ubuntu/Linux y macOS. Estado: inicial.
+- Pruebas reales de MP3 y FLAC con `ffmpeg` en Windows, Ubuntu/Linux y macOS. Estado: inicial.
 - Build de wheel y sdist.
 - Versionado semantico.
 - Licencia y metadata final.
@@ -230,10 +230,10 @@ Criterio de salida:
 
 - Backend WASAPI dedicado.
 - Backend PyAudio solo como compatibilidad opcional.
-- Soporte para archivos WAV/FLAC como entrada. WAV PCM16 inicial completado.
+- Soporte para archivos WAV/FLAC como entrada. WAV PCM16 completado; FLAC inicial validado via `ffmpeg`.
 - Adaptadores para modelos locales. Whisper inicial completado.
 - Adaptadores para APIs externas. OpenAI inicial completado.
-- Decodificacion MP3 mediante `ffmpeg` externo opcional. Estado: inicial con pruebas CI multiplataforma.
+- Decodificacion MP3/FLAC mediante `ffmpeg` externo opcional. Estado: inicial con pruebas CI multiplataforma.
 - Normalizacion de volumen PCM16. Estado: inicial.
 - Wake word externo.
 - Medidor de energia en tiempo real.
@@ -243,8 +243,8 @@ Criterio de salida:
 
 ## Prioridad inmediata
 
-1. Explorar soporte FLAC como extra opcional o via libreria estandar si aparece una ruta liviana.
-2. Preparar documentacion de publicacion para PyPI.
-3. Evaluar primer backend de salida de voz real como extra opcional.
-4. Investigar backend WASAPI dedicado para Windows.
-5. Agregar benchmarks basicos de latencia para captura, segmentacion y transcripcion offline.
+1. Preparar documentacion de publicacion para PyPI.
+2. Evaluar primer backend de salida de voz real como extra opcional.
+3. Investigar backend WASAPI dedicado para Windows.
+4. Agregar benchmarks basicos de latencia para captura, segmentacion y transcripcion offline.
+5. Endurecer mensajes de error para archivos comprimidos cuando `ffmpeg` falta o falla.

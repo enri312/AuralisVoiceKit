@@ -6,6 +6,18 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-06-04
+
+### Agregado
+
+- Pruebas de integracion reales para FLAC usando `ffmpeg` como herramienta externa opcional.
+- Cobertura real de FLAC para `read_audio_as_chunk()`, `read_audio()`, `auralis transcribe --backend null` y `auralis normalize`.
+- Documentacion de uso y compatibilidad para MP3/FLAC sin agregar dependencias nativas al paquete base.
+
+### Cambiado
+
+- El roadmap marca FLAC como soporte inicial validado via `ffmpeg` y mueve la prioridad inmediata a la preparacion de publicacion en PyPI.
+
 ## [0.12.0] - 2026-06-04
 
 ### Agregado

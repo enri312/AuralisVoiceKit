@@ -11,7 +11,7 @@ El backend `openai` tambien es opcional. Usa el cliente oficial de OpenAI y no a
 
 El backend `whisper` tambien es opcional. Usa `faster-whisper` para transcripcion local, puede descargar modelos en el primer uso y puede requerir dependencias de ML mas pesadas segun plataforma. No cambia el paquete base.
 
-MP3 y otros formatos comprimidos usan `ffmpeg` como herramienta externa opcional. El core sigue sin depender de `ffmpeg` para instalarse, importar o procesar WAV PCM16.
+MP3, FLAC y otros formatos comprimidos usan `ffmpeg` como herramienta externa opcional. El core sigue sin depender de `ffmpeg` para instalarse, importar o procesar WAV PCM16.
 
 La busqueda de `ffmpeg` usa este orden:
 
@@ -34,7 +34,7 @@ Politica:
 - Probar versiones estables y prereleases cuando sea viable.
 - Aislar dependencias nativas en extras opcionales.
 
-CI prueba Python 3.10 a 3.14 en Windows, Ubuntu/Linux y macOS. Tambien hay un job experimental con `3.15-dev` en Ubuntu; ese job es de observacion temprana y puede fallar sin bloquear el desarrollo. La ruta de audio comprimido se valida aparte con `ffmpeg` real en Windows, Ubuntu/Linux y macOS.
+CI prueba Python 3.10 a 3.14 en Windows, Ubuntu/Linux y macOS. Tambien hay un job experimental con `3.15-dev` en Ubuntu; ese job es de observacion temprana y puede fallar sin bloquear el desarrollo. La ruta de audio comprimido se valida aparte con MP3 y FLAC reales mediante `ffmpeg` en Windows, Ubuntu/Linux y macOS.
 
 ## Windows
 
@@ -162,17 +162,20 @@ python -m auralis_voicekit.cli doctor --json
 python -m auralis_voicekit.cli devices --backend sounddevice
 python -m auralis_voicekit.cli backends
 python -m auralis_voicekit.cli normalize sample.mp3 normalized.wav
+python -m auralis_voicekit.cli normalize sample.flac normalized.wav
 python -m auralis_voicekit.cli transcribe sample.wav --backend null --json
 python -m auralis_voicekit.cli transcribe sample.mp3 --backend null --json
+python -m auralis_voicekit.cli transcribe sample.flac --backend null --json
 python -m auralis_voicekit.cli transcribe sample.mp3 --backend whisper --model base --json
 python -m auralis_voicekit.cli transcribe-segments sample.wav --backend null --json
 python -m auralis_voicekit.cli transcribe-segments sample.mp3 --backend null --json
+python -m auralis_voicekit.cli transcribe-segments sample.flac --backend null --json
 python -m auralis_voicekit.cli transcribe-segments sample.mp3 --backend whisper --model base --json
 ```
 
 El comando `doctor` debe poder ejecutarse aunque los extras no esten instalados.
 
-Para ejecutar las pruebas reales de MP3 localmente se necesita `ffmpeg` disponible:
+Para ejecutar las pruebas reales de MP3 y FLAC localmente se necesita `ffmpeg` disponible:
 
 ```bash
 AURALIS_RUN_FFMPEG_INTEGRATION=1 python -m unittest tests.test_ffmpeg_integration
