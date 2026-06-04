@@ -43,6 +43,13 @@ classifiers = [
 ]
 dependencies = []
 
+[project.urls]
+Homepage = "https://github.com/enri312/AuralisVoiceKit"
+Repository = "https://github.com/enri312/AuralisVoiceKit"
+Issues = "https://github.com/enri312/AuralisVoiceKit/issues"
+Changelog = "https://github.com/enri312/AuralisVoiceKit/blob/main/CHANGELOG.md"
+Documentation = "https://github.com/enri312/AuralisVoiceKit/blob/main/docs/auralisvoicekit-documentacion.html"
+
 [project.optional-dependencies]
 openai = [
   "openai>=1.0.0"
@@ -54,8 +61,10 @@ whisper = [
   "faster-whisper>=1.1.0"
 ]
 dev = [
+  "build>=1.2",
   "pytest>=8.0",
-  "ruff>=0.8"
+  "ruff>=0.8",
+  "twine>=6.0"
 ]
 
 [project.scripts]

@@ -36,7 +36,7 @@ La meta no es competir con todos los motores de voz a la vez. La meta es constru
 | Transcripcion real | Inicial por API y local opcional |
 | Salida de voz real | Pendiente |
 | CI multiplataforma | Inicial con pruebas reales de MP3 y FLAC |
-| Publicacion en PyPI | Pendiente |
+| Publicacion en PyPI | Preparada con workflow manual |
 
 ## Fase 0 - Base del proyecto
 
@@ -184,6 +184,7 @@ Entregables:
 - Build de wheel y sdist.
 - Versionado semantico.
 - Licencia y metadata final.
+- Workflow manual para TestPyPI/PyPI con Trusted Publishing. Estado: inicial.
 
 Criterio de salida:
 
@@ -240,11 +241,12 @@ Criterio de salida:
 - Grabacion temporal con borrado seguro.
 - Exportacion de logs sin contenido sensible.
 - Benchmarks de latencia.
+- Publicacion en PyPI. Estado: workflow y guia inicial.
 
 ## Prioridad inmediata
 
-1. Preparar documentacion de publicacion para PyPI.
-2. Evaluar primer backend de salida de voz real como extra opcional.
-3. Investigar backend WASAPI dedicado para Windows.
-4. Agregar benchmarks basicos de latencia para captura, segmentacion y transcripcion offline.
-5. Endurecer mensajes de error para archivos comprimidos cuando `ffmpeg` falta o falla.
+1. Evaluar primer backend de salida de voz real como extra opcional.
+2. Investigar backend WASAPI dedicado para Windows.
+3. Agregar benchmarks basicos de latencia para captura, segmentacion y transcripcion offline.
+4. Endurecer mensajes de error para archivos comprimidos cuando `ffmpeg` falta o falla.
+5. Preparar una pagina de documentacion API mas completa para usuarios de PyPI.

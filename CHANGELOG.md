@@ -6,6 +6,20 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.14.0] - 2026-06-04
+
+### Agregado
+
+- Guia `PYPI.md` para publicar en TestPyPI y PyPI con Trusted Publishing.
+- Workflow manual `.github/workflows/publish-pypi.yml` para publicar tags existentes sin guardar tokens.
+- URLs de proyecto en `pyproject.toml` para mejorar la metadata visible en PyPI.
+- Herramientas `build` y `twine` en el extra `dev` para validar artefactos antes de publicar.
+
+### Cambiado
+
+- El proceso de release documenta la ruta GitHub Release -> TestPyPI -> PyPI.
+- El roadmap marca la publicacion en PyPI como preparada y mueve la siguiente prioridad a salida de voz real.
+
 ## [0.13.0] - 2026-06-04
 
 ### Agregado

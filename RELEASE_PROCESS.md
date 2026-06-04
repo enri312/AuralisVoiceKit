@@ -23,6 +23,7 @@ Mientras el proyecto este en `0.x`, las mejoras grandes suben `MINOR` y las corr
 7. Crear tag anotado `vMAJOR.MINOR.PATCH`.
 8. Subir rama y tag a GitHub.
 9. Revisar el workflow de release.
+10. Si se publicara en PyPI, probar primero el workflow manual `Publish to PyPI` con `index=testpypi`.
 
 ## Comandos
 
@@ -38,4 +39,18 @@ git push origin v0.1.0
 
 ## Publicacion en PyPI
 
-La primera etapa solo genera artefactos en GitHub Releases. La publicacion en PyPI se activara cuando la libreria tenga backend real y documentacion suficiente.
+La primera etapa genera artefactos en GitHub Releases. La publicacion en PyPI queda separada en el workflow manual `.github/workflows/publish-pypi.yml` para evitar subidas accidentales durante la etapa alpha.
+
+La ruta recomendada es:
+
+1. Crear y subir el tag.
+2. Esperar que CI y `Release` pasen en GitHub.
+3. Ejecutar `Publish to PyPI` con `index=testpypi`.
+4. Instalar desde TestPyPI en un entorno limpio y correr `auralis doctor`.
+5. Ejecutar `Publish to PyPI` con `index=pypi`.
+
+La guia completa esta en:
+
+```text
+PYPI.md
+```

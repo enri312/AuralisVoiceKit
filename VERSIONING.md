@@ -57,3 +57,16 @@ Ejemplos:
 - `v1.0.0` para primera API estable.
 
 El workflow `.github/workflows/release.yml` construye los artefactos cuando se sube un tag con ese formato.
+
+## PyPI
+
+La publicacion en PyPI es manual durante la etapa alpha. El workflow `.github/workflows/publish-pypi.yml` publica un tag existente en TestPyPI o PyPI usando Trusted Publishing.
+
+Checklist corto:
+
+1. Publicar tag y GitHub Release.
+2. Probar `index=testpypi`.
+3. Validar instalacion limpia.
+4. Publicar `index=pypi`.
+
+Los pasos completos estan en `PYPI.md`.

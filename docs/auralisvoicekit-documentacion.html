@@ -296,6 +296,7 @@
         <a href="#api">API publica</a>
         <a href="#backends">Backends</a>
         <a href="#privacidad">Privacidad</a>
+        <a href="#publicacion">Publicacion</a>
         <a href="#roadmap">Roadmap</a>
       </nav>
     </aside>
@@ -581,6 +582,15 @@ kit.events.subscribe(
         <p>Con <code>privacy_mode=True</code>, los eventos no incluyen texto transcrito ni audio crudo. El asistente puede observar duraciones, backends y estados sin registrar datos sensibles por accidente.</p>
       </section>
 
+      <section id="publicacion">
+        <h2>Publicacion</h2>
+        <p>El paquete esta preparado para publicarse en TestPyPI y PyPI con Trusted Publishing, sin guardar tokens en GitHub. La guia completa vive en <code>PYPI.md</code>.</p>
+        <pre><code>python -m build
+python -m twine check dist/*
+gh workflow run publish-pypi.yml -f index=testpypi -f tag=v0.14.0
+gh workflow run publish-pypi.yml -f index=pypi -f tag=v0.14.0</code></pre>
+      </section>
+
       <section id="roadmap">
         <h2>Roadmap</h2>
         <p>El roadmap completo vive en <a href="../ROADMAP.md">ROADMAP.md</a>. La ruta de construccion esta organizada por fases para mantener el core liviano mientras se agregan backends reales.</p>
@@ -621,7 +631,7 @@ kit.events.subscribe(
             <tr>
               <td>5+</td>
               <td>Loop de asistente, Windows primero, CI, beta publica y version 1.0.</td>
-              <td>Loop inicial cancelable y pruebas MP3/FLAC multiplataforma</td>
+              <td>Loop inicial cancelable, pruebas MP3/FLAC y publicacion PyPI preparada</td>
             </tr>
           </tbody>
         </table>

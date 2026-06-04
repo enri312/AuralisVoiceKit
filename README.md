@@ -50,6 +50,12 @@ py -m unittest discover -s tests
 py -m auralis_voicekit.cli doctor
 ```
 
+Cuando este publicado en PyPI, la instalacion normal sera:
+
+```powershell
+py -m pip install auralisvoicekit
+```
+
 Cuando se agreguen backends opcionales:
 
 ```powershell
@@ -390,11 +396,11 @@ ROADMAP.md
 
 Prioridad inmediata:
 
-1. Preparar documentacion de publicacion para PyPI.
-2. Evaluar primer backend de salida de voz real como extra opcional.
-3. Investigar backend WASAPI dedicado para Windows.
-4. Agregar benchmarks basicos de latencia para captura, segmentacion y transcripcion offline.
-5. Endurecer mensajes de error para archivos comprimidos cuando `ffmpeg` falta o falla.
+1. Evaluar primer backend de salida de voz real como extra opcional.
+2. Investigar backend WASAPI dedicado para Windows.
+3. Agregar benchmarks basicos de latencia para captura, segmentacion y transcripcion offline.
+4. Endurecer mensajes de error para archivos comprimidos cuando `ffmpeg` falta o falla.
+5. Preparar una pagina de documentacion API mas completa para usuarios de PyPI.
 
 ## Documentacion
 
@@ -415,4 +421,5 @@ RELEASE_PROCESS.md
 CHANGELOG.md
 COMPATIBILITY.md
 CONTRIBUTING.md
+PYPI.md
 ```
