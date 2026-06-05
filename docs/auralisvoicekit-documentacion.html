@@ -298,7 +298,7 @@
         <a href="#api">API publica</a>
         <a href="#referencia-api">Referencia API</a>
         <a href="#backends">Backends</a>
-        <a href="#privacidad">Privacidad</a>
+        <a href="#privacidad">Privacidad y logs</a>
         <a href="#publicacion">Publicacion</a>
         <a href="#roadmap">Roadmap</a>
       </nav>
@@ -661,8 +661,18 @@ python examples/pypi_quickstart.py --json</code></pre>
       </section>
 
       <section id="privacidad">
-        <h2>Privacidad</h2>
+        <h2>Privacidad y logs</h2>
         <p>Con <code>privacy_mode=True</code>, los eventos no incluyen texto transcrito ni audio crudo. El asistente puede observar duraciones, backends y estados sin registrar datos sensibles por accidente.</p>
+        <p><code>PrivacyEventLogger</code> permite exportar eventos como JSON Lines con payload sanitizado. Campos como <code>text</code>, <code>prompt</code>, <code>token</code>, <code>path</code>, <code>audio</code> y <code>raw</code> se reemplazan por <code>[redacted]</code>.</p>
+        <pre><code>from auralis_voicekit import AuralisVoiceKit, PrivacyEventLogger
+
+kit = AuralisVoiceKit()
+
+with PrivacyEventLogger("auralis-events.jsonl") as logger:
+    unsubscribe = logger.subscribe(kit.events)
+    result = kit.transcribe(chunk)
+    unsubscribe()</code></pre>
+        <p>La guia bilingue completa vive en <a href="../PRIVACY.md">PRIVACY.md</a>.</p>
       </section>
 
       <section id="publicacion">
@@ -714,7 +724,7 @@ gh workflow run publish-pypi.yml -f index=pypi -f tag=v0.14.0</code></pre>
             <tr>
               <td>5+</td>
               <td>Loop de asistente, Windows primero, CI, beta publica y version 1.0.</td>
-              <td>Loop inicial cancelable, pruebas MP3/FLAC, errores ffmpeg accionables, benchmarks offline y Whisper, referencia API inicial, PyPI preparada, quickstart sin extras y salida system configurable</td>
+              <td>Loop inicial cancelable, pruebas MP3/FLAC, errores ffmpeg accionables, benchmarks offline y Whisper, referencia API inicial, PyPI preparada, quickstart sin extras, privacidad/logs inicial y salida system configurable</td>
             </tr>
           </tbody>
         </table>

@@ -12,7 +12,7 @@ English: AuralisVoiceKit is a modern voice toolkit for Python assistants, local 
 
 El objetivo principal es evitar que la captura de microfono dependa obligatoriamente de PyAudio o de wheels que tardan en llegar a las versiones nuevas de Python. El paquete base debe poder instalarse de forma liviana, sin compiladores y sin dependencias nativas obligatorias. Para MP3, FLAC y formatos comprimidos, AuralisVoiceKit usa `ffmpeg` como herramienta externa opcional.
 
-> Estado actual: alpha tecnica. El repositorio ya define el core, los contratos de backends, captura real inicial, diagnostico reforzado para WASAPI, flujo WAV offline, transcripcion inicial por API y local opcional, sesiones de voz iniciales, una CLI de diagnostico, benchmarks offline y comparativos para Whisper, errores accionables para `ffmpeg`, documentacion estatica, salida de voz del sistema con voces configurables, quickstart para PyPI sin extras, pruebas unitarias y pruebas reales de MP3/FLAC. Los backends reales se iran agregando por etapas.
+> Estado actual: alpha tecnica. El repositorio ya define el core, los contratos de backends, captura real inicial, diagnostico reforzado para WASAPI, flujo WAV offline, transcripcion inicial por API y local opcional, sesiones de voz iniciales, una CLI de diagnostico, benchmarks offline y comparativos para Whisper, errores accionables para `ffmpeg`, documentacion estatica, salida de voz del sistema con voces configurables, quickstart para PyPI sin extras, guia de privacidad/logs, pruebas unitarias y pruebas reales de MP3/FLAC. Los backends reales se iran agregando por etapas.
 
 ## Problema que resuelve
 
@@ -518,6 +518,27 @@ AuralisVoiceKit puede funcionar como capa de voz para asistentes personales y ag
 - devolver texto limpio a un loop de agente;
 - registrar eventos de voz sin exponer datos privados.
 
+## Privacidad y logs
+
+`privacy_mode=True` es el default. Los eventos del core no incluyen audio crudo ni texto transcrito, y el helper `PrivacyEventLogger` permite exportar eventos como JSONL con payload sanitizado:
+
+```python
+from auralis_voicekit import AuralisVoiceKit, PrivacyEventLogger
+
+kit = AuralisVoiceKit()
+
+with PrivacyEventLogger("auralis-events.jsonl") as logger:
+    unsubscribe = logger.subscribe(kit.events)
+    result = kit.transcribe(chunk)
+    unsubscribe()
+```
+
+La guia bilingue completa esta en:
+
+```text
+PRIVACY.md
+```
+
 ## Roadmap
 
 El roadmap completo esta en:
@@ -528,11 +549,11 @@ ROADMAP.md
 
 Prioridad inmediata:
 
-1. Agregar una guia de privacidad y manejo de logs.
-2. Documentar patrones de backends de salida personalizados.
-3. Ampliar mensajes especificos para errores comunes de audio en Windows.
-4. Agregar benchmarks exportables a archivo JSON/CSV.
-5. Preparar un ejemplo de salida de voz con backend `system`.
+1. Documentar patrones de backends de salida personalizados.
+2. Ampliar mensajes especificos para errores comunes de audio en Windows.
+3. Agregar benchmarks exportables a archivo JSON/CSV.
+4. Preparar un ejemplo de salida de voz con backend `system`.
+5. Agregar ejemplos completos de asistente local con logs sanitizados.
 
 ## Documentacion
 
@@ -560,4 +581,5 @@ CHANGELOG.md
 COMPATIBILITY.md
 CONTRIBUTING.md
 PYPI.md
+PRIVACY.md
 ```

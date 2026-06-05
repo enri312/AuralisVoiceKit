@@ -522,8 +522,16 @@ with VoiceSession(kit, VoiceSessionConfig(chunk_duration_ms=50)) as session:
 
       <section id="events">
         <h2>Eventos y privacidad</h2>
-        <p><code>EventBus</code> permite observar el flujo sin acoplarse a un backend. Con <code>privacy_mode=True</code>, los eventos evitan audio crudo y texto transcrito.</p>
-        <pre><code>from auralis_voicekit import EventBus, VoiceEvent, VoiceEventType
+        <p><code>EventBus</code> permite observar el flujo sin acoplarse a un backend. Con <code>privacy_mode=True</code>, los eventos evitan audio crudo y texto transcrito. Para logs persistentes, <code>PrivacyEventLogger</code> escribe JSONL con payload sanitizado.</p>
+        <pre><code>from auralis_voicekit import (
+    EventBus,
+    PrivacyEventLogger,
+    PrivacyLogConfig,
+    VoiceEvent,
+    VoiceEventType,
+    event_to_log_record,
+    sanitize_event_payload,
+)
 
 events = EventBus()
 unsubscribe = events.subscribe(
@@ -531,7 +539,15 @@ unsubscribe = events.subscribe(
     lambda event: print(event.type, event.payload),
 )
 event = events.emit(VoiceEventType.ERROR, {"message": "demo"})
+record = event_to_log_record(event)
+safe_payload = sanitize_event_payload({"text": "privado", "backend": "null"})
 unsubscribe()</code></pre>
+        <pre><code>with PrivacyEventLogger("auralis-events.jsonl") as logger:
+    unsubscribe = logger.subscribe(events)
+    events.emit(VoiceEventType.TRANSCRIPTION_COMPLETED, {"text": "privado"})
+    unsubscribe()
+
+debug_config = PrivacyLogConfig(privacy_mode=False)</code></pre>
       </section>
 
       <section id="diagnostics">
@@ -691,6 +707,10 @@ kit = AuralisVoiceKit(
             <tr>
               <td>Eventos</td>
               <td><code>EventBus</code>, <code>VoiceEvent</code>, <code>VoiceEventType</code></td>
+            </tr>
+            <tr>
+              <td>Privacidad</td>
+              <td><code>PrivacyEventLogger</code>, <code>PrivacyLogConfig</code>, <code>event_to_log_record</code>, <code>sanitize_event_payload</code></td>
             </tr>
             <tr>
               <td>Diagnostico</td>

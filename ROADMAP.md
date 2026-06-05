@@ -42,6 +42,7 @@ La meta no es competir con todos los motores de voz a la vez. La meta es constru
 | Errores de ffmpeg | Inicial con diagnostico accionable |
 | Documentacion API | Inicial para usuarios de PyPI |
 | Ejemplos para PyPI | Quickstart inicial sin extras |
+| Privacidad y logs | Guia inicial y exportacion JSONL sanitizada |
 
 ## Fase 0 - Base del proyecto
 
@@ -214,7 +215,7 @@ Entregables:
 - Documentacion de API estable.
 - Referencia API HTML para usuarios de PyPI. Estado: inicial.
 - Ejemplo pequeno de integracion para usuarios de PyPI. Estado: inicial con `examples/pypi_quickstart.py`.
-- Guias de captura, transcripcion, salida y privacidad.
+- Guias de captura, transcripcion, salida y privacidad. Privacidad/logs: guia inicial con `PRIVACY.md`.
 - Ejemplos completos.
 - Integracion piloto con un asistente local de referencia.
 - Politica de compatibilidad y cambios.
@@ -256,15 +257,15 @@ Criterio de salida:
 - Wake word externo.
 - Medidor de energia en tiempo real.
 - Grabacion temporal con borrado seguro.
-- Exportacion de logs sin contenido sensible.
+- Exportacion de logs sin contenido sensible. Estado: inicial con `PrivacyEventLogger`.
 - Benchmarks de latencia. Estado: inicial offline y comparativo para Whisper.
 - Publicacion en PyPI. Estado: workflow y guia inicial.
 - Ejemplo PyPI sin extras. Estado: inicial.
 
 ## Prioridad inmediata
 
-1. Agregar una guia de privacidad y manejo de logs.
-2. Documentar patrones de backends de salida personalizados.
-3. Ampliar mensajes especificos para errores comunes de audio en Windows.
-4. Agregar benchmarks exportables a archivo JSON/CSV.
-5. Preparar un ejemplo de salida de voz con backend `system`.
+1. Documentar patrones de backends de salida personalizados.
+2. Ampliar mensajes especificos para errores comunes de audio en Windows.
+3. Agregar benchmarks exportables a archivo JSON/CSV.
+4. Preparar un ejemplo de salida de voz con backend `system`.
+5. Agregar ejemplos completos de asistente local con logs sanitizados.

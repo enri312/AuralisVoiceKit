@@ -6,6 +6,20 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.24.0] - 2026-06-05
+
+### Agregado
+
+- Guia `PRIVACY.md` en espanol e ingles para privacidad y manejo de logs.
+- Modulo publico `auralis_voicekit.privacy` con `PrivacyLogConfig`, `PrivacyEventLogger`, `sanitize_event_payload()` y `event_to_log_record()`.
+- Exportacion JSONL de eventos con payload sanitizado y redaccion de campos sensibles.
+- Pruebas unitarias para sanitizacion, conversion de eventos a logs y logger JSONL.
+
+### Cambiado
+
+- README, referencia API, documentacion HTML y roadmap enlazan la nueva guia de privacidad/logs.
+- El roadmap mueve la prioridad inmediata a documentar patrones de backends de salida personalizados.
+
 ## [0.23.0] - 2026-06-05
 
 ### Agregado

@@ -52,6 +52,7 @@ from .exceptions import (
 )
 from .kit import AuralisVoiceKit
 from .models import AudioChunk, AudioDevice, AudioEncoding, AudioFormat, TranscriptResult
+from .privacy import PrivacyEventLogger, PrivacyLogConfig, event_to_log_record, sanitize_event_payload
 from .session import VoiceSession, VoiceSessionConfig, VoiceTurn
 
 __all__ = [
@@ -73,6 +74,8 @@ __all__ = [
     "DoctorReport",
     "EventBus",
     "PermissionRequired",
+    "PrivacyEventLogger",
+    "PrivacyLogConfig",
     "TranscriptResult",
     "TranscriptionError",
     "VoiceEvent",
@@ -92,6 +95,7 @@ __all__ = [
     "chunk_audio",
     "chunk_to_wav_bytes",
     "decode_audio_with_ffmpeg",
+    "event_to_log_record",
     "ffmpeg_available",
     "ffmpeg_install_hint",
     "ffmpeg_search_locations",
@@ -111,6 +115,7 @@ __all__ = [
     "run_doctor",
     "run_offline_benchmarks",
     "run_whisper_comparison_benchmarks",
+    "sanitize_event_payload",
     "segment_voice_pcm16",
     "write_wav",
 ]

@@ -8,6 +8,7 @@ ROOT = Path(__file__).resolve().parents[1]
 API_DOC = ROOT / "docs" / "auralisvoicekit-api.html"
 MAIN_DOC = ROOT / "docs" / "auralisvoicekit-documentacion.html"
 README = ROOT / "README.md"
+PRIVACY = ROOT / "PRIVACY.md"
 
 
 class DocumentationTests(unittest.TestCase):
@@ -31,6 +32,14 @@ class DocumentationTests(unittest.TestCase):
         self.assertIn("Backends personalizados", content)
         self.assertIn("ffmpeg_search_locations", content)
         self.assertIn("run_offline_benchmarks", content)
+
+    def test_privacy_guide_is_linked_from_public_docs(self):
+        privacy_name = "PRIVACY.md"
+
+        self.assertTrue(PRIVACY.exists())
+        self.assertIn(privacy_name, README.read_text(encoding="utf-8"))
+        self.assertIn(privacy_name, MAIN_DOC.read_text(encoding="utf-8"))
+        self.assertIn("PrivacyEventLogger", API_DOC.read_text(encoding="utf-8"))
 
 
 if __name__ == "__main__":
