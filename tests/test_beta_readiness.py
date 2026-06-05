@@ -362,6 +362,10 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertEqual(report["accepted_count"], 2)
         self.assertEqual(report["ignored_count"], 1)
         self.assertEqual(report["ignored_details"][0]["reason"], "missing_project")
+        self.assertFalse(report["ready_for_beta_by_evidence"])
+        self.assertEqual(report["satisfied_blockers"], ["system_output_audible"])
+        self.assertIn("real_transcription_quality", report["missing_blockers"])
+        self.assertIn("ubuntu_linux_capture", report["missing_blockers"])
 
         artifacts = {artifact["artifact"]: artifact for artifact in report["artifacts"]}
         self.assertIn("system_output_audible", artifacts["output-pilot-report.json"]["satisfied_blockers"])
@@ -398,6 +402,8 @@ class BetaReadinessTests(unittest.TestCase):
 
         self.assertEqual(exit_code, 0)
         self.assertIn("Auditoria de evidencias beta", content)
+        self.assertIn("Resumen de blockers", content)
+        self.assertIn("Listo para beta segun evidencias JSON", content)
         self.assertIn("ubuntu_linux_capture", content)
         self.assertIn("Blockers cerrados", content)
         self.assertNotIn(str(tmpdir_path), content)
@@ -414,6 +420,58 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertEqual(payload["project"], "AuralisVoiceKit")
         self.assertEqual(payload["accepted_count"], 0)
         self.assertEqual(payload["artifacts"], [])
+        self.assertFalse(payload["ready_for_beta_by_evidence"])
+        self.assertIn("real_transcription_quality", payload["missing_blockers"])
+
+    def test_evidence_audit_can_mark_all_json_blockers_satisfied(self):
+        module = _load_beta_readiness()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            evidence_root = Path(tmpdir)
+            _write_json(
+                evidence_root / "windows" / "manual-pilot-report.json",
+                {
+                    "project": "AuralisVoiceKit",
+                    "system": "Windows",
+                    "capture_backend": "wasapi",
+                    "hardware_capture_tested": True,
+                    "passed": True,
+                },
+            )
+            _write_json(
+                evidence_root / "linux" / "manual-pilot-report.json",
+                {"project": "AuralisVoiceKit", "system": "Linux", "hardware_capture_tested": True, "passed": True},
+            )
+            _write_json(
+                evidence_root / "macos" / "manual-pilot-report.json",
+                {"project": "AuralisVoiceKit", "system": "Darwin", "hardware_capture_tested": True, "passed": True},
+            )
+            _write_json(
+                evidence_root / "output" / "output-pilot-report.json",
+                {
+                    "project": "AuralisVoiceKit",
+                    "backend": "system",
+                    "real_audio_requested": True,
+                    "operator_confirmation_status": "confirmed",
+                    "passed": True,
+                },
+            )
+            _write_json(
+                evidence_root / "transcription" / "transcription-pilot-report.json",
+                {
+                    "project": "AuralisVoiceKit",
+                    "real_transcription_requested": True,
+                    "audio_confirmed_non_sensitive": True,
+                    "passed": True,
+                    "quality": {"enabled": True, "passed": True, "min_word_accuracy": 0.75},
+                },
+            )
+
+            report = module.build_evidence_audit_report(ROOT, evidence_paths=[evidence_root])
+
+        self.assertTrue(report["ready_for_beta_by_evidence"])
+        self.assertEqual(report["missing_blockers"], [])
+        self.assertEqual(set(report["satisfied_blockers"]), set(report["required_blockers"]))
 
 
 def _write_json(path: Path, payload: dict):

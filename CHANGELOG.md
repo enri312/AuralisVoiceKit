@@ -6,6 +6,18 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.45.0] - 2026-06-05
+
+### Agregado
+
+- Resumen global en `tools/beta_readiness.py --audit-evidence` con `satisfied_blockers`, `missing_blockers` y `ready_for_beta_by_evidence`.
+- Markdown de auditoria con blockers cerrados y pendientes por evidencias JSON.
+- Pruebas automatizadas para auditoria de evidencias con cobertura completa de blockers.
+
+### Cambiado
+
+- README, `PILOTS.md`, docs HTML, roadmap y gate de estabilidad documentan el resumen global de blockers.
+
 ## [0.44.0] - 2026-06-05
 
 ### Agregado

@@ -149,6 +149,11 @@ def build_evidence_audit_report(
                 "candidates": candidates,
             }
         )
+    required_blockers = [requirement["name"] for requirement in requirements]
+    satisfied_blockers = _ordered_unique(
+        blocker for artifact in artifacts for blocker in artifact["satisfied_blockers"]
+    )
+    missing_blockers = [blocker for blocker in required_blockers if blocker not in satisfied_blockers]
 
     return {
         "project": "AuralisVoiceKit",
@@ -156,10 +161,15 @@ def build_evidence_audit_report(
         "accepted_count": len(accepted_reports),
         "ignored_count": len(evidence["ignored"]),
         "ignored_details": evidence["ignored"],
+        "required_blockers": required_blockers,
+        "satisfied_blockers": satisfied_blockers,
+        "missing_blockers": missing_blockers,
+        "ready_for_beta_by_evidence": not missing_blockers,
         "artifacts": artifacts,
         "notes": (
             "Evidence audit uses only structured fields needed for beta blockers. "
-            "It does not require audio, transcripts, expected text or full local paths."
+            "It does not require audio, transcripts, expected text or full local paths. "
+            "It audits JSON evidence only; existing PILOT_FINDINGS.md text is not counted here."
         ),
     }
 
@@ -329,6 +339,14 @@ def format_audit_markdown(report: dict[str, Any]) -> str:
         "",
         f"- Evidencias aceptadas: `{report['accepted_count']}`",
         f"- Evidencias ignoradas: `{report['ignored_count']}`",
+        f"- Listo para beta segun evidencias JSON: `{str(report['ready_for_beta_by_evidence']).lower()}`",
+        "",
+        "## Resumen de blockers",
+        "",
+        "- Cerrados por evidencias JSON: "
+        + (_format_name_list(report["satisfied_blockers"]) if report["satisfied_blockers"] else "`ninguno`"),
+        "- Pendientes segun evidencias JSON: "
+        + (_format_name_list(report["missing_blockers"]) if report["missing_blockers"] else "`ninguno`"),
         "",
     ]
     if report["ignored_details"]:
@@ -716,6 +734,20 @@ def _public_field_value(value: Any) -> Any:
     if isinstance(value, str):
         return value if len(value) <= 80 else "<redacted>"
     return "<redacted>"
+
+
+def _ordered_unique(values) -> list[str]:
+    seen = set()
+    unique = []
+    for value in values:
+        if value not in seen:
+            seen.add(value)
+            unique.append(value)
+    return unique
+
+
+def _format_name_list(names: list[str]) -> str:
+    return ", ".join(f"`{name}`" for name in names)
 
 
 def _ignored_evidence(path: Path, reason: str) -> dict[str, str]:

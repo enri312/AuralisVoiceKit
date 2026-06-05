@@ -50,6 +50,8 @@ PILOT_CHECKS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
             "--evidence",
             "--requirements",
             "--audit-evidence",
+            "missing_blockers",
+            "ready_for_beta_by_evidence",
             "quality.min_word_accuracy",
             "ignored_count",
             "ignored_details",
