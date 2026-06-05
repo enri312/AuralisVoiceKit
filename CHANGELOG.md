@@ -6,6 +6,18 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.43.0] - 2026-06-05
+
+### Agregado
+
+- Modo `tools/beta_readiness.py --requirements` para imprimir los campos JSON que necesita cada blocker de beta.
+- Reporte JSON/Markdown de requisitos de evidencias con artifacts aceptados, comandos sugeridos y notas de privacidad.
+- Pruebas automatizadas para el contrato de evidencias beta y la salida CLI `--requirements`.
+
+### Cambiado
+
+- README, `PILOTS.md`, docs HTML, roadmap y gate de estabilidad enlazan el nuevo modo de requisitos.
+
 ## [0.42.0] - 2026-06-05
 
 ### Agregado

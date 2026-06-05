@@ -32,6 +32,7 @@ py tools\transcription_pilot.py --output-dir pilot_runs\transcription\safe --jso
 py tools\transcription_pilot.py --output-dir pilot_runs\transcription\quality-safe --expected-text "Hola desde AuralisVoiceKit" --min-word-accuracy 0 --json
 py tools\transcription_pilot.py --real-transcription --audio sample.mp3 --audio-non-sensitive --backend whisper --model base --normalize --expected-text "Hola desde AuralisVoiceKit" --min-word-accuracy 0.75 --json
 py tools\beta_readiness.py --output BETA_CHECKLIST.md --json
+py tools\beta_readiness.py --requirements
 py tools\beta_readiness.py --evidence pilot_runs\manual --evidence pilot_runs\output --evidence pilot_runs\transcription --output BETA_CHECKLIST.md --json
 ```
 
@@ -39,7 +40,7 @@ py tools\beta_readiness.py --evidence pilot_runs\manual --evidence pilot_runs\ou
 
 `tools/transcription_pilot.py` genera audio sintetico y usa `null` por defecto. Los backends reales `whisper` y `openai` requieren `--real-transcription --audio PATH --audio-non-sensitive`, y el texto transcrito no se guarda completo en artifacts. Con `--expected-text` o `--expected-text-file` calcula word accuracy, word error rate y character error rate sin guardar la transcripcion ni la referencia completa.
 
-`tools/beta_readiness.py` no ejecuta hardware ni red. Lee el gate, `PILOT_FINDINGS.md` y artifacts JSON pasados con `--evidence`, genera `BETA_CHECKLIST.md` y marca blockers hasta que haya evidencia real de transcripcion, salida audible y pilotos Ubuntu/Linux y macOS. Las evidencias se toman de `manual-pilot-report.json`, `output-pilot-report.json` y `transcription-pilot-report.json`; solo cuentan si declaran `project: AuralisVoiceKit`. El checklist reporta evidencias ignoradas con motivos seguros (`missing_project`, `wrong_project`, `not_json_object`) y no copia transcripciones ni rutas completas.
+`tools/beta_readiness.py` no ejecuta hardware ni red. Lee el gate, `PILOT_FINDINGS.md` y artifacts JSON pasados con `--evidence`, genera `BETA_CHECKLIST.md` y marca blockers hasta que haya evidencia real de transcripcion, salida audible y pilotos Ubuntu/Linux y macOS. `--requirements` imprime los campos JSON esperados por cada blocker. Las evidencias se toman de `manual-pilot-report.json`, `output-pilot-report.json` y `transcription-pilot-report.json`; solo cuentan si declaran `project: AuralisVoiceKit`. El checklist reporta evidencias ignoradas con motivos seguros (`missing_project`, `wrong_project`, `not_json_object`) y no copia transcripciones ni rutas completas.
 
 Los hallazgos resumidos se mantienen en:
 
@@ -59,6 +60,7 @@ auralis doctor-bundles pilot_runs\manual\doctor-capture.json --output pilot_runs
 python tools\manual_pilot.py --capture-test --backend wasapi --device default --sample-rate 48000 --json
 python tools\output_pilot.py --speak --operator-present --text "Hola desde AuralisVoiceKit" --json
 python tools\transcription_pilot.py --real-transcription --audio sample.mp3 --audio-non-sensitive --backend whisper --model base --normalize --expected-text "Hola desde AuralisVoiceKit" --min-word-accuracy 0.75 --json
+python tools\beta_readiness.py --requirements
 python tools\beta_readiness.py --evidence pilot_runs\manual --evidence pilot_runs\output --evidence pilot_runs\transcription --output BETA_CHECKLIST.md --fail-on-blockers --json
 python examples\local_assistant_privacy_demo.py --output-dir pilot_runs\assistant --json
 ```

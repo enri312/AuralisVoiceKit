@@ -273,6 +273,60 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertEqual(report["evidence"]["ignored_count"], 1)
         self.assertEqual(report["evidence"]["ignored_details"][0]["reason"], "not_json_object")
 
+    def test_evidence_requirements_cover_beta_blockers(self):
+        module = _load_beta_readiness()
+
+        report = module.build_evidence_requirements_report()
+        requirements = {item["name"]: item for item in report["requirements"]}
+
+        self.assertEqual(report["project"], "AuralisVoiceKit")
+        self.assertEqual(report["minimums"]["transcription_min_word_accuracy"], 0.75)
+        self.assertIn("manual-pilot-report.json", report["accepted_artifacts"])
+        self.assertIn("output-pilot-report.json", report["accepted_artifacts"])
+        self.assertIn("transcription-pilot-report.json", report["accepted_artifacts"])
+        for blocker in (
+            "windows_wasapi_capture",
+            "real_transcription_quality",
+            "system_output_audible",
+            "ubuntu_linux_capture",
+            "macos_capture",
+        ):
+            self.assertIn(blocker, requirements)
+            field_paths = {field["path"] for field in requirements[blocker]["fields"]}
+            self.assertIn("project", field_paths)
+            self.assertIn("passed", field_paths)
+        transcription_fields = {
+            field["path"]: field["expected"] for field in requirements["real_transcription_quality"]["fields"]
+        }
+        self.assertEqual(transcription_fields["quality.min_word_accuracy"], ">= 0.75")
+
+    def test_cli_requirements_markdown_is_public_safe(self):
+        module = _load_beta_readiness()
+
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            exit_code = module.main(["--requirements"])
+        content = output.getvalue()
+
+        self.assertEqual(exit_code, 0)
+        self.assertIn("Requisitos de evidencias beta", content)
+        self.assertIn("transcription-pilot-report.json", content)
+        self.assertIn("quality.min_word_accuracy", content)
+        self.assertIn("No audio bytes", content)
+        self.assertNotIn(str(ROOT), content)
+
+    def test_cli_requirements_json_ignores_beta_blocker_failure(self):
+        module = _load_beta_readiness()
+
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            exit_code = module.main(["--requirements", "--json", "--fail-on-blockers"])
+        payload = json.loads(output.getvalue())
+
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(payload["project"], "AuralisVoiceKit")
+        self.assertIn("requirements", payload)
+
 
 def _write_json(path: Path, payload: dict):
     path.parent.mkdir(parents=True, exist_ok=True)

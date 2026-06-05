@@ -236,7 +236,7 @@ Entregables:
 - Ejemplos completos.
 - Integracion piloto con un asistente local de referencia.
 - Politica de compatibilidad y cambios.
-- Checklist de bugs conocidos. Estado: inicial con `tools/beta_readiness.py`, `BETA_CHECKLIST.md`, ingesta de evidencias JSON con `--evidence`, validacion de `project: AuralisVoiceKit` y motivos seguros para evidencias ignoradas.
+- Checklist de bugs conocidos. Estado: inicial con `tools/beta_readiness.py`, `BETA_CHECKLIST.md`, ingesta de evidencias JSON con `--evidence`, requisitos de evidencias con `--requirements`, validacion de `project: AuralisVoiceKit` y motivos seguros para evidencias ignoradas.
 
 Criterio de salida:
 
@@ -281,7 +281,7 @@ Criterio de salida:
 - Ejemplo de asistente local con logs sanitizados. Estado: inicial con `examples/local_assistant_privacy_demo.py`.
 - Backends de salida personalizados. Estado: guia y ejemplo inicial.
 - Automatizacion de estabilidad. Estado: gate inicial listo para CI y uso local.
-- Pilotos seguros. Estado: runner automatizado, piloto manual guiado con `tools/manual_pilot.py`, piloto de salida `system` con `tools/output_pilot.py`, piloto de transcripcion con `tools/transcription_pilot.py`, scoring redactado con `--expected-text`, checklist de beta con `tools/beta_readiness.py`, ingesta de evidencias JSON con `--evidence`, validacion de `project: AuralisVoiceKit`, motivos seguros para evidencias ignoradas, runbook inicial con `PILOTS.md`, hallazgos en `PILOT_FINDINGS.md`, blockers en `BETA_CHECKLIST.md`, bundles `doctor` sanitizados, analisis `doctor-bundles`, control explicito de sample rate para pilotos WASAPI, primera captura Windows real aprobada a 48000 Hz, dry-run Windows de salida `system` aprobado, guard `--operator-present` listo para audio real y dry-run Windows de transcripcion sintetica aprobado.
+- Pilotos seguros. Estado: runner automatizado, piloto manual guiado con `tools/manual_pilot.py`, piloto de salida `system` con `tools/output_pilot.py`, piloto de transcripcion con `tools/transcription_pilot.py`, scoring redactado con `--expected-text`, checklist de beta con `tools/beta_readiness.py`, ingesta de evidencias JSON con `--evidence`, requisitos de evidencias con `--requirements`, validacion de `project: AuralisVoiceKit`, motivos seguros para evidencias ignoradas, runbook inicial con `PILOTS.md`, hallazgos en `PILOT_FINDINGS.md`, blockers en `BETA_CHECKLIST.md`, bundles `doctor` sanitizados, analisis `doctor-bundles`, control explicito de sample rate para pilotos WASAPI, primera captura Windows real aprobada a 48000 Hz, dry-run Windows de salida `system` aprobado, guard `--operator-present` listo para audio real y dry-run Windows de transcripcion sintetica aprobado.
 - Mensajes Windows audio. Estado: inicial para permisos, dispositivo, sample rate, canales y host API.
 - Ejemplo de salida `system`. Estado: inicial con dry-run aprobado, `--speak --operator-present` para pilotos reales y runner `tools/output_pilot.py`.
 

@@ -21,6 +21,110 @@ from typing import Any
 BETA_MIN_WORD_ACCURACY = 0.75
 
 
+def build_evidence_requirements_report() -> dict[str, Any]:
+    """Build the public-safe contract for beta evidence JSON artifacts."""
+
+    return {
+        "project": "AuralisVoiceKit",
+        "minimums": {
+            "transcription_min_word_accuracy": BETA_MIN_WORD_ACCURACY,
+        },
+        "accepted_artifacts": [
+            "manual-pilot-report.json",
+            "output-pilot-report.json",
+            "transcription-pilot-report.json",
+        ],
+        "requirements": [
+            {
+                "name": "windows_wasapi_capture",
+                "title": "Windows WASAPI capture pilot",
+                "artifact": "manual-pilot-report.json",
+                "command": (
+                    "python tools/manual_pilot.py --capture-test --backend wasapi "
+                    "--device default --sample-rate 48000 --json"
+                ),
+                "fields": [
+                    _required_field("project", "AuralisVoiceKit"),
+                    _required_field("system", "Windows"),
+                    _required_field("capture_backend", "wasapi"),
+                    _required_field("hardware_capture_tested", True),
+                    _required_field("passed", True),
+                ],
+            },
+            {
+                "name": "real_transcription_quality",
+                "title": "Real transcription quality pilot",
+                "artifact": "transcription-pilot-report.json",
+                "command": (
+                    "python tools/transcription_pilot.py --real-transcription --audio sample.mp3 "
+                    "--audio-non-sensitive --backend whisper --model base --normalize "
+                    "--expected-text \"Hola desde AuralisVoiceKit\" --min-word-accuracy 0.75 --json"
+                ),
+                "fields": [
+                    _required_field("project", "AuralisVoiceKit"),
+                    _required_field("real_transcription_requested", True),
+                    _required_field("audio_confirmed_non_sensitive", True),
+                    _required_field("passed", True),
+                    _required_field("quality.enabled", True),
+                    _required_field("quality.passed", True),
+                    _required_field("quality.min_word_accuracy", f">= {BETA_MIN_WORD_ACCURACY}"),
+                ],
+            },
+            {
+                "name": "system_output_audible",
+                "title": "Audible system output pilot",
+                "artifact": "output-pilot-report.json",
+                "command": (
+                    "python tools/output_pilot.py --speak --operator-present "
+                    "--confirm-audible --text \"Hola desde AuralisVoiceKit\" --json"
+                ),
+                "fields": [
+                    _required_field("project", "AuralisVoiceKit"),
+                    _required_field("backend", "system"),
+                    _required_field("real_audio_requested", True),
+                    _required_field("operator_confirmation_status", "confirmed"),
+                    _required_field("passed", True),
+                ],
+            },
+            {
+                "name": "ubuntu_linux_capture",
+                "title": "Ubuntu/Linux capture pilot",
+                "artifact": "manual-pilot-report.json",
+                "command": (
+                    "python tools/manual_pilot.py --capture-test --backend sounddevice "
+                    "--device default --json"
+                ),
+                "fields": [
+                    _required_field("project", "AuralisVoiceKit"),
+                    _required_field("system", "Linux | Ubuntu/Linux | Ubuntu"),
+                    _required_field("hardware_capture_tested", True),
+                    _required_field("passed", True),
+                ],
+            },
+            {
+                "name": "macos_capture",
+                "title": "macOS capture pilot",
+                "artifact": "manual-pilot-report.json",
+                "command": (
+                    "python tools/manual_pilot.py --capture-test --backend sounddevice "
+                    "--device default --json"
+                ),
+                "fields": [
+                    _required_field("project", "AuralisVoiceKit"),
+                    _required_field("system", "Darwin | macOS | Mac"),
+                    _required_field("hardware_capture_tested", True),
+                    _required_field("passed", True),
+                ],
+            },
+        ],
+        "privacy": [
+            "No audio bytes are required in beta evidence.",
+            "No full transcript or expected text is required in beta readiness evidence.",
+            "Only structured fields and sanitized artifact names are used.",
+        ],
+    }
+
+
 def build_beta_readiness_report(
     root: str | Path = ".",
     evidence_paths: list[str | Path] | None = None,
@@ -152,6 +256,58 @@ def write_beta_readiness_report(report: dict[str, Any], output: str | Path) -> N
         output_path.write_text(format_markdown(report), encoding="utf-8")
 
 
+def write_evidence_requirements_report(report: dict[str, Any], output: str | Path) -> None:
+    """Write beta evidence requirements as JSON or Markdown."""
+
+    output_path = Path(output)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    if output_path.suffix.lower() == ".json":
+        output_path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    else:
+        output_path.write_text(format_requirements_markdown(report), encoding="utf-8")
+
+
+def format_requirements_markdown(report: dict[str, Any]) -> str:
+    """Format required evidence fields without private pilot content."""
+
+    lines = [
+        "# Requisitos de evidencias beta",
+        "",
+        "Este documento describe los campos JSON que pueden cerrar blockers de beta. No requiere audio, transcripciones, rutas locales completas ni nombres reales de dispositivos.",
+        "",
+        "## Artifacts aceptados",
+        "",
+    ]
+    for artifact in report["accepted_artifacts"]:
+        lines.append(f"- `{artifact}`")
+    lines.extend(
+        [
+            "",
+            "## Requisitos por blocker",
+            "",
+        ]
+    )
+    for requirement in report["requirements"]:
+        lines.append(f"### {requirement['name']}")
+        lines.append("")
+        lines.append(f"- Artifact: `{requirement['artifact']}`")
+        lines.append(f"- Comando sugerido: `{requirement['command']}`")
+        lines.append("- Campos requeridos:")
+        for field in requirement["fields"]:
+            lines.append(f"  - `{field['path']}` = `{field['expected']}`")
+        lines.append("")
+    lines.extend(
+        [
+            "## Privacidad",
+            "",
+        ]
+    )
+    for note in report["privacy"]:
+        lines.append(f"- {note}")
+    lines.append("")
+    return "\n".join(lines)
+
+
 def format_markdown(report: dict[str, Any]) -> str:
     """Format a report as a public-safe Markdown checklist."""
 
@@ -258,7 +414,22 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="exit with code 1 when beta blockers remain",
     )
+    parser.add_argument(
+        "--requirements",
+        action="store_true",
+        help="print beta evidence requirements instead of readiness status",
+    )
     args = parser.parse_args(argv)
+
+    if args.requirements:
+        report = build_evidence_requirements_report()
+        if args.output:
+            write_evidence_requirements_report(report, args.output)
+        if args.json:
+            print(json.dumps(report, indent=2, sort_keys=True))
+        elif not args.output:
+            print(format_requirements_markdown(report))
+        return 0
 
     report = build_beta_readiness_report(args.root, evidence_paths=args.evidence)
     if args.output:
@@ -383,6 +554,10 @@ def _load_evidence_reports(workspace: Path, evidence_paths: list[str | Path]) ->
             else:
                 ignored.append(_ignored_evidence(report_path, "wrong_project"))
     return {"accepted": accepted, "ignored": ignored}
+
+
+def _required_field(path: str, expected: Any) -> dict[str, Any]:
+    return {"path": path, "expected": expected}
 
 
 def _ignored_evidence(path: Path, reason: str) -> dict[str, str]:

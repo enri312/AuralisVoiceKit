@@ -44,8 +44,11 @@ PILOT_CHECKS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
         "tools/beta_readiness.py",
         (
             "build_beta_readiness_report",
+            "build_evidence_requirements_report",
             "--fail-on-blockers",
             "--evidence",
+            "--requirements",
+            "quality.min_word_accuracy",
             "ignored_count",
             "ignored_details",
             "missing_project",

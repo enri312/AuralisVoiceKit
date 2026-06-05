@@ -654,11 +654,12 @@ Para evaluar si ya corresponde declarar beta publica, usa el checklist conservad
 ```powershell
 py tools\beta_readiness.py --json
 py tools\beta_readiness.py --output BETA_CHECKLIST.md
+py tools\beta_readiness.py --requirements
 py tools\beta_readiness.py --evidence pilot_runs\manual\linux --evidence pilot_runs\output\real --json
 py tools\beta_readiness.py --fail-on-blockers --json
 ```
 
-El checklist generado vive en `BETA_CHECKLIST.md` y separa dos estados: listo para pilotos reales no significa listo para beta. `--evidence` acepta archivos o carpetas con JSON generados por `tools\manual_pilot.py`, `tools\output_pilot.py` y `tools\transcription_pilot.py`; solo cuenta artifacts con `project: AuralisVoiceKit`, reporta evidencias ignoradas con motivo (`missing_project`, `wrong_project`, `not_json_object`) y usa campos estructurados/nombres de artifacts, no transcripciones ni audio. English: beta readiness requires real pilot evidence, explains ignored artifacts, and never copies private transcripts or audio.
+El checklist generado vive en `BETA_CHECKLIST.md` y separa dos estados: listo para pilotos reales no significa listo para beta. `--requirements` imprime los campos JSON necesarios para cada blocker antes de ejecutar pilotos reales. `--evidence` acepta archivos o carpetas con JSON generados por `tools\manual_pilot.py`, `tools\output_pilot.py` y `tools\transcription_pilot.py`; solo cuenta artifacts con `project: AuralisVoiceKit`, reporta evidencias ignoradas con motivo (`missing_project`, `wrong_project`, `not_json_object`) y usa campos estructurados/nombres de artifacts, no transcripciones ni audio. English: beta readiness requires real pilot evidence, explains ignored artifacts, and never copies private transcripts or audio.
 
 ## Pilotos seguros
 
