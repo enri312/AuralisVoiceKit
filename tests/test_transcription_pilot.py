@@ -49,6 +49,8 @@ class TranscriptionPilotTests(unittest.TestCase):
         self.assertTrue(synthetic_audio_exists)
         self.assertEqual(payload["transcript"]["text_characters"], 0)
         self.assertTrue(payload["transcript"]["text_redacted"])
+        self.assertFalse(payload["quality_review_confirmed"])
+        self.assertFalse(payload["transcription_checklist"]["quality_review_confirmed"])
         self.assertFalse(payload["transcription_checklist"]["records_audio_path"])
         self.assertFalse(payload["transcription_checklist"]["records_transcript_text"])
         self.assertFalse(payload["transcription_checklist"]["records_expected_text"])
@@ -85,6 +87,7 @@ class TranscriptionPilotTests(unittest.TestCase):
         self.assertEqual(payload["backend"], "null")
         self.assertTrue(payload["generated_synthetic_audio"])
         self.assertFalse(payload["real_transcription_requested"])
+        self.assertFalse(payload["quality_review_confirmed"])
         self.assertIn("transcription_review_checklist", payload["artifacts"])
         self.assertFalse(payload["transcription_checklist"]["ready_for_beta_evidence"])
 
@@ -152,6 +155,7 @@ class TranscriptionPilotTests(unittest.TestCase):
         self.assertNotIn("Hola desde AuralisVoiceKit", report_text)
         self.assertIn("Quality reference provided: True", findings)
         self.assertIn("Word accuracy: 0.0", findings)
+        self.assertIn("quality_review_confirmed", checklist)
 
     def test_transcription_pilot_quality_gate_can_fail(self):
         module = _load_transcription_pilot()
@@ -310,6 +314,7 @@ class TranscriptionPilotTests(unittest.TestCase):
             backend="whisper",
             preflight_only=False,
             real_transcription=True,
+            quality_review_confirmed=True,
             passed=True,
             audio={
                 "generated_synthetic_audio": False,
@@ -332,9 +337,49 @@ class TranscriptionPilotTests(unittest.TestCase):
 
         self.assertTrue(checklist["ready_for_real_transcription"])
         self.assertTrue(checklist["ready_for_beta_evidence"])
+        self.assertTrue(checklist["quality_review_confirmed"])
         self.assertFalse(checklist["records_transcript_text"])
         self.assertFalse(checklist["records_expected_text"])
+        self.assertIn("Quality review confirmed: True", markdown)
         self.assertIn("Ready for beta evidence: True", markdown)
+
+    def test_transcription_checklist_requires_quality_review_confirmation_for_beta(self):
+        module = _load_transcription_pilot()
+
+        checklist = module._transcription_checklist(
+            backend="whisper",
+            preflight_only=False,
+            real_transcription=True,
+            passed=True,
+            audio={
+                "generated_synthetic_audio": False,
+                "audio_confirmed_non_sensitive": True,
+                "decoded": True,
+                "duration_gate": {"enabled": True, "passed": True},
+            },
+            transcript={"text_redacted": True, "text_characters": 26},
+            quality={
+                "enabled": True,
+                "passed": True,
+                "min_word_accuracy": 0.75,
+            },
+            quality_review_confirmed=False,
+        )
+
+        self.assertTrue(checklist["ready_for_real_transcription"])
+        self.assertFalse(checklist["ready_for_beta_evidence"])
+        self.assertFalse(checklist["quality_review_confirmed"])
+
+    def test_transcription_pilot_rejects_quality_review_confirmation_without_real_transcription(self):
+        module = _load_transcription_pilot()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with self.assertRaises(ValueError):
+                module.run_transcription_pilot(
+                    root=ROOT,
+                    output_dir=tmpdir,
+                    quality_review_confirmed=True,
+                )
 
     def test_transcription_pilot_preflight_rejects_quality_flags(self):
         module = _load_transcription_pilot()

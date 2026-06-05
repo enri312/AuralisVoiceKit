@@ -117,6 +117,7 @@ class BetaReadinessTests(unittest.TestCase):
                     "project": "AuralisVoiceKit",
                     "real_transcription_requested": True,
                     "audio_confirmed_non_sensitive": True,
+                    "quality_review_confirmed": True,
                     "passed": True,
                     "quality": {
                         "enabled": True,
@@ -124,7 +125,10 @@ class BetaReadinessTests(unittest.TestCase):
                         "min_word_accuracy": 0.75,
                         "word_accuracy": 0.92,
                     },
-                    "transcription_checklist": {"ready_for_beta_evidence": True},
+                    "transcription_checklist": {
+                        "quality_review_confirmed": True,
+                        "ready_for_beta_evidence": True,
+                    },
                 },
             )
 
@@ -151,6 +155,7 @@ class BetaReadinessTests(unittest.TestCase):
                     "project": "AuralisVoiceKit",
                     "real_transcription_requested": True,
                     "audio_confirmed_non_sensitive": True,
+                    "quality_review_confirmed": True,
                     "passed": True,
                     "quality": {
                         "enabled": True,
@@ -158,7 +163,10 @@ class BetaReadinessTests(unittest.TestCase):
                         "min_word_accuracy": 0.1,
                         "word_accuracy": 1.0,
                     },
-                    "transcription_checklist": {"ready_for_beta_evidence": True},
+                    "transcription_checklist": {
+                        "quality_review_confirmed": True,
+                        "ready_for_beta_evidence": True,
+                    },
                 },
             )
 
@@ -181,6 +189,32 @@ class BetaReadinessTests(unittest.TestCase):
                     "audio_confirmed_non_sensitive": True,
                     "passed": True,
                     "quality": {"enabled": True, "passed": True, "min_word_accuracy": 0.75},
+                },
+            )
+
+            report = module.build_beta_readiness_report(ROOT, evidence_paths=[evidence_path])
+            checks = {check["name"]: check for check in report["checks"]}
+
+        self.assertFalse(checks["real_transcription_quality"]["ok"])
+        self.assertIn("real_transcription_quality", report["blockers"])
+
+    def test_real_transcription_evidence_requires_quality_review_confirmation(self):
+        module = _load_beta_readiness()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            evidence_path = Path(tmpdir) / "transcription-pilot-report.json"
+            _write_json(
+                evidence_path,
+                {
+                    "project": "AuralisVoiceKit",
+                    "real_transcription_requested": True,
+                    "audio_confirmed_non_sensitive": True,
+                    "passed": True,
+                    "quality": {"enabled": True, "passed": True, "min_word_accuracy": 0.75},
+                    "transcription_checklist": {
+                        "quality_review_confirmed": False,
+                        "ready_for_beta_evidence": False,
+                    },
                 },
             )
 
@@ -299,9 +333,13 @@ class BetaReadinessTests(unittest.TestCase):
                     "project": "AuralisVoiceKit",
                     "real_transcription_requested": True,
                     "audio_confirmed_non_sensitive": True,
+                    "quality_review_confirmed": True,
                     "passed": True,
                     "quality": {"enabled": True, "passed": True, "min_word_accuracy": 0.8},
-                    "transcription_checklist": {"ready_for_beta_evidence": True},
+                    "transcription_checklist": {
+                        "quality_review_confirmed": True,
+                        "ready_for_beta_evidence": True,
+                    },
                 },
             )
             output = io.StringIO()
@@ -413,6 +451,8 @@ class BetaReadinessTests(unittest.TestCase):
         output_fields = {field["path"] for field in requirements["system_output_audible"]["fields"]}
         linux_fields = {field["path"] for field in requirements["ubuntu_linux_capture"]["fields"]}
         self.assertEqual(transcription_fields["quality.min_word_accuracy"], ">= 0.75")
+        self.assertEqual(transcription_fields["quality_review_confirmed"], True)
+        self.assertEqual(transcription_fields["transcription_checklist.quality_review_confirmed"], True)
         self.assertEqual(transcription_fields["transcription_checklist.ready_for_beta_evidence"], True)
         self.assertIn("operator_checklist.ready_for_beta_evidence", output_fields)
         self.assertIn("system_guard.expected_system_matched", linux_fields)
@@ -432,6 +472,7 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertIn("system_guard.expected_system_matched", content)
         self.assertIn("capture_checklist.ready_for_beta_evidence", content)
         self.assertIn("quality.min_word_accuracy", content)
+        self.assertIn("quality_review_confirmed", content)
         self.assertIn("transcription_checklist.ready_for_beta_evidence", content)
         self.assertIn("No audio bytes", content)
         self.assertNotIn(str(ROOT), content)
@@ -470,9 +511,13 @@ class BetaReadinessTests(unittest.TestCase):
                     "project": "AuralisVoiceKit",
                     "real_transcription_requested": True,
                     "audio_confirmed_non_sensitive": True,
+                    "quality_review_confirmed": True,
                     "passed": True,
                     "quality": {"enabled": True, "passed": True, "min_word_accuracy": 0.2},
-                    "transcription_checklist": {"ready_for_beta_evidence": True},
+                    "transcription_checklist": {
+                        "quality_review_confirmed": True,
+                        "ready_for_beta_evidence": True,
+                    },
                 },
             )
             _write_json(
@@ -637,9 +682,13 @@ class BetaReadinessTests(unittest.TestCase):
                     "project": "AuralisVoiceKit",
                     "real_transcription_requested": True,
                     "audio_confirmed_non_sensitive": True,
+                    "quality_review_confirmed": True,
                     "passed": True,
                     "quality": {"enabled": True, "passed": True, "min_word_accuracy": 0.75},
-                    "transcription_checklist": {"ready_for_beta_evidence": True},
+                    "transcription_checklist": {
+                        "quality_review_confirmed": True,
+                        "ready_for_beta_evidence": True,
+                    },
                 },
             )
 
@@ -705,9 +754,13 @@ class BetaReadinessTests(unittest.TestCase):
                     "project": "AuralisVoiceKit",
                     "real_transcription_requested": True,
                     "audio_confirmed_non_sensitive": True,
+                    "quality_review_confirmed": True,
                     "passed": True,
                     "quality": {"enabled": True, "passed": True, "min_word_accuracy": 0.75},
-                    "transcription_checklist": {"ready_for_beta_evidence": True},
+                    "transcription_checklist": {
+                        "quality_review_confirmed": True,
+                        "ready_for_beta_evidence": True,
+                    },
                 },
             )
 

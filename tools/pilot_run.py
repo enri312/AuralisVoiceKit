@@ -250,9 +250,10 @@ def _manual_pilot_steps() -> list[dict[str, str]]:
                 "python tools/transcription_pilot.py --real-transcription --audio sample.mp3 "
                 "--audio-non-sensitive --backend whisper --model base --normalize "
                 "--expected-text \"Hola desde AuralisVoiceKit\" --min-word-accuracy 0.75 "
-                "--min-audio-seconds 0.2 --max-audio-seconds 60 --json"
+                "--min-audio-seconds 0.2 --max-audio-seconds 60 "
+                "--confirm-quality-reviewed --json"
             ),
-            "reason": "Uses a real non-sensitive audio file and may download or run a local model.",
+            "reason": "Uses a real non-sensitive audio file and requires human quality review before beta evidence.",
         },
         {
             "name": "record-findings",
@@ -545,13 +546,14 @@ def _platform_pilot_matrix(blockers: list[str]) -> list[dict[str, Any]]:
                 "python tools/transcription_pilot.py --real-transcription --audio sample.mp3 "
                 "--audio-non-sensitive --backend whisper --model base --normalize "
                 "--expected-text \"Hola desde AuralisVoiceKit\" --min-word-accuracy 0.75 "
-                "--min-audio-seconds 0.2 --max-audio-seconds 60 --json"
+                "--min-audio-seconds 0.2 --max-audio-seconds 60 "
+                "--confirm-quality-reviewed --json"
             ),
             "artifact": "transcription-pilot-report.json",
             "requires_hardware": False,
             "requires_operator": False,
             "requires_non_sensitive_audio": True,
-            "notes": "Usar un MP3 propio no sensible y una referencia redactable para calidad.",
+            "notes": "Usar un MP3 propio no sensible, una referencia redactable y confirmar revision humana de calidad.",
         },
     ]
     for row in rows:
