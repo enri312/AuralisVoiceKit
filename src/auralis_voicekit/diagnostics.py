@@ -23,6 +23,7 @@ from .config import VoiceKitConfig
 from .exceptions import AudioSourceError, BackendNotAvailable
 from .kit import AuralisVoiceKit
 from .models import AudioChunk
+from .windows_audio import windows_audio_error_hint
 
 
 class DiagnosticStatus(str, Enum):
@@ -83,6 +84,24 @@ def _platform_hint(system: str) -> str:
     if system == "Darwin":
         return "On macOS, grant microphone permission to the terminal or app running Python."
     return "Use the wav backend for offline tests when real audio devices are unavailable."
+
+
+def _capture_failure_hint(
+    exc: Exception,
+    *,
+    system: str,
+    capture_backend: str,
+    input_device: str | int | None,
+) -> tuple[str, dict[str, Any]]:
+    if system == "Windows":
+        hint = windows_audio_error_hint(
+            exc,
+            backend=capture_backend,
+            device=input_device,
+            system=system,
+        )
+        return hint.format_hint(), {"windows_audio_hint": hint.to_dict()}
+    return _platform_hint(system), {}
 
 
 def _check_python() -> DiagnosticCheck:
@@ -282,11 +301,18 @@ def _capture_test_check(
         started = True
         time.sleep(seconds)
     except Exception as exc:
+        system = platform.system()
+        hint, hint_details = _capture_failure_hint(
+            exc,
+            system=system,
+            capture_backend=capture_backend,
+            input_device=input_device,
+        )
         return DiagnosticCheck(
             name=name,
             status=DiagnosticStatus.ERROR,
             message=f"Capture backend {capture_backend!r} could not be opened: {exc}",
-            hint=_platform_hint(platform.system()),
+            hint=hint,
             details={
                 "backend": capture_backend,
                 "input_device": input_device,
@@ -295,6 +321,7 @@ def _capture_test_check(
                 "error_type": type(exc).__name__,
                 **config_details,
                 **backend_details,
+                **hint_details,
             },
         )
     finally:

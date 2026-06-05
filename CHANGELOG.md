@@ -6,6 +6,20 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.26.0] - 2026-06-05
+
+### Agregado
+
+- Helper publico `windows_audio_error_hint()` para clasificar errores comunes de captura de audio en Windows.
+- Modelo `WindowsAudioErrorHint` con categoria, mensaje, acciones recomendadas, backend, dispositivo y error original.
+- `auralis doctor --capture-test` agrega `windows_audio_hint` estructurado cuando falla una captura en Windows.
+- Pruebas unitarias para errores de permisos, dispositivo invalido, host API y diagnostico Windows.
+
+### Cambiado
+
+- README, compatibilidad, referencia API, documentacion HTML y roadmap documentan los nuevos mensajes accionables para audio Windows.
+- El roadmap mueve la prioridad inmediata a benchmarks exportables a archivo JSON/CSV.
+
 ## [0.25.0] - 2026-06-05
 
 ### Agregado

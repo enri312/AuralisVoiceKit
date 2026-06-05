@@ -45,6 +45,7 @@ La meta no es competir con todos los motores de voz a la vez. La meta es constru
 | Privacidad y logs | Guia inicial y exportacion JSONL sanitizada |
 | Backends de salida custom | Guia inicial y ejemplo en memoria |
 | Automatizacion de estabilidad | Gate inicial para pilotos reales |
+| Mensajes Windows audio | Helper inicial para errores comunes |
 
 ## Fase 0 - Base del proyecto
 
@@ -178,7 +179,7 @@ Entregables:
 - Mejor diagnostico de permisos de microfono. Estado: inicial con sugerencias por OS y test de apertura bajo demanda.
 - Mejor reporte de dispositivos y host APIs. Estado: inicial con snapshot WASAPI.
 - Investigacion de backend WASAPI dedicado. Estado: inicial.
-- Mensajes especificos para errores comunes de audio en Windows.
+- Mensajes especificos para errores comunes de audio en Windows. Estado: inicial con `windows_audio_error_hint()`.
 - Guia de instalacion para PowerShell.
 
 Criterio de salida:
@@ -268,11 +269,12 @@ Criterio de salida:
 - Ejemplo PyPI sin extras. Estado: inicial.
 - Backends de salida personalizados. Estado: guia y ejemplo inicial.
 - Automatizacion de estabilidad. Estado: gate inicial listo para CI y uso local.
+- Mensajes Windows audio. Estado: inicial para permisos, dispositivo, sample rate, canales y host API.
 
 ## Prioridad inmediata
 
-1. Ampliar mensajes especificos para errores comunes de audio en Windows.
-2. Agregar benchmarks exportables a archivo JSON/CSV.
-3. Preparar un ejemplo de salida de voz con backend `system`.
-4. Agregar ejemplos completos de asistente local con logs sanitizados.
-5. Ejecutar pilotos reales guiados por `tools/stability_gate.py`.
+1. Agregar benchmarks exportables a archivo JSON/CSV.
+2. Preparar un ejemplo de salida de voz con backend `system`.
+3. Agregar ejemplos completos de asistente local con logs sanitizados.
+4. Ejecutar pilotos reales guiados por `tools/stability_gate.py`.
+5. Ampliar diagnostico Windows con casos reales reportados por pilotos.

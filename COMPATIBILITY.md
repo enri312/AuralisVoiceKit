@@ -9,6 +9,8 @@ El backend `sounddevice` es opcional. Segun la documentacion de `python-sounddev
 
 El backend `wasapi` es opcional y solo funciona en Windows. Reutiliza el extra `sounddevice`, pero filtra dispositivos por la host API WASAPI para dar una ruta mas directa al stack moderno de audio de Windows. `auralis doctor --devices --backend wasapi --json` incluye un snapshot con host APIs, indices WASAPI, dispositivo default y dispositivo WASAPI seleccionado.
 
+Cuando `auralis doctor --capture-test` falla en Windows, el reporte incluye `windows_audio_hint` con categoria y acciones recomendadas. Cubre permisos de microfono, dispositivo invalido, sample rate, canales, errores de host API y dependencia `sounddevice` ausente.
+
 El backend `openai` tambien es opcional. Usa el cliente oficial de OpenAI y no agrega dependencias nativas de audio al core. Requiere una variable `OPENAI_API_KEY` configurada por el usuario cuando se llama al backend real.
 
 El backend `whisper` tambien es opcional. Usa `faster-whisper` para transcripcion local, puede descargar modelos en el primer uso y puede requerir dependencias de ML mas pesadas segun plataforma. No cambia el paquete base.
@@ -72,6 +74,19 @@ py -m auralis_voicekit.cli doctor --devices
 py -m auralis_voicekit.cli devices --backend wasapi
 py -m auralis_voicekit.cli doctor --devices --backend wasapi --json
 py -m auralis_voicekit.cli doctor --capture-test --backend wasapi --device default --json
+```
+
+Clasificacion manual desde Python:
+
+```python
+from auralis_voicekit import windows_audio_error_hint
+
+hint = windows_audio_error_hint(
+    "Unanticipated host error [PaErrorCode -9999]",
+    backend="wasapi",
+    system="Windows",
+)
+print(hint.to_dict())
 ```
 
 Con transcripcion por OpenAI:

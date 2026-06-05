@@ -54,6 +54,7 @@ from .kit import AuralisVoiceKit
 from .models import AudioChunk, AudioDevice, AudioEncoding, AudioFormat, TranscriptResult
 from .privacy import PrivacyEventLogger, PrivacyLogConfig, event_to_log_record, sanitize_event_payload
 from .session import VoiceSession, VoiceSessionConfig, VoiceTurn
+from .windows_audio import WindowsAudioErrorHint, windows_audio_error_hint
 
 __all__ = [
     "AuralisError",
@@ -84,6 +85,7 @@ __all__ = [
     "VoiceSession",
     "VoiceSessionConfig",
     "VoiceTurn",
+    "WindowsAudioErrorHint",
     "NoiseProfile",
     "VoiceActivityConfig",
     "VoiceActivityDetector",
@@ -118,4 +120,5 @@ __all__ = [
     "sanitize_event_payload",
     "segment_voice_pcm16",
     "write_wav",
+    "windows_audio_error_hint",
 ]

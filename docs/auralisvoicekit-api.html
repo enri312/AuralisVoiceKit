@@ -553,11 +553,26 @@ debug_config = PrivacyLogConfig(privacy_mode=False)</code></pre>
       <section id="diagnostics">
         <h2>Diagnostico</h2>
         <p><code>run_doctor()</code> genera un <code>DoctorReport</code> con checks estructurados. La CLI usa la misma API.</p>
-        <pre><code>from auralis_voicekit import DiagnosticCheck, DiagnosticStatus, DoctorReport, run_doctor
+        <pre><code>from auralis_voicekit import (
+    DiagnosticCheck,
+    DiagnosticStatus,
+    DoctorReport,
+    WindowsAudioErrorHint,
+    run_doctor,
+    windows_audio_error_hint,
+)
 
 report = run_doctor(include_devices=True, capture_backend="wav")
 print(report.status)
-print(report.to_dict())</code></pre>
+print(report.to_dict())
+
+hint: WindowsAudioErrorHint = windows_audio_error_hint(
+    "PortAudioError: Invalid device [PaErrorCode -9996]",
+    backend="wasapi",
+    device="default",
+    system="Windows",
+)
+print(hint.format_hint())</code></pre>
       </section>
 
       <section id="benchmarks">
@@ -742,7 +757,7 @@ python tools/stability_gate.py --min-stage pilot</code></pre>
             </tr>
             <tr>
               <td>Diagnostico</td>
-              <td><code>DiagnosticCheck</code>, <code>DiagnosticStatus</code>, <code>DoctorReport</code>, <code>run_doctor</code></td>
+              <td><code>DiagnosticCheck</code>, <code>DiagnosticStatus</code>, <code>DoctorReport</code>, <code>WindowsAudioErrorHint</code>, <code>run_doctor</code>, <code>windows_audio_error_hint</code></td>
             </tr>
             <tr>
               <td>Benchmarks</td>

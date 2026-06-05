@@ -104,6 +104,23 @@ class DiagnosticsTests(unittest.TestCase):
             )
         )
 
+    def test_run_doctor_adds_windows_audio_hint_for_capture_failure(self):
+        with patch("auralis_voicekit.diagnostics.platform.system", return_value="Windows"):
+            report = run_doctor(
+                include_capture_test=True,
+                capture_backend="missing",
+                capture_test_seconds=0.001,
+                capture_device="default",
+            )
+
+        checks = {check.name: check for check in report.checks}
+        check = checks["capture-test:missing"]
+        self.assertEqual(check.status, DiagnosticStatus.ERROR)
+        self.assertIn("backend selection failed", check.hint)
+        self.assertIn("windows_audio_hint", check.details)
+        self.assertEqual(check.details["windows_audio_hint"]["category"], "backend_selection")
+        self.assertEqual(check.details["windows_audio_hint"]["device"], "default")
+
     def test_run_doctor_rejects_invalid_capture_test_duration(self):
         report = run_doctor(
             include_capture_test=True,

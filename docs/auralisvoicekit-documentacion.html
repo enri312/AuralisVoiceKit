@@ -518,6 +518,15 @@ auralis doctor --capture-test --backend sounddevice --device default --json
 auralis doctor --wav sample.wav
 auralis doctor --json</code></pre>
         <p>Los warnings no bloquean el core. Por ejemplo, <code>sounddevice</code> puede faltar y aun asi funcionar el backend <code>wav</code>. El flag <code>--capture-test</code> intenta abrir brevemente el backend seleccionado para diagnosticar permisos o errores de dispositivo.</p>
+        <p>En Windows, los fallos de captura incluyen <code>windows_audio_hint</code> con acciones para permisos de microfono, dispositivo invalido, sample rate, canales y errores de host API.</p>
+        <pre><code>from auralis_voicekit import windows_audio_error_hint
+
+hint = windows_audio_error_hint(
+    "Unanticipated host error [PaErrorCode -9999]",
+    backend="wasapi",
+    system="Windows",
+)
+print(hint.format_hint())</code></pre>
         <h3>Gate de estabilidad</h3>
         <p><code>tools/stability_gate.py</code> automatiza el criterio de avance: alpha, piloto real o estable. En CI se ejecuta con requisito minimo <code>pilot</code>.</p>
         <pre><code>python tools/stability_gate.py --json
@@ -731,7 +740,7 @@ gh workflow run publish-pypi.yml -f index=pypi -f tag=v0.14.0</code></pre>
             <tr>
               <td>5+</td>
               <td>Loop de asistente, Windows primero, CI, beta publica y version 1.0.</td>
-              <td>Loop inicial cancelable, pruebas MP3/FLAC, errores ffmpeg accionables, benchmarks offline y Whisper, referencia API inicial, PyPI preparada, quickstart sin extras, privacidad/logs inicial, salida custom inicial, gate de estabilidad y salida system configurable</td>
+              <td>Loop inicial cancelable, pruebas MP3/FLAC, errores ffmpeg accionables, mensajes Windows audio iniciales, benchmarks offline y Whisper, referencia API inicial, PyPI preparada, quickstart sin extras, privacidad/logs inicial, salida custom inicial, gate de estabilidad y salida system configurable</td>
             </tr>
           </tbody>
         </table>
