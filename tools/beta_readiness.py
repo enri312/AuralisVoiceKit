@@ -535,6 +535,11 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="audit --evidence artifacts against beta requirements instead of readiness status",
     )
+    parser.add_argument(
+        "--fail-on-audit-gaps",
+        action="store_true",
+        help="exit with code 1 when --audit-evidence has missing blockers or ignored artifacts",
+    )
     args = parser.parse_args(argv)
 
     if args.requirements:
@@ -555,6 +560,8 @@ def main(argv: list[str] | None = None) -> int:
             print(json.dumps(report, indent=2, sort_keys=True))
         elif not args.output:
             print(format_audit_markdown(report))
+        if args.fail_on_audit_gaps and (report["missing_blockers"] or report["ignored_count"]):
+            return 1
         return 0
 
     report = build_beta_readiness_report(args.root, evidence_paths=args.evidence)

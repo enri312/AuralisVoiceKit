@@ -6,6 +6,17 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.46.0] - 2026-06-05
+
+### Agregado
+
+- Flag `tools/beta_readiness.py --fail-on-audit-gaps` para convertir `--audit-evidence` en gate estricto cuando faltan blockers o hay artifacts ignorados.
+- Pruebas CLI para auditoria estricta con blockers pendientes, artifacts ignorados y evidencias JSON completas.
+
+### Cambiado
+
+- README, `PILOTS.md`, docs HTML, roadmap y gate de estabilidad documentan la auditoria estricta de evidencias.
+
 ## [0.45.0] - 2026-06-05
 
 ### Agregado

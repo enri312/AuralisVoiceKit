@@ -423,6 +423,39 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertFalse(payload["ready_for_beta_by_evidence"])
         self.assertIn("real_transcription_quality", payload["missing_blockers"])
 
+    def test_cli_audit_evidence_can_fail_on_missing_blockers(self):
+        module = _load_beta_readiness()
+
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            exit_code = module.main(["--audit-evidence", "--json", "--fail-on-audit-gaps"])
+        payload = json.loads(output.getvalue())
+
+        self.assertEqual(exit_code, 1)
+        self.assertEqual(payload["accepted_count"], 0)
+        self.assertFalse(payload["ready_for_beta_by_evidence"])
+        self.assertIn("real_transcription_quality", payload["missing_blockers"])
+
+    def test_cli_audit_evidence_can_fail_on_ignored_artifacts(self):
+        module = _load_beta_readiness()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            evidence_root = Path(tmpdir)
+            _write_json(
+                evidence_root / "manual-pilot-report.json",
+                {"system": "Linux", "hardware_capture_tested": True, "passed": True},
+            )
+            output = io.StringIO()
+            with contextlib.redirect_stdout(output):
+                exit_code = module.main(
+                    ["--audit-evidence", "--evidence", str(evidence_root), "--json", "--fail-on-audit-gaps"]
+                )
+            payload = json.loads(output.getvalue())
+
+        self.assertEqual(exit_code, 1)
+        self.assertEqual(payload["ignored_count"], 1)
+        self.assertEqual(payload["ignored_details"][0]["reason"], "missing_project")
+
     def test_evidence_audit_can_mark_all_json_blockers_satisfied(self):
         module = _load_beta_readiness()
 
@@ -472,6 +505,62 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertTrue(report["ready_for_beta_by_evidence"])
         self.assertEqual(report["missing_blockers"], [])
         self.assertEqual(set(report["satisfied_blockers"]), set(report["required_blockers"]))
+
+    def test_cli_audit_evidence_strict_passes_when_all_json_blockers_are_satisfied(self):
+        module = _load_beta_readiness()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            evidence_root = Path(tmpdir)
+            _write_json(
+                evidence_root / "windows" / "manual-pilot-report.json",
+                {
+                    "project": "AuralisVoiceKit",
+                    "system": "Windows",
+                    "capture_backend": "wasapi",
+                    "hardware_capture_tested": True,
+                    "passed": True,
+                },
+            )
+            _write_json(
+                evidence_root / "linux" / "manual-pilot-report.json",
+                {"project": "AuralisVoiceKit", "system": "Linux", "hardware_capture_tested": True, "passed": True},
+            )
+            _write_json(
+                evidence_root / "macos" / "manual-pilot-report.json",
+                {"project": "AuralisVoiceKit", "system": "Darwin", "hardware_capture_tested": True, "passed": True},
+            )
+            _write_json(
+                evidence_root / "output" / "output-pilot-report.json",
+                {
+                    "project": "AuralisVoiceKit",
+                    "backend": "system",
+                    "real_audio_requested": True,
+                    "operator_confirmation_status": "confirmed",
+                    "passed": True,
+                },
+            )
+            _write_json(
+                evidence_root / "transcription" / "transcription-pilot-report.json",
+                {
+                    "project": "AuralisVoiceKit",
+                    "real_transcription_requested": True,
+                    "audio_confirmed_non_sensitive": True,
+                    "passed": True,
+                    "quality": {"enabled": True, "passed": True, "min_word_accuracy": 0.75},
+                },
+            )
+
+            output = io.StringIO()
+            with contextlib.redirect_stdout(output):
+                exit_code = module.main(
+                    ["--audit-evidence", "--evidence", str(evidence_root), "--json", "--fail-on-audit-gaps"]
+                )
+            payload = json.loads(output.getvalue())
+
+        self.assertEqual(exit_code, 0)
+        self.assertTrue(payload["ready_for_beta_by_evidence"])
+        self.assertEqual(payload["missing_blockers"], [])
+        self.assertEqual(payload["ignored_count"], 0)
 
 
 def _write_json(path: Path, payload: dict):

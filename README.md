@@ -649,18 +649,19 @@ Hoy el gate exige documentacion clave, privacidad/logs, guia de salida custom, e
 
 Ruta portable del gate: `tools/stability_gate.py`.
 
-Para evaluar si ya corresponde declarar beta publica, usa el checklist conservador. Por defecto no falla aunque existan blockers; con `--fail-on-blockers` sirve para auditorias estrictas:
+Para evaluar si ya corresponde declarar beta publica, usa el checklist conservador. Por defecto no falla aunque existan blockers; con `--fail-on-blockers` sirve para auditorias estrictas del checklist y con `--fail-on-audit-gaps` convierte la auditoria JSON en gate estricto:
 
 ```powershell
 py tools\beta_readiness.py --json
 py tools\beta_readiness.py --output BETA_CHECKLIST.md
 py tools\beta_readiness.py --requirements
 py tools\beta_readiness.py --audit-evidence --evidence pilot_runs\manual\linux --json
+py tools\beta_readiness.py --audit-evidence --evidence pilot_runs\manual --evidence pilot_runs\output --evidence pilot_runs\transcription --fail-on-audit-gaps --json
 py tools\beta_readiness.py --evidence pilot_runs\manual\linux --evidence pilot_runs\output\real --json
 py tools\beta_readiness.py --fail-on-blockers --json
 ```
 
-El checklist generado vive en `BETA_CHECKLIST.md` y separa dos estados: listo para pilotos reales no significa listo para beta. `--requirements` imprime los campos JSON necesarios para cada blocker antes de ejecutar pilotos reales. `--audit-evidence` revisa artifacts reales, resume blockers cerrados/pendientes y explica que campo falta. `--evidence` acepta archivos o carpetas con JSON generados por `tools\manual_pilot.py`, `tools\output_pilot.py` y `tools\transcription_pilot.py`; solo cuenta artifacts con `project: AuralisVoiceKit`, reporta evidencias ignoradas con motivo (`missing_project`, `wrong_project`, `not_json_object`) y usa campos estructurados/nombres de artifacts, no transcripciones ni audio. English: beta readiness requires real pilot evidence, explains ignored artifacts, and never copies private transcripts or audio.
+El checklist generado vive en `BETA_CHECKLIST.md` y separa dos estados: listo para pilotos reales no significa listo para beta. `--requirements` imprime los campos JSON necesarios para cada blocker antes de ejecutar pilotos reales. `--audit-evidence` revisa artifacts reales, resume blockers cerrados/pendientes y explica que campo falta; `--fail-on-audit-gaps` devuelve codigo 1 si todavia faltan blockers o si algun artifact fue ignorado. `--evidence` acepta archivos o carpetas con JSON generados por `tools\manual_pilot.py`, `tools\output_pilot.py` y `tools\transcription_pilot.py`; solo cuenta artifacts con `project: AuralisVoiceKit`, reporta evidencias ignoradas con motivo (`missing_project`, `wrong_project`, `not_json_object`) y usa campos estructurados/nombres de artifacts, no transcripciones ni audio. English: beta readiness requires real pilot evidence, can fail CI on audit gaps, explains ignored artifacts, and never copies private transcripts or audio.
 
 ## Pilotos seguros
 
