@@ -175,8 +175,11 @@ def run_safe_pilot(
         "next_beta_evidence_steps": next_beta_evidence_steps,
         "artifacts": artifacts,
     }
+    plan_path = output / "pilot-plan.md"
     report_path = output / "pilot-report.json"
+    artifacts["pilot_plan"] = str(plan_path)
     artifacts["pilot_report"] = str(report_path)
+    plan_path.write_text(_format_pilot_plan_markdown(report), encoding="utf-8")
     report_path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return report
 
@@ -262,10 +265,97 @@ def _next_beta_evidence_steps(beta_module: Any, blockers: list[str]) -> list[dic
                 "artifact": requirement["artifact"],
                 "command": requirement["command"],
                 "required_fields": [field["path"] for field in requirement["fields"]],
-                "reason": "Required real pilot evidence before public beta.",
+                "reason": "Evidencia real requerida antes de beta publica.",
             }
         )
     return steps
+
+
+def _format_pilot_plan_markdown(report: dict[str, Any]) -> str:
+    beta = report["beta_readiness"]
+    lines = [
+        "# Plan de pilotos AuralisVoiceKit",
+        "",
+        "Este artefacto resume el siguiente piloto real sin incluir audio, transcripciones, rutas locales completas ni nombres reales de dispositivos.",
+        "",
+        "## Estado",
+        "",
+        f"- Version: `{report['version']}`",
+        f"- Stage: `{report['stage']}`",
+        f"- Piloto seguro paso: `{str(report['safe_automated_pilot']['passed']).lower()}`",
+        f"- Listo para pilotos reales: `{str(report['gate']['ready_for_real_world_pilots']).lower()}`",
+        f"- Listo para beta: `{str(beta['ready_for_beta']).lower()}`",
+        f"- Evidencias JSON aceptadas: `{beta['evidence_count']}`",
+        f"- Evidencias JSON ignoradas: `{beta['ignored_evidence_count']}`",
+        f"- Blockers beta: {_format_inline_list(beta['blockers'])}",
+        f"- Blockers JSON pendientes: {_format_inline_list(beta['missing_json_blockers'])}",
+        "",
+        "## Checks seguros",
+        "",
+    ]
+    for step in report["steps"]:
+        marker = "x" if step["status"] == "passed" else " "
+        lines.append(f"- [{marker}] `{step['name']}`")
+    lines.extend(
+        [
+            "",
+            "## Proximas evidencias beta",
+            "",
+        ]
+    )
+    if report["next_beta_evidence_steps"]:
+        for step in report["next_beta_evidence_steps"]:
+            lines.extend(
+                [
+                    f"### {step['title']}",
+                    "",
+                    f"- Blocker: `{step['name']}`",
+                    f"- Artifact esperado: `{step['artifact']}`",
+                    f"- Comando: `{step['command']}`",
+                    f"- Campos requeridos: {_format_inline_list(step['required_fields'])}",
+                    f"- Motivo: {step['reason']}",
+                    "",
+                ]
+            )
+    else:
+        lines.extend(["- No quedan evidencias beta pendientes segun los artifacts JSON actuales.", ""])
+    lines.extend(
+        [
+            "## Auditoria estricta",
+            "",
+            f"- Comando: `{beta['strict_audit_command']}`",
+            "",
+            "## Pasos manuales",
+            "",
+        ]
+    )
+    for step in report["manual_pilot_steps"]:
+        lines.extend(
+            [
+                f"### {step['name']}",
+                "",
+                f"- Comando: `{step['command']}`",
+                f"- Motivo: {step['reason']}",
+                "",
+            ]
+        )
+    lines.extend(
+        [
+            "## Privacidad",
+            "",
+            "- Este plan usa nombres de artifacts y campos estructurados.",
+            "- No copia audio, transcripciones, texto esperado real completo, rutas locales completas ni nombres reales de dispositivos.",
+            "- Reemplaza `sample.mp3` por un archivo propio no sensible antes de ejecutar transcripcion real.",
+            "",
+        ]
+    )
+    return "\n".join(lines)
+
+
+def _format_inline_list(values: list[str]) -> str:
+    if not values:
+        return "`ninguno`"
+    return ", ".join(f"`{value}`" for value in values)
 
 
 def _add_step(
@@ -313,6 +403,7 @@ def _print_report(report: dict[str, Any]) -> None:
     print("Next beta evidence steps:")
     for step in report["next_beta_evidence_steps"]:
         print(f"- {step['name']}: {step['command']}")
+    print(f"Pilot plan: {Path(report['artifacts']['pilot_plan']).name}")
     print("Manual pilot steps:")
     for step in report["manual_pilot_steps"]:
         print(f"- {step['name']}: {step['command']}")

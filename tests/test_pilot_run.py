@@ -26,16 +26,25 @@ class PilotRunTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             report = module.run_safe_pilot(root=ROOT, output_dir=tmpdir)
             report_path = Path(report["artifacts"]["pilot_report"])
+            plan_path = Path(report["artifacts"]["pilot_plan"])
 
             self.assertTrue(report_path.exists())
+            self.assertTrue(plan_path.exists())
             self.assertTrue(Path(report["artifacts"]["assistant_log"]).exists())
             self.assertTrue(Path(report["artifacts"]["benchmark_json"]).exists())
             self.assertTrue(Path(report["artifacts"]["benchmark_csv"]).exists())
             persisted = json.loads(report_path.read_text(encoding="utf-8"))
+            plan = plan_path.read_text(encoding="utf-8")
 
         self.assertTrue(report["safe_automated_pilot"]["passed"])
         self.assertFalse(report["safe_automated_pilot"]["hardware_used"])
         self.assertEqual(persisted["version"], report["version"])
+        self.assertIn("pilot_plan", persisted["artifacts"])
+        self.assertIn("Plan de pilotos AuralisVoiceKit", plan)
+        self.assertIn("Proximas evidencias beta", plan)
+        self.assertIn("--confirm-audible", plan)
+        self.assertIn("sample.mp3", plan)
+        self.assertNotIn(str(tmpdir), plan)
         self.assertEqual({step["status"] for step in report["steps"]}, {"passed"})
         self.assertFalse(report["beta_readiness"]["ready_for_beta"])
         self.assertIn("real_transcription_quality", report["beta_readiness"]["blockers"])
@@ -57,6 +66,7 @@ class PilotRunTests(unittest.TestCase):
         self.assertTrue(payload["safe_automated_pilot"]["passed"])
         self.assertIn("next_beta_evidence_steps", payload)
         self.assertIn("beta_readiness", payload)
+        self.assertIn("pilot_plan", payload["artifacts"])
 
     def test_safe_pilot_accepts_beta_evidence_paths(self):
         module = _load_pilot_run()
@@ -72,10 +82,12 @@ class PilotRunTests(unittest.TestCase):
                 output_dir=Path(tmpdir) / "pilot",
                 evidence_paths=[evidence_root],
             )
+            plan = Path(report["artifacts"]["pilot_plan"]).read_text(encoding="utf-8")
 
         self.assertEqual(report["beta_readiness"]["evidence_count"], 1)
         self.assertNotIn("ubuntu_linux_capture", report["beta_readiness"]["blockers"])
         self.assertNotIn("ubuntu_linux_capture", {step["name"] for step in report["next_beta_evidence_steps"]})
+        self.assertNotIn("Ubuntu/Linux capture pilot", plan)
 
 
 def _write_json(path: Path, payload: dict):

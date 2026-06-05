@@ -6,6 +6,17 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.48.0] - 2026-06-05
+
+### Agregado
+
+- Artifact `pilot-plan.md` generado por `tools/pilot_run.py` con estado beta, checks seguros, comandos reales pendientes y campos JSON requeridos.
+- Pruebas para verificar que el plan de pilotos no expone rutas locales completas y contiene comandos beta accionables.
+
+### Cambiado
+
+- README, `PILOTS.md`, docs HTML, roadmap y gate de estabilidad documentan `pilot-plan.md`.
+
 ## [0.47.0] - 2026-06-05
 
 ### Agregado
