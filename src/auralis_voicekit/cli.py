@@ -21,6 +21,7 @@ from .benchmarks import (
     BenchmarkReport,
     run_offline_benchmarks,
     run_whisper_comparison_benchmarks,
+    write_benchmark_report,
 )
 from .config import VoiceKitConfig
 from .diagnostics import DiagnosticStatus, run_doctor
@@ -512,6 +513,8 @@ def _run_benchmark(
     beam_size: int,
     vad_filter: bool,
     json_output: bool,
+    output: str | None,
+    output_format: str | None,
 ) -> int:
     try:
         report = run_offline_benchmarks(
@@ -535,6 +538,11 @@ def _run_benchmark(
             transcription_beam_size=beam_size,
             transcription_vad_filter=vad_filter,
         )
+        written_path = (
+            write_benchmark_report(report, output, format=output_format)
+            if output is not None
+            else None
+        )
     except (BackendNotAvailable, TranscriptionError, ValueError) as exc:
         if json_output:
             print(json.dumps({"error": str(exc)}, indent=2, sort_keys=True))
@@ -546,6 +554,8 @@ def _run_benchmark(
         print(json.dumps(report.to_dict(), indent=2, sort_keys=True))
     else:
         _print_benchmark_report(report)
+        if written_path is not None:
+            print(f"\nWrote benchmark report: {written_path}")
     return 0
 
 
@@ -569,6 +579,8 @@ def _run_whisper_benchmark(
     max_combinations: int,
     language: str,
     json_output: bool,
+    output: str | None,
+    output_format: str | None,
 ) -> int:
     try:
         report = run_whisper_comparison_benchmarks(
@@ -592,6 +604,11 @@ def _run_whisper_benchmark(
             ),
             language=language,
         )
+        written_path = (
+            write_benchmark_report(report, output, format=output_format)
+            if output is not None
+            else None
+        )
     except (BackendNotAvailable, TranscriptionError, ValueError) as exc:
         if json_output:
             print(json.dumps({"error": str(exc)}, indent=2, sort_keys=True))
@@ -603,6 +620,8 @@ def _run_whisper_benchmark(
         print(json.dumps(report.to_dict(), indent=2, sort_keys=True))
     else:
         _print_comparison_report(report)
+        if written_path is not None:
+            print(f"\nWrote benchmark report: {written_path}")
     return 0
 
 
@@ -692,6 +711,12 @@ def main(argv: list[str] | None = None) -> int:
     benchmark_parser.add_argument("--beam-size", type=int, default=5, help="local whisper beam size")
     benchmark_parser.add_argument("--vad-filter", action="store_true", help="enable local whisper VAD filter")
     benchmark_parser.add_argument("--json", action="store_true", help="print a JSON report")
+    benchmark_parser.add_argument("--output", help="write benchmark report to a JSON or CSV file")
+    benchmark_parser.add_argument(
+        "--output-format",
+        choices=("json", "csv"),
+        help="output file format; defaults to the file extension",
+    )
     whisper_benchmark_parser = subparsers.add_parser(
         "benchmark-whisper",
         help="compare local faster-whisper configurations",
@@ -740,6 +765,12 @@ def main(argv: list[str] | None = None) -> int:
     whisper_benchmark_parser.add_argument("--max-combinations", type=int, default=8, help="safety limit")
     whisper_benchmark_parser.add_argument("--language", default="es", help="audio language hint")
     whisper_benchmark_parser.add_argument("--json", action="store_true", help="print a JSON report")
+    whisper_benchmark_parser.add_argument("--output", help="write benchmark report to a JSON or CSV file")
+    whisper_benchmark_parser.add_argument(
+        "--output-format",
+        choices=("json", "csv"),
+        help="output file format; defaults to the file extension",
+    )
     transcribe_parser = subparsers.add_parser("transcribe", help="transcribe an audio file")
     transcribe_parser.add_argument("path", help="path to a WAV or ffmpeg-supported audio file")
     transcribe_parser.add_argument(
@@ -886,6 +917,8 @@ def main(argv: list[str] | None = None) -> int:
             beam_size=args.beam_size,
             vad_filter=args.vad_filter,
             json_output=args.json,
+            output=args.output,
+            output_format=args.output_format,
         )
     if args.command == "benchmark-whisper":
         return _run_whisper_benchmark(
@@ -907,6 +940,8 @@ def main(argv: list[str] | None = None) -> int:
             max_combinations=args.max_combinations,
             language=args.language,
             json_output=args.json,
+            output=args.output,
+            output_format=args.output_format,
         )
     if args.command == "transcribe":
         return _transcribe_audio(

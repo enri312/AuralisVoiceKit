@@ -12,7 +12,7 @@ English: AuralisVoiceKit is a modern voice toolkit for Python assistants, local 
 
 El objetivo principal es evitar que la captura de microfono dependa obligatoriamente de PyAudio o de wheels que tardan en llegar a las versiones nuevas de Python. El paquete base debe poder instalarse de forma liviana, sin compiladores y sin dependencias nativas obligatorias. Para MP3, FLAC y formatos comprimidos, AuralisVoiceKit usa `ffmpeg` como herramienta externa opcional.
 
-> Estado actual: alpha tecnica con gate de pilotos reales. El repositorio ya define el core, los contratos de backends, captura real inicial, diagnostico reforzado para WASAPI, flujo WAV offline, transcripcion inicial por API y local opcional, sesiones de voz iniciales, una CLI de diagnostico, benchmarks offline y comparativos para Whisper, errores accionables para `ffmpeg`, mensajes accionables para audio Windows, documentacion estatica, salida de voz del sistema con voces configurables, salida custom en memoria, quickstart para PyPI sin extras, guia de privacidad/logs, pruebas unitarias y pruebas reales de MP3/FLAC. Los backends reales se iran agregando por etapas.
+> Estado actual: alpha tecnica con gate de pilotos reales. El repositorio ya define el core, los contratos de backends, captura real inicial, diagnostico reforzado para WASAPI, flujo WAV offline, transcripcion inicial por API y local opcional, sesiones de voz iniciales, una CLI de diagnostico, benchmarks offline y comparativos para Whisper exportables a JSON/CSV, errores accionables para `ffmpeg`, mensajes accionables para audio Windows, documentacion estatica, salida de voz del sistema con voces configurables, salida custom en memoria, quickstart para PyPI sin extras, guia de privacidad/logs, pruebas unitarias y pruebas reales de MP3/FLAC. Los backends reales se iran agregando por etapas.
 
 ## Problema que resuelve
 
@@ -503,22 +503,32 @@ La salida distingue entre `ok`, `warning` y `error`. Los warnings no bloquean el
 ```powershell
 auralis benchmark
 auralis benchmark --iterations 10 --duration 3 --json
+auralis benchmark --iterations 10 --output reports/offline-benchmark.json
+auralis benchmark --iterations 10 --output reports/offline-benchmark.csv --output-format csv
 auralis benchmark --transcription-backend whisper --model base --iterations 3
 auralis benchmark-whisper --models tiny,base --beam-sizes 1,5 --iterations 3 --json
+auralis benchmark-whisper --models tiny,base --beam-sizes 1,5 --output reports/whisper.csv
 ```
 
 Por defecto se usa `transcription:null`; eso mide el costo del pipeline, no un modelo real. Para medir transcripcion local real instala `.[whisper]` y usa `--transcription-backend whisper`.
 
 `auralis benchmark-whisper` compara varias configuraciones de `faster-whisper` en el hardware local. Por defecto compara `tiny` y `base` con beam sizes `1` y `5`, y usa `--max-combinations` como proteccion para no lanzar una matriz enorme accidentalmente. English: this command is optional and only useful after installing the `whisper` extra.
 
+`--output` escribe el reporte a archivo y el formato se infiere desde `.json` o `.csv`; `--output-format json|csv` permite fijarlo de forma explicita. English: benchmark exports are useful for CI artifacts, pilot runs and hardware comparisons.
+
 Desde Python:
 
 ```python
-from auralis_voicekit import run_offline_benchmarks, run_whisper_comparison_benchmarks
+from auralis_voicekit import (
+    run_offline_benchmarks,
+    run_whisper_comparison_benchmarks,
+    write_benchmark_report,
+)
 
 report = run_offline_benchmarks(iterations=5)
 for result in report.results:
     print(result.name, result.mean_ms, result.p95_ms)
+write_benchmark_report(report, "reports/offline-benchmark.csv")
 
 comparison = run_whisper_comparison_benchmarks(
     models=("tiny", "base"),
@@ -526,6 +536,7 @@ comparison = run_whisper_comparison_benchmarks(
     iterations=3,
 )
 print(comparison.to_dict()["rankings"])
+write_benchmark_report(comparison, "reports/whisper.json")
 ```
 
 ## Arquitectura
@@ -622,11 +633,11 @@ ROADMAP.md
 
 Prioridad inmediata:
 
-1. Agregar benchmarks exportables a archivo JSON/CSV.
-2. Preparar un ejemplo de salida de voz con backend `system`.
-3. Agregar ejemplos completos de asistente local con logs sanitizados.
-4. Ejecutar pilotos reales guiados por `tools/stability_gate.py`.
-5. Ampliar diagnostico Windows con casos reales reportados por pilotos.
+1. Preparar un ejemplo de salida de voz con backend `system`.
+2. Agregar ejemplos completos de asistente local con logs sanitizados.
+3. Ejecutar pilotos reales guiados por `tools/stability_gate.py`.
+4. Ampliar diagnostico Windows con casos reales reportados por pilotos.
+5. Agregar benchmark real de salida `system` si es seguro en CI.
 
 ## Documentacion
 

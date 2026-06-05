@@ -6,6 +6,21 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.27.0] - 2026-06-05
+
+### Agregado
+
+- Helper publico `write_benchmark_report()` para exportar reportes de benchmark a JSON o CSV.
+- Helpers `benchmark_report_to_csv_rows()` y `benchmark_comparison_to_csv_rows()` para integrar reportes con pipelines externos.
+- Flags `--output` y `--output-format` en `auralis benchmark` y `auralis benchmark-whisper`.
+- CSV estable para benchmarks offline y comparaciones de Whisper, con metadata, warnings y rankings.
+- Pruebas unitarias para exportacion por API y CLI.
+
+### Cambiado
+
+- README, referencia API, documentacion HTML y roadmap documentan los benchmarks exportables.
+- El roadmap mueve la prioridad inmediata al ejemplo de salida de voz con backend `system`.
+
 ## [0.26.0] - 2026-06-05
 
 ### Agregado

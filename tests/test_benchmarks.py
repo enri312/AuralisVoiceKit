@@ -1,4 +1,7 @@
+import csv
 import json
+from pathlib import Path
+import tempfile
 import unittest
 from unittest.mock import patch
 
@@ -7,9 +10,12 @@ from auralis_voicekit import (
     BenchmarkReport,
     BenchmarkResult,
     VoiceActivityConfig,
+    benchmark_comparison_to_csv_rows,
+    benchmark_report_to_csv_rows,
     generate_synthetic_audio_chunks,
     run_offline_benchmarks,
     run_whisper_comparison_benchmarks,
+    write_benchmark_report,
 )
 
 
@@ -98,6 +104,47 @@ class BenchmarkTests(unittest.TestCase):
         self.assertEqual(len(payload["results"]), 3)
         json.dumps(payload)
 
+    def test_write_benchmark_report_exports_offline_json_and_csv(self):
+        report = run_offline_benchmarks(
+            iterations=1,
+            warmup_iterations=0,
+            duration_seconds=0.3,
+            sample_rate=1000,
+            chunk_duration_ms=100,
+            voice_activity=VoiceActivityConfig(min_voice_ms=100, max_silence_ms=100),
+        )
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            json_path = Path(tmpdir) / "offline.json"
+            csv_path = Path(tmpdir) / "offline.csv"
+
+            self.assertEqual(write_benchmark_report(report, json_path), str(json_path))
+            self.assertEqual(write_benchmark_report(report, csv_path), str(csv_path))
+
+            payload = json.loads(json_path.read_text(encoding="utf-8"))
+            with csv_path.open("r", encoding="utf-8", newline="") as stream:
+                rows = list(csv.DictReader(stream))
+
+        self.assertEqual(payload["transcription_backend"], "null")
+        self.assertEqual(len(rows), 3)
+        self.assertEqual(rows[0]["report_type"], "offline")
+        self.assertIn("capture:wav", {row["result_name"] for row in rows})
+        self.assertEqual(len(benchmark_report_to_csv_rows(report)), 3)
+
+    def test_write_benchmark_report_rejects_unknown_export_format(self):
+        report = run_offline_benchmarks(
+            iterations=1,
+            warmup_iterations=0,
+            duration_seconds=0.3,
+            sample_rate=1000,
+            chunk_duration_ms=100,
+            voice_activity=VoiceActivityConfig(min_voice_ms=100, max_silence_ms=100),
+        )
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with self.assertRaises(ValueError):
+                write_benchmark_report(report, Path(tmpdir) / "offline.txt")
+
     def test_run_whisper_comparison_benchmarks_ranks_configurations(self):
         def fake_runner(**kwargs):
             model = kwargs["transcription_model"]
@@ -122,6 +169,37 @@ class BenchmarkTests(unittest.TestCase):
         self.assertEqual(payload["fastest"], report.fastest.name)
         self.assertEqual(payload["rankings"][0]["model"], "tiny")
         json.dumps(payload)
+
+    def test_write_benchmark_report_exports_comparison_csv(self):
+        def fake_runner(**kwargs):
+            model = kwargs["transcription_model"]
+            beam_size = kwargs["transcription_beam_size"]
+            mean = 10.0 if model == "tiny" and beam_size == 1 else 25.0
+            return _fake_whisper_report(model, beam_size, mean)
+
+        with patch("auralis_voicekit.benchmarks.run_offline_benchmarks", side_effect=fake_runner):
+            report = run_whisper_comparison_benchmarks(
+                models=("base", "tiny"),
+                beam_sizes=(5, 1),
+                iterations=1,
+                warmup_iterations=0,
+                max_combinations=4,
+            )
+
+        rows = benchmark_comparison_to_csv_rows(report)
+        self.assertEqual(rows[0]["rank"], 1)
+        self.assertEqual(rows[0]["model"], "tiny")
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            csv_path = Path(tmpdir) / "comparison.csv"
+            write_benchmark_report(report, csv_path, format="csv")
+            with csv_path.open("r", encoding="utf-8", newline="") as stream:
+                written_rows = list(csv.DictReader(stream))
+
+        self.assertEqual(len(written_rows), 4)
+        self.assertEqual(written_rows[0]["report_type"], "comparison")
+        self.assertEqual(written_rows[0]["rank"], "1")
+        self.assertEqual(written_rows[0]["model"], "tiny")
 
     def test_run_whisper_comparison_benchmarks_limits_large_matrices(self):
         with self.assertRaises(ValueError):

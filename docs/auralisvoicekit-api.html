@@ -577,20 +577,25 @@ print(hint.format_hint())</code></pre>
 
       <section id="benchmarks">
         <h2>Benchmarks</h2>
-        <p><code>run_offline_benchmarks()</code> mide una linea base determinista para captura WAV, segmentacion RMS y transcripcion con el backend elegido. <code>run_whisper_comparison_benchmarks()</code> compara varias configuraciones locales de <code>faster-whisper</code> y devuelve un ranking por latencia media.</p>
+        <p><code>run_offline_benchmarks()</code> mide una linea base determinista para captura WAV, segmentacion RMS y transcripcion con el backend elegido. <code>run_whisper_comparison_benchmarks()</code> compara varias configuraciones locales de <code>faster-whisper</code> y devuelve un ranking por latencia media. <code>write_benchmark_report()</code> exporta cualquiera de esos reportes como JSON o CSV.</p>
         <pre><code>from auralis_voicekit import (
     BenchmarkComparisonEntry,
     BenchmarkComparisonReport,
     BenchmarkReport,
     BenchmarkResult,
+    benchmark_comparison_to_csv_rows,
+    benchmark_report_to_csv_rows,
     generate_synthetic_audio_chunks,
     run_offline_benchmarks,
     run_whisper_comparison_benchmarks,
+    write_benchmark_report,
 )
 
 report = run_offline_benchmarks(iterations=5)
 for result in report.results:
     print(result.name, result.mean_ms, result.p95_ms)
+write_benchmark_report(report, "reports/offline.csv")
+rows = benchmark_report_to_csv_rows(report)
 
 comparison: BenchmarkComparisonReport = run_whisper_comparison_benchmarks(
     models=("tiny", "base"),
@@ -598,7 +603,12 @@ comparison: BenchmarkComparisonReport = run_whisper_comparison_benchmarks(
     iterations=3,
 )
 for entry in comparison.entries:
-    print(entry.name, entry.transcription_mean_ms)</code></pre>
+    print(entry.name, entry.transcription_mean_ms)
+write_benchmark_report(comparison, "reports/whisper.json")
+comparison_rows = benchmark_comparison_to_csv_rows(comparison)</code></pre>
+        <pre><code>auralis benchmark --iterations 10 --output reports/offline.json
+auralis benchmark --iterations 10 --output reports/offline.csv --output-format csv
+auralis benchmark-whisper --models tiny,base --beam-sizes 1,5 --output reports/whisper.csv</code></pre>
       </section>
 
       <section id="errors">
@@ -761,7 +771,7 @@ python tools/stability_gate.py --min-stage pilot</code></pre>
             </tr>
             <tr>
               <td>Benchmarks</td>
-              <td><code>BenchmarkComparisonEntry</code>, <code>BenchmarkComparisonReport</code>, <code>BenchmarkReport</code>, <code>BenchmarkResult</code>, <code>generate_synthetic_audio_chunks</code>, <code>run_offline_benchmarks</code>, <code>run_whisper_comparison_benchmarks</code></td>
+              <td><code>BenchmarkComparisonEntry</code>, <code>BenchmarkComparisonReport</code>, <code>BenchmarkReport</code>, <code>BenchmarkResult</code>, <code>benchmark_comparison_to_csv_rows</code>, <code>benchmark_report_to_csv_rows</code>, <code>generate_synthetic_audio_chunks</code>, <code>run_offline_benchmarks</code>, <code>run_whisper_comparison_benchmarks</code>, <code>write_benchmark_report</code></td>
             </tr>
             <tr>
               <td>Errores</td>

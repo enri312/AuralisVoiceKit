@@ -1,4 +1,5 @@
 import contextlib
+import csv
 import io
 import json
 import os
@@ -335,6 +336,43 @@ class CliTests(unittest.TestCase):
         self.assertIn("AuralisVoiceKit", output.getvalue())
         self.assertIn("segmentation:rms", output.getvalue())
 
+    def test_benchmark_command_writes_csv_report(self):
+        output = io.StringIO()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            report_path = os.path.join(tmpdir, "offline.csv")
+            with contextlib.redirect_stdout(output):
+                exit_code = main(
+                    [
+                        "benchmark",
+                        "--iterations",
+                        "1",
+                        "--warmups",
+                        "0",
+                        "--duration",
+                        "0.5",
+                        "--sample-rate",
+                        "1000",
+                        "--chunk-ms",
+                        "100",
+                        "--min-voice-ms",
+                        "100",
+                        "--max-silence-ms",
+                        "100",
+                        "--pre-speech-ms",
+                        "0",
+                        "--output",
+                        report_path,
+                    ]
+                )
+            with open(report_path, "r", encoding="utf-8", newline="") as stream:
+                rows = list(csv.DictReader(stream))
+
+        self.assertEqual(exit_code, 0)
+        self.assertIn("Wrote benchmark report", output.getvalue())
+        self.assertEqual(len(rows), 3)
+        self.assertIn("capture:wav", {row["result_name"] for row in rows})
+
     def test_benchmark_whisper_command_outputs_json_report(self):
         output = io.StringIO()
 
@@ -365,6 +403,41 @@ class CliTests(unittest.TestCase):
         runner.assert_called_once()
         self.assertEqual(runner.call_args.kwargs["models"], ("tiny", "base"))
         self.assertEqual(runner.call_args.kwargs["beam_sizes"], (1,))
+
+    def test_benchmark_whisper_command_writes_json_report(self):
+        output = io.StringIO()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            report_path = os.path.join(tmpdir, "whisper.json")
+            with patch(
+                "auralis_voicekit.cli.run_whisper_comparison_benchmarks",
+                return_value=_fake_whisper_comparison_report(),
+            ):
+                with contextlib.redirect_stdout(output):
+                    exit_code = main(
+                        [
+                            "benchmark-whisper",
+                            "--models",
+                            "tiny",
+                            "--beam-sizes",
+                            "1",
+                            "--iterations",
+                            "1",
+                            "--warmups",
+                            "0",
+                            "--output",
+                            report_path,
+                            "--output-format",
+                            "json",
+                        ]
+                    )
+            with open(report_path, "r", encoding="utf-8") as stream:
+                payload = json.load(stream)
+
+        self.assertEqual(exit_code, 0)
+        self.assertIn("Wrote benchmark report", output.getvalue())
+        self.assertEqual(payload["benchmark"], "whisper-comparison")
+        self.assertEqual(payload["rankings"][0]["model"], "tiny")
 
     def test_transcribe_command_can_use_null_backend(self):
         audio_format = AudioFormat(sample_rate=8000, channels=1, sample_width=2)

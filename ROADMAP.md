@@ -38,7 +38,7 @@ La meta no es competir con todos los motores de voz a la vez. La meta es constru
 | Salida de voz real | Inicial con backend `system`, listado de voces y parametros de voz |
 | CI multiplataforma | Inicial con pruebas reales de MP3 y FLAC |
 | Publicacion en PyPI | Preparada con workflow manual |
-| Benchmarks de latencia | Inicial offline y comparativo para Whisper |
+| Benchmarks de latencia | Inicial offline, comparativo para Whisper y exportacion JSON/CSV |
 | Errores de ffmpeg | Inicial con diagnostico accionable |
 | Documentacion API | Inicial para usuarios de PyPI |
 | Ejemplos para PyPI | Quickstart inicial sin extras |
@@ -198,8 +198,8 @@ Entregables:
 - CI para Windows, Ubuntu/Linux y macOS.
 - Matriz de Python estable y prerelease.
 - Pruebas reales de MP3 y FLAC con `ffmpeg` en Windows, Ubuntu/Linux y macOS. Estado: inicial.
-- Benchmarks basicos de latencia para captura offline, segmentacion y transcripcion. Estado: inicial.
-- Benchmarks comparativos opcionales para Whisper/faster-whisper en hardware local. Estado: inicial.
+- Benchmarks basicos de latencia para captura offline, segmentacion y transcripcion. Estado: inicial con exportacion JSON/CSV.
+- Benchmarks comparativos opcionales para Whisper/faster-whisper en hardware local. Estado: inicial con exportacion JSON/CSV.
 - Mensajes accionables cuando `ffmpeg` falta, falla o no produce audio. Estado: inicial.
 - Build de wheel y sdist.
 - Versionado semantico.
@@ -264,7 +264,7 @@ Criterio de salida:
 - Medidor de energia en tiempo real.
 - Grabacion temporal con borrado seguro.
 - Exportacion de logs sin contenido sensible. Estado: inicial con `PrivacyEventLogger`.
-- Benchmarks de latencia. Estado: inicial offline y comparativo para Whisper.
+- Benchmarks de latencia. Estado: inicial offline, comparativo para Whisper y exportacion JSON/CSV.
 - Publicacion en PyPI. Estado: workflow y guia inicial.
 - Ejemplo PyPI sin extras. Estado: inicial.
 - Backends de salida personalizados. Estado: guia y ejemplo inicial.
@@ -273,8 +273,8 @@ Criterio de salida:
 
 ## Prioridad inmediata
 
-1. Agregar benchmarks exportables a archivo JSON/CSV.
-2. Preparar un ejemplo de salida de voz con backend `system`.
-3. Agregar ejemplos completos de asistente local con logs sanitizados.
-4. Ejecutar pilotos reales guiados por `tools/stability_gate.py`.
-5. Ampliar diagnostico Windows con casos reales reportados por pilotos.
+1. Preparar un ejemplo de salida de voz con backend `system`.
+2. Agregar ejemplos completos de asistente local con logs sanitizados.
+3. Ejecutar pilotos reales guiados por `tools/stability_gate.py`.
+4. Ampliar diagnostico Windows con casos reales reportados por pilotos.
+5. Agregar benchmark real de salida `system` si es seguro en CI.

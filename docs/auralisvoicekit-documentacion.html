@@ -538,20 +538,29 @@ py -m unittest tests.test_ffmpeg_integration
 
       <section id="benchmarks">
         <h2>Benchmarks de latencia</h2>
-        <p><code>auralis benchmark</code> mide una linea base offline y determinista sin microfono, red ni extras nativos. Genera audio PCM16 sintetico, lo captura desde el backend <code>wav</code>, segmenta por RMS y transcribe los segmentos con el backend elegido. <code>auralis benchmark-whisper</code> compara configuraciones locales de <code>faster-whisper</code> cuando el extra <code>whisper</code> esta instalado.</p>
+        <p><code>auralis benchmark</code> mide una linea base offline y determinista sin microfono, red ni extras nativos. Genera audio PCM16 sintetico, lo captura desde el backend <code>wav</code>, segmenta por RMS y transcribe los segmentos con el backend elegido. <code>auralis benchmark-whisper</code> compara configuraciones locales de <code>faster-whisper</code> cuando el extra <code>whisper</code> esta instalado. Ambos comandos pueden exportar reportes JSON/CSV para CI, pilotos reales o comparaciones de hardware.</p>
         <pre><code>auralis benchmark
 auralis benchmark --iterations 10 --duration 3 --json
+auralis benchmark --iterations 10 --output reports/offline.json
+auralis benchmark --iterations 10 --output reports/offline.csv --output-format csv
 auralis benchmark --transcription-backend whisper --model base --iterations 3
-auralis benchmark-whisper --models tiny,base --beam-sizes 1,5 --iterations 3 --json</code></pre>
+auralis benchmark-whisper --models tiny,base --beam-sizes 1,5 --iterations 3 --json
+auralis benchmark-whisper --models tiny,base --beam-sizes 1,5 --output reports/whisper.csv</code></pre>
         <p>Por defecto se usa <code>transcription:null</code>; eso mide el costo del pipeline, no un modelo real. Para medir transcripcion local real instala <code>.[whisper]</code> y usa <code>--transcription-backend whisper</code> o <code>benchmark-whisper</code>.</p>
-        <pre><code>from auralis_voicekit import run_offline_benchmarks, run_whisper_comparison_benchmarks
+        <pre><code>from auralis_voicekit import (
+    run_offline_benchmarks,
+    run_whisper_comparison_benchmarks,
+    write_benchmark_report,
+)
 
 report = run_offline_benchmarks(iterations=5)
 for result in report.results:
     print(result.name, result.mean_ms, result.p95_ms)
+write_benchmark_report(report, "reports/offline.csv")
 
 comparison = run_whisper_comparison_benchmarks(models=("tiny", "base"), beam_sizes=(1, 5))
-print(comparison.to_dict()["rankings"])</code></pre>
+print(comparison.to_dict()["rankings"])
+write_benchmark_report(comparison, "reports/whisper.json")</code></pre>
       </section>
 
       <section id="arquitectura">
@@ -740,7 +749,7 @@ gh workflow run publish-pypi.yml -f index=pypi -f tag=v0.14.0</code></pre>
             <tr>
               <td>5+</td>
               <td>Loop de asistente, Windows primero, CI, beta publica y version 1.0.</td>
-              <td>Loop inicial cancelable, pruebas MP3/FLAC, errores ffmpeg accionables, mensajes Windows audio iniciales, benchmarks offline y Whisper, referencia API inicial, PyPI preparada, quickstart sin extras, privacidad/logs inicial, salida custom inicial, gate de estabilidad y salida system configurable</td>
+              <td>Loop inicial cancelable, pruebas MP3/FLAC, errores ffmpeg accionables, mensajes Windows audio iniciales, benchmarks offline y Whisper exportables, referencia API inicial, PyPI preparada, quickstart sin extras, privacidad/logs inicial, salida custom inicial, gate de estabilidad y salida system configurable</td>
             </tr>
           </tbody>
         </table>

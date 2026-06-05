@@ -35,9 +35,12 @@ from .benchmarks import (
     BenchmarkComparisonReport,
     BenchmarkReport,
     BenchmarkResult,
+    benchmark_comparison_to_csv_rows,
+    benchmark_report_to_csv_rows,
     generate_synthetic_audio_chunks,
     run_offline_benchmarks,
     run_whisper_comparison_benchmarks,
+    write_benchmark_report,
 )
 from .config import VoiceKitConfig
 from .diagnostics import DiagnosticCheck, DiagnosticStatus, DoctorReport, run_doctor
@@ -101,6 +104,8 @@ __all__ = [
     "ffmpeg_available",
     "ffmpeg_install_hint",
     "ffmpeg_search_locations",
+    "benchmark_comparison_to_csv_rows",
+    "benchmark_report_to_csv_rows",
     "generate_synthetic_audio_chunks",
     "iter_wav_chunks",
     "is_silent_pcm16",
@@ -120,5 +125,6 @@ __all__ = [
     "sanitize_event_payload",
     "segment_voice_pcm16",
     "write_wav",
+    "write_benchmark_report",
     "windows_audio_error_hint",
 ]

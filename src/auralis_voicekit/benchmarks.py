@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import csv
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
+import json
 import math
 import os
+from pathlib import Path
 import struct
 import tempfile
 import time
@@ -21,6 +24,55 @@ from .session import VoiceSession, VoiceSessionConfig
 
 
 T = TypeVar("T")
+
+_OFFLINE_CSV_FIELDS = (
+    "report_type",
+    "version",
+    "created_at",
+    "benchmark",
+    "result_name",
+    "iterations",
+    "warmup_iterations",
+    "min_ms",
+    "mean_ms",
+    "median_ms",
+    "p95_ms",
+    "max_ms",
+    "total_ms",
+    "duration_seconds",
+    "sample_rate",
+    "channels",
+    "chunk_duration_ms",
+    "chunks",
+    "segments",
+    "transcription_backend",
+    "warnings",
+    "metadata",
+)
+
+_COMPARISON_CSV_FIELDS = (
+    "report_type",
+    "version",
+    "created_at",
+    "benchmark",
+    "rank",
+    "name",
+    "model",
+    "device",
+    "compute_type",
+    "beam_size",
+    "vad_filter",
+    "transcription_mean_ms",
+    "transcription_p95_ms",
+    "iterations",
+    "warmup_iterations",
+    "duration_seconds",
+    "sample_rate",
+    "channels",
+    "chunk_duration_ms",
+    "fastest",
+    "warnings",
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -171,6 +223,108 @@ class BenchmarkComparisonReport:
             ],
             "warnings": list(self.warnings),
         }
+
+
+def benchmark_report_to_csv_rows(report: BenchmarkReport) -> list[dict[str, object]]:
+    """Convert an offline benchmark report into one CSV row per measured result."""
+
+    return [
+        {
+            "report_type": "offline",
+            "version": report.version,
+            "created_at": report.created_at,
+            "benchmark": "offline-latency",
+            "result_name": result.name,
+            "iterations": result.iterations,
+            "warmup_iterations": report.warmup_iterations,
+            "min_ms": result.min_ms,
+            "mean_ms": result.mean_ms,
+            "median_ms": result.median_ms,
+            "p95_ms": result.p95_ms,
+            "max_ms": result.max_ms,
+            "total_ms": result.total_ms,
+            "duration_seconds": report.duration_seconds,
+            "sample_rate": report.sample_rate,
+            "channels": report.channels,
+            "chunk_duration_ms": report.chunk_duration_ms,
+            "chunks": report.chunks,
+            "segments": report.segments,
+            "transcription_backend": report.transcription_backend,
+            "warnings": _json_cell(report.warnings),
+            "metadata": _json_cell(result.metadata),
+        }
+        for result in report.results
+    ]
+
+
+def benchmark_comparison_to_csv_rows(
+    report: BenchmarkComparisonReport,
+) -> list[dict[str, object]]:
+    """Convert a comparison report into one CSV row per ranked configuration."""
+
+    fastest = report.fastest
+    fastest_name = fastest.name if fastest is not None else ""
+    return [
+        {
+            "report_type": "comparison",
+            "version": report.version,
+            "created_at": report.created_at,
+            "benchmark": report.benchmark,
+            "rank": index,
+            "name": entry.name,
+            "model": entry.model,
+            "device": entry.device,
+            "compute_type": entry.compute_type,
+            "beam_size": entry.beam_size,
+            "vad_filter": entry.vad_filter,
+            "transcription_mean_ms": entry.transcription_mean_ms,
+            "transcription_p95_ms": entry.transcription_p95_ms,
+            "iterations": report.iterations,
+            "warmup_iterations": report.warmup_iterations,
+            "duration_seconds": report.duration_seconds,
+            "sample_rate": report.sample_rate,
+            "channels": report.channels,
+            "chunk_duration_ms": report.chunk_duration_ms,
+            "fastest": fastest_name,
+            "warnings": _json_cell(report.warnings),
+        }
+        for index, entry in enumerate(
+            sorted(report.entries, key=lambda item: item.transcription_mean_ms),
+            start=1,
+        )
+    ]
+
+
+def write_benchmark_report(
+    report: BenchmarkReport | BenchmarkComparisonReport,
+    path: str | os.PathLike[str],
+    *,
+    format: str | None = None,
+) -> str:
+    """Write a benchmark report as JSON or CSV and return the written path."""
+
+    output_path = Path(path)
+    output_format = _resolve_export_format(output_path, format)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    if output_format == "json":
+        with output_path.open("w", encoding="utf-8") as stream:
+            json.dump(report.to_dict(), stream, indent=2, sort_keys=True)
+            stream.write("\n")
+        return str(output_path)
+
+    if isinstance(report, BenchmarkComparisonReport):
+        rows = benchmark_comparison_to_csv_rows(report)
+        fieldnames = _COMPARISON_CSV_FIELDS
+    else:
+        rows = benchmark_report_to_csv_rows(report)
+        fieldnames = _OFFLINE_CSV_FIELDS
+
+    with output_path.open("w", encoding="utf-8", newline="") as stream:
+        writer = csv.DictWriter(stream, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(rows)
+    return str(output_path)
 
 
 def generate_synthetic_audio_chunks(
@@ -401,6 +555,17 @@ def _validate_benchmark_settings(iterations: int, warmup_iterations: int) -> Non
         raise ValueError("iterations must be greater than zero")
     if warmup_iterations < 0:
         raise ValueError("warmup_iterations must be greater than or equal to zero")
+
+
+def _resolve_export_format(path: Path, explicit_format: str | None) -> str:
+    output_format = (explicit_format or path.suffix.lstrip(".")).lower()
+    if output_format not in {"json", "csv"}:
+        raise ValueError("benchmark export format must be json or csv")
+    return output_format
+
+
+def _json_cell(value: object) -> str:
+    return json.dumps(value, sort_keys=True, separators=(",", ":"))
 
 
 def _whisper_configurations(
