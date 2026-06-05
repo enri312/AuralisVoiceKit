@@ -6,6 +6,18 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.44.0] - 2026-06-05
+
+### Agregado
+
+- Modo `tools/beta_readiness.py --audit-evidence` para auditar artifacts JSON contra los requisitos de beta.
+- Reporte JSON/Markdown que muestra artifacts aceptados, blockers cerrados y campos faltantes o no coincidentes sin copiar audio, transcripciones ni rutas completas.
+- Pruebas automatizadas para auditoria de evidencias aceptadas, ignoradas y salidas CLI seguras.
+
+### Cambiado
+
+- README, `PILOTS.md`, docs HTML, roadmap y gate de estabilidad enlazan la nueva auditoria de evidencias.
+
 ## [0.43.0] - 2026-06-05
 
 ### Agregado

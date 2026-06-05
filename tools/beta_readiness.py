@@ -125,6 +125,45 @@ def build_evidence_requirements_report() -> dict[str, Any]:
     }
 
 
+def build_evidence_audit_report(
+    root: str | Path = ".",
+    evidence_paths: list[str | Path] | None = None,
+) -> dict[str, Any]:
+    """Audit pilot evidence against beta requirements without exposing private content."""
+
+    workspace = Path(root).resolve()
+    evidence = _load_evidence_reports(workspace, evidence_paths or [])
+    requirements = build_evidence_requirements_report()["requirements"]
+    accepted_reports = evidence["accepted"]
+    artifacts = []
+    for report in accepted_reports:
+        evidence_path = Path(report["_evidence_path"])
+        candidate_requirements = [item for item in requirements if item["artifact"] == evidence_path.name]
+        candidates = [_audit_requirement(report, requirement) for requirement in candidate_requirements]
+        artifacts.append(
+            {
+                "file": _safe_evidence_source(report["_evidence_path"]),
+                "artifact": evidence_path.name,
+                "satisfied_blockers": [candidate["name"] for candidate in candidates if candidate["ok"]],
+                "candidate_count": len(candidates),
+                "candidates": candidates,
+            }
+        )
+
+    return {
+        "project": "AuralisVoiceKit",
+        "created_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
+        "accepted_count": len(accepted_reports),
+        "ignored_count": len(evidence["ignored"]),
+        "ignored_details": evidence["ignored"],
+        "artifacts": artifacts,
+        "notes": (
+            "Evidence audit uses only structured fields needed for beta blockers. "
+            "It does not require audio, transcripts, expected text or full local paths."
+        ),
+    }
+
+
 def build_beta_readiness_report(
     root: str | Path = ".",
     evidence_paths: list[str | Path] | None = None,
@@ -265,6 +304,60 @@ def write_evidence_requirements_report(report: dict[str, Any], output: str | Pat
         output_path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     else:
         output_path.write_text(format_requirements_markdown(report), encoding="utf-8")
+
+
+def write_evidence_audit_report(report: dict[str, Any], output: str | Path) -> None:
+    """Write beta evidence audit as JSON or Markdown."""
+
+    output_path = Path(output)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    if output_path.suffix.lower() == ".json":
+        output_path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    else:
+        output_path.write_text(format_audit_markdown(report), encoding="utf-8")
+
+
+def format_audit_markdown(report: dict[str, Any]) -> str:
+    """Format an evidence audit without private pilot content."""
+
+    lines = [
+        "# Auditoria de evidencias beta",
+        "",
+        "Este reporte valida artifacts JSON contra los requisitos de beta. No muestra audio, transcripciones, rutas locales completas ni nombres reales de dispositivos.",
+        "",
+        "## Estado",
+        "",
+        f"- Evidencias aceptadas: `{report['accepted_count']}`",
+        f"- Evidencias ignoradas: `{report['ignored_count']}`",
+        "",
+    ]
+    if report["ignored_details"]:
+        lines.extend(["## Evidencias ignoradas", ""])
+        for item in report["ignored_details"]:
+            lines.append(f"- `{item['file']}`: {item['message_es']} / {item['message_en']}.")
+        lines.append("")
+    lines.extend(["## Evidencias aceptadas", ""])
+    if not report["artifacts"]:
+        lines.append("- Ninguna.")
+        lines.append("")
+    for artifact in report["artifacts"]:
+        satisfied = ", ".join(f"`{name}`" for name in artifact["satisfied_blockers"]) or "`ninguno`"
+        lines.append(f"### {artifact['file']}")
+        lines.append("")
+        lines.append(f"- Artifact: `{artifact['artifact']}`")
+        lines.append(f"- Blockers cerrados: {satisfied}")
+        lines.append("")
+        for candidate in artifact["candidates"]:
+            marker = "x" if candidate["ok"] else " "
+            lines.append(f"- [{marker}] `{candidate['name']}`")
+            for field in candidate["fields"]:
+                field_marker = "x" if field["ok"] else " "
+                lines.append(
+                    f"  - [{field_marker}] `{field['path']}` esperado `{field['expected']}`, actual `{field['actual']}`"
+                )
+        lines.append("")
+    lines.extend(["## Nota", "", f"- {report['notes']}", ""])
+    return "\n".join(lines)
 
 
 def format_requirements_markdown(report: dict[str, Any]) -> str:
@@ -419,6 +512,11 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="print beta evidence requirements instead of readiness status",
     )
+    parser.add_argument(
+        "--audit-evidence",
+        action="store_true",
+        help="audit --evidence artifacts against beta requirements instead of readiness status",
+    )
     args = parser.parse_args(argv)
 
     if args.requirements:
@@ -429,6 +527,16 @@ def main(argv: list[str] | None = None) -> int:
             print(json.dumps(report, indent=2, sort_keys=True))
         elif not args.output:
             print(format_requirements_markdown(report))
+        return 0
+
+    if args.audit_evidence:
+        report = build_evidence_audit_report(args.root, evidence_paths=args.evidence)
+        if args.output:
+            write_evidence_audit_report(report, args.output)
+        if args.json:
+            print(json.dumps(report, indent=2, sort_keys=True))
+        elif not args.output:
+            print(format_audit_markdown(report))
         return 0
 
     report = build_beta_readiness_report(args.root, evidence_paths=args.evidence)
@@ -558,6 +666,56 @@ def _load_evidence_reports(workspace: Path, evidence_paths: list[str | Path]) ->
 
 def _required_field(path: str, expected: Any) -> dict[str, Any]:
     return {"path": path, "expected": expected}
+
+
+def _audit_requirement(report: dict[str, Any], requirement: dict[str, Any]) -> dict[str, Any]:
+    fields = [_audit_field(report, field) for field in requirement["fields"]]
+    return {
+        "name": requirement["name"],
+        "title": requirement["title"],
+        "ok": all(field["ok"] for field in fields),
+        "fields": fields,
+    }
+
+
+def _audit_field(report: dict[str, Any], field: dict[str, Any]) -> dict[str, Any]:
+    found, actual = _get_nested_value(report, field["path"])
+    expected = field["expected"]
+    return {
+        "path": field["path"],
+        "expected": expected,
+        "actual": _public_field_value(actual) if found else "<missing>",
+        "ok": found and _field_matches(actual, expected),
+    }
+
+
+def _get_nested_value(payload: dict[str, Any], dotted_path: str) -> tuple[bool, Any]:
+    value: Any = payload
+    for part in dotted_path.split("."):
+        if not isinstance(value, dict) or part not in value:
+            return False, None
+        value = value[part]
+    return True, value
+
+
+def _field_matches(actual: Any, expected: Any) -> bool:
+    if isinstance(expected, str) and expected.startswith(">= "):
+        try:
+            return float(actual) >= float(expected.removeprefix(">= ").strip())
+        except (TypeError, ValueError):
+            return False
+    if isinstance(expected, str) and " | " in expected:
+        choices = {choice.strip().lower() for choice in expected.split("|")}
+        return str(actual).strip().lower() in choices
+    return actual == expected
+
+
+def _public_field_value(value: Any) -> Any:
+    if isinstance(value, (bool, int, float)) or value is None:
+        return value
+    if isinstance(value, str):
+        return value if len(value) <= 80 else "<redacted>"
+    return "<redacted>"
 
 
 def _ignored_evidence(path: Path, reason: str) -> dict[str, str]:

@@ -327,6 +327,94 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertEqual(payload["project"], "AuralisVoiceKit")
         self.assertIn("requirements", payload)
 
+    def test_evidence_audit_explains_satisfied_and_missing_fields(self):
+        module = _load_beta_readiness()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            evidence_root = Path(tmpdir)
+            _write_json(
+                evidence_root / "output" / "output-pilot-report.json",
+                {
+                    "project": "AuralisVoiceKit",
+                    "backend": "system",
+                    "real_audio_requested": True,
+                    "operator_confirmation_status": "confirmed",
+                    "passed": True,
+                },
+            )
+            _write_json(
+                evidence_root / "transcription" / "transcription-pilot-report.json",
+                {
+                    "project": "AuralisVoiceKit",
+                    "real_transcription_requested": True,
+                    "audio_confirmed_non_sensitive": True,
+                    "passed": True,
+                    "quality": {"enabled": True, "passed": True, "min_word_accuracy": 0.2},
+                },
+            )
+            _write_json(
+                evidence_root / "ignored" / "manual-pilot-report.json",
+                {"system": "Linux", "hardware_capture_tested": True, "passed": True},
+            )
+
+            report = module.build_evidence_audit_report(ROOT, evidence_paths=[evidence_root])
+
+        self.assertEqual(report["accepted_count"], 2)
+        self.assertEqual(report["ignored_count"], 1)
+        self.assertEqual(report["ignored_details"][0]["reason"], "missing_project")
+
+        artifacts = {artifact["artifact"]: artifact for artifact in report["artifacts"]}
+        self.assertIn("system_output_audible", artifacts["output-pilot-report.json"]["satisfied_blockers"])
+
+        transcription = artifacts["transcription-pilot-report.json"]
+        self.assertEqual(transcription["satisfied_blockers"], [])
+        field_checks = {
+            field["path"]: field
+            for candidate in transcription["candidates"]
+            for field in candidate["fields"]
+        }
+        self.assertFalse(field_checks["quality.min_word_accuracy"]["ok"])
+        self.assertEqual(field_checks["quality.min_word_accuracy"]["actual"], 0.2)
+
+    def test_cli_audit_evidence_markdown_is_public_safe(self):
+        module = _load_beta_readiness()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmpdir_path = Path(tmpdir)
+            evidence_path = tmpdir_path / "manual-pilot-report.json"
+            _write_json(
+                evidence_path,
+                {
+                    "project": "AuralisVoiceKit",
+                    "system": "Linux",
+                    "hardware_capture_tested": True,
+                    "passed": True,
+                },
+            )
+            output = io.StringIO()
+            with contextlib.redirect_stdout(output):
+                exit_code = module.main(["--root", str(ROOT), "--audit-evidence", "--evidence", str(evidence_path)])
+            content = output.getvalue()
+
+        self.assertEqual(exit_code, 0)
+        self.assertIn("Auditoria de evidencias beta", content)
+        self.assertIn("ubuntu_linux_capture", content)
+        self.assertIn("Blockers cerrados", content)
+        self.assertNotIn(str(tmpdir_path), content)
+
+    def test_cli_audit_evidence_json_ignores_beta_blocker_failure(self):
+        module = _load_beta_readiness()
+
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            exit_code = module.main(["--audit-evidence", "--json", "--fail-on-blockers"])
+        payload = json.loads(output.getvalue())
+
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(payload["project"], "AuralisVoiceKit")
+        self.assertEqual(payload["accepted_count"], 0)
+        self.assertEqual(payload["artifacts"], [])
+
 
 def _write_json(path: Path, payload: dict):
     path.parent.mkdir(parents=True, exist_ok=True)
