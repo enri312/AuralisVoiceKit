@@ -6,6 +6,21 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.37.0] - 2026-06-05
+
+### Agregado
+
+- Herramienta `tools/transcription_pilot.py` para pilotos de transcripcion con artifacts JSON/Markdown.
+- Modo seguro por defecto: audio sintetico y backend `null`, sin red, modelos reales ni audio privado.
+- Guardias `--real-transcription`, `--audio` y `--audio-non-sensitive` antes de usar `whisper` u `openai`.
+- Reportes de transcripcion con texto redactado, longitud estimada y metadatos sanitizados.
+- Hallazgo de piloto de transcripcion Windows dry-run documentado con audio sintetico y backend `null`.
+- Pruebas automatizadas del runner de piloto de transcripcion.
+
+### Cambiado
+
+- `tools/pilot_run.py`, `PILOTS.md`, README, docs HTML, roadmap y gate de estabilidad apuntan al nuevo runner de transcripcion.
+
 ## [0.36.0] - 2026-06-05
 
 ### Agregado

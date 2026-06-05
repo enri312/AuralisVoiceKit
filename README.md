@@ -671,6 +671,13 @@ py tools\output_pilot.py --output-dir pilot_runs\output\system-dry-run --json
 py tools\output_pilot.py --speak --operator-present --text "Hola desde AuralisVoiceKit" --json
 ```
 
+`tools/transcription_pilot.py` prepara pilotos de transcripcion. Por defecto genera audio sintetico y usa backend `null`; para `whisper` u `openai` exige `--real-transcription`, un archivo `--audio` y confirmacion `--audio-non-sensitive`. El texto transcrito queda redactado en los artifacts:
+
+```powershell
+py tools\transcription_pilot.py --output-dir pilot_runs\transcription\safe --json
+py tools\transcription_pilot.py --real-transcription --audio sample.mp3 --audio-non-sensitive --backend whisper --model base --normalize --json
+```
+
 Los pasos con hardware quedan documentados en:
 
 ```text
@@ -688,8 +695,8 @@ ROADMAP.md
 
 Prioridad inmediata:
 
-1. Ejecutar piloto manual de salida `system` con `tools\output_pilot.py --speak --operator-present`.
-2. Ejecutar piloto de transcripcion real con audio propio no sensible.
+1. Ejecutar piloto de transcripcion real con audio propio no sensible usando `tools\transcription_pilot.py --real-transcription --audio ... --audio-non-sensitive`.
+2. Ejecutar piloto manual de salida `system` con `tools\output_pilot.py --speak --operator-present`.
 3. Repetir captura con microfono en Ubuntu/Linux y macOS.
 4. Preparar checklist de bugs conocidos para beta publica.
 5. Evaluar si el siguiente lote de pilotos permite declarar beta.

@@ -2,6 +2,36 @@
 
 Este documento resume hallazgos de pilotos reales o semi-manuales. No debe incluir audio, transcripciones privadas, rutas locales completas ni nombres reales de dispositivos.
 
+## 2026-06-05 - Windows transcripcion dry-run sintetica
+
+Comando ejecutado:
+
+```powershell
+python tools\transcription_pilot.py --output-dir pilot_runs\transcription\20260605T1521Z-safe --duration 0.3 --sample-rate 8000 --json
+```
+
+Alcance:
+
+- Sistema: Windows.
+- Backend diagnosticado: `null`.
+- Audio usado: sintetico generado por el runner.
+- Red/modelos reales: no.
+- Texto completo guardado: no.
+
+Resultado:
+
+- Piloto de transcripcion: `passed=true`.
+- Duracion de audio: 0.3 segundos.
+- Sample rate: 8000 Hz.
+- Transcript characters: 0.
+- Texto transcrito redactado en artifacts.
+
+Acciones siguientes:
+
+1. Ejecutar `python tools\transcription_pilot.py --real-transcription --audio sample.mp3 --audio-non-sensitive --backend whisper --model base --normalize --json` con audio propio no sensible.
+2. Si se usa OpenAI, confirmar credenciales y evitar audio privado.
+3. Registrar solo calidad general, backend/modelo y hallazgos tecnicos; no pegar transcripciones completas.
+
 ## 2026-06-05 - Windows salida system dry-run con guard de operador
 
 Comando ejecutado:

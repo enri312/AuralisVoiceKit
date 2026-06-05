@@ -28,9 +28,13 @@ py tools\manual_pilot.py --output-dir pilot_runs\manual\windows-safe --json
 py tools\manual_pilot.py --capture-test --backend wasapi --device default --sample-rate 48000 --json
 py tools\output_pilot.py --output-dir pilot_runs\output\system-dry-run --json
 py tools\output_pilot.py --speak --operator-present --text "Hola desde AuralisVoiceKit" --json
+py tools\transcription_pilot.py --output-dir pilot_runs\transcription\safe --json
+py tools\transcription_pilot.py --real-transcription --audio sample.mp3 --audio-non-sensitive --backend whisper --model base --normalize --json
 ```
 
 `tools/output_pilot.py` no reproduce audio por defecto. El audio real requiere `--speak --operator-present`. El reporte JSON y el Markdown redactan el texto completo dentro de comandos como `<text-redacted>`.
+
+`tools/transcription_pilot.py` genera audio sintetico y usa `null` por defecto. Los backends reales `whisper` y `openai` requieren `--real-transcription --audio PATH --audio-non-sensitive`, y el texto transcrito no se guarda completo en artifacts.
 
 Los hallazgos resumidos se mantienen en:
 
@@ -48,7 +52,7 @@ auralis doctor --capture-test --backend sounddevice --device default --bundle pi
 auralis doctor-bundles pilot_runs\manual\doctor-capture.json --output pilot_runs\manual\doctor-analysis.json --json
 python tools\manual_pilot.py --capture-test --backend wasapi --device default --sample-rate 48000 --json
 python tools\output_pilot.py --speak --operator-present --text "Hola desde AuralisVoiceKit" --json
-auralis transcribe sample.mp3 --backend whisper --model base --normalize --json
+python tools\transcription_pilot.py --real-transcription --audio sample.mp3 --audio-non-sensitive --backend whisper --model base --normalize --json
 python examples\local_assistant_privacy_demo.py --output-dir pilot_runs\assistant --json
 ```
 
@@ -79,4 +83,4 @@ Acciones siguientes:
 - Analisis de bundles doctor: preparado con `auralis doctor-bundles`.
 - Pilotos manuales con microfono real: primer piloto Windows/WASAPI aprobado con `--sample-rate 48000`; Ubuntu/Linux y macOS pendientes.
 - Pilotos manuales con salida `system` real: runner preparado con `tools/output_pilot.py`; dry-run Windows aprobado, guard `--operator-present` listo y audio real pendiente con operador presente.
-- Pilotos manuales con transcripcion real: pendientes.
+- Pilotos manuales con transcripcion real: runner preparado con `tools/transcription_pilot.py`; dry-run sintetico Windows aprobado y audio real pendiente con archivo no sensible.
