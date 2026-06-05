@@ -12,7 +12,7 @@ English: AuralisVoiceKit is a modern voice toolkit for Python assistants, local 
 
 El objetivo principal es evitar que la captura de microfono dependa obligatoriamente de PyAudio o de wheels que tardan en llegar a las versiones nuevas de Python. El paquete base debe poder instalarse de forma liviana, sin compiladores y sin dependencias nativas obligatorias. Para MP3, FLAC y formatos comprimidos, AuralisVoiceKit usa `ffmpeg` como herramienta externa opcional.
 
-> Estado actual: alpha tecnica con gate de pilotos reales. El repositorio ya define el core, los contratos de backends, captura real inicial, diagnostico reforzado para WASAPI, flujo WAV offline, transcripcion inicial por API y local opcional, sesiones de voz iniciales, una CLI de diagnostico, benchmarks offline y comparativos para Whisper exportables a JSON/CSV, errores accionables para `ffmpeg`, mensajes accionables para audio Windows, documentacion estatica, salida de voz del sistema con voces configurables, salida custom en memoria, quickstart para PyPI sin extras, guia de privacidad/logs, pruebas unitarias y pruebas reales de MP3/FLAC. Los backends reales se iran agregando por etapas.
+> Estado actual: alpha tecnica con gate de pilotos reales. El repositorio ya define el core, los contratos de backends, captura real inicial, diagnostico reforzado para WASAPI, flujo WAV offline, transcripcion inicial por API y local opcional, sesiones de voz iniciales, una CLI de diagnostico, benchmarks offline y comparativos para Whisper exportables a JSON/CSV, errores accionables para `ffmpeg`, mensajes accionables para audio Windows, documentacion estatica, salida de voz del sistema con voces configurables y ejemplo seguro, salida custom en memoria, quickstart para PyPI sin extras, guia de privacidad/logs, pruebas unitarias y pruebas reales de MP3/FLAC. Los backends reales se iran agregando por etapas.
 
 ## Problema que resuelve
 
@@ -172,6 +172,8 @@ auralis speak "Hola desde AuralisVoiceKit" --backend null --json
 auralis speak "Hola desde AuralisVoiceKit" --backend system
 auralis voices --backend system
 auralis speak "Hola desde AuralisVoiceKit" --backend system --voice "Microsoft Helena" --rate 2 --volume 80
+py examples\system_output_demo.py --json
+py examples\system_output_demo.py --system Windows --voice "Microsoft Helena" --rate 2 --volume 80 --json
 ```
 
 Desde Python:
@@ -197,6 +199,12 @@ Rutas usadas por plataforma:
 - Ubuntu/Linux: `spd-say` o `espeak`; `espeak` permite voz, velocidad, volumen y listado de voces.
 
 English: the `system` output backend can list voices and select voice/rate/volume when the operating system command supports those options.
+
+El ejemplo `system_output_demo.py` usa dry-run por defecto: registra el comando que se ejecutaria, lista voces simuladas para Windows/macOS/Linux y emite eventos `output.*` sin reproducir audio. Para un piloto real, usa `--speak` de forma explicita:
+
+```powershell
+py examples\system_output_demo.py --speak --text "Hola desde AuralisVoiceKit"
+```
 
 ## Backends de salida personalizados
 
@@ -633,11 +641,11 @@ ROADMAP.md
 
 Prioridad inmediata:
 
-1. Preparar un ejemplo de salida de voz con backend `system`.
-2. Agregar ejemplos completos de asistente local con logs sanitizados.
-3. Ejecutar pilotos reales guiados por `tools/stability_gate.py`.
-4. Ampliar diagnostico Windows con casos reales reportados por pilotos.
-5. Agregar benchmark real de salida `system` si es seguro en CI.
+1. Agregar ejemplos completos de asistente local con logs sanitizados.
+2. Ejecutar pilotos reales guiados por `tools/stability_gate.py`.
+3. Ampliar diagnostico Windows con casos reales reportados por pilotos.
+4. Agregar benchmark real de salida `system` si es seguro en CI.
+5. Documentar checklist de hallazgos para pilotos Windows/Ubuntu/macOS.
 
 ## Documentacion
 

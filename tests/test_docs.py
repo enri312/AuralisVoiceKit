@@ -10,6 +10,7 @@ MAIN_DOC = ROOT / "docs" / "auralisvoicekit-documentacion.html"
 README = ROOT / "README.md"
 PRIVACY = ROOT / "PRIVACY.md"
 CUSTOM_OUTPUT = ROOT / "CUSTOM_OUTPUT_BACKENDS.md"
+SYSTEM_OUTPUT_DEMO = ROOT / "examples" / "system_output_demo.py"
 
 
 class DocumentationTests(unittest.TestCase):
@@ -50,6 +51,14 @@ class DocumentationTests(unittest.TestCase):
         self.assertIn(custom_output_name, MAIN_DOC.read_text(encoding="utf-8"))
         self.assertIn(custom_output_name, API_DOC.read_text(encoding="utf-8"))
         self.assertIn("tools/stability_gate.py", README.read_text(encoding="utf-8"))
+
+    def test_system_output_demo_is_linked_from_public_docs(self):
+        system_output_name = "system_output_demo.py"
+
+        self.assertTrue(SYSTEM_OUTPUT_DEMO.exists())
+        self.assertIn(system_output_name, README.read_text(encoding="utf-8"))
+        self.assertIn(system_output_name, MAIN_DOC.read_text(encoding="utf-8"))
+        self.assertIn(system_output_name, API_DOC.read_text(encoding="utf-8"))
 
 
 if __name__ == "__main__":

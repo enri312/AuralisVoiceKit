@@ -489,7 +489,9 @@ py examples\assistant_loop.py --seconds 30 --capture-backend sounddevice --trans
         <pre><code>auralis speak "Hola desde AuralisVoiceKit" --backend null --json
 auralis speak "Hola desde AuralisVoiceKit" --backend system
 auralis voices --backend system
-auralis speak "Hola desde AuralisVoiceKit" --backend system --voice "Microsoft Helena" --rate 2 --volume 80</code></pre>
+auralis speak "Hola desde AuralisVoiceKit" --backend system --voice "Microsoft Helena" --rate 2 --volume 80
+python examples/system_output_demo.py --json
+python examples/system_output_demo.py --system Windows --voice "Microsoft Helena" --rate 2 --volume 80 --json</code></pre>
         <pre><code>kit = AuralisVoiceKit(
     VoiceKitConfig(
         output_backend="system",
@@ -500,6 +502,8 @@ auralis speak "Hola desde AuralisVoiceKit" --backend system --voice "Microsoft H
 )
 kit.speak("Hola desde AuralisVoiceKit")</code></pre>
         <p>English: the system output backend supports voice listing and voice/rate/volume selection where the operating system command exposes those controls.</p>
+        <p><code>examples/system_output_demo.py</code> usa dry-run por defecto para registrar el comando que se ejecutaria y emitir eventos sin reproducir audio. Para un piloto real se debe pasar <code>--speak</code> de forma explicita.</p>
+        <pre><code>python examples/system_output_demo.py --speak --text "Hola desde AuralisVoiceKit"</code></pre>
         <h3>Salida personalizada</h3>
         <p>Los backends de salida custom implementan <code>SpeechOutputBackend</code>, se registran con <code>BackendRegistry.register_output()</code> y se seleccionan con <code>VoiceKitConfig(output_backend="...")</code>. La guia completa vive en <a href="../CUSTOM_OUTPUT_BACKENDS.md">CUSTOM_OUTPUT_BACKENDS.md</a>.</p>
         <pre><code>python examples/custom_output_backend.py --json</code></pre>
@@ -744,12 +748,12 @@ gh workflow run publish-pypi.yml -f index=pypi -f tag=v0.14.0</code></pre>
             <tr>
               <td>4</td>
               <td>Salida de voz, cola de reproduccion y eventos de salida.</td>
-              <td>Backend system inicial con listado de voces, voz, velocidad y volumen</td>
+              <td>Backend system inicial con listado de voces, voz, velocidad, volumen y ejemplo seguro</td>
             </tr>
             <tr>
               <td>5+</td>
               <td>Loop de asistente, Windows primero, CI, beta publica y version 1.0.</td>
-              <td>Loop inicial cancelable, pruebas MP3/FLAC, errores ffmpeg accionables, mensajes Windows audio iniciales, benchmarks offline y Whisper exportables, referencia API inicial, PyPI preparada, quickstart sin extras, privacidad/logs inicial, salida custom inicial, gate de estabilidad y salida system configurable</td>
+              <td>Loop inicial cancelable, pruebas MP3/FLAC, errores ffmpeg accionables, mensajes Windows audio iniciales, benchmarks offline y Whisper exportables, referencia API inicial, PyPI preparada, quickstart sin extras, privacidad/logs inicial, salida custom inicial, gate de estabilidad y salida system configurable con ejemplo seguro</td>
             </tr>
           </tbody>
         </table>

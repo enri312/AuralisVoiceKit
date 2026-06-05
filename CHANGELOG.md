@@ -6,6 +6,22 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.28.0] - 2026-06-05
+
+### Agregado
+
+- Ejemplo `examples/system_output_demo.py` para probar el backend de salida `system`.
+- Modo dry-run por defecto para simular comandos Windows, macOS o Linux sin reproducir audio real.
+- Flag `--speak` para ejecutar un piloto manual real con la herramienta de voz del sistema operativo.
+- Salida JSON con voces detectadas, eventos `output.*`, comandos simulados y errores accionables.
+- Pruebas automatizadas para el ejemplo y su ejecucion como script.
+
+### Cambiado
+
+- `tools/stability_gate.py` exige ahora el ejemplo de salida `system` como parte del estado `pilot`.
+- README, referencia API, documentacion HTML y roadmap documentan el nuevo ejemplo seguro.
+- El roadmap mueve la prioridad inmediata a ejemplos de asistente local con logs sanitizados.
+
 ## [0.27.0] - 2026-06-05
 
 ### Agregado

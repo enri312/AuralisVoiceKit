@@ -28,6 +28,7 @@ PILOT_CHECKS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
     ("main_documentation", "docs/auralisvoicekit-documentacion.html", ("Privacidad y logs", "Salida de voz")),
     ("pypi_quickstart", "examples/pypi_quickstart.py", ("run_demo", "transcription_backend")),
     ("custom_output_example", "examples/custom_output_backend.py", ("MemorySpeechOutputBackend", "run_demo")),
+    ("system_output_example", "examples/system_output_demo.py", ("DryRunSystemRunner", "--speak")),
     ("ci", ".github/workflows/ci.yml", ("stability_gate.py", "unittest discover")),
 )
 
@@ -158,4 +159,3 @@ def _print_text_report(report: dict[str, Any]) -> None:
 
 if __name__ == "__main__":
     raise SystemExit(main(sys.argv[1:]))
-

@@ -678,7 +678,11 @@ kit = AuralisVoiceKit(
 )
 kit.speak("Hola desde AuralisVoiceKit")</code></pre>
         <pre><code>auralis voices --backend system --json
-auralis speak "Hola" --backend system --voice es --rate 160 --volume 80</code></pre>
+auralis speak "Hola" --backend system --voice es --rate 160 --volume 80
+python examples/system_output_demo.py --json
+python examples/system_output_demo.py --system Linux --voice spanish --rate 160 --volume 80 --json
+python examples/system_output_demo.py --speak --text "Hola desde AuralisVoiceKit"</code></pre>
+        <p><code>examples/system_output_demo.py</code> usa dry-run por defecto: muestra voces simuladas, comandos y eventos sin reproducir audio. <code>--speak</code> activa el backend real para pilotos manuales.</p>
         <h3>Salida personalizada</h3>
         <p>Un backend de salida custom implementa <code>SpeechOutputBackend</code>, reporta <code>BackendInfo(kind="output")</code> y se registra con <code>BackendRegistry.register_output()</code>. La guia completa vive en <a href="../CUSTOM_OUTPUT_BACKENDS.md">CUSTOM_OUTPUT_BACKENDS.md</a>.</p>
         <pre><code>from auralis_voicekit import AuralisVoiceKit, VoiceKitConfig

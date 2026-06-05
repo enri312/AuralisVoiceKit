@@ -35,7 +35,7 @@ La meta no es competir con todos los motores de voz a la vez. La meta es constru
 | Compatibilidad Windows/Linux/macOS | Documentacion inicial |
 | Diagnostico doctor | Inicial estructurado con test de apertura |
 | Transcripcion real | Inicial por API y local opcional |
-| Salida de voz real | Inicial con backend `system`, listado de voces y parametros de voz |
+| Salida de voz real | Inicial con backend `system`, listado de voces, parametros de voz y ejemplo seguro |
 | CI multiplataforma | Inicial con pruebas reales de MP3 y FLAC |
 | Publicacion en PyPI | Preparada con workflow manual |
 | Benchmarks de latencia | Inicial offline, comparativo para Whisper y exportacion JSON/CSV |
@@ -142,6 +142,7 @@ Entregables:
 - Seleccion de voz, velocidad y volumen cuando el comando del sistema lo soporta. Estado: inicial.
 - Guia de backends de salida personalizados. Estado: inicial con `CUSTOM_OUTPUT_BACKENDS.md`.
 - Ejemplo de backend de salida en memoria. Estado: inicial con `examples/custom_output_backend.py`.
+- Ejemplo seguro de salida `system` con dry-run y piloto real opt-in. Estado: inicial con `examples/system_output_demo.py`.
 - Backend Windows inicial para TTS local si es viable. Estado: inicial via PowerShell/SAPI.
 - Backend por API como extra opcional.
 - Cola simple de reproduccion.
@@ -254,7 +255,7 @@ Criterio de salida:
 
 - Backend WASAPI dedicado. Estado: inicial sobre `sounddevice` con diagnostico reforzado.
 - Backend PyAudio solo como compatibilidad opcional.
-- Backend de salida `system`. Estado: inicial con listado de voces, seleccion de voz, velocidad y volumen.
+- Backend de salida `system`. Estado: inicial con listado de voces, seleccion de voz, velocidad, volumen y ejemplo seguro.
 - Soporte para archivos WAV/FLAC como entrada. WAV PCM16 completado; FLAC inicial validado via `ffmpeg`.
 - Adaptadores para modelos locales. Whisper inicial completado.
 - Adaptadores para APIs externas. OpenAI inicial completado.
@@ -270,11 +271,12 @@ Criterio de salida:
 - Backends de salida personalizados. Estado: guia y ejemplo inicial.
 - Automatizacion de estabilidad. Estado: gate inicial listo para CI y uso local.
 - Mensajes Windows audio. Estado: inicial para permisos, dispositivo, sample rate, canales y host API.
+- Ejemplo de salida `system`. Estado: inicial con dry-run y `--speak` para pilotos reales.
 
 ## Prioridad inmediata
 
-1. Preparar un ejemplo de salida de voz con backend `system`.
-2. Agregar ejemplos completos de asistente local con logs sanitizados.
-3. Ejecutar pilotos reales guiados por `tools/stability_gate.py`.
-4. Ampliar diagnostico Windows con casos reales reportados por pilotos.
-5. Agregar benchmark real de salida `system` si es seguro en CI.
+1. Agregar ejemplos completos de asistente local con logs sanitizados.
+2. Ejecutar pilotos reales guiados por `tools/stability_gate.py`.
+3. Ampliar diagnostico Windows con casos reales reportados por pilotos.
+4. Agregar benchmark real de salida `system` si es seguro en CI.
+5. Documentar checklist de hallazgos para pilotos Windows/Ubuntu/macOS.
