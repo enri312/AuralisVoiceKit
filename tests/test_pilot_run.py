@@ -58,6 +58,9 @@ class PilotRunTests(unittest.TestCase):
         self.assertIn("operator_checklist.ready_for_beta_evidence", plan)
         self.assertIn("manual-capture-checklist.md", plan)
         self.assertIn("capture_checklist.ready_for_beta_evidence", plan)
+        self.assertIn("system_guard.expected_system_matched", plan)
+        self.assertIn("--expected-system Linux", plan)
+        self.assertIn("--expected-system Darwin", plan)
         self.assertIn("sample.mp3", plan)
         self.assertIn("Ubuntu/Linux - ubuntu-linux-capture", plan)
         self.assertIn("macOS - macos-capture", plan)
@@ -126,6 +129,7 @@ class PilotRunTests(unittest.TestCase):
                 {
                     "project": "AuralisVoiceKit",
                     "system": "Linux",
+                    "system_guard": {"expected_system_matched": True},
                     "hardware_capture_tested": True,
                     "capture_checklist": {"ready_for_beta_evidence": True},
                     "passed": True,

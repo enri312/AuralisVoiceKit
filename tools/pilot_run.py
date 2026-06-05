@@ -230,7 +230,10 @@ def _manual_pilot_steps() -> list[dict[str, str]]:
         },
         {
             "name": "microphone-capture",
-            "command": "python tools/manual_pilot.py --capture-test --backend wasapi --device default --sample-rate 48000 --json",
+            "command": (
+                "python tools/manual_pilot.py --capture-test --backend wasapi --device default "
+                "--sample-rate 48000 --expected-system Windows --json"
+            ),
             "reason": "Requires real microphone hardware and OS permissions.",
         },
         {
@@ -453,7 +456,7 @@ def _platform_pilot_matrix(blockers: list[str]) -> list[dict[str, Any]]:
             "blocker": "windows_wasapi_capture",
             "command": (
                 "python tools/manual_pilot.py --capture-test --backend wasapi "
-                "--device default --sample-rate 48000 --json"
+                "--device default --sample-rate 48000 --expected-system Windows --json"
             ),
             "artifact": "manual-pilot-report.json",
             "requires_hardware": True,
@@ -465,7 +468,10 @@ def _platform_pilot_matrix(blockers: list[str]) -> list[dict[str, Any]]:
             "name": "ubuntu-linux-capture",
             "platform": "Ubuntu/Linux",
             "blocker": "ubuntu_linux_capture",
-            "command": "python tools/manual_pilot.py --capture-test --backend sounddevice --device default --json",
+            "command": (
+                "python tools/manual_pilot.py --capture-test --backend sounddevice "
+                "--device default --expected-system Linux --json"
+            ),
             "artifact": "manual-pilot-report.json",
             "requires_hardware": True,
             "requires_operator": False,
@@ -476,7 +482,10 @@ def _platform_pilot_matrix(blockers: list[str]) -> list[dict[str, Any]]:
             "name": "macos-capture",
             "platform": "macOS",
             "blocker": "macos_capture",
-            "command": "python tools/manual_pilot.py --capture-test --backend sounddevice --device default --json",
+            "command": (
+                "python tools/manual_pilot.py --capture-test --backend sounddevice "
+                "--device default --expected-system Darwin --json"
+            ),
             "artifact": "manual-pilot-report.json",
             "requires_hardware": True,
             "requires_operator": False,

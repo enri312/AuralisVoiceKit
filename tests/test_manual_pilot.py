@@ -46,14 +46,18 @@ class ManualPilotTests(unittest.TestCase):
             checklist = checklist_path.read_text(encoding="utf-8")
 
         self.assertTrue(report["passed"])
+        self.assertTrue(report["diagnostic_passed"])
         self.assertFalse(report["hardware_capture_tested"])
         self.assertEqual(report["sample_rate"], 48000)
+        self.assertFalse(report["system_guard"]["enabled"])
+        self.assertIsNone(report["system_guard"]["expected_system_matched"])
         self.assertIn("capture_checklist", report)
         self.assertFalse(report["capture_checklist"]["records_audio_bytes"])
         self.assertFalse(report["capture_checklist"]["ready_for_beta_evidence"])
         self.assertEqual(analysis["bundle_count"], 1)
         self.assertIn("Manual pilot findings", findings)
         self.assertIn("Capture test requested: False", findings)
+        self.assertIn("Expected system matched: not-set", findings)
         self.assertIn("Capture checklist ready for beta evidence: False", findings)
         self.assertIn("Sample rate: 48000", findings)
         self.assertIn("Bundle: doctor-bundle.json", findings)
@@ -90,6 +94,7 @@ class ManualPilotTests(unittest.TestCase):
         self.assertFalse(payload["capture_test_requested"])
         self.assertIn("capture_checklist", payload)
         self.assertIn("capture_checklist", payload["artifacts"])
+        self.assertFalse(payload["system_guard"]["enabled"])
 
     def test_manual_pilot_redacts_named_device_selector(self):
         module = _load_manual_pilot()
@@ -105,6 +110,36 @@ class ManualPilotTests(unittest.TestCase):
         self.assertEqual(report["capture_device"], "<device-redacted>")
         self.assertTrue(report["capture_device_redacted"])
 
+    def test_manual_pilot_expected_system_guard_matches_current_system(self):
+        module = _load_manual_pilot()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            report = module.run_manual_pilot(
+                root=ROOT,
+                output_dir=tmpdir,
+                capture_backend="wav",
+                expected_system=module.platform.system(),
+            )
+
+        self.assertTrue(report["system_guard"]["enabled"])
+        self.assertTrue(report["system_guard"]["expected_system_matched"])
+
+    def test_manual_pilot_expected_system_guard_detects_mismatch(self):
+        module = _load_manual_pilot()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            report = module.run_manual_pilot(
+                root=ROOT,
+                output_dir=tmpdir,
+                capture_backend="wav",
+                expected_system="Darwin" if module.platform.system() != "Darwin" else "Windows",
+            )
+
+        self.assertTrue(report["system_guard"]["enabled"])
+        self.assertFalse(report["system_guard"]["expected_system_matched"])
+        self.assertFalse(report["passed"])
+        self.assertTrue(report["diagnostic_passed"])
+
     def test_capture_checklist_marks_beta_ready_for_real_capture(self):
         module = _load_manual_pilot()
 
@@ -116,6 +151,7 @@ class ManualPilotTests(unittest.TestCase):
             passed=True,
             hardware_capture_tested=True,
             device_redacted=False,
+            expected_system_matched=True,
         )
         markdown = module._build_capture_checklist_markdown(
             timestamp="2026-06-05T00:00:00+00:00",
@@ -126,8 +162,10 @@ class ManualPilotTests(unittest.TestCase):
 
         self.assertTrue(checklist["ready_for_real_capture"])
         self.assertTrue(checklist["ready_for_beta_evidence"])
+        self.assertTrue(checklist["expected_system_matched"])
         self.assertFalse(checklist["records_audio_bytes"])
         self.assertIn("Ready for beta evidence: True", markdown)
+        self.assertIn("Expected system matched: True", markdown)
 
     def test_capture_checklist_requires_sample_rate_for_windows_wasapi(self):
         module = _load_manual_pilot()
@@ -140,9 +178,27 @@ class ManualPilotTests(unittest.TestCase):
             passed=True,
             hardware_capture_tested=True,
             device_redacted=False,
+            expected_system_matched=True,
         )
 
         self.assertFalse(checklist["ready_for_real_capture"])
+        self.assertFalse(checklist["ready_for_beta_evidence"])
+
+    def test_capture_checklist_requires_expected_system_for_beta_evidence(self):
+        module = _load_manual_pilot()
+
+        checklist = module._capture_checklist(
+            system="Linux",
+            backend="sounddevice",
+            capture_test=True,
+            sample_rate=None,
+            passed=True,
+            hardware_capture_tested=True,
+            device_redacted=False,
+            expected_system_matched=False,
+        )
+
+        self.assertTrue(checklist["ready_for_real_capture"])
         self.assertFalse(checklist["ready_for_beta_evidence"])
 
 

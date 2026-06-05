@@ -67,7 +67,11 @@ PILOT_CHECKS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
             "transcription-review-checklist.md",
         ),
     ),
-    ("manual_pilot_runner", "tools/manual_pilot.py", ("run_manual_pilot", "--capture-test", "--sample-rate")),
+    (
+        "manual_pilot_runner",
+        "tools/manual_pilot.py",
+        ("run_manual_pilot", "--capture-test", "--sample-rate", "--expected-system", "system_guard"),
+    ),
     (
         "output_pilot_runner",
         "tools/output_pilot.py",
@@ -115,6 +119,7 @@ PILOT_CHECKS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
             "missing_blockers",
             "ready_for_beta_by_evidence",
             "quality.min_word_accuracy",
+            "system_guard.expected_system_matched",
             "ignored_count",
             "ignored_details",
             "missing_project",

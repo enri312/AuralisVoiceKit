@@ -28,11 +28,13 @@ El reporte generado incluye:
 
 ## Piloto manual guiado
 
-Este piloto genera bundle doctor, analisis `doctor-bundles`, reporte JSON, Markdown de hallazgos y `manual-capture-checklist.md`. Por defecto no abre el microfono; `--capture-test` es obligatorio para una prueba real de captura. El reporte no guarda bytes de audio y redacta el selector de dispositivo cuando no es `default` o un id numerico. English: beta capture evidence requires `capture_checklist.ready_for_beta_evidence=true`.
+Este piloto genera bundle doctor, analisis `doctor-bundles`, reporte JSON, Markdown de hallazgos y `manual-capture-checklist.md`. Por defecto no abre el microfono; `--capture-test` es obligatorio para una prueba real de captura. Usa `--expected-system Windows`, `--expected-system Linux` o `--expected-system Darwin` para confirmar que el artifact se genero en la plataforma esperada. El reporte no guarda bytes de audio y redacta el selector de dispositivo cuando no es `default` o un id numerico. English: beta capture evidence requires `system_guard.expected_system_matched=true` and `capture_checklist.ready_for_beta_evidence=true`.
 
 ```powershell
 py tools\manual_pilot.py --output-dir pilot_runs\manual\windows-safe --json
-py tools\manual_pilot.py --capture-test --backend wasapi --device default --sample-rate 48000 --json
+py tools\manual_pilot.py --capture-test --backend wasapi --device default --sample-rate 48000 --expected-system Windows --json
+py tools\manual_pilot.py --capture-test --backend sounddevice --device default --expected-system Linux --json
+py tools\manual_pilot.py --capture-test --backend sounddevice --device default --expected-system Darwin --json
 py tools\output_pilot.py --output-dir pilot_runs\output\system-dry-run --json
 py tools\output_pilot.py --speak --operator-present --confirm-audible --output-dir pilot_runs\output\system-real --text "Hola desde AuralisVoiceKit" --json
 py tools\transcription_pilot.py --output-dir pilot_runs\transcription\safe --json
@@ -51,7 +53,7 @@ py tools\beta_readiness.py --evidence pilot_runs\manual --evidence pilot_runs\ou
 
 `tools/pilot_audio_fixture.py` genera audio sintetico publico en WAV/MP3/FLAC para ensayar ffmpeg; con `--run-preflight` tambien ejecuta un preflight seguro contra el MP3 generado. Marca `usable_as_beta_evidence=false` para no confundirlo con evidencia real. `tools/transcription_pilot.py` genera audio sintetico y usa `null` por defecto. `--preflight-only --audio PATH --audio-non-sensitive` decodifica MP3/FLAC/WAV y escribe metadata sanitizada sin ejecutar Whisper/OpenAI; sirve para detectar problemas de ffmpeg antes del piloto real. Cada corrida escribe `transcription-review-checklist.md` y `transcription_checklist` para revisar privacidad, duracion, referencia y calidad sin copiar audio ni texto privado. `--min-audio-seconds` y `--max-audio-seconds` agregan una guarda publica de duracion para rechazar audios vacios o demasiado largos antes de continuar. Los backends reales `whisper` y `openai` requieren `--real-transcription --audio PATH --audio-non-sensitive`, y el texto transcrito no se guarda completo en artifacts. Con `--expected-text` o `--expected-text-file` calcula word accuracy, word error rate y character error rate sin guardar la transcripcion ni la referencia completa.
 
-`tools/beta_readiness.py` no ejecuta hardware ni red. Lee el gate, `PILOT_FINDINGS.md` y artifacts JSON pasados con `--evidence`, genera `BETA_CHECKLIST.md` y marca blockers hasta que haya evidencia real de transcripcion, salida audible y pilotos Ubuntu/Linux y macOS. `--requirements` imprime los campos JSON esperados por cada blocker, incluidos `capture_checklist.ready_for_beta_evidence` para captura real, `transcription_checklist.ready_for_beta_evidence` para transcripcion real y `operator_checklist.ready_for_beta_evidence` para salida audible; `--audit-evidence` revisa artifacts reales, resume blockers cerrados/pendientes y explica que campo falta; `--fail-on-audit-gaps` devuelve codigo 1 si quedan blockers o artifacts ignorados. Las evidencias se toman de `manual-pilot-report.json`, `output-pilot-report.json` y `transcription-pilot-report.json`; solo cuentan si declaran `project: AuralisVoiceKit`. El checklist reporta evidencias ignoradas con motivos seguros (`missing_project`, `wrong_project`, `not_json_object`) y no copia transcripciones ni rutas completas. English: strict evidence audit can fail CI without exposing private audio, transcripts or full local paths.
+`tools/beta_readiness.py` no ejecuta hardware ni red. Lee el gate, `PILOT_FINDINGS.md` y artifacts JSON pasados con `--evidence`, genera `BETA_CHECKLIST.md` y marca blockers hasta que haya evidencia real de transcripcion, salida audible y pilotos Ubuntu/Linux y macOS. `--requirements` imprime los campos JSON esperados por cada blocker, incluidos `system_guard.expected_system_matched` y `capture_checklist.ready_for_beta_evidence` para captura real, `transcription_checklist.ready_for_beta_evidence` para transcripcion real y `operator_checklist.ready_for_beta_evidence` para salida audible; `--audit-evidence` revisa artifacts reales, resume blockers cerrados/pendientes y explica que campo falta; `--fail-on-audit-gaps` devuelve codigo 1 si quedan blockers o artifacts ignorados. Las evidencias se toman de `manual-pilot-report.json`, `output-pilot-report.json` y `transcription-pilot-report.json`; solo cuentan si declaran `project: AuralisVoiceKit`. El checklist reporta evidencias ignoradas con motivos seguros (`missing_project`, `wrong_project`, `not_json_object`) y no copia transcripciones ni rutas completas. English: strict evidence audit can fail CI without exposing private audio, transcripts or full local paths.
 
 Los hallazgos resumidos se mantienen en:
 
@@ -68,7 +70,9 @@ Ejecutar estos pasos solo cuando haya hardware, permisos y tiempo para revisar r
 auralis doctor --devices --backend sounddevice --json
 auralis doctor --capture-test --backend sounddevice --device default --bundle pilot_runs\manual\doctor-capture.json --json
 auralis doctor-bundles pilot_runs\manual\doctor-capture.json --output pilot_runs\manual\doctor-analysis.json --json
-python tools\manual_pilot.py --capture-test --backend wasapi --device default --sample-rate 48000 --json
+python tools\manual_pilot.py --capture-test --backend wasapi --device default --sample-rate 48000 --expected-system Windows --json
+python tools\manual_pilot.py --capture-test --backend sounddevice --device default --expected-system Linux --json
+python tools\manual_pilot.py --capture-test --backend sounddevice --device default --expected-system Darwin --json
 python tools\output_pilot.py --output-dir pilot_runs\output\system-dry-run --json
 python tools\output_pilot.py --speak --operator-present --confirm-audible --output-dir pilot_runs\output\system-real --text "Hola desde AuralisVoiceKit" --json
 python tools\pilot_audio_fixture.py --output-dir pilot_runs\transcription\fixture --format wav --format mp3 --run-preflight --json
@@ -106,7 +110,7 @@ Acciones siguientes:
 - Piloto automatizado seguro: preparado con `tools/pilot_run.py`.
 - Piloto manual guiado: preparado con `tools/manual_pilot.py`, `manual-capture-checklist.md` y `capture_checklist`.
 - Analisis de bundles doctor: preparado con `auralis doctor-bundles`.
-- Pilotos manuales con microfono real: primer piloto Windows/WASAPI aprobado con `--sample-rate 48000`; Ubuntu/Linux y macOS pendientes con `manual-capture-checklist.md`.
+- Pilotos manuales con microfono real: primer piloto Windows/WASAPI aprobado con `--sample-rate 48000`; Ubuntu/Linux y macOS pendientes con `--expected-system` y `manual-capture-checklist.md`.
 - Pilotos manuales con salida `system` real: runner preparado con `tools/output_pilot.py`; dry-run Windows aprobado, `output-operator-checklist.md` y `operator_checklist.ready_for_beta_evidence` listos, guards `--operator-present` y `--confirm-audible` listos, audio real pendiente con operador presente.
 - Pilotos manuales con transcripcion real: runner preparado con `tools/transcription_pilot.py`; fixture sintetico publico, dry-run sintetico Windows, `transcription-review-checklist.md`, scoring redactado y guardas de duracion preparados, audio real pendiente con archivo no sensible.
 - Checklist de beta: preparado con `tools/beta_readiness.py`; acepta artifacts JSON con `--evidence`; estado actual `pilot`, beta bloqueada por pilotos reales pendientes.

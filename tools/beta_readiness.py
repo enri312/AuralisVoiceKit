@@ -41,11 +41,12 @@ def build_evidence_requirements_report() -> dict[str, Any]:
                 "artifact": "manual-pilot-report.json",
                 "command": (
                     "python tools/manual_pilot.py --capture-test --backend wasapi "
-                    "--device default --sample-rate 48000 --json"
+                    "--device default --sample-rate 48000 --expected-system Windows --json"
                 ),
                 "fields": [
                     _required_field("project", "AuralisVoiceKit"),
                     _required_field("system", "Windows"),
+                    _required_field("system_guard.expected_system_matched", True),
                     _required_field("capture_backend", "wasapi"),
                     _required_field("hardware_capture_tested", True),
                     _required_field("capture_checklist.ready_for_beta_evidence", True),
@@ -97,11 +98,12 @@ def build_evidence_requirements_report() -> dict[str, Any]:
                 "artifact": "manual-pilot-report.json",
                 "command": (
                     "python tools/manual_pilot.py --capture-test --backend sounddevice "
-                    "--device default --json"
+                    "--device default --expected-system Linux --json"
                 ),
                 "fields": [
                     _required_field("project", "AuralisVoiceKit"),
                     _required_field("system", "Linux | Ubuntu/Linux | Ubuntu"),
+                    _required_field("system_guard.expected_system_matched", True),
                     _required_field("hardware_capture_tested", True),
                     _required_field("capture_checklist.ready_for_beta_evidence", True),
                     _required_field("passed", True),
@@ -113,11 +115,12 @@ def build_evidence_requirements_report() -> dict[str, Any]:
                 "artifact": "manual-pilot-report.json",
                 "command": (
                     "python tools/manual_pilot.py --capture-test --backend sounddevice "
-                    "--device default --json"
+                    "--device default --expected-system Darwin --json"
                 ),
                 "fields": [
                     _required_field("project", "AuralisVoiceKit"),
                     _required_field("system", "Darwin | macOS | Mac"),
+                    _required_field("system_guard.expected_system_matched", True),
                     _required_field("hardware_capture_tested", True),
                     _required_field("capture_checklist.ready_for_beta_evidence", True),
                     _required_field("passed", True),
@@ -257,8 +260,9 @@ def build_beta_readiness_report(
                 "Piloto manual: `passed=true`",
             ),
             next_action=(
-                "Run the manual capture pilot on Ubuntu/Linux with real hardware, then keep "
-                "manual-capture-checklist.md and capture_checklist.ready_for_beta_evidence=true."
+                "Run the manual capture pilot on Ubuntu/Linux with real hardware and "
+                "--expected-system Linux, then keep manual-capture-checklist.md, "
+                "system_guard.expected_system_matched=true and capture_checklist.ready_for_beta_evidence=true."
             ),
         ),
         _evidence_or_terms_check(
@@ -273,8 +277,9 @@ def build_beta_readiness_report(
                 "Piloto manual: `passed=true`",
             ),
             next_action=(
-                "Run the manual capture pilot on macOS with real hardware, then keep "
-                "manual-capture-checklist.md and capture_checklist.ready_for_beta_evidence=true."
+                "Run the manual capture pilot on macOS with real hardware and --expected-system Darwin, "
+                "then keep manual-capture-checklist.md, system_guard.expected_system_matched=true "
+                "and capture_checklist.ready_for_beta_evidence=true."
             ),
         ),
     ]
@@ -817,8 +822,11 @@ def _looks_like_pilot_report(path: Path) -> bool:
 
 def _is_windows_wasapi_capture_evidence(report: dict[str, Any]) -> bool:
     capture_checklist = report.get("capture_checklist", {})
+    system_guard = report.get("system_guard", {})
     return (
         report.get("system") == "Windows"
+        and isinstance(system_guard, dict)
+        and system_guard.get("expected_system_matched") is True
         and report.get("capture_backend") == "wasapi"
         and report.get("hardware_capture_tested") is True
         and isinstance(capture_checklist, dict)
@@ -830,8 +838,11 @@ def _is_windows_wasapi_capture_evidence(report: dict[str, Any]) -> bool:
 def _is_ubuntu_linux_capture_evidence(report: dict[str, Any]) -> bool:
     system = str(report.get("system", "")).lower()
     capture_checklist = report.get("capture_checklist", {})
+    system_guard = report.get("system_guard", {})
     return (
         system in {"linux", "ubuntu/linux", "ubuntu"}
+        and isinstance(system_guard, dict)
+        and system_guard.get("expected_system_matched") is True
         and report.get("hardware_capture_tested") is True
         and isinstance(capture_checklist, dict)
         and capture_checklist.get("ready_for_beta_evidence") is True
@@ -842,8 +853,11 @@ def _is_ubuntu_linux_capture_evidence(report: dict[str, Any]) -> bool:
 def _is_macos_capture_evidence(report: dict[str, Any]) -> bool:
     system = str(report.get("system", "")).lower()
     capture_checklist = report.get("capture_checklist", {})
+    system_guard = report.get("system_guard", {})
     return (
         system in {"darwin", "macos", "mac"}
+        and isinstance(system_guard, dict)
+        and system_guard.get("expected_system_matched") is True
         and report.get("hardware_capture_tested") is True
         and isinstance(capture_checklist, dict)
         and capture_checklist.get("ready_for_beta_evidence") is True

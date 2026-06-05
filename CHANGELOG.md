@@ -6,6 +6,19 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.59.0] - 2026-06-05
+
+### Agregado
+
+- Flag `tools/manual_pilot.py --expected-system` para validar que una evidencia de captura real se genero en la plataforma esperada.
+- Bloque JSON `system_guard` en `manual-pilot-report.json`, con `expected_system`, `actual_system` y `expected_system_matched`.
+- Pruebas para guard de plataforma correcto, mismatch y bloqueo de evidencia beta sin guard.
+
+### Cambiado
+
+- `tools/beta_readiness.py --requirements` y la auditoria de evidencias ahora requieren `system_guard.expected_system_matched=true` para cerrar blockers de captura por JSON.
+- `tools/pilot_run.py`, README, `PILOTS.md`, docs HTML, roadmap y gate de estabilidad documentan `--expected-system` para Windows, Ubuntu/Linux y macOS.
+
 ## [0.58.0] - 2026-06-05
 
 ### Agregado

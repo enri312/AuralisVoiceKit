@@ -82,6 +82,7 @@ class BetaReadinessTests(unittest.TestCase):
                     "project": "AuralisVoiceKit",
                     "system": "Linux",
                     "capture_backend": "sounddevice",
+                    "system_guard": _system_guard(),
                     "hardware_capture_tested": True,
                     "capture_checklist": _capture_checklist(),
                     "passed": True,
@@ -93,6 +94,7 @@ class BetaReadinessTests(unittest.TestCase):
                     "project": "AuralisVoiceKit",
                     "system": "Darwin",
                     "capture_backend": "sounddevice",
+                    "system_guard": _system_guard(),
                     "hardware_capture_tested": True,
                     "capture_checklist": _capture_checklist(),
                     "passed": True,
@@ -231,6 +233,28 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertFalse(checks["ubuntu_linux_capture"]["ok"])
         self.assertIn("ubuntu_linux_capture", report["blockers"])
 
+    def test_capture_evidence_requires_expected_system_guard(self):
+        module = _load_beta_readiness()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            evidence_path = Path(tmpdir) / "manual-pilot-report.json"
+            _write_json(
+                evidence_path,
+                {
+                    "project": "AuralisVoiceKit",
+                    "system": "Linux",
+                    "hardware_capture_tested": True,
+                    "capture_checklist": _capture_checklist(),
+                    "passed": True,
+                },
+            )
+
+            report = module.build_beta_readiness_report(ROOT, evidence_paths=[evidence_path])
+            checks = {check["name"]: check for check in report["checks"]}
+
+        self.assertFalse(checks["ubuntu_linux_capture"]["ok"])
+        self.assertIn("ubuntu_linux_capture", report["blockers"])
+
     def test_cli_evidence_allows_strict_beta_pass(self):
         module = _load_beta_readiness()
 
@@ -241,6 +265,7 @@ class BetaReadinessTests(unittest.TestCase):
                 {
                     "project": "AuralisVoiceKit",
                     "system": "Linux",
+                    "system_guard": _system_guard(),
                     "hardware_capture_tested": True,
                     "capture_checklist": _capture_checklist(),
                     "passed": True,
@@ -251,6 +276,7 @@ class BetaReadinessTests(unittest.TestCase):
                 {
                     "project": "AuralisVoiceKit",
                     "system": "Darwin",
+                    "system_guard": _system_guard(),
                     "hardware_capture_tested": True,
                     "capture_checklist": _capture_checklist(),
                     "passed": True,
@@ -389,6 +415,7 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertEqual(transcription_fields["quality.min_word_accuracy"], ">= 0.75")
         self.assertEqual(transcription_fields["transcription_checklist.ready_for_beta_evidence"], True)
         self.assertIn("operator_checklist.ready_for_beta_evidence", output_fields)
+        self.assertIn("system_guard.expected_system_matched", linux_fields)
         self.assertIn("capture_checklist.ready_for_beta_evidence", linux_fields)
 
     def test_cli_requirements_markdown_is_public_safe(self):
@@ -402,6 +429,7 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertEqual(exit_code, 0)
         self.assertIn("Requisitos de evidencias beta", content)
         self.assertIn("transcription-pilot-report.json", content)
+        self.assertIn("system_guard.expected_system_matched", content)
         self.assertIn("capture_checklist.ready_for_beta_evidence", content)
         self.assertIn("quality.min_word_accuracy", content)
         self.assertIn("transcription_checklist.ready_for_beta_evidence", content)
@@ -486,6 +514,7 @@ class BetaReadinessTests(unittest.TestCase):
                 {
                     "project": "AuralisVoiceKit",
                     "system": "Linux",
+                    "system_guard": _system_guard(),
                     "hardware_capture_tested": True,
                     "capture_checklist": _capture_checklist(),
                     "passed": True,
@@ -562,6 +591,7 @@ class BetaReadinessTests(unittest.TestCase):
                 {
                     "project": "AuralisVoiceKit",
                     "system": "Windows",
+                    "system_guard": _system_guard(),
                     "capture_backend": "wasapi",
                     "hardware_capture_tested": True,
                     "capture_checklist": _capture_checklist(),
@@ -573,6 +603,7 @@ class BetaReadinessTests(unittest.TestCase):
                 {
                     "project": "AuralisVoiceKit",
                     "system": "Linux",
+                    "system_guard": _system_guard(),
                     "hardware_capture_tested": True,
                     "capture_checklist": _capture_checklist(),
                     "passed": True,
@@ -583,6 +614,7 @@ class BetaReadinessTests(unittest.TestCase):
                 {
                     "project": "AuralisVoiceKit",
                     "system": "Darwin",
+                    "system_guard": _system_guard(),
                     "hardware_capture_tested": True,
                     "capture_checklist": _capture_checklist(),
                     "passed": True,
@@ -627,6 +659,7 @@ class BetaReadinessTests(unittest.TestCase):
                 {
                     "project": "AuralisVoiceKit",
                     "system": "Windows",
+                    "system_guard": _system_guard(),
                     "capture_backend": "wasapi",
                     "hardware_capture_tested": True,
                     "capture_checklist": _capture_checklist(),
@@ -638,6 +671,7 @@ class BetaReadinessTests(unittest.TestCase):
                 {
                     "project": "AuralisVoiceKit",
                     "system": "Linux",
+                    "system_guard": _system_guard(),
                     "hardware_capture_tested": True,
                     "capture_checklist": _capture_checklist(),
                     "passed": True,
@@ -648,6 +682,7 @@ class BetaReadinessTests(unittest.TestCase):
                 {
                     "project": "AuralisVoiceKit",
                     "system": "Darwin",
+                    "system_guard": _system_guard(),
                     "hardware_capture_tested": True,
                     "capture_checklist": _capture_checklist(),
                     "passed": True,
@@ -696,6 +731,10 @@ def _write_json(path: Path, payload: dict):
 
 def _capture_checklist() -> dict[str, bool]:
     return {"ready_for_beta_evidence": True}
+
+
+def _system_guard() -> dict[str, bool]:
+    return {"expected_system_matched": True}
 
 
 if __name__ == "__main__":

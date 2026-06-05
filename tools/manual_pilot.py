@@ -32,6 +32,7 @@ def run_manual_pilot(
     capture_seconds: float = 0.25,
     capture_device: str | int | None = "default",
     sample_rate: int | None = None,
+    expected_system: str | None = None,
 ) -> dict[str, Any]:
     """Run a manual-pilot diagnostic pass and write shareable artifacts."""
 
@@ -60,8 +61,10 @@ def run_manual_pilot(
     analysis = analyze_doctor_bundles([bundle_path])
     write_doctor_bundle_analysis(analysis_path, analysis)
     high_priority_issues = analysis.priority_counts.get("high", 0)
-    passed = doctor.status is not DiagnosticStatus.ERROR and high_priority_issues == 0
     public_device, device_redacted = _public_capture_device(capture_device)
+    system_guard = _system_guard(expected_system, system)
+    diagnostic_passed = doctor.status is not DiagnosticStatus.ERROR and high_priority_issues == 0
+    passed = diagnostic_passed and system_guard["expected_system_matched"] is not False
     capture_checklist = _capture_checklist(
         system=system,
         backend=backend,
@@ -70,10 +73,12 @@ def run_manual_pilot(
         passed=passed,
         hardware_capture_tested=capture_test,
         device_redacted=device_redacted,
+        expected_system_matched=system_guard["expected_system_matched"],
     )
     findings = _build_findings_markdown(
         timestamp=timestamp,
         system=system,
+        system_guard=system_guard,
         backend=backend,
         capture_test=capture_test,
         sample_rate=sample_rate,
@@ -98,12 +103,14 @@ def run_manual_pilot(
         "project": "AuralisVoiceKit",
         "created_at": timestamp,
         "system": system,
+        "system_guard": system_guard,
         "capture_backend": backend,
         "capture_test_requested": capture_test,
         "capture_device": public_device,
         "capture_device_redacted": device_redacted,
         "sample_rate": sample_rate,
         "doctor_status": doctor.status.value,
+        "diagnostic_passed": diagnostic_passed,
         "passed": passed,
         "hardware_capture_tested": capture_test,
         "capture_checklist": capture_checklist,
@@ -139,6 +146,10 @@ def main(argv: list[str] | None = None) -> int:
         type=int,
         help="sample rate used by --capture-test, for example 48000 on many WASAPI devices",
     )
+    parser.add_argument(
+        "--expected-system",
+        help="expected platform for this pilot, for example Windows, Linux or Darwin",
+    )
     parser.add_argument("--json", action="store_true", help="print JSON report")
     args = parser.parse_args(argv)
 
@@ -150,6 +161,7 @@ def main(argv: list[str] | None = None) -> int:
         capture_seconds=args.capture_seconds,
         capture_device=args.device,
         sample_rate=args.sample_rate,
+        expected_system=args.expected_system,
     )
     if args.json:
         print(json.dumps(report, indent=2, sort_keys=True))
@@ -166,6 +178,7 @@ def _build_findings_markdown(
     *,
     timestamp: str,
     system: str,
+    system_guard: dict[str, Any],
     backend: str,
     capture_test: bool,
     sample_rate: int | None,
@@ -182,6 +195,8 @@ def _build_findings_markdown(
         "",
         f"- Created at: {timestamp}",
         f"- System: {system}",
+        f"- Expected system: {_format_nullable(system_guard['expected_system'])}",
+        f"- Expected system matched: {_format_nullable(system_guard['expected_system_matched'])}",
         f"- Capture backend: {backend}",
         f"- Capture test requested: {capture_test}",
         f"- Sample rate: {_format_optional(sample_rate)}",
@@ -238,6 +253,7 @@ def _capture_checklist(
     passed: bool,
     hardware_capture_tested: bool,
     device_redacted: bool,
+    expected_system_matched: bool | None,
 ) -> dict[str, Any]:
     real_capture_backend = backend in {"sounddevice", "wasapi"}
     needs_sample_rate_review = system == "Windows" and backend == "wasapi"
@@ -258,6 +274,12 @@ def _capture_checklist(
             "microphone_permission_reviewed",
             "Confirm OS microphone permissions and a non-sensitive room before starting capture.",
             ok=None,
+            required=True,
+        ),
+        _checklist_item(
+            "expected_system_matched",
+            "Use --expected-system so Linux/macOS/Windows evidence cannot be collected on the wrong OS.",
+            ok=expected_system_matched,
             required=True,
         ),
         _checklist_item(
@@ -295,11 +317,14 @@ def _capture_checklist(
     ]
     sample_rate_ready = not needs_sample_rate_review or sample_rate is not None
     ready_for_real_capture = bool(capture_test and real_capture_backend and sample_rate_ready)
-    ready_for_beta_evidence = bool(ready_for_real_capture and hardware_capture_tested and passed)
+    ready_for_beta_evidence = bool(
+        ready_for_real_capture and hardware_capture_tested and passed and expected_system_matched is True
+    )
     return {
         "system": system,
         "records_audio_bytes": False,
         "redacts_device_selector": device_redacted,
+        "expected_system_matched": expected_system_matched,
         "ready_for_real_capture": ready_for_real_capture,
         "ready_for_beta_evidence": ready_for_beta_evidence,
         "before_capture": before,
@@ -337,6 +362,7 @@ def _build_capture_checklist_markdown(
         f"- Capture backend: {backend}",
         f"- Records audio bytes: {capture_checklist['records_audio_bytes']}",
         f"- Redacts device selector: {capture_checklist['redacts_device_selector']}",
+        f"- Expected system matched: {_format_nullable(capture_checklist['expected_system_matched'])}",
         f"- Ready for real capture: {capture_checklist['ready_for_real_capture']}",
         f"- Ready for beta evidence: {capture_checklist['ready_for_beta_evidence']}",
         "",
@@ -383,6 +409,10 @@ def _format_optional(value: object | None) -> str:
     return "default" if value is None else str(value)
 
 
+def _format_nullable(value: object | None) -> str:
+    return "not-set" if value is None else str(value)
+
+
 def _public_capture_device(value: str | int | None) -> tuple[str | int | None, bool]:
     if value is None or isinstance(value, int):
         return value, False
@@ -390,6 +420,40 @@ def _public_capture_device(value: str | int | None) -> tuple[str | int | None, b
     if normalized.lower() == "default" or normalized.isdigit():
         return normalized, False
     return "<device-redacted>", True
+
+
+def _system_guard(expected_system: str | None, actual_system: str) -> dict[str, Any]:
+    expected = expected_system.strip() if expected_system else None
+    accepted_actual_systems = _accepted_actual_systems(expected)
+    matched = None if expected is None else actual_system.lower() in accepted_actual_systems
+    return {
+        "enabled": expected is not None,
+        "expected_system": expected,
+        "actual_system": actual_system,
+        "accepted_actual_systems": sorted(accepted_actual_systems),
+        "expected_system_matched": matched,
+    }
+
+
+def _accepted_actual_systems(expected_system: str | None) -> set[str]:
+    if expected_system is None:
+        return set()
+    aliases = {
+        "windows": {"windows"},
+        "linux": {"linux"},
+        "ubuntu": {"linux"},
+        "ubuntu/linux": {"linux"},
+        "darwin": {"darwin"},
+        "mac": {"darwin"},
+        "macos": {"darwin"},
+    }
+    accepted = set()
+    for part in expected_system.split("|"):
+        normalized = part.strip().lower()
+        if not normalized:
+            continue
+        accepted.update(aliases.get(normalized, {normalized}))
+    return accepted
 
 
 def _format_checklist_item(item: dict[str, Any]) -> str:
