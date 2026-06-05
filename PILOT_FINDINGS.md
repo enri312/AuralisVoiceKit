@@ -2,6 +2,36 @@
 
 Este documento resume hallazgos de pilotos reales o semi-manuales. No debe incluir audio, transcripciones privadas, rutas locales completas ni nombres reales de dispositivos.
 
+## 2026-06-05 - Windows salida system dry-run
+
+Comando ejecutado:
+
+```powershell
+python tools\output_pilot.py --output-dir pilot_runs\output\20260605T1500Z-system-dry-run --json
+```
+
+Alcance:
+
+- Sistema: Windows.
+- Backend diagnosticado: `system`.
+- Audio reproducido: no.
+- Modo: dry-run.
+- Texto completo guardado: no; comandos sanitizados con `<text-redacted>`.
+
+Resultado:
+
+- Piloto de salida: `passed=true`.
+- Eventos observados: `output.started`, `output.completed`.
+- Voces reportadas por dry-run: 2.
+- Comandos observados: 2.
+- Sin errores de salida ni listado de voces.
+
+Acciones siguientes:
+
+1. Ejecutar `python tools\output_pilot.py --speak --text "Hola desde AuralisVoiceKit" --json` solo con operador presente.
+2. Confirmar audibilidad, voz seleccionada y volumen.
+3. Repetir salida `system` en Ubuntu/Linux y macOS.
+
 ## 2026-06-05 - Windows WASAPI captura real a 48000 Hz
 
 Comando ejecutado:

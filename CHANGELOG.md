@@ -6,6 +6,20 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.35.0] - 2026-06-05
+
+### Agregado
+
+- Herramienta `tools/output_pilot.py` para pilotos de salida `system` con artifacts JSON/Markdown.
+- Modo dry-run por defecto para el piloto de salida y `--speak` explicito para reproducir audio real.
+- Sanitizacion de comandos del piloto de salida: el texto solicitado se guarda como `<text-redacted>`.
+- Hallazgo de piloto de salida Windows dry-run documentado sin reproducir audio real.
+- Pruebas automatizadas del runner de piloto de salida.
+
+### Cambiado
+
+- `tools/pilot_run.py`, `PILOTS.md`, README, docs HTML y el gate de estabilidad apuntan al nuevo runner de salida `system`.
+
 ## [0.34.0] - 2026-06-05
 
 ### Agregado

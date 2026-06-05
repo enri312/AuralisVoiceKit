@@ -191,7 +191,7 @@ def _manual_pilot_steps() -> list[dict[str, str]]:
         },
         {
             "name": "system-speech",
-            "command": "python examples/system_output_demo.py --speak --text \"Hola desde AuralisVoiceKit\" --json",
+            "command": "python tools/output_pilot.py --speak --text \"Hola desde AuralisVoiceKit\" --json",
             "reason": "Plays real audio and should be run intentionally by a human.",
         },
         {

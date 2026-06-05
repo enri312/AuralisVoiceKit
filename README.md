@@ -200,10 +200,12 @@ Rutas usadas por plataforma:
 
 English: the `system` output backend can list voices and select voice/rate/volume when the operating system command supports those options.
 
-El ejemplo `system_output_demo.py` usa dry-run por defecto: registra el comando que se ejecutaria, lista voces simuladas para Windows/macOS/Linux y emite eventos `output.*` sin reproducir audio. Para un piloto real, usa `--speak` de forma explicita:
+El ejemplo `system_output_demo.py` usa dry-run por defecto: registra el comando que se ejecutaria, lista voces simuladas para Windows/macOS/Linux y emite eventos `output.*` sin reproducir audio. Para pilotos con artifacts, `tools/output_pilot.py` escribe JSON y Markdown con el texto redactado en comandos. Para un piloto real, usa `--speak` de forma explicita:
 
 ```powershell
 py examples\system_output_demo.py --speak --text "Hola desde AuralisVoiceKit"
+py tools\output_pilot.py --output-dir pilot_runs\output\system-dry-run --json
+py tools\output_pilot.py --speak --text "Hola desde AuralisVoiceKit" --json
 ```
 
 ## Backends de salida personalizados
@@ -662,6 +664,13 @@ py tools\manual_pilot.py --output-dir pilot_runs\manual\windows-safe --json
 py tools\manual_pilot.py --capture-test --backend wasapi --device default --sample-rate 48000 --json
 ```
 
+`tools/output_pilot.py` prepara pilotos de salida `system`. Por defecto es dry-run y no reproduce audio; con `--speak` usa voz real del sistema y registra artifacts sanitizados:
+
+```powershell
+py tools\output_pilot.py --output-dir pilot_runs\output\system-dry-run --json
+py tools\output_pilot.py --speak --text "Hola desde AuralisVoiceKit" --json
+```
+
 Los pasos con hardware quedan documentados en:
 
 ```text
@@ -679,7 +688,7 @@ ROADMAP.md
 
 Prioridad inmediata:
 
-1. Ejecutar piloto manual de salida `system` con voz real y operador presente.
+1. Ejecutar piloto manual de salida `system` con `tools\output_pilot.py --speak` y operador presente.
 2. Ejecutar piloto de transcripcion real con audio propio no sensible.
 3. Repetir captura con microfono en Ubuntu/Linux y macOS.
 4. Preparar checklist de bugs conocidos para beta publica.

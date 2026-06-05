@@ -596,8 +596,9 @@ auralis doctor --capture-test --backend wasapi --device default --sample-rate 48
 auralis doctor-bundles reports/doctor-windows.json reports/doctor-capture.json --output reports/doctor-analysis.json --json</code></pre>
         <pre><code>python tools/pilot_run.py --output-dir pilot_runs/safe --json
 python tools/manual_pilot.py --output-dir pilot_runs/manual/windows-safe --json
-python tools/manual_pilot.py --capture-test --backend wasapi --device default --sample-rate 48000 --json</code></pre>
-        <p><code>tools/pilot_run.py</code> usa <code>tools/stability_gate.py</code> y genera un piloto seguro sin hardware. <code>tools/manual_pilot.py</code> genera bundle doctor, analisis, reporte JSON y Markdown de hallazgos, sin abrir microfono salvo <code>--capture-test</code>. El checklist manual esta en <a href="../PILOTS.md">PILOTS.md</a> y los hallazgos resumidos en <a href="../PILOT_FINDINGS.md">PILOT_FINDINGS.md</a>.</p>
+python tools/manual_pilot.py --capture-test --backend wasapi --device default --sample-rate 48000 --json
+python tools/output_pilot.py --output-dir pilot_runs/output/system-dry-run --json</code></pre>
+        <p><code>tools/pilot_run.py</code> usa <code>tools/stability_gate.py</code> y genera un piloto seguro sin hardware. <code>tools/manual_pilot.py</code> genera bundle doctor, analisis, reporte JSON y Markdown de hallazgos, sin abrir microfono salvo <code>--capture-test</code>. <code>tools/output_pilot.py</code> prepara pilotos de salida <code>system</code> sin reproducir audio por defecto. El checklist manual esta en <a href="../PILOTS.md">PILOTS.md</a> y los hallazgos resumidos en <a href="../PILOT_FINDINGS.md">PILOT_FINDINGS.md</a>.</p>
       </section>
 
       <section id="benchmarks">
@@ -706,8 +707,10 @@ kit.speak("Hola desde AuralisVoiceKit")</code></pre>
 auralis speak "Hola" --backend system --voice es --rate 160 --volume 80
 python examples/system_output_demo.py --json
 python examples/system_output_demo.py --system Linux --voice spanish --rate 160 --volume 80 --json
-python examples/system_output_demo.py --speak --text "Hola desde AuralisVoiceKit"</code></pre>
-        <p><code>examples/system_output_demo.py</code> usa dry-run por defecto: muestra voces simuladas, comandos y eventos sin reproducir audio. <code>--speak</code> activa el backend real para pilotos manuales.</p>
+python examples/system_output_demo.py --speak --text "Hola desde AuralisVoiceKit"
+python tools/output_pilot.py --output-dir pilot_runs/output/system-dry-run --json
+python tools/output_pilot.py --speak --text "Hola desde AuralisVoiceKit" --json</code></pre>
+        <p><code>examples/system_output_demo.py</code> usa dry-run por defecto: muestra voces simuladas, comandos y eventos sin reproducir audio. <code>tools/output_pilot.py</code> escribe artifacts JSON/Markdown y redacta el texto dentro de comandos. <code>--speak</code> activa el backend real para pilotos manuales.</p>
         <h3>Salida personalizada</h3>
         <p>Un backend de salida custom implementa <code>SpeechOutputBackend</code>, reporta <code>BackendInfo(kind="output")</code> y se registra con <code>BackendRegistry.register_output()</code>. La guia completa vive en <a href="../CUSTOM_OUTPUT_BACKENDS.md">CUSTOM_OUTPUT_BACKENDS.md</a>.</p>
         <pre><code>from auralis_voicekit import AuralisVoiceKit, VoiceKitConfig

@@ -46,7 +46,7 @@ La meta no es competir con todos los motores de voz a la vez. La meta es constru
 | Asistente local con privacidad | Ejemplo offline inicial con logs sanitizados |
 | Backends de salida custom | Guia inicial y ejemplo en memoria |
 | Automatizacion de estabilidad | Gate inicial para pilotos reales |
-| Pilotos seguros | Runner automatizado, piloto manual guiado, runbook, bundle doctor y analisis de bundles |
+| Pilotos seguros | Runner automatizado, piloto manual guiado, piloto de salida system, runbook, bundle doctor y analisis de bundles |
 | Mensajes Windows audio | Helper inicial para errores comunes |
 
 ## Fase 0 - Base del proyecto
@@ -281,13 +281,13 @@ Criterio de salida:
 - Ejemplo de asistente local con logs sanitizados. Estado: inicial con `examples/local_assistant_privacy_demo.py`.
 - Backends de salida personalizados. Estado: guia y ejemplo inicial.
 - Automatizacion de estabilidad. Estado: gate inicial listo para CI y uso local.
-- Pilotos seguros. Estado: runner automatizado, piloto manual guiado con `tools/manual_pilot.py`, runbook inicial con `PILOTS.md`, hallazgos en `PILOT_FINDINGS.md`, bundles `doctor` sanitizados, analisis `doctor-bundles`, control explicito de sample rate para pilotos WASAPI y primera captura Windows real aprobada a 48000 Hz.
+- Pilotos seguros. Estado: runner automatizado, piloto manual guiado con `tools/manual_pilot.py`, piloto de salida `system` con `tools/output_pilot.py`, runbook inicial con `PILOTS.md`, hallazgos en `PILOT_FINDINGS.md`, bundles `doctor` sanitizados, analisis `doctor-bundles`, control explicito de sample rate para pilotos WASAPI, primera captura Windows real aprobada a 48000 Hz y dry-run Windows de salida `system` aprobado.
 - Mensajes Windows audio. Estado: inicial para permisos, dispositivo, sample rate, canales y host API.
-- Ejemplo de salida `system`. Estado: inicial con dry-run y `--speak` para pilotos reales.
+- Ejemplo de salida `system`. Estado: inicial con dry-run aprobado, `--speak` para pilotos reales y runner `tools/output_pilot.py`.
 
 ## Prioridad inmediata
 
-1. Ejecutar piloto manual de salida `system` con voz real y operador presente.
+1. Ejecutar piloto manual de salida `system` con `tools/output_pilot.py --speak` y operador presente.
 2. Ejecutar piloto de transcripcion real con audio propio no sensible.
 3. Repetir captura con microfono en Ubuntu/Linux y macOS.
 4. Preparar checklist de bugs conocidos para beta publica.
