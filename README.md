@@ -658,7 +658,7 @@ py tools\beta_readiness.py --evidence pilot_runs\manual\linux --evidence pilot_r
 py tools\beta_readiness.py --fail-on-blockers --json
 ```
 
-El checklist generado vive en `BETA_CHECKLIST.md` y separa dos estados: listo para pilotos reales no significa listo para beta. `--evidence` acepta archivos o carpetas con JSON generados por `tools\manual_pilot.py`, `tools\output_pilot.py` y `tools\transcription_pilot.py`; solo usa campos estructurados y nombres de artifacts, no transcripciones ni audio. English: beta readiness requires real pilot evidence, not only safe dry-runs.
+El checklist generado vive en `BETA_CHECKLIST.md` y separa dos estados: listo para pilotos reales no significa listo para beta. `--evidence` acepta archivos o carpetas con JSON generados por `tools\manual_pilot.py`, `tools\output_pilot.py` y `tools\transcription_pilot.py`; solo cuenta artifacts con `project: AuralisVoiceKit`, reporta evidencias ignoradas y usa campos estructurados/nombres de artifacts, no transcripciones ni audio. English: beta readiness requires real pilot evidence, not only safe dry-runs.
 
 ## Pilotos seguros
 

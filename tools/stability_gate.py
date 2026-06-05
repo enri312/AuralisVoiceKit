@@ -42,7 +42,7 @@ PILOT_CHECKS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
     (
         "beta_readiness_runner",
         "tools/beta_readiness.py",
-        ("build_beta_readiness_report", "--fail-on-blockers", "--evidence", "BETA_CHECKLIST.md"),
+        ("build_beta_readiness_report", "--fail-on-blockers", "--evidence", "ignored_count", "BETA_CHECKLIST.md"),
     ),
     ("beta_checklist", "BETA_CHECKLIST.md", ("Checklist de beta", "Bloqueadores para beta", "tools\\beta_readiness.py")),
     ("pilot_findings", "PILOT_FINDINGS.md", ("Windows manual seguro", "sounddevice")),

@@ -6,6 +6,19 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.41.0] - 2026-06-05
+
+### Agregado
+
+- Validacion estricta de evidencias beta: `tools/beta_readiness.py --evidence` solo acepta artifacts con `project: AuralisVoiceKit`.
+- Conteo de evidencias ignoradas en el reporte JSON y en `BETA_CHECKLIST.md`.
+- Prueba automatizada para artifacts ignorados que parecen validos pero no identifican el proyecto.
+
+### Cambiado
+
+- El checklist de beta muestra evidencias aceptadas e ignoradas sin exponer rutas locales completas.
+- El gate de estabilidad exige que el runner de beta readiness mantenga el conteo de evidencias ignoradas.
+
 ## [0.40.0] - 2026-06-05
 
 ### Agregado

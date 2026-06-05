@@ -168,15 +168,16 @@ class BetaReadinessTests(unittest.TestCase):
             evidence_root = Path(tmpdir)
             _write_json(
                 evidence_root / "linux" / "manual-pilot-report.json",
-                {"system": "Linux", "hardware_capture_tested": True, "passed": True},
+                {"project": "AuralisVoiceKit", "system": "Linux", "hardware_capture_tested": True, "passed": True},
             )
             _write_json(
                 evidence_root / "macos" / "manual-pilot-report.json",
-                {"system": "Darwin", "hardware_capture_tested": True, "passed": True},
+                {"project": "AuralisVoiceKit", "system": "Darwin", "hardware_capture_tested": True, "passed": True},
             )
             _write_json(
                 evidence_root / "output" / "output-pilot-report.json",
                 {
+                    "project": "AuralisVoiceKit",
                     "backend": "system",
                     "real_audio_requested": True,
                     "operator_confirmation_status": "confirmed",
@@ -186,6 +187,7 @@ class BetaReadinessTests(unittest.TestCase):
             _write_json(
                 evidence_root / "transcription" / "transcription-pilot-report.json",
                 {
+                    "project": "AuralisVoiceKit",
                     "real_transcription_requested": True,
                     "audio_confirmed_non_sensitive": True,
                     "passed": True,
@@ -202,6 +204,29 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertEqual(exit_code, 0)
         self.assertTrue(payload["ready_for_beta"])
         self.assertEqual(payload["blockers"], [])
+
+    def test_evidence_without_project_marker_is_ignored(self):
+        module = _load_beta_readiness()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            evidence_path = Path(tmpdir) / "output-pilot-report.json"
+            _write_json(
+                evidence_path,
+                {
+                    "backend": "system",
+                    "real_audio_requested": True,
+                    "operator_confirmation_status": "confirmed",
+                    "passed": True,
+                },
+            )
+
+            report = module.build_beta_readiness_report(ROOT, evidence_paths=[evidence_path])
+            checks = {check["name"]: check for check in report["checks"]}
+
+        self.assertEqual(report["evidence"]["count"], 0)
+        self.assertEqual(report["evidence"]["ignored_count"], 1)
+        self.assertIn("output-pilot-report.json", report["evidence"]["ignored_files"])
+        self.assertFalse(checks["system_output_audible"]["ok"])
 
 
 def _write_json(path: Path, payload: dict):

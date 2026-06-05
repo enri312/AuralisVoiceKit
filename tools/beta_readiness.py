@@ -2,8 +2,9 @@
 
 The report is intentionally conservative: the project can be ready for real
 pilots while still blocked for a public beta until real-world evidence exists.
-The default Markdown target is BETA_CHECKLIST.md. Use --evidence with pilot
-JSON artifacts to close blockers without copying private content into Markdown.
+The default Markdown target is BETA_CHECKLIST.md. Use --evidence with
+AuralisVoiceKit pilot JSON artifacts to close blockers without copying private
+content into Markdown.
 """
 
 from __future__ import annotations
@@ -29,7 +30,8 @@ def build_beta_readiness_report(
     workspace = Path(root).resolve()
     gate = _load_stability_gate(workspace).build_report(workspace)
     findings = _read_text(workspace / "PILOT_FINDINGS.md")
-    evidence_reports = _load_evidence_reports(workspace, evidence_paths or [])
+    evidence = _load_evidence_reports(workspace, evidence_paths or [])
+    evidence_reports = evidence["accepted"]
     checks = [
         _gate_check(gate),
         _evidence_or_terms_check(
@@ -126,6 +128,8 @@ def build_beta_readiness_report(
         "evidence": {
             "files": [_safe_evidence_source(report["_evidence_path"]) for report in evidence_reports],
             "count": len(evidence_reports),
+            "ignored_files": evidence["ignored"],
+            "ignored_count": len(evidence["ignored"]),
         },
         "known_issues": known_issues,
         "next_actions": [check["next_action"] for check in checks if not check["ok"]],
@@ -162,6 +166,7 @@ def format_markdown(report: dict[str, Any]) -> str:
         f"- Listo para beta: `{str(report['ready_for_beta']).lower()}`",
         f"- Gate de pilotos reales: `{str(report['gate']['ready_for_real_world_pilots']).lower()}`",
         f"- Evidencias JSON: `{report['evidence']['count']}`",
+        f"- Evidencias ignoradas: `{report['evidence']['ignored_count']}`",
         "",
         "## Bloqueadores para beta",
         "",
@@ -226,7 +231,7 @@ def main(argv: list[str] | None = None) -> int:
         "--evidence",
         action="append",
         default=[],
-        help="pilot JSON evidence file or directory; can be passed more than once",
+        help="AuralisVoiceKit pilot JSON evidence file or directory; can be passed more than once",
     )
     parser.add_argument("--json", action="store_true", help="print JSON report")
     parser.add_argument(
@@ -334,8 +339,9 @@ def _evidence_or_terms_check(
     )
 
 
-def _load_evidence_reports(workspace: Path, evidence_paths: list[str | Path]) -> list[dict[str, Any]]:
-    reports = []
+def _load_evidence_reports(workspace: Path, evidence_paths: list[str | Path]) -> dict[str, Any]:
+    accepted = []
+    ignored = []
     for evidence_path in evidence_paths:
         path = Path(evidence_path)
         if not path.is_absolute():
@@ -348,8 +354,11 @@ def _load_evidence_reports(workspace: Path, evidence_paths: list[str | Path]) ->
             if isinstance(payload, dict):
                 payload = dict(payload)
                 payload["_evidence_path"] = str(report_path)
-                reports.append(payload)
-    return reports
+                if payload.get("project") == "AuralisVoiceKit":
+                    accepted.append(payload)
+                else:
+                    ignored.append(report_path.name)
+    return {"accepted": accepted, "ignored": ignored}
 
 
 def _expand_evidence_path(path: Path) -> list[Path]:
