@@ -6,6 +6,20 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.23.0] - 2026-06-05
+
+### Agregado
+
+- Ejemplo `examples/pypi_quickstart.py` para usuarios de PyPI.
+- Flujo de ejemplo sin extras: genera audio sintetico, escribe WAV, segmenta y transcribe con backend `null`.
+- Salida `--json` para validar rapidamente la integracion base.
+- Pruebas automatizadas para la funcion `run_demo()` y para ejecutar el script como usuario final.
+
+### Cambiado
+
+- README, compatibilidad, documentacion HTML y roadmap enlazan el nuevo ejemplo PyPI.
+- El roadmap mueve la prioridad inmediata a una guia de privacidad y manejo de logs.
+
 ## [0.22.0] - 2026-06-05
 
 ### Agregado

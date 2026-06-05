@@ -328,6 +328,9 @@ py -m pip install -e .</code></pre>
         <pre><code>py -m pip install -e ".[sounddevice]"</code></pre>
         <pre><code>py -m pip install -e ".[openai]"</code></pre>
         <pre><code>py -m pip install -e ".[whisper]"</code></pre>
+        <p>Desde un repositorio clonado, el ejemplo pequeno de integracion para usuarios de PyPI funciona sin microfono, modelos ni credenciales.</p>
+        <pre><code>python -m pip install auralisvoicekit
+python examples/pypi_quickstart.py --json</code></pre>
       </section>
 
       <section id="inicio">
@@ -344,6 +347,8 @@ chunk = AudioChunk(
 
 result = kit.transcribe(chunk)
 print(result.text)</code></pre>
+        <p>El archivo <code>examples/pypi_quickstart.py</code> genera audio sintetico, escribe un WAV, segmenta voz y transcribe con el backend <code>null</code>. Es la prueba recomendada para validar el paquete base desde un repositorio clonado.</p>
+        <pre><code>python examples/pypi_quickstart.py --json</code></pre>
         <h3>Captura real</h3>
         <p>Con el extra <code>sounddevice</code>, se puede listar dispositivos y grabar a WAV desde el ejemplo incluido.</p>
         <pre><code>py -m pip install -e ".[sounddevice]"
@@ -601,7 +606,8 @@ kit.events.subscribe(
         <h2>Referencia API</h2>
         <p>La referencia API para usuarios de PyPI vive en <a href="auralisvoicekit-api.html">docs/auralisvoicekit-api.html</a>. Resume todos los simbolos publicos exportados desde <code>auralis_voicekit</code>, ejemplos de importacion, errores, diagnostico, benchmarks y contratos para backends personalizados.</p>
         <pre><code>python -m pip install auralisvoicekit
-python -m auralis_voicekit.cli doctor</code></pre>
+python -m auralis_voicekit.cli doctor
+python examples/pypi_quickstart.py --json</code></pre>
       </section>
 
       <section id="backends">
@@ -708,7 +714,7 @@ gh workflow run publish-pypi.yml -f index=pypi -f tag=v0.14.0</code></pre>
             <tr>
               <td>5+</td>
               <td>Loop de asistente, Windows primero, CI, beta publica y version 1.0.</td>
-              <td>Loop inicial cancelable, pruebas MP3/FLAC, errores ffmpeg accionables, benchmarks offline y Whisper, referencia API inicial, PyPI preparada y salida system configurable</td>
+              <td>Loop inicial cancelable, pruebas MP3/FLAC, errores ffmpeg accionables, benchmarks offline y Whisper, referencia API inicial, PyPI preparada, quickstart sin extras y salida system configurable</td>
             </tr>
           </tbody>
         </table>

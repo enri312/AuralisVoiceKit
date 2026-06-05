@@ -57,6 +57,12 @@ python -m pip install --index-url https://test.pypi.org/simple/ --extra-index-ur
 python -m auralis_voicekit.cli doctor
 ```
 
+Si estas trabajando desde el repositorio clonado, tambien puedes probar el flujo base sin extras:
+
+```bash
+python examples/pypi_quickstart.py --json
+```
+
 En PowerShell:
 
 ```powershell
@@ -89,11 +95,18 @@ python -m pip install auralisvoicekit
 python -m auralis_voicekit.cli doctor
 ```
 
+Desde el repositorio clonado, el quickstart de PyPI valida generacion WAV, segmentacion y transcripcion `null` sin dependencias opcionales:
+
+```bash
+python examples/pypi_quickstart.py --json
+```
+
 ## Checklist antes de publicar
 
 - `CHANGELOG.md` actualizado.
 - `src/auralis_voicekit/_version.py` actualizado.
 - `python -m unittest discover -s tests` pasa.
+- `python examples/pypi_quickstart.py --json` pasa desde el repositorio clonado.
 - Si hay cambios de audio comprimido: `AURALIS_RUN_FFMPEG_INTEGRATION=1 python -m unittest tests.test_ffmpeg_integration` pasa.
 - `python -m build` genera wheel y sdist.
 - `python -m twine check dist/*` pasa.

@@ -183,6 +183,7 @@ python -m auralis_voicekit.cli benchmark-whisper --models tiny,base --beam-sizes
 Comandos utiles:
 
 ```bash
+python examples/pypi_quickstart.py --json
 python -m auralis_voicekit.cli doctor
 python -m auralis_voicekit.cli doctor --devices
 python -m auralis_voicekit.cli doctor --devices --backend wav

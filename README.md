@@ -12,7 +12,7 @@ English: AuralisVoiceKit is a modern voice toolkit for Python assistants, local 
 
 El objetivo principal es evitar que la captura de microfono dependa obligatoriamente de PyAudio o de wheels que tardan en llegar a las versiones nuevas de Python. El paquete base debe poder instalarse de forma liviana, sin compiladores y sin dependencias nativas obligatorias. Para MP3, FLAC y formatos comprimidos, AuralisVoiceKit usa `ffmpeg` como herramienta externa opcional.
 
-> Estado actual: alpha tecnica. El repositorio ya define el core, los contratos de backends, captura real inicial, diagnostico reforzado para WASAPI, flujo WAV offline, transcripcion inicial por API y local opcional, sesiones de voz iniciales, una CLI de diagnostico, benchmarks offline y comparativos para Whisper, errores accionables para `ffmpeg`, documentacion estatica, salida de voz del sistema con voces configurables, pruebas unitarias y pruebas reales de MP3/FLAC. Los backends reales se iran agregando por etapas.
+> Estado actual: alpha tecnica. El repositorio ya define el core, los contratos de backends, captura real inicial, diagnostico reforzado para WASAPI, flujo WAV offline, transcripcion inicial por API y local opcional, sesiones de voz iniciales, una CLI de diagnostico, benchmarks offline y comparativos para Whisper, errores accionables para `ffmpeg`, documentacion estatica, salida de voz del sistema con voces configurables, quickstart para PyPI sin extras, pruebas unitarias y pruebas reales de MP3/FLAC. Los backends reales se iran agregando por etapas.
 
 ## Problema que resuelve
 
@@ -56,6 +56,12 @@ Cuando este publicado en PyPI, la instalacion normal sera:
 py -m pip install auralisvoicekit
 ```
 
+Desde el repositorio clonado, el ejemplo pequeno de integracion para usuarios de PyPI funciona sin microfono, modelos ni credenciales:
+
+```powershell
+py examples\pypi_quickstart.py --json
+```
+
 Cuando se agreguen backends opcionales:
 
 ```powershell
@@ -87,6 +93,12 @@ print(result.text)
 ```
 
 Por defecto se usa un backend `null`. Esto permite probar la integracion sin hardware, sin permisos de microfono, sin credenciales y sin dependencias nativas. En la CLI, `auralis transcribe` y `auralis transcribe-segments` tambien arrancan con `null`; usa `--backend whisper` o `--backend openai` cuando quieras un transcriptor real.
+
+Para ver el flujo base completo desde archivo WAV sintetico, segmentacion y transcripcion `null`, ejecuta:
+
+```powershell
+py examples\pypi_quickstart.py --json
+```
 
 ## Captura real con sounddevice
 
@@ -516,11 +528,11 @@ ROADMAP.md
 
 Prioridad inmediata:
 
-1. Preparar un ejemplo pequeno de integracion para usuarios de PyPI.
-2. Agregar una guia de privacidad y manejo de logs.
-3. Documentar patrones de backends de salida personalizados.
-4. Ampliar mensajes especificos para errores comunes de audio en Windows.
-5. Agregar benchmarks exportables a archivo JSON/CSV.
+1. Agregar una guia de privacidad y manejo de logs.
+2. Documentar patrones de backends de salida personalizados.
+3. Ampliar mensajes especificos para errores comunes de audio en Windows.
+4. Agregar benchmarks exportables a archivo JSON/CSV.
+5. Preparar un ejemplo de salida de voz con backend `system`.
 
 ## Documentacion
 

@@ -311,6 +311,8 @@
         <h2>Instalacion</h2>
         <p>El paquete base no instala dependencias nativas. Esa decision mantiene el core compatible con Python moderno y con versiones futuras razonables.</p>
         <pre><code>python -m pip install auralisvoicekit</code></pre>
+        <p>Desde un repositorio clonado, el quickstart de PyPI valida el flujo base sin extras.</p>
+        <pre><code>python examples/pypi_quickstart.py --json</code></pre>
         <p>Extras opcionales:</p>
         <pre><code>python -m pip install "auralisvoicekit[sounddevice]"
 python -m pip install "auralisvoicekit[openai]"
@@ -334,6 +336,8 @@ chunk = AudioChunk(
 
 result = kit.transcribe(chunk)
 print(result.text)</code></pre>
+        <p>Para probar un flujo mas cercano a una integracion real, usa <code>examples/pypi_quickstart.py</code>. Genera un WAV sintetico, crea una sesion de voz, segmenta y transcribe con <code>null</code>.</p>
+        <pre><code>python examples/pypi_quickstart.py --json</code></pre>
       </section>
 
       <section id="models">
