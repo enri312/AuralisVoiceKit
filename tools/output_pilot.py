@@ -29,10 +29,17 @@ def run_output_pilot(
     volume: int | None = None,
     system: str | None = None,
     speak: bool = False,
+    operator_present: bool = False,
+    operator_confirmed_audio: bool = False,
     include_voices: bool = True,
 ) -> dict[str, Any]:
     """Run a safe system-output pilot and write shareable artifacts."""
 
+    _validate_operator_flags(
+        speak=speak,
+        operator_present=operator_present,
+        operator_confirmed_audio=operator_confirmed_audio,
+    )
     workspace = Path(root).resolve()
     timestamp = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
     system_name = system or platform.system()
@@ -52,6 +59,11 @@ def run_output_pilot(
     )
     sanitized_payload = _sanitize_payload(payload, text)
     passed = bool(payload.get("spoken")) and payload.get("error") is None
+    confirmation_status = _operator_confirmation_status(
+        speak=speak,
+        operator_present=operator_present,
+        operator_confirmed_audio=operator_confirmed_audio,
+    )
 
     findings_path = output / "output-pilot-findings.md"
     report_path = output / "output-pilot-report.json"
@@ -59,6 +71,9 @@ def run_output_pilot(
         timestamp=timestamp,
         system=system_name,
         speak=speak,
+        operator_present=operator_present,
+        operator_confirmed_audio=operator_confirmed_audio,
+        confirmation_status=confirmation_status,
         passed=passed,
         payload=sanitized_payload,
         report_path=report_path,
@@ -72,6 +87,9 @@ def run_output_pilot(
         "dry_run": not speak,
         "real_audio_requested": speak,
         "hardware_output_tested": speak,
+        "operator_present": operator_present,
+        "operator_confirmed_audio": operator_confirmed_audio,
+        "operator_confirmation_status": confirmation_status,
         "text_characters": len(text),
         "voice": voice,
         "rate": rate,
@@ -108,21 +126,40 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="play audio with the real system backend; default is dry-run",
     )
+    parser.add_argument(
+        "--operator-present",
+        action="store_true",
+        help="confirm a human operator is present before using --speak",
+    )
+    parser.add_argument(
+        "--confirm-audible",
+        action="store_true",
+        help="record that the operator confirmed audible output",
+    )
     parser.add_argument("--no-voices", action="store_true", help="skip voice listing")
     parser.add_argument("--json", action="store_true", help="print JSON report")
     args = parser.parse_args(argv)
 
-    report = run_output_pilot(
-        root=args.root,
-        output_dir=args.output_dir,
-        text=args.text,
-        voice=args.voice,
-        rate=args.rate,
-        volume=args.volume,
-        system=args.system,
-        speak=args.speak,
-        include_voices=not args.no_voices,
-    )
+    try:
+        report = run_output_pilot(
+            root=args.root,
+            output_dir=args.output_dir,
+            text=args.text,
+            voice=args.voice,
+            rate=args.rate,
+            volume=args.volume,
+            system=args.system,
+            speak=args.speak,
+            operator_present=args.operator_present,
+            operator_confirmed_audio=args.confirm_audible,
+            include_voices=not args.no_voices,
+        )
+    except ValueError as exc:
+        if args.json:
+            print(json.dumps({"error": str(exc)}, indent=2, sort_keys=True))
+        else:
+            print(str(exc))
+        return 1
     if args.json:
         print(json.dumps(report, indent=2, sort_keys=True))
     else:
@@ -151,11 +188,45 @@ def _sanitize_payload(payload: dict[str, Any], text: str) -> dict[str, Any]:
     return sanitized
 
 
+def _validate_operator_flags(
+    *,
+    speak: bool,
+    operator_present: bool,
+    operator_confirmed_audio: bool,
+) -> None:
+    if speak and not operator_present:
+        raise ValueError("Real system output requires --operator-present with --speak.")
+    if operator_present and not speak:
+        raise ValueError("--operator-present is only valid with --speak.")
+    if operator_confirmed_audio and not speak:
+        raise ValueError("--confirm-audible is only valid with --speak.")
+    if operator_confirmed_audio and not operator_present:
+        raise ValueError("--confirm-audible requires --operator-present.")
+
+
+def _operator_confirmation_status(
+    *,
+    speak: bool,
+    operator_present: bool,
+    operator_confirmed_audio: bool,
+) -> str:
+    if not speak:
+        return "not-required"
+    if operator_confirmed_audio:
+        return "confirmed"
+    if operator_present:
+        return "operator-present"
+    return "missing-operator"
+
+
 def _build_findings_markdown(
     *,
     timestamp: str,
     system: str,
     speak: bool,
+    operator_present: bool,
+    operator_confirmed_audio: bool,
+    confirmation_status: str,
     passed: bool,
     payload: dict[str, Any],
     report_path: Path,
@@ -168,6 +239,9 @@ def _build_findings_markdown(
         f"- Backend: system",
         f"- Dry run: {not speak}",
         f"- Real audio requested: {speak}",
+        f"- Operator present: {operator_present}",
+        f"- Operator confirmed audio: {operator_confirmed_audio}",
+        f"- Operator confirmation status: {confirmation_status}",
         f"- Passed: {passed}",
         f"- Voices reported: {len(payload.get('voices', []))}",
         f"- Commands observed: {len(payload.get('commands', []))}",
@@ -188,9 +262,12 @@ def _build_findings_markdown(
         "",
     ]
     if speak:
-        lines.append("- Confirm audibility, selected voice and volume with the operator who heard the pilot.")
+        if operator_confirmed_audio:
+            lines.append("- Record selected voice and volume quality in PILOT_FINDINGS.md if anything sounded wrong.")
+        else:
+            lines.append("- Confirm audibility, selected voice and volume with the operator who heard the pilot.")
     else:
-        lines.append("- Re-run with --speak only when an operator is present and ready to hear real audio.")
+        lines.append("- Re-run with --speak --operator-present only when a human is ready to hear real audio.")
     lines.append("- Record any platform-specific voice or command failures in PILOT_FINDINGS.md.")
     lines.append("")
     return "\n".join(lines)
@@ -215,6 +292,8 @@ def _print_report(report: dict[str, Any]) -> None:
     print(f"System: {report['system']}")
     print(f"Dry run: {report['dry_run']}")
     print(f"Real audio requested: {report['real_audio_requested']}")
+    print(f"Operator present: {report['operator_present']}")
+    print(f"Operator confirmation: {report['operator_confirmation_status']}")
     print(f"Passed: {report['passed']}")
     print(f"Voices: {report['voices_count']}")
     print(f"Commands: {report['commands_count']}")

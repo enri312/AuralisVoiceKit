@@ -41,6 +41,8 @@ class OutputPilotTests(unittest.TestCase):
         self.assertTrue(report["passed"])
         self.assertTrue(report["dry_run"])
         self.assertFalse(report["hardware_output_tested"])
+        self.assertFalse(report["operator_present"])
+        self.assertEqual(report["operator_confirmation_status"], "not-required")
         self.assertEqual(report["text_characters"], len(private_text))
         self.assertIn("<text-redacted>", report_text)
         self.assertNotIn(private_text, report_text)
@@ -81,6 +83,40 @@ class OutputPilotTests(unittest.TestCase):
         self.assertFalse(payload["real_audio_requested"])
         self.assertEqual(payload["voice"], "spanish")
         self.assertEqual(payload["commands_count"], 2)
+
+    def test_output_pilot_requires_operator_for_real_audio(self):
+        module = _load_output_pilot()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output = io.StringIO()
+            with contextlib.redirect_stdout(output):
+                exit_code = module.main(
+                    [
+                        "--root",
+                        str(ROOT),
+                        "--output-dir",
+                        tmpdir,
+                        "--system",
+                        "Linux",
+                        "--speak",
+                        "--json",
+                    ]
+                )
+            payload = json.loads(output.getvalue())
+
+        self.assertEqual(exit_code, 1)
+        self.assertIn("--operator-present", payload["error"])
+
+    def test_output_pilot_rejects_confirmation_without_speak(self):
+        module = _load_output_pilot()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with self.assertRaises(ValueError):
+                module.run_output_pilot(
+                    root=ROOT,
+                    output_dir=tmpdir,
+                    operator_present=True,
+                )
 
 
 if __name__ == "__main__":

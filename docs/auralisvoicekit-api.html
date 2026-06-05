@@ -709,8 +709,8 @@ python examples/system_output_demo.py --json
 python examples/system_output_demo.py --system Linux --voice spanish --rate 160 --volume 80 --json
 python examples/system_output_demo.py --speak --text "Hola desde AuralisVoiceKit"
 python tools/output_pilot.py --output-dir pilot_runs/output/system-dry-run --json
-python tools/output_pilot.py --speak --text "Hola desde AuralisVoiceKit" --json</code></pre>
-        <p><code>examples/system_output_demo.py</code> usa dry-run por defecto: muestra voces simuladas, comandos y eventos sin reproducir audio. <code>tools/output_pilot.py</code> escribe artifacts JSON/Markdown y redacta el texto dentro de comandos. <code>--speak</code> activa el backend real para pilotos manuales.</p>
+python tools/output_pilot.py --speak --operator-present --text "Hola desde AuralisVoiceKit" --json</code></pre>
+        <p><code>examples/system_output_demo.py</code> usa dry-run por defecto: muestra voces simuladas, comandos y eventos sin reproducir audio. <code>tools/output_pilot.py</code> escribe artifacts JSON/Markdown y redacta el texto dentro de comandos. <code>--speak --operator-present</code> activa el backend real para pilotos manuales.</p>
         <h3>Salida personalizada</h3>
         <p>Un backend de salida custom implementa <code>SpeechOutputBackend</code>, reporta <code>BackendInfo(kind="output")</code> y se registra con <code>BackendRegistry.register_output()</code>. La guia completa vive en <a href="../CUSTOM_OUTPUT_BACKENDS.md">CUSTOM_OUTPUT_BACKENDS.md</a>.</p>
         <pre><code>from auralis_voicekit import AuralisVoiceKit, VoiceKitConfig

@@ -6,6 +6,18 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.36.0] - 2026-06-05
+
+### Agregado
+
+- `tools/output_pilot.py` exige `--operator-present` junto con `--speak` antes de reproducir audio real.
+- Flag `--confirm-audible` para registrar que el operador confirmo salida audible.
+- Estado `operator_confirmation_status` en el reporte JSON y Markdown del piloto de salida.
+
+### Cambiado
+
+- README, `PILOTS.md`, docs HTML, roadmap, gate de estabilidad y pasos manuales usan `--speak --operator-present`.
+
 ## [0.35.0] - 2026-06-05
 
 ### Agregado

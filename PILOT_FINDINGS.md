@@ -2,6 +2,35 @@
 
 Este documento resume hallazgos de pilotos reales o semi-manuales. No debe incluir audio, transcripciones privadas, rutas locales completas ni nombres reales de dispositivos.
 
+## 2026-06-05 - Windows salida system dry-run con guard de operador
+
+Comando ejecutado:
+
+```powershell
+python tools\output_pilot.py --output-dir pilot_runs\output\20260605T1512Z-system-dry-run-guard --json
+```
+
+Alcance:
+
+- Sistema: Windows.
+- Backend diagnosticado: `system`.
+- Audio reproducido: no.
+- Modo: dry-run.
+- Guard de seguridad: audio real requiere `--speak --operator-present`.
+
+Resultado:
+
+- Piloto de salida: `passed=true`.
+- `operator_confirmation_status`: `not-required`.
+- Comandos observados: 2.
+- Texto completo redactado como `<text-redacted>`.
+
+Acciones siguientes:
+
+1. Ejecutar audio real solo con `python tools\output_pilot.py --speak --operator-present --text "Hola desde AuralisVoiceKit" --json`.
+2. Agregar `--confirm-audible` si el operador confirma que la salida fue audible.
+3. Registrar voz, volumen y cualquier fallo de comando por plataforma.
+
 ## 2026-06-05 - Windows salida system dry-run
 
 Comando ejecutado:
@@ -28,7 +57,7 @@ Resultado:
 
 Acciones siguientes:
 
-1. Ejecutar `python tools\output_pilot.py --speak --text "Hola desde AuralisVoiceKit" --json` solo con operador presente.
+1. Ejecutar `python tools\output_pilot.py --speak --operator-present --text "Hola desde AuralisVoiceKit" --json` solo con operador presente.
 2. Confirmar audibilidad, voz seleccionada y volumen.
 3. Repetir salida `system` en Ubuntu/Linux y macOS.
 
