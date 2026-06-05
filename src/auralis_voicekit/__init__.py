@@ -45,12 +45,17 @@ from .benchmarks import (
 from .config import VoiceKitConfig
 from .diagnostics import (
     DOCTOR_BUNDLE_SCHEMA,
+    DOCTOR_BUNDLE_ANALYSIS_SCHEMA,
     DiagnosticCheck,
+    DoctorBundleAnalysis,
+    DoctorBundleIssue,
     DiagnosticStatus,
     DoctorReport,
+    analyze_doctor_bundles,
     create_doctor_bundle,
     run_doctor,
     sanitize_doctor_report,
+    write_doctor_bundle_analysis,
     write_doctor_bundle,
 )
 from .events import EventBus, VoiceEvent, VoiceEventType
@@ -82,9 +87,12 @@ __all__ = [
     "BenchmarkComparisonReport",
     "BenchmarkReport",
     "BenchmarkResult",
+    "DOCTOR_BUNDLE_ANALYSIS_SCHEMA",
     "DOCTOR_BUNDLE_SCHEMA",
     "DiagnosticCheck",
     "DiagnosticStatus",
+    "DoctorBundleAnalysis",
+    "DoctorBundleIssue",
     "DoctorReport",
     "EventBus",
     "PermissionRequired",
@@ -106,6 +114,7 @@ __all__ = [
     "WavMetadata",
     "__version__",
     "apply_gain_pcm16",
+    "analyze_doctor_bundles",
     "calibrate_noise_pcm16",
     "chunk_audio",
     "chunk_to_wav_bytes",
@@ -138,6 +147,7 @@ __all__ = [
     "segment_voice_pcm16",
     "write_wav",
     "write_benchmark_report",
+    "write_doctor_bundle_analysis",
     "write_doctor_bundle",
     "windows_audio_error_hint",
 ]

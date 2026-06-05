@@ -85,6 +85,9 @@ class DocumentationTests(unittest.TestCase):
         self.assertIn("--bundle", README.read_text(encoding="utf-8"))
         self.assertIn("--bundle", MAIN_DOC.read_text(encoding="utf-8"))
         self.assertIn("write_doctor_bundle", API_DOC.read_text(encoding="utf-8"))
+        self.assertIn("doctor-bundles", README.read_text(encoding="utf-8"))
+        self.assertIn("doctor-bundles", MAIN_DOC.read_text(encoding="utf-8"))
+        self.assertIn("analyze_doctor_bundles", API_DOC.read_text(encoding="utf-8"))
 
 
 if __name__ == "__main__":

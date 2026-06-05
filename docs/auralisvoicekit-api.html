@@ -554,16 +554,21 @@ debug_config = PrivacyLogConfig(privacy_mode=False)</code></pre>
 
       <section id="diagnostics">
         <h2>Diagnostico</h2>
-        <p><code>run_doctor()</code> genera un <code>DoctorReport</code> con checks estructurados. La CLI usa la misma API. Para pilotos o soporte, <code>create_doctor_bundle()</code>, <code>sanitize_doctor_report()</code> y <code>write_doctor_bundle()</code> producen un JSON compartible que redacta rutas locales y nombres de dispositivos.</p>
+        <p><code>run_doctor()</code> genera un <code>DoctorReport</code> con checks estructurados. La CLI usa la misma API. Para pilotos o soporte, <code>create_doctor_bundle()</code>, <code>sanitize_doctor_report()</code> y <code>write_doctor_bundle()</code> producen un JSON compartible que redacta rutas locales y nombres de dispositivos. <code>analyze_doctor_bundles()</code> agrupa esos bundles por sistema, version Python, checks, categorias y prioridad.</p>
         <pre><code>from auralis_voicekit import (
+    DOCTOR_BUNDLE_ANALYSIS_SCHEMA,
     DOCTOR_BUNDLE_SCHEMA,
     DiagnosticCheck,
     DiagnosticStatus,
+    DoctorBundleAnalysis,
+    DoctorBundleIssue,
     DoctorReport,
     WindowsAudioErrorHint,
+    analyze_doctor_bundles,
     create_doctor_bundle,
     run_doctor,
     sanitize_doctor_report,
+    write_doctor_bundle_analysis,
     write_doctor_bundle,
     windows_audio_error_hint,
 )
@@ -574,6 +579,9 @@ print(report.to_dict())
 print(sanitize_doctor_report(report))
 print(create_doctor_bundle(report)["schema"] == DOCTOR_BUNDLE_SCHEMA)
 write_doctor_bundle("reports/doctor-bundle.json", report)
+analysis: DoctorBundleAnalysis = analyze_doctor_bundles(["reports/doctor-bundle.json"])
+print(analysis.schema == DOCTOR_BUNDLE_ANALYSIS_SCHEMA)
+write_doctor_bundle_analysis("reports/doctor-analysis.json", analysis)
 
 hint: WindowsAudioErrorHint = windows_audio_error_hint(
     "PortAudioError: Invalid device [PaErrorCode -9996]",
@@ -583,7 +591,8 @@ hint: WindowsAudioErrorHint = windows_audio_error_hint(
 )
 print(hint.format_hint())</code></pre>
         <pre><code>auralis doctor --devices --backend wasapi --bundle reports/doctor-windows.json
-auralis doctor --capture-test --backend sounddevice --device default --bundle reports/doctor-capture.json --json</code></pre>
+auralis doctor --capture-test --backend sounddevice --device default --bundle reports/doctor-capture.json --json
+auralis doctor-bundles reports/doctor-windows.json reports/doctor-capture.json --output reports/doctor-analysis.json --json</code></pre>
         <pre><code>python tools/pilot_run.py --output-dir pilot_runs/safe --json</code></pre>
         <p><code>tools/pilot_run.py</code> usa <code>tools/stability_gate.py</code> y genera un piloto seguro sin hardware. El checklist manual esta en <a href="../PILOTS.md">PILOTS.md</a>.</p>
       </section>
@@ -784,7 +793,7 @@ python tools/stability_gate.py --min-stage pilot</code></pre>
             </tr>
             <tr>
               <td>Diagnostico</td>
-              <td><code>DOCTOR_BUNDLE_SCHEMA</code>, <code>DiagnosticCheck</code>, <code>DiagnosticStatus</code>, <code>DoctorReport</code>, <code>WindowsAudioErrorHint</code>, <code>create_doctor_bundle</code>, <code>run_doctor</code>, <code>sanitize_doctor_report</code>, <code>windows_audio_error_hint</code>, <code>write_doctor_bundle</code></td>
+              <td><code>DOCTOR_BUNDLE_ANALYSIS_SCHEMA</code>, <code>DOCTOR_BUNDLE_SCHEMA</code>, <code>DiagnosticCheck</code>, <code>DiagnosticStatus</code>, <code>DoctorBundleAnalysis</code>, <code>DoctorBundleIssue</code>, <code>DoctorReport</code>, <code>WindowsAudioErrorHint</code>, <code>analyze_doctor_bundles</code>, <code>create_doctor_bundle</code>, <code>run_doctor</code>, <code>sanitize_doctor_report</code>, <code>windows_audio_error_hint</code>, <code>write_doctor_bundle_analysis</code>, <code>write_doctor_bundle</code></td>
             </tr>
             <tr>
               <td>Benchmarks</td>

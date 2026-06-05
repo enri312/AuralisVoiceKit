@@ -25,11 +25,14 @@ Ejecutar estos pasos solo cuando haya hardware, permisos y tiempo para revisar r
 
 ```powershell
 auralis doctor --devices --backend sounddevice --json
-auralis doctor --capture-test --backend sounddevice --device default --json
+auralis doctor --capture-test --backend sounddevice --device default --bundle pilot_runs\manual\doctor-capture.json --json
+auralis doctor-bundles pilot_runs\manual\doctor-capture.json --output pilot_runs\manual\doctor-analysis.json --json
 python examples\system_output_demo.py --speak --text "Hola desde AuralisVoiceKit" --json
 auralis transcribe sample.mp3 --backend whisper --model base --normalize --json
 python examples\local_assistant_privacy_demo.py --output-dir pilot_runs\assistant --json
 ```
+
+`doctor-analysis.json` resume prioridades por bundle. Un problema de captura real en Windows suele aparecer como prioridad alta con categoria `windows_audio:*`; warnings de dependencias opcionales suelen quedar en prioridad baja.
 
 ## Plantilla de hallazgos
 
@@ -45,12 +48,14 @@ Comandos ejecutados:
 Resultado:
 Errores o warnings:
 Logs o reportes generados:
+Analisis doctor-bundles:
 Acciones siguientes:
 ```
 
 ## Estado actual
 
 - Piloto automatizado seguro: preparado con `tools/pilot_run.py`.
+- Analisis de bundles doctor: preparado con `auralis doctor-bundles`.
 - Pilotos manuales con microfono real: pendientes.
 - Pilotos manuales con salida `system` real: pendientes.
 - Pilotos manuales con transcripcion real: pendientes.

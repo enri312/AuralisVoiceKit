@@ -178,6 +178,48 @@ class CliTests(unittest.TestCase):
         self.assertEqual(bundle["schema"], "auralisvoicekit.doctor-bundle.v1")
         self.assertEqual(bundle["report"]["version"], __version__)
 
+    def test_doctor_bundles_command_outputs_analysis(self):
+        output = io.StringIO()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            bundle_path = os.path.join(tmpdir, "doctor-bundle.json")
+            analysis_path = os.path.join(tmpdir, "analysis.json")
+            with contextlib.redirect_stdout(io.StringIO()):
+                main(["doctor", "--devices", "--backend", "wav", "--bundle", bundle_path])
+            with contextlib.redirect_stdout(output):
+                exit_code = main(
+                    [
+                        "doctor-bundles",
+                        bundle_path,
+                        "--output",
+                        analysis_path,
+                        "--json",
+                    ]
+                )
+            with open(analysis_path, "r", encoding="utf-8") as stream:
+                analysis = json.load(stream)
+
+        payload = json.loads(output.getvalue())
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(payload["analysis_path"], analysis_path)
+        self.assertEqual(payload["schema"], "auralisvoicekit.doctor-bundle-analysis.v1")
+        self.assertEqual(payload["bundle_count"], 1)
+        self.assertEqual(analysis["bundle_count"], 1)
+
+    def test_doctor_bundles_command_reports_invalid_bundle(self):
+        output = io.StringIO()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            bundle_path = os.path.join(tmpdir, "broken.json")
+            with open(bundle_path, "w", encoding="utf-8") as stream:
+                stream.write("[]")
+            with contextlib.redirect_stdout(output):
+                exit_code = main(["doctor-bundles", bundle_path, "--json"])
+
+        payload = json.loads(output.getvalue())
+        self.assertEqual(exit_code, 1)
+        self.assertIn("must contain a JSON object", payload["error"])
+
     def test_doctor_wav_error_returns_nonzero(self):
         output = io.StringIO()
 

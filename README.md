@@ -12,7 +12,7 @@ English: AuralisVoiceKit is a modern voice toolkit for Python assistants, local 
 
 El objetivo principal es evitar que la captura de microfono dependa obligatoriamente de PyAudio o de wheels que tardan en llegar a las versiones nuevas de Python. El paquete base debe poder instalarse de forma liviana, sin compiladores y sin dependencias nativas obligatorias. Para MP3, FLAC y formatos comprimidos, AuralisVoiceKit usa `ffmpeg` como herramienta externa opcional.
 
-> Estado actual: alpha tecnica con gate de pilotos reales. El repositorio ya define el core, los contratos de backends, captura real inicial, diagnostico reforzado para WASAPI, bundles de diagnostico sanitizados, flujo WAV offline, transcripcion inicial por API y local opcional, sesiones de voz iniciales, una CLI de diagnostico, benchmarks offline y comparativos para Whisper exportables a JSON/CSV, errores accionables para `ffmpeg`, mensajes accionables para audio Windows, documentacion estatica, salida de voz del sistema con voces configurables y ejemplo seguro, salida custom en memoria, quickstart para PyPI sin extras, guia de privacidad/logs, ejemplo de asistente local con logs sanitizados, runner de piloto seguro, pruebas unitarias y pruebas reales de MP3/FLAC. Los backends reales se iran agregando por etapas.
+> Estado actual: alpha tecnica con gate de pilotos reales. El repositorio ya define el core, los contratos de backends, captura real inicial, diagnostico reforzado para WASAPI, bundles de diagnostico sanitizados y analizables, flujo WAV offline, transcripcion inicial por API y local opcional, sesiones de voz iniciales, una CLI de diagnostico, benchmarks offline y comparativos para Whisper exportables a JSON/CSV, errores accionables para `ffmpeg`, mensajes accionables para audio Windows, documentacion estatica, salida de voz del sistema con voces configurables y ejemplo seguro, salida custom en memoria, quickstart para PyPI sin extras, guia de privacidad/logs, ejemplo de asistente local con logs sanitizados, runner de piloto seguro, pruebas unitarias y pruebas reales de MP3/FLAC. Los backends reales se iran agregando por etapas.
 
 ## Problema que resuelve
 
@@ -504,11 +504,12 @@ auralis doctor --capture-test --backend sounddevice --device default --json
 auralis doctor --wav sample.wav
 auralis doctor --json
 auralis doctor --devices --backend wasapi --bundle reports/doctor-windows.json
+auralis doctor-bundles reports/doctor-windows.json --output reports/doctor-analysis.json --json
 ```
 
 La salida distingue entre `ok`, `warning` y `error`. Los warnings no bloquean el uso del core; por ejemplo, `sounddevice` puede faltar y aun asi funcionar `null`, `wav`, lectura WAV y utilidades de audio. El flag `--capture-test` intenta abrir brevemente el backend de captura seleccionado y es util para diagnosticar permisos de microfono o errores de dispositivo.
 
-Para pilotos o reportes de bugs, `--bundle` escribe un JSON sanitizado que redacta rutas locales y nombres de dispositivos, y no recoge audio ni transcripciones. English: doctor bundles are safe support artifacts for Windows, Ubuntu/Linux and macOS pilot reports.
+Para pilotos o reportes de bugs, `--bundle` escribe un JSON sanitizado que redacta rutas locales y nombres de dispositivos, y no recoge audio ni transcripciones. `auralis doctor-bundles` agrupa bundles y resume sistemas, versiones Python, checks con warning/error, categorias y prioridades. English: doctor bundles are safe support artifacts for Windows, Ubuntu/Linux and macOS pilot reports.
 
 ## Benchmarks de latencia
 
@@ -669,7 +670,7 @@ ROADMAP.md
 
 Prioridad inmediata:
 
-1. Recolectar y analizar bundles `auralis doctor --bundle` de pilotos Windows reales.
+1. Ejecutar piloto manual Windows con `auralis doctor --bundle` y revisar el resultado con `auralis doctor-bundles`.
 2. Agregar benchmark real de salida `system` si es seguro en CI.
 3. Documentar checklist de hallazgos para pilotos Windows/Ubuntu/macOS.
 4. Preparar checklist de bugs conocidos para beta publica.

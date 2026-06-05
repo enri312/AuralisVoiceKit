@@ -31,6 +31,7 @@ class StabilityGateTests(unittest.TestCase):
         self.assertIn("pilot_runbook", check_names)
         self.assertIn("safe_pilot_runner", check_names)
         self.assertIn("doctor_bundle_api", check_names)
+        self.assertIn("doctor_bundle_analysis", check_names)
 
     def test_min_stage_pilot_exits_successfully(self):
         module = _load_stability_gate()

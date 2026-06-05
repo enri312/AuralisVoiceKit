@@ -24,7 +24,13 @@ from .benchmarks import (
     write_benchmark_report,
 )
 from .config import VoiceKitConfig
-from .diagnostics import DiagnosticStatus, run_doctor, write_doctor_bundle
+from .diagnostics import (
+    DiagnosticStatus,
+    analyze_doctor_bundles,
+    run_doctor,
+    write_doctor_bundle,
+    write_doctor_bundle_analysis,
+)
 from .exceptions import AudioSourceError, BackendNotAvailable, TranscriptionError
 from .kit import AuralisVoiceKit
 from .models import AudioDevice
@@ -149,6 +155,63 @@ def _print_doctor(
         print()
         print(f"Wrote doctor bundle: {written_bundle}")
     return 1 if report.status is DiagnosticStatus.ERROR else 0
+
+
+def _print_doctor_bundle_analysis(
+    paths: list[str],
+    *,
+    json_output: bool = False,
+    output_path: str | None = None,
+) -> int:
+    try:
+        analysis = analyze_doctor_bundles(paths)
+        written_path = (
+            write_doctor_bundle_analysis(output_path, analysis)
+            if output_path is not None
+            else None
+        )
+    except (OSError, ValueError) as exc:
+        if json_output:
+            print(json.dumps({"error": str(exc)}, indent=2, sort_keys=True))
+        else:
+            print(str(exc))
+        return 1
+
+    if json_output:
+        payload = analysis.to_dict()
+        if written_path is not None:
+            payload["analysis_path"] = written_path
+        print(json.dumps(payload, indent=2, sort_keys=True))
+        return 0
+
+    print("AuralisVoiceKit doctor bundle analysis")
+    print(f"Bundles: {analysis.bundle_count}")
+    print(f"Systems: {_format_counts(analysis.systems)}")
+    print(f"Statuses: {_format_counts(analysis.statuses)}")
+    print(f"Priorities: {_format_counts(analysis.priority_counts)}")
+    if analysis.issue_categories:
+        print("Issue categories:")
+        for category, count in analysis.issue_categories.items():
+            print(f"  {category}: {count}")
+    if analysis.issues:
+        print("Top issues:")
+        for issue in analysis.issues[:10]:
+            print(
+                f"  [{issue.priority}/{issue.status}] "
+                f"{issue.bundle} {issue.check}: {issue.message}"
+            )
+    else:
+        print("No warning or error checks found.")
+    if written_path is not None:
+        print()
+        print(f"Wrote doctor bundle analysis: {written_path}")
+    return 0
+
+
+def _format_counts(counts: dict[str, int]) -> str:
+    if not counts:
+        return "none"
+    return ", ".join(f"{name}={count}" for name, count in counts.items())
 
 
 def _print_backends() -> int:
@@ -666,6 +729,13 @@ def main(argv: list[str] | None = None) -> int:
         "--bundle",
         help="write a sanitized diagnostic bundle JSON for support or pilot reports",
     )
+    bundle_parser = subparsers.add_parser(
+        "doctor-bundles",
+        help="analyze sanitized doctor bundle JSON files",
+    )
+    bundle_parser.add_argument("paths", nargs="+", help="doctor bundle JSON files to analyze")
+    bundle_parser.add_argument("--json", action="store_true", help="print a JSON analysis report")
+    bundle_parser.add_argument("--output", help="write the analysis JSON to a file")
     subparsers.add_parser("backends", help="list registered backends")
     devices_parser = subparsers.add_parser("devices", help="list input devices")
     devices_parser.add_argument("--backend", default="sounddevice", help="capture backend to inspect")
@@ -880,6 +950,12 @@ def main(argv: list[str] | None = None) -> int:
             json_output=args.json,
             wav_path=args.wav,
             bundle_path=args.bundle,
+        )
+    if args.command == "doctor-bundles":
+        return _print_doctor_bundle_analysis(
+            args.paths,
+            json_output=args.json,
+            output_path=args.output,
         )
     if args.command == "backends":
         return _print_backends()

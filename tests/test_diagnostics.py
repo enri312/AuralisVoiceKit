@@ -10,9 +10,12 @@ from unittest.mock import patch
 from auralis_voicekit import (
     AudioChunk,
     AudioFormat,
+    DOCTOR_BUNDLE_ANALYSIS_SCHEMA,
     DOCTOR_BUNDLE_SCHEMA,
     DiagnosticCheck,
     DiagnosticStatus,
+    DoctorBundleAnalysis,
+    analyze_doctor_bundles,
     DoctorReport,
     create_doctor_bundle,
     run_doctor,
@@ -215,6 +218,60 @@ class DiagnosticsTests(unittest.TestCase):
         self.assertEqual(payload["share_safety"]["audio_bytes"], "not_collected")
         self.assertEqual(payload["report"]["version"], report.version)
         self.assertEqual(create_doctor_bundle(report)["schema"], DOCTOR_BUNDLE_SCHEMA)
+
+    def test_analyze_doctor_bundles_groups_pilot_findings(self):
+        report = DoctorReport(
+            version="0.31.0",
+            python="3.14.0",
+            implementation="CPython",
+            platform="Windows-11",
+            system="Windows",
+            checks=(
+                DiagnosticCheck(
+                    name="python",
+                    status=DiagnosticStatus.OK,
+                    message="Python supported.",
+                ),
+                DiagnosticCheck(
+                    name="capture-test:wasapi",
+                    status=DiagnosticStatus.ERROR,
+                    message="Capture backend 'wasapi' could not be opened.",
+                    hint="Windows audio capture failed.",
+                    details={
+                        "backend": "wasapi",
+                        "error_type": "PermissionRequired",
+                        "windows_audio_hint": {
+                            "category": "microphone_permission",
+                        },
+                    },
+                ),
+                DiagnosticCheck(
+                    name="dependency:sounddevice",
+                    status=DiagnosticStatus.WARNING,
+                    message="Optional dependency 'sounddevice' is not installed.",
+                ),
+            ),
+        )
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            bundle_path = os.path.join(tmpdir, "doctor-windows.json")
+            write_doctor_bundle(bundle_path, report)
+            analysis = analyze_doctor_bundles([bundle_path])
+
+        self.assertIsInstance(analysis, DoctorBundleAnalysis)
+        self.assertEqual(analysis.schema, DOCTOR_BUNDLE_ANALYSIS_SCHEMA)
+        self.assertEqual(analysis.bundle_count, 1)
+        self.assertEqual(analysis.systems["Windows"], 1)
+        self.assertEqual(analysis.statuses["error"], 1)
+        self.assertEqual(analysis.check_statuses["capture-test:wasapi"]["error"], 1)
+        self.assertEqual(analysis.issue_categories["windows_audio:microphone_permission"], 1)
+        self.assertEqual(analysis.priority_counts["high"], 1)
+        self.assertEqual(analysis.issues[0].priority, "high")
+        self.assertEqual(analysis.issues[0].details["windows_audio_category"], "microphone_permission")
+
+    def test_analyze_doctor_bundles_requires_paths(self):
+        with self.assertRaises(ValueError):
+            analyze_doctor_bundles([])
 
 
 if __name__ == "__main__":

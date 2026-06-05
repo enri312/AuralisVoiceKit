@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections import Counter
+from collections.abc import Iterable
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
@@ -31,6 +33,7 @@ from .windows_audio import windows_audio_error_hint
 
 
 DOCTOR_BUNDLE_SCHEMA = "auralisvoicekit.doctor-bundle.v1"
+DOCTOR_BUNDLE_ANALYSIS_SCHEMA = "auralisvoicekit.doctor-bundle-analysis.v1"
 _REDACTED_DEVICE = "[redacted-device]"
 _REDACTED_PATH = "[redacted-path]"
 _PATHLIKE_KEYS = {
@@ -99,6 +102,55 @@ class DoctorReport:
         }
 
 
+@dataclass(frozen=True, slots=True)
+class DoctorBundleIssue:
+    bundle: str
+    system: str
+    python: str
+    check: str
+    status: str
+    category: str
+    priority: str
+    message: str
+    hint: str | None = None
+    details: dict[str, Any] = field(default_factory=dict)
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+
+@dataclass(frozen=True, slots=True)
+class DoctorBundleAnalysis:
+    schema: str
+    created_at: str
+    bundle_count: int
+    bundles: tuple[str, ...]
+    bundle_schemas: dict[str, int]
+    systems: dict[str, int]
+    statuses: dict[str, int]
+    python_versions: dict[str, int]
+    check_statuses: dict[str, dict[str, int]]
+    issue_categories: dict[str, int]
+    priority_counts: dict[str, int]
+    issues: tuple[DoctorBundleIssue, ...]
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "schema": self.schema,
+            "created_at": self.created_at,
+            "bundle_count": self.bundle_count,
+            "bundles": list(self.bundles),
+            "bundle_schemas": self.bundle_schemas,
+            "systems": self.systems,
+            "statuses": self.statuses,
+            "python_versions": self.python_versions,
+            "check_statuses": self.check_statuses,
+            "issue_categories": self.issue_categories,
+            "priority_counts": self.priority_counts,
+            "issues": [issue.to_dict() for issue in self.issues],
+        }
+
+
 def sanitize_doctor_report(report: DoctorReport) -> dict[str, Any]:
     """Return a shareable doctor report with local paths and device names redacted."""
 
@@ -134,6 +186,102 @@ def write_doctor_bundle(path: str | Path, report: DoctorReport) -> str:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(
         json.dumps(create_doctor_bundle(report), indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    return str(output_path)
+
+
+def analyze_doctor_bundles(paths: Iterable[str | Path]) -> DoctorBundleAnalysis:
+    """Analyze sanitized doctor bundles and summarize pilot findings."""
+
+    bundle_paths = tuple(Path(path) for path in paths)
+    if not bundle_paths:
+        raise ValueError("At least one doctor bundle path is required.")
+
+    bundle_schemas: Counter[str] = Counter()
+    systems: Counter[str] = Counter()
+    statuses: Counter[str] = Counter()
+    python_versions: Counter[str] = Counter()
+    issue_categories: Counter[str] = Counter()
+    priority_counts: Counter[str] = Counter()
+    check_statuses: dict[str, Counter[str]] = {}
+    issues: list[DoctorBundleIssue] = []
+
+    for path in bundle_paths:
+        bundle = _read_doctor_bundle(path)
+        report = _extract_bundle_report(bundle, path)
+        bundle_schema = str(bundle.get("schema", "raw-doctor-report")) if isinstance(bundle, dict) else "unknown"
+        system = str(report.get("system", "unknown"))
+        status = str(report.get("status", "unknown"))
+        python_version = str(report.get("python", "unknown"))
+
+        bundle_schemas[bundle_schema] += 1
+        systems[system] += 1
+        statuses[status] += 1
+        python_versions[python_version] += 1
+
+        for check in _iter_bundle_checks(report, path):
+            check_name = str(check.get("name", "unknown"))
+            check_status = str(check.get("status", "unknown"))
+            check_statuses.setdefault(check_name, Counter())[check_status] += 1
+            if check_status not in {"warning", "error"}:
+                continue
+
+            category, priority = _classify_doctor_issue(check)
+            issue_categories[category] += 1
+            priority_counts[priority] += 1
+            issues.append(
+                DoctorBundleIssue(
+                    bundle=str(path),
+                    system=system,
+                    python=python_version,
+                    check=check_name,
+                    status=check_status,
+                    category=category,
+                    priority=priority,
+                    message=str(check.get("message", "")),
+                    hint=check.get("hint") if isinstance(check.get("hint"), str) else None,
+                    details=_issue_details(check),
+                )
+            )
+
+    sorted_issues = tuple(
+        sorted(
+            issues,
+            key=lambda issue: (
+                _priority_rank(issue.priority),
+                issue.category,
+                issue.bundle,
+                issue.check,
+            ),
+        )
+    )
+    return DoctorBundleAnalysis(
+        schema=DOCTOR_BUNDLE_ANALYSIS_SCHEMA,
+        created_at=datetime.now(timezone.utc).isoformat(),
+        bundle_count=len(bundle_paths),
+        bundles=tuple(str(path) for path in bundle_paths),
+        bundle_schemas=_counter_to_dict(bundle_schemas),
+        systems=_counter_to_dict(systems),
+        statuses=_counter_to_dict(statuses),
+        python_versions=_counter_to_dict(python_versions),
+        check_statuses={
+            check_name: _counter_to_dict(counter)
+            for check_name, counter in sorted(check_statuses.items())
+        },
+        issue_categories=_counter_to_dict(issue_categories),
+        priority_counts=_counter_to_dict(priority_counts),
+        issues=sorted_issues,
+    )
+
+
+def write_doctor_bundle_analysis(path: str | Path, analysis: DoctorBundleAnalysis) -> str:
+    """Write a doctor bundle analysis report and return the written path."""
+
+    output_path = Path(path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(
+        json.dumps(analysis.to_dict(), indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
     )
     return str(output_path)
@@ -197,6 +345,87 @@ def _looks_like_device_summary(value: dict[str, Any]) -> bool:
 
 def _redact_pathlike_text(value: str) -> str:
     return _PATH_PATTERN.sub(_REDACTED_PATH, value)
+
+
+def _read_doctor_bundle(path: Path) -> dict[str, Any]:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except OSError as exc:
+        raise ValueError(f"Cannot read doctor bundle {path}: {exc}") from exc
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"Cannot parse doctor bundle {path}: {exc}") from exc
+    if not isinstance(payload, dict):
+        raise ValueError(f"Doctor bundle {path} must contain a JSON object.")
+    return payload
+
+
+def _extract_bundle_report(bundle: dict[str, Any], path: Path) -> dict[str, Any]:
+    report = bundle.get("report", bundle)
+    if not isinstance(report, dict):
+        raise ValueError(f"Doctor bundle {path} does not contain a report object.")
+    if not isinstance(report.get("checks"), list):
+        raise ValueError(f"Doctor bundle {path} does not contain report checks.")
+    return report
+
+
+def _iter_bundle_checks(report: dict[str, Any], path: Path) -> Iterable[dict[str, Any]]:
+    for index, check in enumerate(report.get("checks", [])):
+        if not isinstance(check, dict):
+            raise ValueError(f"Doctor bundle {path} has a non-object check at index {index}.")
+        yield check
+
+
+def _classify_doctor_issue(check: dict[str, Any]) -> tuple[str, str]:
+    name = str(check.get("name", "unknown"))
+    status = str(check.get("status", "unknown"))
+    details = check.get("details", {})
+    if isinstance(details, dict):
+        windows_hint = details.get("windows_audio_hint")
+        if isinstance(windows_hint, dict):
+            category = str(windows_hint.get("category", "unknown"))
+            return f"windows_audio:{category}", "high" if status == "error" else "medium"
+
+    if name == "python":
+        return "python", "high" if status == "error" else "medium"
+    if name.startswith("capture-test:"):
+        return "capture", "high" if status == "error" else "medium"
+    if name.startswith("devices:"):
+        return "devices", "medium" if status == "error" else "low"
+    if name == "executable:ffmpeg":
+        return "ffmpeg", "medium" if status == "error" else "low"
+    if name.startswith("dependency:"):
+        return "dependency", "medium" if status == "error" else "low"
+    if name.startswith("backend:"):
+        return "backend", "medium" if status == "error" else "low"
+    if name == "wav":
+        return "input_audio", "medium" if status == "error" else "low"
+    return "doctor", "medium" if status == "error" else "low"
+
+
+def _issue_details(check: dict[str, Any]) -> dict[str, Any]:
+    details = check.get("details", {})
+    if not isinstance(details, dict):
+        return {}
+    summary: dict[str, Any] = {}
+    for key in ("backend", "input_device", "error_type"):
+        if key in details:
+            summary[key] = details[key]
+    windows_hint = details.get("windows_audio_hint")
+    if isinstance(windows_hint, dict):
+        summary["windows_audio_category"] = windows_hint.get("category")
+    wasapi = details.get("wasapi")
+    if isinstance(wasapi, dict):
+        summary["wasapi_available"] = wasapi.get("available")
+        summary["wasapi_input_device_count"] = wasapi.get("wasapi_input_device_count")
+    return summary
+
+
+def _counter_to_dict(counter: Counter[str]) -> dict[str, int]:
+    return {key: counter[key] for key in sorted(counter)}
+
+
+def _priority_rank(priority: str) -> int:
+    return {"high": 0, "medium": 1, "low": 2}.get(priority, 3)
 
 
 def _capture_failure_hint(

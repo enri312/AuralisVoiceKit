@@ -6,6 +6,22 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.32.0] - 2026-06-05
+
+### Agregado
+
+- Analizador de bundles doctor con `DoctorBundleAnalysis`, `DoctorBundleIssue` y `analyze_doctor_bundles()`.
+- Constante publica `DOCTOR_BUNDLE_ANALYSIS_SCHEMA` y helper `write_doctor_bundle_analysis()`.
+- Comando `auralis doctor-bundles` para resumir bundles sanitizados por sistema, version Python, checks, categorias y prioridades.
+- Soporte `--output` y `--json` para guardar analisis de pilotos en JSON.
+- Pruebas unitarias para clasificacion de hallazgos, salida CLI y errores de bundles invalidos.
+
+### Cambiado
+
+- README, `PILOTS.md`, referencia API, documentacion HTML y roadmap documentan el flujo generar bundle -> analizar bundle.
+- `tools/stability_gate.py` exige ahora la API de analisis de bundles doctor como parte de la etapa de pilotos.
+- La prioridad inmediata pasa a ejecutar un piloto manual Windows y revisar su bundle con `auralis doctor-bundles`.
+
 ## [0.31.0] - 2026-06-05
 
 ### Agregado
