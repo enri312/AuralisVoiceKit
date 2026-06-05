@@ -295,6 +295,7 @@ def _recommended_pilot_sequence(
     sequence = []
     for step in next_beta_evidence_steps:
         if step["name"] == "real_transcription_quality":
+            sequence.append(_transcription_audio_fixture_step(len(sequence) + 1))
             sequence.append(_transcription_audio_preflight_step(len(sequence) + 1))
         sequence.append(
             {
@@ -352,6 +353,32 @@ def _recommended_pilot_sequence(
         ]
     )
     return sequence
+
+
+def _transcription_audio_fixture_step(order: int) -> dict[str, Any]:
+    return {
+        "order": order,
+        "name": "transcription-audio-fixture",
+        "title": "Transcription audio fixture",
+        "command": (
+            "python tools/pilot_audio_fixture.py --output-dir pilot_runs/transcription/fixture "
+            "--format wav --format mp3 --duration 1.0 --sample-rate 16000 --json"
+        ),
+        "artifact": "pilot-audio-fixture-report.json",
+        "required_fields": [
+            "project",
+            "generated_public_fixture",
+            "contains_private_audio",
+            "usable_as_beta_evidence",
+            "files",
+            "passed",
+        ],
+        "requires_hardware": False,
+        "requires_operator": False,
+        "requires_non_sensitive_audio": False,
+        "review_required": False,
+        "reason": "Genera un MP3 sintetico publico para ensayar ffmpeg antes de usar audio propio no sensible.",
+    }
 
 
 def _transcription_audio_preflight_step(order: int) -> dict[str, Any]:
@@ -433,6 +460,20 @@ def _platform_pilot_matrix(blockers: list[str]) -> list[dict[str, Any]]:
             "requires_operator": True,
             "requires_non_sensitive_audio": False,
             "notes": "Ejecutar solo con operador presente; el reporte redacta el texto completo.",
+        },
+        {
+            "name": "transcription-audio-fixture",
+            "platform": "Windows / Ubuntu/Linux / macOS",
+            "blocker": None,
+            "command": (
+                "python tools/pilot_audio_fixture.py --output-dir pilot_runs/transcription/fixture "
+                "--format wav --format mp3 --duration 1.0 --sample-rate 16000 --json"
+            ),
+            "artifact": "pilot-audio-fixture-report.json",
+            "requires_hardware": False,
+            "requires_operator": False,
+            "requires_non_sensitive_audio": False,
+            "notes": "Fixture sintetico y publico para validar ffmpeg; no cuenta como evidencia beta.",
         },
         {
             "name": "transcription-mp3-preflight",

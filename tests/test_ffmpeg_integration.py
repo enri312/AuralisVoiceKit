@@ -26,6 +26,7 @@ from auralis_voicekit.cli import main
 RUN_INTEGRATION = os.getenv("AURALIS_RUN_FFMPEG_INTEGRATION") == "1"
 ROOT = Path(__file__).resolve().parents[1]
 TRANSCRIPTION_PILOT = ROOT / "tools" / "transcription_pilot.py"
+PILOT_AUDIO_FIXTURE = ROOT / "tools" / "pilot_audio_fixture.py"
 
 
 def _tone_chunk(
@@ -49,6 +50,14 @@ def _tone_chunk(
 
 def _load_transcription_pilot():
     spec = importlib.util.spec_from_file_location("transcription_pilot_for_ffmpeg", TRANSCRIPTION_PILOT)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+    return module
+
+
+def _load_pilot_audio_fixture():
+    spec = importlib.util.spec_from_file_location("pilot_audio_fixture_for_ffmpeg", PILOT_AUDIO_FIXTURE)
     module = importlib.util.module_from_spec(spec)
     assert spec.loader is not None
     spec.loader.exec_module(module)
@@ -306,6 +315,30 @@ class FfmpegIntegrationTests(unittest.TestCase):
         self.assertEqual(report["audio"]["source_format"], "mp3")
         self.assertIsNone(report["transcript"])
         self.assertNotIn(mp3_path, report_text)
+
+    def test_pilot_audio_fixture_generates_decodable_mp3(self):
+        module = _load_pilot_audio_fixture()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            report = module.generate_pilot_audio_fixture(
+                root=ROOT,
+                output_dir=tmpdir,
+                formats=("mp3",),
+                duration_seconds=0.35,
+                sample_rate=8000,
+                ffmpeg=self.ffmpeg,
+            )
+            mp3_path = Path(report["artifacts"]["mp3"])
+            mp3_exists = mp3_path.exists()
+            findings = Path(report["artifacts"]["fixture_findings"]).read_text(encoding="utf-8")
+
+        self.assertTrue(report["passed"])
+        self.assertTrue(report["ffmpeg"]["available"])
+        self.assertTrue(report["generated_public_fixture"])
+        self.assertFalse(report["usable_as_beta_evidence"])
+        self.assertTrue(mp3_exists)
+        self.assertEqual(report["files"][0]["format"], "mp3")
+        self.assertTrue(report["files"][0]["decoded"])
+        self.assertIn("pilot-sample.mp3", findings)
 
 
 if __name__ == "__main__":

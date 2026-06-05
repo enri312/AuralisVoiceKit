@@ -6,6 +6,18 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.54.0] - 2026-06-05
+
+### Agregado
+
+- Nueva herramienta `tools/pilot_audio_fixture.py` para generar fixtures sinteticos publicos WAV/MP3/FLAC antes de usar audio propio en pilotos de transcripcion.
+- Paso `transcription-audio-fixture` en `recommended_pilot_sequence` y `platform_pilot_matrix`, marcado como ensayo seguro y no como evidencia beta.
+- Pruebas unitarias del fixture WAV y prueba de integracion MP3 con ffmpeg.
+
+### Cambiado
+
+- README, `PILOTS.md`, docs HTML, roadmap y gate de estabilidad documentan el fixture sintetico previo al preflight MP3 real.
+
 ## [0.53.0] - 2026-06-05
 
 ### Agregado
