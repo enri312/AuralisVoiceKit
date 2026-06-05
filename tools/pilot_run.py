@@ -163,7 +163,10 @@ def run_safe_pilot(
             "evidence_count": beta_readiness["evidence"]["count"],
             "ignored_evidence_count": beta_readiness["evidence"]["ignored_count"],
             "ready_for_beta_by_json_evidence": beta_audit["ready_for_beta_by_evidence"],
+            "satisfied_json_blockers": beta_audit["satisfied_blockers"],
             "missing_json_blockers": beta_audit["missing_blockers"],
+            "accepted_json_artifacts": _pilot_plan_artifact_summary(beta_audit["artifacts"]),
+            "ignored_json_artifacts": beta_audit["ignored_details"],
             "strict_audit_command": (
                 "python tools/beta_readiness.py --audit-evidence "
                 "--evidence pilot_runs/manual --evidence pilot_runs/output "
@@ -271,6 +274,17 @@ def _next_beta_evidence_steps(beta_module: Any, blockers: list[str]) -> list[dic
     return steps
 
 
+def _pilot_plan_artifact_summary(artifacts: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return [
+        {
+            "file": artifact["file"],
+            "artifact": artifact["artifact"],
+            "satisfied_blockers": artifact["satisfied_blockers"],
+        }
+        for artifact in artifacts
+    ]
+
+
 def _format_pilot_plan_markdown(report: dict[str, Any]) -> str:
     beta = report["beta_readiness"]
     lines = [
@@ -288,6 +302,7 @@ def _format_pilot_plan_markdown(report: dict[str, Any]) -> str:
         f"- Evidencias JSON aceptadas: `{beta['evidence_count']}`",
         f"- Evidencias JSON ignoradas: `{beta['ignored_evidence_count']}`",
         f"- Blockers beta: {_format_inline_list(beta['blockers'])}",
+        f"- Blockers cerrados por JSON: {_format_inline_list(beta['satisfied_json_blockers'])}",
         f"- Blockers JSON pendientes: {_format_inline_list(beta['missing_json_blockers'])}",
         "",
         "## Checks seguros",
@@ -299,6 +314,35 @@ def _format_pilot_plan_markdown(report: dict[str, Any]) -> str:
     lines.extend(
         [
             "",
+            "## Evidencias JSON",
+            "",
+        ]
+    )
+    if beta["accepted_json_artifacts"]:
+        lines.append("### Aceptadas")
+        lines.append("")
+        for artifact in beta["accepted_json_artifacts"]:
+            lines.extend(
+                [
+                    f"- `{artifact['file']}`",
+                    f"  - Artifact: `{artifact['artifact']}`",
+                    f"  - Blockers cerrados: {_format_inline_list(artifact['satisfied_blockers'])}",
+                ]
+            )
+        lines.append("")
+    else:
+        lines.append("- No hay artifacts JSON aceptados todavia.")
+        lines.append("")
+    if beta["ignored_json_artifacts"]:
+        lines.append("### Ignoradas")
+        lines.append("")
+        for artifact in beta["ignored_json_artifacts"]:
+            lines.append(
+                f"- `{artifact['file']}`: `{artifact['reason']}` - {artifact['message_es']} / {artifact['message_en']}."
+            )
+        lines.append("")
+    lines.extend(
+        [
             "## Proximas evidencias beta",
             "",
         ]

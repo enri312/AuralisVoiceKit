@@ -77,6 +77,10 @@ class PilotRunTests(unittest.TestCase):
                 evidence_root / "linux" / "manual-pilot-report.json",
                 {"project": "AuralisVoiceKit", "system": "Linux", "hardware_capture_tested": True, "passed": True},
             )
+            _write_json(
+                evidence_root / "ignored" / "output-pilot-report.json",
+                {"backend": "system", "real_audio_requested": True, "passed": True},
+            )
             report = module.run_safe_pilot(
                 root=ROOT,
                 output_dir=Path(tmpdir) / "pilot",
@@ -85,8 +89,16 @@ class PilotRunTests(unittest.TestCase):
             plan = Path(report["artifacts"]["pilot_plan"]).read_text(encoding="utf-8")
 
         self.assertEqual(report["beta_readiness"]["evidence_count"], 1)
+        self.assertEqual(report["beta_readiness"]["ignored_evidence_count"], 1)
+        self.assertEqual(report["beta_readiness"]["satisfied_json_blockers"], ["ubuntu_linux_capture"])
+        self.assertEqual(report["beta_readiness"]["accepted_json_artifacts"][0]["artifact"], "manual-pilot-report.json")
+        self.assertEqual(report["beta_readiness"]["ignored_json_artifacts"][0]["reason"], "missing_project")
         self.assertNotIn("ubuntu_linux_capture", report["beta_readiness"]["blockers"])
         self.assertNotIn("ubuntu_linux_capture", {step["name"] for step in report["next_beta_evidence_steps"]})
+        self.assertIn("Evidencias JSON", plan)
+        self.assertIn("Blockers cerrados: `ubuntu_linux_capture`", plan)
+        self.assertIn("missing_project", plan)
+        self.assertNotIn(str(evidence_root), plan)
         self.assertNotIn("Ubuntu/Linux capture pilot", plan)
 
 

@@ -34,7 +34,14 @@ PILOT_CHECKS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
     (
         "safe_pilot_runner",
         "tools/pilot_run.py",
-        ("run_safe_pilot", "manual_pilot_steps", "next_beta_evidence_steps", "pilot-plan.md"),
+        (
+            "run_safe_pilot",
+            "manual_pilot_steps",
+            "next_beta_evidence_steps",
+            "accepted_json_artifacts",
+            "ignored_json_artifacts",
+            "pilot-plan.md",
+        ),
     ),
     ("manual_pilot_runner", "tools/manual_pilot.py", ("run_manual_pilot", "--capture-test", "--sample-rate")),
     (

@@ -6,6 +6,18 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.49.0] - 2026-06-05
+
+### Agregado
+
+- Resumen de evidencias JSON aceptadas e ignoradas en `tools/pilot_run.py` y `pilot-plan.md`.
+- Campos `accepted_json_artifacts`, `ignored_json_artifacts` y `satisfied_json_blockers` dentro de `beta_readiness`.
+- Pruebas para evidencias aceptadas/ignoradas dentro del plan de pilotos.
+
+### Cambiado
+
+- README, `PILOTS.md`, docs HTML, roadmap y gate de estabilidad documentan el resumen de evidencias del plan.
+
 ## [0.48.0] - 2026-06-05
 
 ### Agregado
