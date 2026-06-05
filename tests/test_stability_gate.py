@@ -27,6 +27,9 @@ class StabilityGateTests(unittest.TestCase):
         self.assertTrue(report["ready_for_real_world_pilots"])
         self.assertFalse(report["ready_for_stable_release"])
         self.assertIn("version_is_pre_1_0", report["stable_blockers"])
+        check_names = {check["name"] for check in report["checks"]}
+        self.assertIn("pilot_runbook", check_names)
+        self.assertIn("safe_pilot_runner", check_names)
 
     def test_min_stage_pilot_exits_successfully(self):
         module = _load_stability_gate()

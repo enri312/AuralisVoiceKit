@@ -12,6 +12,8 @@ PRIVACY = ROOT / "PRIVACY.md"
 CUSTOM_OUTPUT = ROOT / "CUSTOM_OUTPUT_BACKENDS.md"
 SYSTEM_OUTPUT_DEMO = ROOT / "examples" / "system_output_demo.py"
 LOCAL_ASSISTANT_PRIVACY_DEMO = ROOT / "examples" / "local_assistant_privacy_demo.py"
+PILOTS = ROOT / "PILOTS.md"
+PILOT_RUN = ROOT / "tools" / "pilot_run.py"
 
 
 class DocumentationTests(unittest.TestCase):
@@ -68,6 +70,16 @@ class DocumentationTests(unittest.TestCase):
         self.assertIn(demo_name, README.read_text(encoding="utf-8"))
         self.assertIn(demo_name, MAIN_DOC.read_text(encoding="utf-8"))
         self.assertIn(demo_name, API_DOC.read_text(encoding="utf-8"))
+
+    def test_pilot_runbook_and_runner_are_linked_from_public_docs(self):
+        self.assertTrue(PILOTS.exists())
+        self.assertTrue(PILOT_RUN.exists())
+        self.assertIn("PILOTS.md", README.read_text(encoding="utf-8"))
+        self.assertIn("PILOTS.md", MAIN_DOC.read_text(encoding="utf-8"))
+        self.assertIn("PILOTS.md", API_DOC.read_text(encoding="utf-8"))
+        self.assertIn("tools\\pilot_run.py", README.read_text(encoding="utf-8"))
+        self.assertIn("tools/pilot_run.py", MAIN_DOC.read_text(encoding="utf-8"))
+        self.assertIn("tools/pilot_run.py", API_DOC.read_text(encoding="utf-8"))
 
 
 if __name__ == "__main__":

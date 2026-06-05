@@ -575,6 +575,8 @@ hint: WindowsAudioErrorHint = windows_audio_error_hint(
     system="Windows",
 )
 print(hint.format_hint())</code></pre>
+        <pre><code>python tools/pilot_run.py --output-dir pilot_runs/safe --json</code></pre>
+        <p><code>tools/pilot_run.py</code> usa <code>tools/stability_gate.py</code> y genera un piloto seguro sin hardware. El checklist manual esta en <a href="../PILOTS.md">PILOTS.md</a>.</p>
       </section>
 
       <section id="benchmarks">

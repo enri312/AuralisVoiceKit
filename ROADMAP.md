@@ -46,6 +46,7 @@ La meta no es competir con todos los motores de voz a la vez. La meta es constru
 | Asistente local con privacidad | Ejemplo offline inicial con logs sanitizados |
 | Backends de salida custom | Guia inicial y ejemplo en memoria |
 | Automatizacion de estabilidad | Gate inicial para pilotos reales |
+| Pilotos seguros | Runner automatizado inicial y runbook |
 | Mensajes Windows audio | Helper inicial para errores comunes |
 
 ## Fase 0 - Base del proyecto
@@ -209,6 +210,7 @@ Entregables:
 - Licencia y metadata final.
 - Workflow manual para TestPyPI/PyPI con Trusted Publishing. Estado: inicial.
 - Gate de estabilidad para CI. Estado: inicial con `tools/stability_gate.py`.
+- Runner de piloto automatizado seguro. Estado: inicial con `tools/pilot_run.py`.
 
 Criterio de salida:
 
@@ -273,13 +275,14 @@ Criterio de salida:
 - Ejemplo de asistente local con logs sanitizados. Estado: inicial con `examples/local_assistant_privacy_demo.py`.
 - Backends de salida personalizados. Estado: guia y ejemplo inicial.
 - Automatizacion de estabilidad. Estado: gate inicial listo para CI y uso local.
+- Pilotos seguros. Estado: runner automatizado y runbook inicial con `PILOTS.md`.
 - Mensajes Windows audio. Estado: inicial para permisos, dispositivo, sample rate, canales y host API.
 - Ejemplo de salida `system`. Estado: inicial con dry-run y `--speak` para pilotos reales.
 
 ## Prioridad inmediata
 
-1. Ejecutar pilotos reales guiados por `tools/stability_gate.py`.
-2. Ampliar diagnostico Windows con casos reales reportados por pilotos.
-3. Agregar benchmark real de salida `system` si es seguro en CI.
-4. Documentar checklist de hallazgos para pilotos Windows/Ubuntu/macOS.
-5. Preparar checklist de bugs conocidos para beta publica.
+1. Ampliar diagnostico Windows con casos reales reportados por pilotos.
+2. Agregar benchmark real de salida `system` si es seguro en CI.
+3. Documentar checklist de hallazgos para pilotos Windows/Ubuntu/macOS.
+4. Preparar checklist de bugs conocidos para beta publica.
+5. Ejecutar pilotos manuales con microfono, salida `system` y transcripcion real.

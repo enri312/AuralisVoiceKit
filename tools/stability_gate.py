@@ -23,6 +23,7 @@ PILOT_CHECKS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
     ("compatibility", "COMPATIBILITY.md", ("Windows", "Ubuntu/Linux", "macOS")),
     ("privacy_guide", "PRIVACY.md", ("PrivacyEventLogger", "AURALIS_PRIVACY_MODE")),
     ("custom_output_guide", "CUSTOM_OUTPUT_BACKENDS.md", ("SpeechOutputBackend", "register_output")),
+    ("pilot_runbook", "PILOTS.md", ("tools\\pilot_run.py", "Checklist manual")),
     ("pypi_guide", "PYPI.md", ("Trusted Publishing", "auralisvoicekit")),
     ("api_reference", "docs/auralisvoicekit-api.html", ("Backends personalizados", "PrivacyEventLogger")),
     ("main_documentation", "docs/auralisvoicekit-documentacion.html", ("Privacidad y logs", "Salida de voz")),
@@ -30,6 +31,7 @@ PILOT_CHECKS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
     ("custom_output_example", "examples/custom_output_backend.py", ("MemorySpeechOutputBackend", "run_demo")),
     ("system_output_example", "examples/system_output_demo.py", ("DryRunSystemRunner", "--speak")),
     ("local_assistant_privacy_example", "examples/local_assistant_privacy_demo.py", ("PrivacyEventLogger", "privacy_checks")),
+    ("safe_pilot_runner", "tools/pilot_run.py", ("run_safe_pilot", "manual_pilot_steps")),
     ("ci", ".github/workflows/ci.yml", ("stability_gate.py", "unittest discover")),
 )
 

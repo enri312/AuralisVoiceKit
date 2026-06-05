@@ -12,7 +12,7 @@ English: AuralisVoiceKit is a modern voice toolkit for Python assistants, local 
 
 El objetivo principal es evitar que la captura de microfono dependa obligatoriamente de PyAudio o de wheels que tardan en llegar a las versiones nuevas de Python. El paquete base debe poder instalarse de forma liviana, sin compiladores y sin dependencias nativas obligatorias. Para MP3, FLAC y formatos comprimidos, AuralisVoiceKit usa `ffmpeg` como herramienta externa opcional.
 
-> Estado actual: alpha tecnica con gate de pilotos reales. El repositorio ya define el core, los contratos de backends, captura real inicial, diagnostico reforzado para WASAPI, flujo WAV offline, transcripcion inicial por API y local opcional, sesiones de voz iniciales, una CLI de diagnostico, benchmarks offline y comparativos para Whisper exportables a JSON/CSV, errores accionables para `ffmpeg`, mensajes accionables para audio Windows, documentacion estatica, salida de voz del sistema con voces configurables y ejemplo seguro, salida custom en memoria, quickstart para PyPI sin extras, guia de privacidad/logs, ejemplo de asistente local con logs sanitizados, pruebas unitarias y pruebas reales de MP3/FLAC. Los backends reales se iran agregando por etapas.
+> Estado actual: alpha tecnica con gate de pilotos reales. El repositorio ya define el core, los contratos de backends, captura real inicial, diagnostico reforzado para WASAPI, flujo WAV offline, transcripcion inicial por API y local opcional, sesiones de voz iniciales, una CLI de diagnostico, benchmarks offline y comparativos para Whisper exportables a JSON/CSV, errores accionables para `ffmpeg`, mensajes accionables para audio Windows, documentacion estatica, salida de voz del sistema con voces configurables y ejemplo seguro, salida custom en memoria, quickstart para PyPI sin extras, guia de privacidad/logs, ejemplo de asistente local con logs sanitizados, runner de piloto seguro, pruebas unitarias y pruebas reales de MP3/FLAC. Los backends reales se iran agregando por etapas.
 
 ## Problema que resuelve
 
@@ -640,6 +640,22 @@ py tools\stability_gate.py --min-stage pilot
 
 Hoy el gate exige documentacion clave, privacidad/logs, guia de salida custom, ejemplos, PyPI, referencia API, ejemplo de asistente local con logs sanitizados y CI. Si pasa en etapa `pilot`, ya se puede empezar a probar con microfono real, voces del sistema y transcripcion real controlada antes de pensar en `1.0.0`.
 
+Ruta portable del gate: `tools/stability_gate.py`.
+
+## Pilotos seguros
+
+`tools/pilot_run.py` ejecuta un piloto automatizado sin microfono, sin audio real, sin red y sin modelos. Genera un reporte con el gate, `doctor` usando backend `wav`, el demo de asistente local con logs sanitizados, salida `system` en dry-run y benchmarks offline exportados:
+
+```powershell
+py tools\pilot_run.py --output-dir pilot_runs\safe --json
+```
+
+Los pasos con hardware quedan documentados en:
+
+```text
+PILOTS.md
+```
+
 ## Roadmap
 
 El roadmap completo esta en:
@@ -650,11 +666,11 @@ ROADMAP.md
 
 Prioridad inmediata:
 
-1. Ejecutar pilotos reales guiados por `tools/stability_gate.py`.
-2. Ampliar diagnostico Windows con casos reales reportados por pilotos.
-3. Agregar benchmark real de salida `system` si es seguro en CI.
-4. Documentar checklist de hallazgos para pilotos Windows/Ubuntu/macOS.
-5. Preparar checklist de bugs conocidos para beta publica.
+1. Ampliar diagnostico Windows con casos reales reportados por pilotos.
+2. Agregar benchmark real de salida `system` si es seguro en CI.
+3. Documentar checklist de hallazgos para pilotos Windows/Ubuntu/macOS.
+4. Preparar checklist de bugs conocidos para beta publica.
+5. Ejecutar pilotos manuales con microfono, salida `system` y transcripcion real.
 
 ## Documentacion
 
@@ -684,4 +700,5 @@ CONTRIBUTING.md
 PYPI.md
 PRIVACY.md
 CUSTOM_OUTPUT_BACKENDS.md
+PILOTS.md
 ```

@@ -538,6 +538,9 @@ print(hint.format_hint())</code></pre>
         <pre><code>python tools/stability_gate.py --json
 python tools/stability_gate.py --min-stage pilot</code></pre>
         <p>El gate tambien exige el ejemplo de asistente local con logs sanitizados para mantener lista la ruta de pilotos reales.</p>
+        <h3>Piloto seguro</h3>
+        <p><code>tools/pilot_run.py</code> ejecuta un piloto automatizado sin microfono, sin audio real, sin red y sin modelos. Genera reporte JSON con gate, doctor <code>wav</code>, asistente local con privacidad, salida <code>system</code> en dry-run y benchmark offline exportado. Los pasos manuales viven en <a href="../PILOTS.md">PILOTS.md</a>.</p>
+        <pre><code>python tools/pilot_run.py --output-dir pilot_runs/safe --json</code></pre>
         <pre><code>$env:AURALIS_RUN_FFMPEG_INTEGRATION="1"
 py -m unittest tests.test_ffmpeg_integration
         Remove-Item Env:\AURALIS_RUN_FFMPEG_INTEGRATION</code></pre>
@@ -756,7 +759,7 @@ gh workflow run publish-pypi.yml -f index=pypi -f tag=v0.14.0</code></pre>
             <tr>
               <td>5+</td>
               <td>Loop de asistente, Windows primero, CI, beta publica y version 1.0.</td>
-              <td>Loop inicial cancelable, pruebas MP3/FLAC, errores ffmpeg accionables, mensajes Windows audio iniciales, benchmarks offline y Whisper exportables, referencia API inicial, PyPI preparada, quickstart sin extras, privacidad/logs inicial, asistente local con logs sanitizados, salida custom inicial, gate de estabilidad y salida system configurable con ejemplo seguro</td>
+              <td>Loop inicial cancelable, pruebas MP3/FLAC, errores ffmpeg accionables, mensajes Windows audio iniciales, benchmarks offline y Whisper exportables, referencia API inicial, PyPI preparada, quickstart sin extras, privacidad/logs inicial, asistente local con logs sanitizados, piloto seguro automatizado, salida custom inicial, gate de estabilidad y salida system configurable con ejemplo seguro</td>
             </tr>
           </tbody>
         </table>

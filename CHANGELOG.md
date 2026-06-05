@@ -6,6 +6,21 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.30.0] - 2026-06-05
+
+### Agregado
+
+- Herramienta `tools/pilot_run.py` para ejecutar un piloto automatizado seguro sin microfono, audio real, red ni modelos.
+- Runbook `PILOTS.md` con checklist manual, comandos recomendados y plantilla de hallazgos.
+- Reporte JSON de piloto con gate de estabilidad, doctor `wav`, asistente local con privacidad, salida `system` dry-run y benchmark offline exportado.
+- Pruebas automatizadas para el runner de piloto seguro.
+
+### Cambiado
+
+- `tools/stability_gate.py` exige ahora el runbook de pilotos y el runner seguro.
+- README, documentacion HTML y roadmap documentan la ruta de pilotos.
+- El roadmap mueve la prioridad inmediata a diagnostico Windows basado en hallazgos reales.
+
 ## [0.29.0] - 2026-06-05
 
 ### Agregado
