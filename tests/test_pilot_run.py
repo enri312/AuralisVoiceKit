@@ -56,6 +56,8 @@ class PilotRunTests(unittest.TestCase):
         self.assertIn("transcription_checklist.ready_for_beta_evidence", plan)
         self.assertIn("output-operator-checklist.md", plan)
         self.assertIn("operator_checklist.ready_for_beta_evidence", plan)
+        self.assertIn("manual-capture-checklist.md", plan)
+        self.assertIn("capture_checklist.ready_for_beta_evidence", plan)
         self.assertIn("sample.mp3", plan)
         self.assertIn("Ubuntu/Linux - ubuntu-linux-capture", plan)
         self.assertIn("macOS - macos-capture", plan)
@@ -93,6 +95,7 @@ class PilotRunTests(unittest.TestCase):
         self.assertEqual(matrix["transcription-mp3-preflight"]["status"], "recommended")
         self.assertTrue(matrix["system-output-audible"]["requires_operator"])
         self.assertIn("--fail-on-audit-gaps", report["beta_readiness"]["strict_audit_command"])
+        self.assertIn("microphone-capture-checklist", {step["name"] for step in report["manual_pilot_steps"]})
         self.assertIn("microphone-capture", {step["name"] for step in report["manual_pilot_steps"]})
         self.assertIn("beta-readiness", {step["name"] for step in report["manual_pilot_steps"]})
 
@@ -120,7 +123,13 @@ class PilotRunTests(unittest.TestCase):
             evidence_root = Path(tmpdir) / "evidence"
             _write_json(
                 evidence_root / "linux" / "manual-pilot-report.json",
-                {"project": "AuralisVoiceKit", "system": "Linux", "hardware_capture_tested": True, "passed": True},
+                {
+                    "project": "AuralisVoiceKit",
+                    "system": "Linux",
+                    "hardware_capture_tested": True,
+                    "capture_checklist": {"ready_for_beta_evidence": True},
+                    "passed": True,
+                },
             )
             _write_json(
                 evidence_root / "ignored" / "output-pilot-report.json",

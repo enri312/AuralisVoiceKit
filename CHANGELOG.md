@@ -6,6 +6,20 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.58.0] - 2026-06-05
+
+### Agregado
+
+- Artifact `manual-capture-checklist.md` generado por `tools/manual_pilot.py` para preparar pilotos de captura real sin guardar audio ni rutas privadas.
+- Bloque JSON `capture_checklist` con checklist antes/despues de capturar, estados `ready_for_real_capture` / `ready_for_beta_evidence` y confirmacion `records_audio_bytes=false`.
+- Paso seco `microphone-capture-checklist` y referencias a `manual-capture-checklist.md` dentro de `tools/pilot_run.py`.
+
+### Cambiado
+
+- `tools/beta_readiness.py --requirements` y la auditoria de evidencias ahora requieren `capture_checklist.ready_for_beta_evidence=true` para cerrar blockers de captura por JSON.
+- `tools/manual_pilot.py` redacta selectores de dispositivo no triviales en `manual-pilot-report.json`.
+- README, `PILOTS.md`, docs HTML y roadmap documentan el checklist de captura y el nuevo contrato de evidencia.
+
 ## [0.57.0] - 2026-06-05
 
 ### Agregado

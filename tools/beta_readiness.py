@@ -48,6 +48,7 @@ def build_evidence_requirements_report() -> dict[str, Any]:
                     _required_field("system", "Windows"),
                     _required_field("capture_backend", "wasapi"),
                     _required_field("hardware_capture_tested", True),
+                    _required_field("capture_checklist.ready_for_beta_evidence", True),
                     _required_field("passed", True),
                 ],
             },
@@ -102,6 +103,7 @@ def build_evidence_requirements_report() -> dict[str, Any]:
                     _required_field("project", "AuralisVoiceKit"),
                     _required_field("system", "Linux | Ubuntu/Linux | Ubuntu"),
                     _required_field("hardware_capture_tested", True),
+                    _required_field("capture_checklist.ready_for_beta_evidence", True),
                     _required_field("passed", True),
                 ],
             },
@@ -117,6 +119,7 @@ def build_evidence_requirements_report() -> dict[str, Any]:
                     _required_field("project", "AuralisVoiceKit"),
                     _required_field("system", "Darwin | macOS | Mac"),
                     _required_field("hardware_capture_tested", True),
+                    _required_field("capture_checklist.ready_for_beta_evidence", True),
                     _required_field("passed", True),
                 ],
             },
@@ -253,7 +256,10 @@ def build_beta_readiness_report(
                 "Sistema: Ubuntu/Linux",
                 "Piloto manual: `passed=true`",
             ),
-            next_action="Run the manual capture pilot on Ubuntu/Linux with real hardware and sanitized artifacts.",
+            next_action=(
+                "Run the manual capture pilot on Ubuntu/Linux with real hardware, then keep "
+                "manual-capture-checklist.md and capture_checklist.ready_for_beta_evidence=true."
+            ),
         ),
         _evidence_or_terms_check(
             name="macos_capture",
@@ -266,7 +272,10 @@ def build_beta_readiness_report(
                 "Sistema: macOS",
                 "Piloto manual: `passed=true`",
             ),
-            next_action="Run the manual capture pilot on macOS with real hardware and sanitized artifacts.",
+            next_action=(
+                "Run the manual capture pilot on macOS with real hardware, then keep "
+                "manual-capture-checklist.md and capture_checklist.ready_for_beta_evidence=true."
+            ),
         ),
     ]
     blockers = [check for check in checks if check["blocker"] and not check["ok"]]
@@ -807,28 +816,37 @@ def _looks_like_pilot_report(path: Path) -> bool:
 
 
 def _is_windows_wasapi_capture_evidence(report: dict[str, Any]) -> bool:
+    capture_checklist = report.get("capture_checklist", {})
     return (
         report.get("system") == "Windows"
         and report.get("capture_backend") == "wasapi"
         and report.get("hardware_capture_tested") is True
+        and isinstance(capture_checklist, dict)
+        and capture_checklist.get("ready_for_beta_evidence") is True
         and report.get("passed") is True
     )
 
 
 def _is_ubuntu_linux_capture_evidence(report: dict[str, Any]) -> bool:
     system = str(report.get("system", "")).lower()
+    capture_checklist = report.get("capture_checklist", {})
     return (
         system in {"linux", "ubuntu/linux", "ubuntu"}
         and report.get("hardware_capture_tested") is True
+        and isinstance(capture_checklist, dict)
+        and capture_checklist.get("ready_for_beta_evidence") is True
         and report.get("passed") is True
     )
 
 
 def _is_macos_capture_evidence(report: dict[str, Any]) -> bool:
     system = str(report.get("system", "")).lower()
+    capture_checklist = report.get("capture_checklist", {})
     return (
         system in {"darwin", "macos", "mac"}
         and report.get("hardware_capture_tested") is True
+        and isinstance(capture_checklist, dict)
+        and capture_checklist.get("ready_for_beta_evidence") is True
         and report.get("passed") is True
     )
 

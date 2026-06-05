@@ -4,7 +4,7 @@ Este documento se genera con `tools\beta_readiness.py`. No debe incluir audio, t
 
 ## Estado
 
-- Version: `0.57.0`
+- Version: `0.58.0`
 - Estado: `pilot`
 - Listo para beta: `false`
 - Gate de pilotos reales: `true`
@@ -29,10 +29,10 @@ Este documento se genera con `tools\beta_readiness.py`. No debe incluir audio, t
   - Accion: Run tools/output_pilot.py --speak --operator-present --confirm-audible --output-dir pilot_runs/output/system-real with a human operator, then keep output-operator-checklist.md and only sanitized findings.
   - Evidencia faltante: `Real audio requested: True`, `Operator confirmation status: confirmed`, `Operator checklist ready for beta evidence: True`
 - [ ] `ubuntu_linux_capture` (blocker) - Ubuntu/Linux capture pilot
-  - Accion: Run the manual capture pilot on Ubuntu/Linux with real hardware and sanitized artifacts.
+  - Accion: Run the manual capture pilot on Ubuntu/Linux with real hardware, then keep manual-capture-checklist.md and capture_checklist.ready_for_beta_evidence=true.
   - Evidencia faltante: `Sistema: Ubuntu/Linux`
 - [ ] `macos_capture` (blocker) - macOS capture pilot
-  - Accion: Run the manual capture pilot on macOS with real hardware and sanitized artifacts.
+  - Accion: Run the manual capture pilot on macOS with real hardware, then keep manual-capture-checklist.md and capture_checklist.ready_for_beta_evidence=true.
   - Evidencia faltante: `Sistema: macOS`
 
 ## Bugs conocidos
@@ -43,5 +43,5 @@ Este documento se genera con `tools\beta_readiness.py`. No debe incluir audio, t
 
 - Run tools/transcription_pilot.py with --real-transcription, non-sensitive audio, --expected-text or --expected-text-file, a meaningful --min-word-accuracy, --min-audio-seconds/--max-audio-seconds duration guards, then keep transcription-review-checklist.md.
 - Run tools/output_pilot.py --speak --operator-present --confirm-audible --output-dir pilot_runs/output/system-real with a human operator, then keep output-operator-checklist.md and only sanitized findings.
-- Run the manual capture pilot on Ubuntu/Linux with real hardware and sanitized artifacts.
-- Run the manual capture pilot on macOS with real hardware and sanitized artifacts.
+- Run the manual capture pilot on Ubuntu/Linux with real hardware, then keep manual-capture-checklist.md and capture_checklist.ready_for_beta_evidence=true.
+- Run the manual capture pilot on macOS with real hardware, then keep manual-capture-checklist.md and capture_checklist.ready_for_beta_evidence=true.

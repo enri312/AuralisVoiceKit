@@ -33,24 +33,35 @@ class ManualPilotTests(unittest.TestCase):
             bundle_path = Path(report["artifacts"]["doctor_bundle"])
             analysis_path = Path(report["artifacts"]["doctor_analysis"])
             findings_path = Path(report["artifacts"]["pilot_findings"])
+            checklist_path = Path(report["artifacts"]["capture_checklist"])
             report_path = Path(report["artifacts"]["manual_pilot_report"])
 
             self.assertTrue(bundle_path.exists())
             self.assertTrue(analysis_path.exists())
             self.assertTrue(findings_path.exists())
+            self.assertTrue(checklist_path.exists())
             self.assertTrue(report_path.exists())
             analysis = json.loads(analysis_path.read_text(encoding="utf-8"))
             findings = findings_path.read_text(encoding="utf-8")
+            checklist = checklist_path.read_text(encoding="utf-8")
 
         self.assertTrue(report["passed"])
         self.assertFalse(report["hardware_capture_tested"])
         self.assertEqual(report["sample_rate"], 48000)
+        self.assertIn("capture_checklist", report)
+        self.assertFalse(report["capture_checklist"]["records_audio_bytes"])
+        self.assertFalse(report["capture_checklist"]["ready_for_beta_evidence"])
         self.assertEqual(analysis["bundle_count"], 1)
         self.assertIn("Manual pilot findings", findings)
         self.assertIn("Capture test requested: False", findings)
+        self.assertIn("Capture checklist ready for beta evidence: False", findings)
         self.assertIn("Sample rate: 48000", findings)
         self.assertIn("Bundle: doctor-bundle.json", findings)
+        self.assertIn("Capture checklist: manual-capture-checklist.md", findings)
+        self.assertIn("Checklist de captura manual / Manual capture checklist", checklist)
+        self.assertIn("Ready for beta evidence: False", checklist)
         self.assertNotIn(str(Path(tempfile.gettempdir())), findings)
+        self.assertNotIn(str(Path(tempfile.gettempdir())), checklist)
 
     def test_manual_pilot_cli_outputs_json(self):
         module = _load_manual_pilot()
@@ -77,6 +88,62 @@ class ManualPilotTests(unittest.TestCase):
         self.assertEqual(payload["capture_backend"], "wav")
         self.assertEqual(payload["sample_rate"], 48000)
         self.assertFalse(payload["capture_test_requested"])
+        self.assertIn("capture_checklist", payload)
+        self.assertIn("capture_checklist", payload["artifacts"])
+
+    def test_manual_pilot_redacts_named_device_selector(self):
+        module = _load_manual_pilot()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            report = module.run_manual_pilot(
+                root=ROOT,
+                output_dir=tmpdir,
+                capture_backend="wav",
+                capture_device="Studio Microphone 7",
+            )
+
+        self.assertEqual(report["capture_device"], "<device-redacted>")
+        self.assertTrue(report["capture_device_redacted"])
+
+    def test_capture_checklist_marks_beta_ready_for_real_capture(self):
+        module = _load_manual_pilot()
+
+        checklist = module._capture_checklist(
+            system="Linux",
+            backend="sounddevice",
+            capture_test=True,
+            sample_rate=None,
+            passed=True,
+            hardware_capture_tested=True,
+            device_redacted=False,
+        )
+        markdown = module._build_capture_checklist_markdown(
+            timestamp="2026-06-05T00:00:00+00:00",
+            system="Linux",
+            backend="sounddevice",
+            capture_checklist=checklist,
+        )
+
+        self.assertTrue(checklist["ready_for_real_capture"])
+        self.assertTrue(checklist["ready_for_beta_evidence"])
+        self.assertFalse(checklist["records_audio_bytes"])
+        self.assertIn("Ready for beta evidence: True", markdown)
+
+    def test_capture_checklist_requires_sample_rate_for_windows_wasapi(self):
+        module = _load_manual_pilot()
+
+        checklist = module._capture_checklist(
+            system="Windows",
+            backend="wasapi",
+            capture_test=True,
+            sample_rate=None,
+            passed=True,
+            hardware_capture_tested=True,
+            device_redacted=False,
+        )
+
+        self.assertFalse(checklist["ready_for_real_capture"])
+        self.assertFalse(checklist["ready_for_beta_evidence"])
 
 
 if __name__ == "__main__":

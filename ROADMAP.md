@@ -46,7 +46,7 @@ La meta no es competir con todos los motores de voz a la vez. La meta es constru
 | Asistente local con privacidad | Ejemplo offline inicial con logs sanitizados |
 | Backends de salida custom | Guia inicial y ejemplo en memoria |
 | Automatizacion de estabilidad | Gate inicial para pilotos reales |
-| Pilotos seguros | Runner automatizado, piloto manual guiado, piloto de salida system con checklist de operador, piloto de transcripcion con checklist de revision, runbook, bundle doctor, analisis de bundles y checklist de beta |
+| Pilotos seguros | Runner automatizado, piloto manual guiado con checklist de captura, piloto de salida system con checklist de operador, piloto de transcripcion con checklist de revision, runbook, bundle doctor, analisis de bundles y checklist de beta |
 | Mensajes Windows audio | Helper inicial para errores comunes |
 
 ## Fase 0 - Base del proyecto
@@ -216,7 +216,7 @@ Entregables:
 - Workflow manual para TestPyPI/PyPI con Trusted Publishing. Estado: inicial.
 - Gate de estabilidad para CI. Estado: inicial con `tools/stability_gate.py`.
 - Runner de piloto automatizado seguro. Estado: inicial con `tools/pilot_run.py`.
-- Runner de piloto manual guiado. Estado: inicial con `tools/manual_pilot.py`, sin captura real salvo `--capture-test`.
+- Runner de piloto manual guiado. Estado: inicial con `tools/manual_pilot.py`, `manual-capture-checklist.md`, `capture_checklist`, redaccion de selector de dispositivo y sin captura real salvo `--capture-test`.
 
 Criterio de salida:
 
@@ -281,7 +281,7 @@ Criterio de salida:
 - Ejemplo de asistente local con logs sanitizados. Estado: inicial con `examples/local_assistant_privacy_demo.py`.
 - Backends de salida personalizados. Estado: guia y ejemplo inicial.
 - Automatizacion de estabilidad. Estado: gate inicial listo para CI y uso local.
-- Pilotos seguros. Estado: runner automatizado, piloto manual guiado con `tools/manual_pilot.py`, piloto de salida `system` con `tools/output_pilot.py`, artifact `output-operator-checklist.md`, requisito `operator_checklist.ready_for_beta_evidence`, fixture sintetico con `tools/pilot_audio_fixture.py --run-preflight`, piloto de transcripcion con `tools/transcription_pilot.py`, artifact `transcription-review-checklist.md`, requisito `transcription_checklist.ready_for_beta_evidence`, preflight MP3 seguro con `--preflight-only`, guardas de duracion con `--min-audio-seconds` y `--max-audio-seconds`, scoring redactado con `--expected-text`, checklist de beta con `tools/beta_readiness.py`, ingesta de evidencias JSON con `--evidence`, requisitos de evidencias con `--requirements`, auditoria de artifacts con `--audit-evidence`, fallo estricto con `--fail-on-audit-gaps`, plan dinamico `next_beta_evidence_steps`, secuencia operativa `recommended_pilot_sequence` con paso `system-output-operator-checklist`, matriz por plataforma `platform_pilot_matrix`, resumen de evidencias aceptadas/ignoradas y artifact `pilot-plan.md` en `tools/pilot_run.py`, resumen de blockers cerrados/pendientes por evidencia, validacion de `project: AuralisVoiceKit`, motivos seguros para evidencias ignoradas, runbook inicial con `PILOTS.md`, hallazgos en `PILOT_FINDINGS.md`, blockers en `BETA_CHECKLIST.md`, bundles `doctor` sanitizados, analisis `doctor-bundles`, control explicito de sample rate para pilotos WASAPI, primera captura Windows real aprobada a 48000 Hz, dry-run Windows de salida `system` aprobado, guards `--operator-present` y `--confirm-audible` listos para audio real y dry-run Windows de transcripcion sintetica aprobado.
+- Pilotos seguros. Estado: runner automatizado, piloto manual guiado con `tools/manual_pilot.py`, artifact `manual-capture-checklist.md`, requisito `capture_checklist.ready_for_beta_evidence`, redaccion de selector de dispositivo, piloto de salida `system` con `tools/output_pilot.py`, artifact `output-operator-checklist.md`, requisito `operator_checklist.ready_for_beta_evidence`, fixture sintetico con `tools/pilot_audio_fixture.py --run-preflight`, piloto de transcripcion con `tools/transcription_pilot.py`, artifact `transcription-review-checklist.md`, requisito `transcription_checklist.ready_for_beta_evidence`, preflight MP3 seguro con `--preflight-only`, guardas de duracion con `--min-audio-seconds` y `--max-audio-seconds`, scoring redactado con `--expected-text`, checklist de beta con `tools/beta_readiness.py`, ingesta de evidencias JSON con `--evidence`, requisitos de evidencias con `--requirements`, auditoria de artifacts con `--audit-evidence`, fallo estricto con `--fail-on-audit-gaps`, plan dinamico `next_beta_evidence_steps`, secuencia operativa `recommended_pilot_sequence` con paso `system-output-operator-checklist`, matriz por plataforma `platform_pilot_matrix`, resumen de evidencias aceptadas/ignoradas y artifact `pilot-plan.md` en `tools/pilot_run.py`, resumen de blockers cerrados/pendientes por evidencia, validacion de `project: AuralisVoiceKit`, motivos seguros para evidencias ignoradas, runbook inicial con `PILOTS.md`, hallazgos en `PILOT_FINDINGS.md`, blockers en `BETA_CHECKLIST.md`, bundles `doctor` sanitizados, analisis `doctor-bundles`, control explicito de sample rate para pilotos WASAPI, primera captura Windows real aprobada a 48000 Hz, dry-run Windows de salida `system` aprobado, guards `--operator-present` y `--confirm-audible` listos para audio real y dry-run Windows de transcripcion sintetica aprobado.
 - Mensajes Windows audio. Estado: inicial para permisos, dispositivo, sample rate, canales y host API.
 - Ejemplo de salida `system`. Estado: inicial con dry-run aprobado, `output-operator-checklist.md`, `--speak --operator-present --confirm-audible` para pilotos reales y runner `tools/output_pilot.py`.
 
@@ -289,6 +289,6 @@ Criterio de salida:
 
 1. Generar fixture sintetico con `tools/pilot_audio_fixture.py --run-preflight`, validar ffmpeg, revisar `transcription-review-checklist.md`, y ejecutar piloto de transcripcion real con audio propio no sensible usando `tools/transcription_pilot.py` con `--expected-text` o `--expected-text-file`, `--min-audio-seconds` y `--max-audio-seconds`.
 2. Preparar `output-operator-checklist.md` con `tools/output_pilot.py --output-dir pilot_runs/output/system-dry-run --json` y ejecutar piloto manual de salida `system` con `tools/output_pilot.py --speak --operator-present --confirm-audible --output-dir pilot_runs/output/system-real`.
-3. Repetir captura con microfono en Ubuntu/Linux y macOS.
+3. Repetir captura con microfono en Ubuntu/Linux y macOS conservando `manual-capture-checklist.md`.
 4. Cerrar blockers de beta reportados por `tools/beta_readiness.py --evidence ...` y `BETA_CHECKLIST.md`.
 5. Evaluar si el siguiente lote de pilotos permite declarar beta.

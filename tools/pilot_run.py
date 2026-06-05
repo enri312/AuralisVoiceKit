@@ -224,6 +224,11 @@ def main(argv: list[str] | None = None) -> int:
 def _manual_pilot_steps() -> list[dict[str, str]]:
     return [
         {
+            "name": "microphone-capture-checklist",
+            "command": "python tools/manual_pilot.py --output-dir pilot_runs/manual/capture-dry-run --json",
+            "reason": "Writes manual-capture-checklist.md before any real microphone access.",
+        },
+        {
             "name": "microphone-capture",
             "command": "python tools/manual_pilot.py --capture-test --backend wasapi --device default --sample-rate 48000 --json",
             "reason": "Requires real microphone hardware and OS permissions.",
@@ -454,7 +459,7 @@ def _platform_pilot_matrix(blockers: list[str]) -> list[dict[str, Any]]:
             "requires_hardware": True,
             "requires_operator": False,
             "requires_non_sensitive_audio": False,
-            "notes": "Captura Windows ya esta documentada; repetir si cambia hardware o driver.",
+            "notes": "Captura Windows ya esta documentada; repetir si cambia hardware o driver y conservar manual-capture-checklist.md.",
         },
         {
             "name": "ubuntu-linux-capture",
@@ -465,7 +470,7 @@ def _platform_pilot_matrix(blockers: list[str]) -> list[dict[str, Any]]:
             "requires_hardware": True,
             "requires_operator": False,
             "requires_non_sensitive_audio": False,
-            "notes": "Requiere microfono, permisos de audio y PortAudio/sounddevice instalados.",
+            "notes": "Requiere microfono, permisos de audio, PortAudio/sounddevice y manual-capture-checklist.md.",
         },
         {
             "name": "macos-capture",
@@ -476,7 +481,7 @@ def _platform_pilot_matrix(blockers: list[str]) -> list[dict[str, Any]]:
             "requires_hardware": True,
             "requires_operator": False,
             "requires_non_sensitive_audio": False,
-            "notes": "Requiere permiso de microfono en macOS y revisar el dispositivo default.",
+            "notes": "Requiere permiso de microfono en macOS, revisar el dispositivo default y conservar manual-capture-checklist.md.",
         },
         {
             "name": "system-output-audible",
