@@ -6,6 +6,19 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.40.0] - 2026-06-05
+
+### Agregado
+
+- `tools/beta_readiness.py --evidence` para aceptar archivos o carpetas con artifacts JSON de pilotos reales.
+- Cierre estructurado de blockers de beta desde `manual-pilot-report.json`, `output-pilot-report.json` y `transcription-pilot-report.json`.
+- Requisito de calidad para transcripcion real de beta: audio no sensible, scoring habilitado y `min_word_accuracy >= 0.75`.
+- Pruebas automatizadas que demuestran que artifacts JSON validos pueden cerrar blockers sin copiar transcripciones ni audio.
+
+### Cambiado
+
+- README, `PILOTS.md`, docs HTML, roadmap, gate de estabilidad y `BETA_CHECKLIST.md` documentan la ingesta de evidencias con `--evidence`.
+
 ## [0.39.0] - 2026-06-05
 
 ### Agregado

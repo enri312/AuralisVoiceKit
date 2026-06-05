@@ -654,10 +654,11 @@ Para evaluar si ya corresponde declarar beta publica, usa el checklist conservad
 ```powershell
 py tools\beta_readiness.py --json
 py tools\beta_readiness.py --output BETA_CHECKLIST.md
+py tools\beta_readiness.py --evidence pilot_runs\manual\linux --evidence pilot_runs\output\real --json
 py tools\beta_readiness.py --fail-on-blockers --json
 ```
 
-El checklist generado vive en `BETA_CHECKLIST.md` y separa dos estados: listo para pilotos reales no significa listo para beta. English: beta readiness requires real pilot evidence, not only safe dry-runs.
+El checklist generado vive en `BETA_CHECKLIST.md` y separa dos estados: listo para pilotos reales no significa listo para beta. `--evidence` acepta archivos o carpetas con JSON generados por `tools\manual_pilot.py`, `tools\output_pilot.py` y `tools\transcription_pilot.py`; solo usa campos estructurados y nombres de artifacts, no transcripciones ni audio. English: beta readiness requires real pilot evidence, not only safe dry-runs.
 
 ## Pilotos seguros
 
@@ -689,7 +690,7 @@ py tools\transcription_pilot.py --output-dir pilot_runs\transcription\quality-sa
 py tools\transcription_pilot.py --real-transcription --audio sample.mp3 --audio-non-sensitive --backend whisper --model base --normalize --expected-text "Hola desde AuralisVoiceKit" --min-word-accuracy 0.75 --json
 ```
 
-`tools/beta_readiness.py` resume blockers de beta a partir del gate y `PILOT_FINDINGS.md`. Hoy marca como pendientes la transcripcion real con calidad, salida `system` audible confirmada, captura Ubuntu/Linux y captura macOS.
+`tools/beta_readiness.py` resume blockers de beta a partir del gate, `PILOT_FINDINGS.md` y artifacts JSON pasados con `--evidence`. Hoy marca como pendientes la transcripcion real con calidad, salida `system` audible confirmada, captura Ubuntu/Linux y captura macOS.
 
 Los pasos con hardware quedan documentados en:
 
