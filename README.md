@@ -665,7 +665,7 @@ El checklist generado vive en `BETA_CHECKLIST.md` y separa dos estados: listo pa
 
 ## Pilotos seguros
 
-`tools/pilot_run.py` ejecuta un piloto automatizado sin microfono, sin audio real, sin red y sin modelos. Genera un reporte con el gate, `doctor` usando backend `wav`, el demo de asistente local con logs sanitizados, salida `system` en dry-run, benchmarks offline exportados, `pilot-report.json` y `pilot-plan.md`. El plan incluye evidencias JSON aceptadas/ignoradas, `next_beta_evidence_steps` y `recommended_pilot_sequence` con el orden recomendado para ejecutar pilotos reales, auditar evidencias y refrescar `BETA_CHECKLIST.md`. English: the safe pilot can ingest JSON evidence and produce a public-safe Markdown plan for accepted evidence, ignored artifacts and an ordered real-pilot sequence.
+`tools/pilot_run.py` ejecuta un piloto automatizado sin microfono, sin audio real, sin red y sin modelos. Genera un reporte con el gate, `doctor` usando backend `wav`, el demo de asistente local con logs sanitizados, salida `system` en dry-run, benchmarks offline exportados, `pilot-report.json` y `pilot-plan.md`. El plan incluye evidencias JSON aceptadas/ignoradas, `next_beta_evidence_steps` y `recommended_pilot_sequence` con el orden recomendado para ejecutar pilotos reales, auditar evidencias y refrescar `BETA_CHECKLIST.md`; si falta transcripcion real, la secuencia inicia con `--preflight-only` para validar el MP3 con ffmpeg sin ejecutar Whisper/OpenAI. English: the safe pilot can ingest JSON evidence and produce a public-safe Markdown plan for accepted evidence, ignored artifacts and an ordered real-pilot sequence.
 
 ```powershell
 py tools\pilot_run.py --output-dir pilot_runs\safe --json
@@ -686,11 +686,12 @@ py tools\output_pilot.py --output-dir pilot_runs\output\system-dry-run --json
 py tools\output_pilot.py --speak --operator-present --confirm-audible --text "Hola desde AuralisVoiceKit" --json
 ```
 
-`tools/transcription_pilot.py` prepara pilotos de transcripcion. Por defecto genera audio sintetico y usa backend `null`; para `whisper` u `openai` exige `--real-transcription`, un archivo `--audio` y confirmacion `--audio-non-sensitive`. El texto transcrito queda redactado en los artifacts. Si agregas `--expected-text` o `--expected-text-file`, calcula metricas de calidad como word accuracy y word error rate sin guardar la transcripcion ni el texto esperado:
+`tools/transcription_pilot.py` prepara pilotos de transcripcion. Por defecto genera audio sintetico y usa backend `null`; con `--preflight-only` decodifica un archivo propio no sensible (por ejemplo MP3) y escribe metadata sanitizada sin ejecutar Whisper/OpenAI. Para `whisper` u `openai` exige `--real-transcription`, un archivo `--audio` y confirmacion `--audio-non-sensitive`. El texto transcrito queda redactado en los artifacts. Si agregas `--expected-text` o `--expected-text-file`, calcula metricas de calidad como word accuracy y word error rate sin guardar la transcripcion ni el texto esperado:
 
 ```powershell
 py tools\transcription_pilot.py --output-dir pilot_runs\transcription\safe --json
 py tools\transcription_pilot.py --output-dir pilot_runs\transcription\quality-safe --expected-text "Hola desde AuralisVoiceKit" --min-word-accuracy 0 --json
+py tools\transcription_pilot.py --preflight-only --audio sample.mp3 --audio-non-sensitive --backend whisper --normalize --json
 py tools\transcription_pilot.py --real-transcription --audio sample.mp3 --audio-non-sensitive --backend whisper --model base --normalize --expected-text "Hola desde AuralisVoiceKit" --min-word-accuracy 0.75 --json
 ```
 

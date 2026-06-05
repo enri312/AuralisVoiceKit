@@ -6,6 +6,8 @@ from pathlib import Path
 import tempfile
 import unittest
 
+from auralis_voicekit import AudioChunk, AudioFormat, write_wav
+
 
 ROOT = Path(__file__).resolve().parents[1]
 TRANSCRIPTION_PILOT = ROOT / "tools" / "transcription_pilot.py"
@@ -203,6 +205,94 @@ class TranscriptionPilotTests(unittest.TestCase):
         self.assertEqual(report["quality"]["expected_text_source"], "file")
         self.assertEqual(report["quality"]["expected_text_file_name"], "reference.txt")
         self.assertNotIn("Hola desde archivo", report_text)
+
+    def test_transcription_pilot_preflight_decodes_audio_without_backend(self):
+        module = _load_transcription_pilot()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            audio_path = Path(tmpdir) / "sample.wav"
+            write_wav(
+                str(audio_path),
+                [AudioChunk(data=b"\x00\x00" * 800, format=AudioFormat(sample_rate=8000, channels=1))],
+            )
+            report = module.run_transcription_pilot(
+                root=ROOT,
+                output_dir=Path(tmpdir) / "pilot",
+                audio=audio_path,
+                backend="whisper",
+                preflight_only=True,
+                audio_confirmed_non_sensitive=True,
+                sample_rate=8000,
+            )
+            report_path = Path(report["artifacts"]["transcription_pilot_report"])
+            findings_path = Path(report["artifacts"]["pilot_findings"])
+            report_text = report_path.read_text(encoding="utf-8")
+            findings = findings_path.read_text(encoding="utf-8")
+
+        self.assertTrue(report["passed"])
+        self.assertTrue(report["preflight_only"])
+        self.assertFalse(report["real_transcription_requested"])
+        self.assertIsNone(report["transcript"])
+        self.assertTrue(report["audio"]["decoded"])
+        self.assertEqual(report["audio"]["audio_file_name"], "sample.wav")
+        self.assertEqual(report["audio"]["source_format"], "wav")
+        self.assertNotIn(str(audio_path), report_text)
+        self.assertIn("Preflight only: True", findings)
+        self.assertIn("Audio decode passed: True", findings)
+
+    def test_transcription_pilot_cli_preflight_allows_target_backend(self):
+        module = _load_transcription_pilot()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            audio_path = Path(tmpdir) / "sample.wav"
+            write_wav(
+                str(audio_path),
+                [AudioChunk(data=b"\x00\x00" * 800, format=AudioFormat(sample_rate=8000, channels=1))],
+            )
+            output = io.StringIO()
+            with contextlib.redirect_stdout(output):
+                exit_code = module.main(
+                    [
+                        "--root",
+                        str(ROOT),
+                        "--output-dir",
+                        str(Path(tmpdir) / "pilot"),
+                        "--audio",
+                        str(audio_path),
+                        "--backend",
+                        "whisper",
+                        "--preflight-only",
+                        "--audio-non-sensitive",
+                        "--sample-rate",
+                        "8000",
+                        "--json",
+                    ]
+                )
+            payload = json.loads(output.getvalue())
+
+        self.assertEqual(exit_code, 0)
+        self.assertTrue(payload["preflight_only"])
+        self.assertTrue(payload["audio"]["decoded"])
+        self.assertIsNone(payload["transcript"])
+
+    def test_transcription_pilot_preflight_rejects_quality_flags(self):
+        module = _load_transcription_pilot()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            audio_path = Path(tmpdir) / "sample.wav"
+            write_wav(
+                str(audio_path),
+                [AudioChunk(data=b"\x00\x00" * 800, format=AudioFormat(sample_rate=8000, channels=1))],
+            )
+            with self.assertRaises(ValueError):
+                module.run_transcription_pilot(
+                    root=ROOT,
+                    output_dir=Path(tmpdir) / "pilot",
+                    audio=audio_path,
+                    preflight_only=True,
+                    audio_confirmed_non_sensitive=True,
+                    expected_text="Hola",
+                )
 
 
 if __name__ == "__main__":

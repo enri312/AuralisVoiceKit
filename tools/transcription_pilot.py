@@ -39,6 +39,7 @@ def run_transcription_pilot(
     prompt: str | None = None,
     ffmpeg: str = "ffmpeg",
     normalize: bool = False,
+    preflight_only: bool = False,
     real_transcription: bool = False,
     audio_confirmed_non_sensitive: bool = False,
     include_transcript_hash: bool = False,
@@ -54,10 +55,12 @@ def run_transcription_pilot(
         expected_text=expected_text,
         expected_text_file=expected_text_file,
         min_word_accuracy=min_word_accuracy,
+        preflight_only=preflight_only,
     )
     _validate_real_transcription_flags(
         audio=audio,
         backend=backend,
+        preflight_only=preflight_only,
         real_transcription=real_transcription,
         audio_confirmed_non_sensitive=audio_confirmed_non_sensitive,
     )
@@ -91,6 +94,7 @@ def run_transcription_pilot(
     )
     result = None
     error = None
+    chunk = None
     try:
         chunk = read_audio_as_chunk(
             str(source_audio_path),
@@ -100,9 +104,9 @@ def run_transcription_pilot(
         )
         if normalize:
             chunk = normalize_pcm16(chunk)
-        result = AuralisVoiceKit(config).transcribe(chunk)
+        if not preflight_only:
+            result = AuralisVoiceKit(config).transcribe(chunk)
     except (AudioSourceError, BackendNotAvailable, TranscriptionError, ValueError) as exc:
-        chunk = None
         error = str(exc)
 
     passed = error is None
@@ -119,6 +123,10 @@ def run_transcription_pilot(
     quality_gate_passed = quality_report["passed"]
     if quality_gate_passed is False:
         passed = False
+    audio_decoder = _audio_metadata_value(chunk, "decoder") if chunk is not None else None
+    audio_source_format = _audio_metadata_value(chunk, "source_format") if chunk is not None else None
+    if audio_source_format is None and source_audio_path.suffix:
+        audio_source_format = source_audio_path.suffix.lower().lstrip(".")
     result_payload = (
         {
             "source": result.source,
@@ -136,6 +144,10 @@ def run_transcription_pilot(
         "audio_file_name": source_audio_path.name,
         "audio_file_extension": source_audio_path.suffix.lower(),
         "audio_confirmed_non_sensitive": audio_confirmed_non_sensitive,
+        "decoded": chunk is not None,
+        "decoder": audio_decoder,
+        "source_format": audio_source_format,
+        "normalized": bool(normalize and chunk is not None),
         "duration_seconds": chunk.duration_seconds if chunk is not None else None,
         "sample_rate": chunk.format.sample_rate if chunk is not None else sample_rate,
         "channels": chunk.format.channels if chunk is not None else 1,
@@ -147,6 +159,7 @@ def run_transcription_pilot(
     findings = _build_findings_markdown(
         timestamp=timestamp,
         backend=backend,
+        preflight_only=preflight_only,
         real_transcription=real_transcription,
         passed=passed,
         error=error,
@@ -163,6 +176,7 @@ def run_transcription_pilot(
         "backend": backend,
         "model": model or "auto",
         "language": language,
+        "preflight_only": preflight_only,
         "real_transcription_requested": real_transcription,
         "audio_confirmed_non_sensitive": audio_confirmed_non_sensitive,
         "generated_synthetic_audio": generated_synthetic_audio,
@@ -172,7 +186,7 @@ def run_transcription_pilot(
         "audio": audio_payload,
         "transcript": result_payload,
         "quality": quality_report,
-        "notes": _pilot_notes(real_transcription),
+        "notes": _pilot_notes(real_transcription, preflight_only),
         "artifacts": {
             "pilot_findings": str(findings_path),
             "transcription_pilot_report": str(report_path),
@@ -197,6 +211,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--prompt", help="optional transcription prompt; not written to findings")
     parser.add_argument("--ffmpeg", default="ffmpeg", help="ffmpeg executable for compressed audio")
     parser.add_argument("--normalize", action="store_true", help="normalize audio before transcription")
+    parser.add_argument(
+        "--preflight-only",
+        action="store_true",
+        help="decode and summarize a user-provided audio file without running a transcription backend",
+    )
     parser.add_argument(
         "--real-transcription",
         action="store_true",
@@ -241,6 +260,7 @@ def main(argv: list[str] | None = None) -> int:
             prompt=args.prompt,
             ffmpeg=args.ffmpeg,
             normalize=args.normalize,
+            preflight_only=args.preflight_only,
             real_transcription=args.real_transcription,
             audio_confirmed_non_sensitive=args.audio_non_sensitive,
             include_transcript_hash=args.include_transcript_hash,
@@ -268,10 +288,17 @@ def _validate_real_transcription_flags(
     *,
     audio: str | Path | None,
     backend: str,
+    preflight_only: bool,
     real_transcription: bool,
     audio_confirmed_non_sensitive: bool,
 ) -> None:
-    if backend != "null" and not real_transcription:
+    if preflight_only and real_transcription:
+        raise ValueError("--preflight-only cannot be combined with --real-transcription.")
+    if preflight_only and audio is None:
+        raise ValueError("--preflight-only requires --audio with a user-provided file.")
+    if preflight_only and not audio_confirmed_non_sensitive:
+        raise ValueError("--preflight-only requires --audio-non-sensitive.")
+    if backend != "null" and not real_transcription and not preflight_only:
         raise ValueError("Real transcription backends require --real-transcription.")
     if real_transcription and backend == "null":
         raise ValueError("--real-transcription requires --backend whisper or --backend openai.")
@@ -288,7 +315,12 @@ def _validate_quality_flags(
     expected_text: str | None,
     expected_text_file: str | Path | None,
     min_word_accuracy: float | None,
+    preflight_only: bool,
 ) -> None:
+    if preflight_only and (
+        expected_text is not None or expected_text_file is not None or min_word_accuracy is not None
+    ):
+        raise ValueError("--preflight-only does not calculate quality metrics; remove expected text flags.")
     if expected_text is not None and expected_text_file is not None:
         raise ValueError("Use either --expected-text or --expected-text-file, not both.")
     if min_word_accuracy is not None and not 0.0 <= min_word_accuracy <= 1.0:
@@ -339,6 +371,13 @@ def _sanitize_metadata(value: Any) -> Any:
     if isinstance(value, tuple):
         return [_sanitize_metadata(item) for item in value]
     return value
+
+
+def _audio_metadata_value(chunk, key: str) -> Any:
+    value = chunk.metadata.get(key)
+    if value is None and key == "source_format":
+        return None
+    return _sanitize_metadata(value)
 
 
 def _transcript_report(text: str, *, include_hash: bool) -> dict[str, Any]:
@@ -456,6 +495,7 @@ def _build_findings_markdown(
     *,
     timestamp: str,
     backend: str,
+    preflight_only: bool,
     real_transcription: bool,
     passed: bool,
     error: str | None,
@@ -470,12 +510,17 @@ def _build_findings_markdown(
         "",
         f"- Created at: {timestamp}",
         f"- Backend: {backend}",
+        f"- Preflight only: {preflight_only}",
         f"- Real transcription requested: {real_transcription}",
         f"- Passed: {passed}",
         f"- Audio file name: {audio['audio_file_name']}",
         f"- Audio extension: {audio['audio_file_extension'] or 'none'}",
         f"- Generated synthetic audio: {audio['generated_synthetic_audio']}",
         f"- Audio confirmed non-sensitive: {audio['audio_confirmed_non_sensitive']}",
+        f"- Audio decode passed: {audio['decoded']}",
+        f"- Decoder: {_format_optional(audio['decoder'])}",
+        f"- Source format: {_format_optional(audio['source_format'])}",
+        f"- Normalized: {audio['normalized']}",
         f"- Duration seconds: {_format_optional(audio['duration_seconds'])}",
         f"- Transcript characters: {transcript_characters}",
         f"- Quality reference provided: {quality['enabled']}",
@@ -522,7 +567,11 @@ def _build_findings_markdown(
         "",
         ]
     )
-    if real_transcription:
+    if preflight_only:
+        lines.append(
+            "- Re-run without --preflight-only and with --real-transcription once the audio, backend and reference text are ready."
+        )
+    elif real_transcription:
         lines.append("- Review transcript quality manually without attaching sensitive audio or text to public reports.")
     else:
         lines.append(
@@ -534,7 +583,9 @@ def _build_findings_markdown(
     return "\n".join(lines)
 
 
-def _pilot_notes(real_transcription: bool) -> str:
+def _pilot_notes(real_transcription: bool, preflight_only: bool) -> str:
+    if preflight_only:
+        return "Preflight only decoded a user-provided non-sensitive audio file without running transcription."
     if real_transcription:
         return "Real transcription was requested with a user-provided non-sensitive audio file."
     return "Safe dry-run with synthetic audio and the null transcription backend."
@@ -551,6 +602,7 @@ def _slug(value: str) -> str:
 def _print_report(report: dict[str, Any]) -> None:
     print("AuralisVoiceKit transcription pilot")
     print(f"Backend: {report['backend']}")
+    print(f"Preflight only: {report['preflight_only']}")
     print(f"Real transcription requested: {report['real_transcription_requested']}")
     print(f"Generated synthetic audio: {report['generated_synthetic_audio']}")
     print(f"Passed: {report['passed']}")

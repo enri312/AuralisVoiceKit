@@ -286,10 +286,12 @@ def _recommended_pilot_sequence(
 ) -> list[dict[str, Any]]:
     hardware_required_blockers = {"system_output_audible", "ubuntu_linux_capture", "macos_capture"}
     sequence = []
-    for index, step in enumerate(next_beta_evidence_steps, start=1):
+    for step in next_beta_evidence_steps:
+        if step["name"] == "real_transcription_quality":
+            sequence.append(_transcription_audio_preflight_step(len(sequence) + 1))
         sequence.append(
             {
-                "order": index,
+                "order": len(sequence) + 1,
                 "name": step["name"],
                 "title": step["title"],
                 "command": step["command"],
@@ -343,6 +345,31 @@ def _recommended_pilot_sequence(
         ]
     )
     return sequence
+
+
+def _transcription_audio_preflight_step(order: int) -> dict[str, Any]:
+    return {
+        "order": order,
+        "name": "transcription-audio-preflight",
+        "title": "Transcription audio preflight",
+        "command": (
+            "python tools/transcription_pilot.py --preflight-only --audio sample.mp3 "
+            "--audio-non-sensitive --backend whisper --normalize --json"
+        ),
+        "artifact": "transcription-pilot-report.json",
+        "required_fields": [
+            "project",
+            "preflight_only",
+            "audio.decoded",
+            "audio.audio_file_extension",
+            "audio.audio_confirmed_non_sensitive",
+        ],
+        "requires_hardware": False,
+        "requires_operator": False,
+        "requires_non_sensitive_audio": True,
+        "review_required": True,
+        "reason": "Confirma que el MP3 propio se decodifica con ffmpeg antes de ejecutar un modelo real.",
+    }
 
 
 def _pilot_plan_artifact_summary(artifacts: list[dict[str, Any]]) -> list[dict[str, Any]]:

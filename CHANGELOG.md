@@ -6,6 +6,19 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.51.0] - 2026-06-05
+
+### Agregado
+
+- Flag `tools/transcription_pilot.py --preflight-only` para decodificar y resumir un audio propio no sensible sin ejecutar Whisper/OpenAI.
+- Campos sanitizados de preflight (`preflight_only`, `audio.decoded`, `audio.decoder`, `audio.source_format`, `audio.normalized`) en el reporte de transcripcion.
+- Paso `transcription-audio-preflight` dentro de `recommended_pilot_sequence` antes del piloto de transcripcion real.
+- Pruebas para preflight local, CLI y plan recomendado.
+
+### Cambiado
+
+- README, `PILOTS.md`, docs HTML, roadmap y gate de estabilidad documentan el preflight MP3 seguro.
+
 ## [0.50.0] - 2026-06-05
 
 ### Agregado

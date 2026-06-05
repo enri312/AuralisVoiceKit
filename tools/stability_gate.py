@@ -39,6 +39,7 @@ PILOT_CHECKS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
             "manual_pilot_steps",
             "next_beta_evidence_steps",
             "recommended_pilot_sequence",
+            "transcription-audio-preflight",
             "accepted_json_artifacts",
             "ignored_json_artifacts",
             "pilot-plan.md",
@@ -54,7 +55,15 @@ PILOT_CHECKS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
     (
         "transcription_pilot_runner",
         "tools/transcription_pilot.py",
-        ("run_transcription_pilot", "--real-transcription", "--audio-non-sensitive", "--expected-text"),
+        (
+            "run_transcription_pilot",
+            "--real-transcription",
+            "--audio-non-sensitive",
+            "--expected-text",
+            "--preflight-only",
+            "preflight_only",
+            "decoded",
+        ),
     ),
     (
         "beta_readiness_runner",

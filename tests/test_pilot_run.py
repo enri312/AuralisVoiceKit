@@ -47,6 +47,7 @@ class PilotRunTests(unittest.TestCase):
         self.assertIn("audit-evidence", plan)
         self.assertIn("refresh-beta-checklist", plan)
         self.assertIn("--fail-on-audit-gaps", plan)
+        self.assertIn("--preflight-only", plan)
         self.assertIn("sample.mp3", plan)
         self.assertNotIn(str(tmpdir), plan)
         self.assertEqual({step["status"] for step in report["steps"]}, {"passed"})
@@ -54,7 +55,8 @@ class PilotRunTests(unittest.TestCase):
         self.assertIn("real_transcription_quality", report["beta_readiness"]["blockers"])
         self.assertIn("real_transcription_quality", {step["name"] for step in report["next_beta_evidence_steps"]})
         sequence_names = [step["name"] for step in report["recommended_pilot_sequence"]]
-        self.assertEqual(sequence_names[0], "real_transcription_quality")
+        self.assertEqual(sequence_names[0], "transcription-audio-preflight")
+        self.assertEqual(sequence_names[1], "real_transcription_quality")
         self.assertIn("audit-evidence", sequence_names)
         self.assertIn("refresh-beta-checklist", sequence_names)
         self.assertFalse(report["recommended_pilot_sequence"][0]["requires_hardware"])

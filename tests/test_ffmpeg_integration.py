@@ -1,8 +1,10 @@
 import contextlib
 import io
+import importlib.util
 import json
 import math
 import os
+from pathlib import Path
 import struct
 import subprocess
 import tempfile
@@ -22,6 +24,8 @@ from auralis_voicekit.cli import main
 
 
 RUN_INTEGRATION = os.getenv("AURALIS_RUN_FFMPEG_INTEGRATION") == "1"
+ROOT = Path(__file__).resolve().parents[1]
+TRANSCRIPTION_PILOT = ROOT / "tools" / "transcription_pilot.py"
 
 
 def _tone_chunk(
@@ -41,6 +45,14 @@ def _tone_chunk(
         data=data,
         format=AudioFormat(sample_rate=sample_rate, channels=1, sample_width=2),
     )
+
+
+def _load_transcription_pilot():
+    spec = importlib.util.spec_from_file_location("transcription_pilot_for_ffmpeg", TRANSCRIPTION_PILOT)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+    return module
 
 
 @unittest.skipUnless(
@@ -270,6 +282,30 @@ class FfmpegIntegrationTests(unittest.TestCase):
         self.assertEqual(exit_code, 0)
         self.assertEqual(payload["output"], wav_path)
         self.assertAlmostEqual(peak_pcm16(normalized), 0.5, places=2)
+
+    def test_transcription_pilot_preflight_decodes_real_mp3(self):
+        module = _load_transcription_pilot()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            mp3_path = self._make_mp3(tmpdir)
+
+            report = module.run_transcription_pilot(
+                root=ROOT,
+                output_dir=Path(tmpdir) / "pilot",
+                audio=mp3_path,
+                backend="whisper",
+                ffmpeg=self.ffmpeg,
+                preflight_only=True,
+                audio_confirmed_non_sensitive=True,
+                sample_rate=8000,
+            )
+            report_text = Path(report["artifacts"]["transcription_pilot_report"]).read_text(encoding="utf-8")
+
+        self.assertTrue(report["passed"])
+        self.assertTrue(report["preflight_only"])
+        self.assertTrue(report["audio"]["decoded"])
+        self.assertEqual(report["audio"]["source_format"], "mp3")
+        self.assertIsNone(report["transcript"])
+        self.assertNotIn(mp3_path, report_text)
 
 
 if __name__ == "__main__":
