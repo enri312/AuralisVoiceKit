@@ -81,6 +81,11 @@ class DocumentationTests(unittest.TestCase):
         self.assertIn("tools/pilot_run.py", MAIN_DOC.read_text(encoding="utf-8"))
         self.assertIn("tools/pilot_run.py", API_DOC.read_text(encoding="utf-8"))
 
+    def test_doctor_bundle_is_documented(self):
+        self.assertIn("--bundle", README.read_text(encoding="utf-8"))
+        self.assertIn("--bundle", MAIN_DOC.read_text(encoding="utf-8"))
+        self.assertIn("write_doctor_bundle", API_DOC.read_text(encoding="utf-8"))
+
 
 if __name__ == "__main__":
     unittest.main()

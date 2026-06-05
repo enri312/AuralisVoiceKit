@@ -43,7 +43,16 @@ from .benchmarks import (
     write_benchmark_report,
 )
 from .config import VoiceKitConfig
-from .diagnostics import DiagnosticCheck, DiagnosticStatus, DoctorReport, run_doctor
+from .diagnostics import (
+    DOCTOR_BUNDLE_SCHEMA,
+    DiagnosticCheck,
+    DiagnosticStatus,
+    DoctorReport,
+    create_doctor_bundle,
+    run_doctor,
+    sanitize_doctor_report,
+    write_doctor_bundle,
+)
 from .events import EventBus, VoiceEvent, VoiceEventType
 from .exceptions import (
     AuralisError,
@@ -73,6 +82,7 @@ __all__ = [
     "BenchmarkComparisonReport",
     "BenchmarkReport",
     "BenchmarkResult",
+    "DOCTOR_BUNDLE_SCHEMA",
     "DiagnosticCheck",
     "DiagnosticStatus",
     "DoctorReport",
@@ -99,6 +109,7 @@ __all__ = [
     "calibrate_noise_pcm16",
     "chunk_audio",
     "chunk_to_wav_bytes",
+    "create_doctor_bundle",
     "decode_audio_with_ffmpeg",
     "event_to_log_record",
     "ffmpeg_available",
@@ -122,9 +133,11 @@ __all__ = [
     "run_doctor",
     "run_offline_benchmarks",
     "run_whisper_comparison_benchmarks",
+    "sanitize_doctor_report",
     "sanitize_event_payload",
     "segment_voice_pcm16",
     "write_wav",
     "write_benchmark_report",
+    "write_doctor_bundle",
     "windows_audio_error_hint",
 ]

@@ -513,7 +513,7 @@ kit.speak("Hola desde AuralisVoiceKit")</code></pre>
 
       <section id="diagnostico">
         <h2>Diagnostico</h2>
-        <p><code>auralis doctor</code> produce checks de Python, plataforma, dependencias opcionales, backends, dispositivos, archivos WAV y busqueda de <code>ffmpeg</code>. Para <code>wasapi</code>, el reporte incluye un snapshot de host APIs y dispositivos de entrada. MP3 y FLAC se validan con pruebas de integracion reales cuando <code>ffmpeg</code> esta disponible.</p>
+        <p><code>auralis doctor</code> produce checks de Python, plataforma, dependencias opcionales, backends, dispositivos, archivos WAV y busqueda de <code>ffmpeg</code>. Para <code>wasapi</code>, el reporte incluye un snapshot de host APIs y dispositivos de entrada. MP3 y FLAC se validan con pruebas de integracion reales cuando <code>ffmpeg</code> esta disponible. Los pilotos pueden generar bundles sanitizados que redactan rutas locales y nombres de dispositivos.</p>
         <pre><code>auralis doctor
 auralis doctor --devices --backend wav
 auralis doctor --devices --backend sounddevice
@@ -522,8 +522,10 @@ auralis doctor --capture-test --backend sounddevice --capture-seconds 0.25
 auralis doctor --capture-test --backend wasapi --device default --json
 auralis doctor --capture-test --backend sounddevice --device default --json
 auralis doctor --wav sample.wav
-auralis doctor --json</code></pre>
+auralis doctor --json
+auralis doctor --devices --backend wasapi --bundle reports/doctor-windows.json</code></pre>
         <p>Los warnings no bloquean el core. Por ejemplo, <code>sounddevice</code> puede faltar y aun asi funcionar el backend <code>wav</code>. El flag <code>--capture-test</code> intenta abrir brevemente el backend seleccionado para diagnosticar permisos o errores de dispositivo.</p>
+        <p>El flag <code>--bundle</code> escribe un JSON seguro para soporte: no recoge audio ni transcripciones y marca que rutas locales y nombres de dispositivos fueron redactados.</p>
         <p>En Windows, los fallos de captura incluyen <code>windows_audio_hint</code> con acciones para permisos de microfono, dispositivo invalido, sample rate, canales y errores de host API.</p>
         <pre><code>from auralis_voicekit import windows_audio_error_hint
 
@@ -533,6 +535,10 @@ hint = windows_audio_error_hint(
     system="Windows",
 )
 print(hint.format_hint())</code></pre>
+        <pre><code>from auralis_voicekit import run_doctor, write_doctor_bundle
+
+report = run_doctor(include_devices=True, capture_backend="wasapi")
+write_doctor_bundle("reports/doctor-windows.json", report)</code></pre>
         <h3>Gate de estabilidad</h3>
         <p><code>tools/stability_gate.py</code> automatiza el criterio de avance: alpha, piloto real o estable. En CI se ejecuta con requisito minimo <code>pilot</code>.</p>
         <pre><code>python tools/stability_gate.py --json

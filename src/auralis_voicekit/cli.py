@@ -24,7 +24,7 @@ from .benchmarks import (
     write_benchmark_report,
 )
 from .config import VoiceKitConfig
-from .diagnostics import DiagnosticStatus, run_doctor
+from .diagnostics import DiagnosticStatus, run_doctor, write_doctor_bundle
 from .exceptions import AudioSourceError, BackendNotAvailable, TranscriptionError
 from .kit import AuralisVoiceKit
 from .models import AudioDevice
@@ -91,6 +91,7 @@ def _print_doctor(
     capture_device: str | None = None,
     json_output: bool = False,
     wav_path: str | None = None,
+    bundle_path: str | None = None,
 ) -> int:
     report = run_doctor(
         include_devices=show_devices,
@@ -100,9 +101,13 @@ def _print_doctor(
         capture_device=capture_device,
         wav_path=wav_path,
     )
+    written_bundle = write_doctor_bundle(bundle_path, report) if bundle_path else None
 
     if json_output:
-        print(json.dumps(report.to_dict(), indent=2, sort_keys=True))
+        payload = report.to_dict()
+        if written_bundle is not None:
+            payload["bundle_path"] = written_bundle
+        print(json.dumps(payload, indent=2, sort_keys=True))
         return 1 if report.status is DiagnosticStatus.ERROR else 0
 
     print(f"AuralisVoiceKit {report.version}")
@@ -140,6 +145,9 @@ def _print_doctor(
                     f"elapsed={elapsed}s"
                 )
             _print_wasapi_details(check.details)
+    if written_bundle is not None:
+        print()
+        print(f"Wrote doctor bundle: {written_bundle}")
     return 1 if report.status is DiagnosticStatus.ERROR else 0
 
 
@@ -654,6 +662,10 @@ def main(argv: list[str] | None = None) -> int:
     doctor_parser.add_argument("--device", help="input device selector for --capture-test")
     doctor_parser.add_argument("--json", action="store_true", help="print a JSON report")
     doctor_parser.add_argument("--wav", help="validate a PCM16 WAV file")
+    doctor_parser.add_argument(
+        "--bundle",
+        help="write a sanitized diagnostic bundle JSON for support or pilot reports",
+    )
     subparsers.add_parser("backends", help="list registered backends")
     devices_parser = subparsers.add_parser("devices", help="list input devices")
     devices_parser.add_argument("--backend", default="sounddevice", help="capture backend to inspect")
@@ -867,6 +879,7 @@ def main(argv: list[str] | None = None) -> int:
             capture_device=args.device,
             json_output=args.json,
             wav_path=args.wav,
+            bundle_path=args.bundle,
         )
     if args.command == "backends":
         return _print_backends()

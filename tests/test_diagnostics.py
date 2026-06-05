@@ -1,3 +1,4 @@
+import json
 import os
 import sys
 import tempfile
@@ -9,8 +10,14 @@ from unittest.mock import patch
 from auralis_voicekit import (
     AudioChunk,
     AudioFormat,
+    DOCTOR_BUNDLE_SCHEMA,
+    DiagnosticCheck,
     DiagnosticStatus,
+    DoctorReport,
+    create_doctor_bundle,
     run_doctor,
+    sanitize_doctor_report,
+    write_doctor_bundle,
     write_wav,
 )
 
@@ -152,6 +159,62 @@ class DiagnosticsTests(unittest.TestCase):
 
         self.assertEqual(report.status, DiagnosticStatus.ERROR)
         self.assertTrue(any(check.name == "wav" and check.status is DiagnosticStatus.ERROR for check in report.checks))
+
+    def test_sanitize_doctor_report_redacts_paths_and_device_names(self):
+        report = DoctorReport(
+            version="0.0.0",
+            python="3.14.0",
+            implementation="CPython",
+            platform="Windows-11",
+            system="Windows",
+            checks=(
+                DiagnosticCheck(
+                    name="devices:wasapi",
+                    status=DiagnosticStatus.OK,
+                    message=r"ffmpeg at C:\Users\tester\ffmpeg.exe",
+                    details={
+                        "path": r"C:\Users\tester\audio.wav",
+                        "search": [r"C:\Users\tester\ffmpeg\bin"],
+                        "dependencies": [r"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe"],
+                        "devices": [
+                            {
+                                "id": "1",
+                                "name": "Tester headset",
+                                "kind": "input",
+                                "channels": 1,
+                                "host_api": "Windows WASAPI",
+                                "is_default": True,
+                            }
+                        ],
+                    },
+                ),
+            ),
+        )
+
+        payload = sanitize_doctor_report(report)
+        details = payload["checks"][0]["details"]
+
+        self.assertNotIn("tester", payload["checks"][0]["message"])
+        self.assertEqual(details["path"], "[redacted-path]")
+        self.assertEqual(details["search"], ["[redacted-path]"])
+        self.assertEqual(details["dependencies"], ["[redacted-path]"])
+        self.assertEqual(details["devices"][0]["name"], "[redacted-device]")
+        self.assertEqual(details["devices"][0]["host_api"], "Windows WASAPI")
+
+    def test_create_and_write_doctor_bundle(self):
+        report = run_doctor(include_devices=True, capture_backend="wav")
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = os.path.join(tmpdir, "doctor-bundle.json")
+            written_path = write_doctor_bundle(path, report)
+            with open(written_path, "r", encoding="utf-8") as stream:
+                payload = json.load(stream)
+
+        self.assertEqual(payload["schema"], DOCTOR_BUNDLE_SCHEMA)
+        self.assertTrue(payload["redacted"])
+        self.assertEqual(payload["share_safety"]["audio_bytes"], "not_collected")
+        self.assertEqual(payload["report"]["version"], report.version)
+        self.assertEqual(create_doctor_bundle(report)["schema"], DOCTOR_BUNDLE_SCHEMA)
 
 
 if __name__ == "__main__":

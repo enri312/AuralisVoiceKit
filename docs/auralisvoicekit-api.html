@@ -554,19 +554,26 @@ debug_config = PrivacyLogConfig(privacy_mode=False)</code></pre>
 
       <section id="diagnostics">
         <h2>Diagnostico</h2>
-        <p><code>run_doctor()</code> genera un <code>DoctorReport</code> con checks estructurados. La CLI usa la misma API.</p>
+        <p><code>run_doctor()</code> genera un <code>DoctorReport</code> con checks estructurados. La CLI usa la misma API. Para pilotos o soporte, <code>create_doctor_bundle()</code>, <code>sanitize_doctor_report()</code> y <code>write_doctor_bundle()</code> producen un JSON compartible que redacta rutas locales y nombres de dispositivos.</p>
         <pre><code>from auralis_voicekit import (
+    DOCTOR_BUNDLE_SCHEMA,
     DiagnosticCheck,
     DiagnosticStatus,
     DoctorReport,
     WindowsAudioErrorHint,
+    create_doctor_bundle,
     run_doctor,
+    sanitize_doctor_report,
+    write_doctor_bundle,
     windows_audio_error_hint,
 )
 
 report = run_doctor(include_devices=True, capture_backend="wav")
 print(report.status)
 print(report.to_dict())
+print(sanitize_doctor_report(report))
+print(create_doctor_bundle(report)["schema"] == DOCTOR_BUNDLE_SCHEMA)
+write_doctor_bundle("reports/doctor-bundle.json", report)
 
 hint: WindowsAudioErrorHint = windows_audio_error_hint(
     "PortAudioError: Invalid device [PaErrorCode -9996]",
@@ -575,6 +582,8 @@ hint: WindowsAudioErrorHint = windows_audio_error_hint(
     system="Windows",
 )
 print(hint.format_hint())</code></pre>
+        <pre><code>auralis doctor --devices --backend wasapi --bundle reports/doctor-windows.json
+auralis doctor --capture-test --backend sounddevice --device default --bundle reports/doctor-capture.json --json</code></pre>
         <pre><code>python tools/pilot_run.py --output-dir pilot_runs/safe --json</code></pre>
         <p><code>tools/pilot_run.py</code> usa <code>tools/stability_gate.py</code> y genera un piloto seguro sin hardware. El checklist manual esta en <a href="../PILOTS.md">PILOTS.md</a>.</p>
       </section>
@@ -775,7 +784,7 @@ python tools/stability_gate.py --min-stage pilot</code></pre>
             </tr>
             <tr>
               <td>Diagnostico</td>
-              <td><code>DiagnosticCheck</code>, <code>DiagnosticStatus</code>, <code>DoctorReport</code>, <code>WindowsAudioErrorHint</code>, <code>run_doctor</code>, <code>windows_audio_error_hint</code></td>
+              <td><code>DOCTOR_BUNDLE_SCHEMA</code>, <code>DiagnosticCheck</code>, <code>DiagnosticStatus</code>, <code>DoctorReport</code>, <code>WindowsAudioErrorHint</code>, <code>create_doctor_bundle</code>, <code>run_doctor</code>, <code>sanitize_doctor_report</code>, <code>windows_audio_error_hint</code>, <code>write_doctor_bundle</code></td>
             </tr>
             <tr>
               <td>Benchmarks</td>

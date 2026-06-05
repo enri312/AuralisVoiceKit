@@ -6,6 +6,21 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.31.0] - 2026-06-05
+
+### Agregado
+
+- Bundle de diagnostico sanitizado para pilotos y reportes de bugs con `create_doctor_bundle()` y `write_doctor_bundle()`.
+- Helper publico `sanitize_doctor_report()` y constante `DOCTOR_BUNDLE_SCHEMA`.
+- Flag `auralis doctor --bundle <archivo.json>` para escribir reportes compartibles sin audio, transcripciones, rutas locales ni nombres de dispositivos.
+- Pruebas unitarias para sanitizacion, escritura del bundle y CLI.
+
+### Cambiado
+
+- README, referencia API, documentacion HTML y roadmap documentan los bundles `doctor`.
+- `tools/stability_gate.py` exige ahora la API de bundle de diagnostico como parte de la etapa de pilotos.
+- La prioridad inmediata pasa a recolectar y analizar bundles de pilotos Windows reales.
+
 ## [0.30.0] - 2026-06-05
 
 ### Agregado

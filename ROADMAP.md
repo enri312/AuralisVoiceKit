@@ -33,7 +33,7 @@ La meta no es competir con todos los motores de voz a la vez. La meta es constru
 | Utilidades de audio | Normalizacion, calibracion y segmentacion inicial |
 | Versionado | Politica inicial |
 | Compatibilidad Windows/Linux/macOS | Documentacion inicial |
-| Diagnostico doctor | Inicial estructurado con test de apertura |
+| Diagnostico doctor | Inicial estructurado con test de apertura y bundle sanitizado |
 | Transcripcion real | Inicial por API y local opcional |
 | Salida de voz real | Inicial con backend `system`, listado de voces, parametros de voz y ejemplo seguro |
 | CI multiplataforma | Inicial con pruebas reales de MP3 y FLAC |
@@ -46,7 +46,7 @@ La meta no es competir con todos los motores de voz a la vez. La meta es constru
 | Asistente local con privacidad | Ejemplo offline inicial con logs sanitizados |
 | Backends de salida custom | Guia inicial y ejemplo en memoria |
 | Automatizacion de estabilidad | Gate inicial para pilotos reales |
-| Pilotos seguros | Runner automatizado inicial y runbook |
+| Pilotos seguros | Runner automatizado inicial, runbook y bundle doctor |
 | Mensajes Windows audio | Helper inicial para errores comunes |
 
 ## Fase 0 - Base del proyecto
@@ -68,6 +68,7 @@ Criterio de salida:
 
 - `python -m unittest discover -s tests` pasa.
 - `python -m auralis_voicekit.cli doctor` corre sin instalar extras.
+- `python -m auralis_voicekit.cli doctor --bundle reports/doctor.json` genera un reporte sanitizado.
 - `import auralis_voicekit` no intenta cargar backends nativos.
 
 Estado: completada para la base inicial.
@@ -86,6 +87,7 @@ Entregables:
 - Eventos `capture.started`, `audio.chunk`, `capture.stopped` con payload seguro.
 - Ejemplo `examples/capture_microphone.py`. Estado: creado.
 - Snapshot de diagnostico WASAPI con host APIs, default y dispositivo seleccionado. Estado: inicial.
+- Bundle de diagnostico sanitizado para pilotos y reportes de bugs. Estado: inicial con `auralis doctor --bundle`.
 - Tests con mocks para no depender de hardware. Estado: inicial.
 
 Criterio de salida:
@@ -275,13 +277,13 @@ Criterio de salida:
 - Ejemplo de asistente local con logs sanitizados. Estado: inicial con `examples/local_assistant_privacy_demo.py`.
 - Backends de salida personalizados. Estado: guia y ejemplo inicial.
 - Automatizacion de estabilidad. Estado: gate inicial listo para CI y uso local.
-- Pilotos seguros. Estado: runner automatizado y runbook inicial con `PILOTS.md`.
+- Pilotos seguros. Estado: runner automatizado, runbook inicial con `PILOTS.md` y bundles `doctor` sanitizados.
 - Mensajes Windows audio. Estado: inicial para permisos, dispositivo, sample rate, canales y host API.
 - Ejemplo de salida `system`. Estado: inicial con dry-run y `--speak` para pilotos reales.
 
 ## Prioridad inmediata
 
-1. Ampliar diagnostico Windows con casos reales reportados por pilotos.
+1. Recolectar y analizar bundles `auralis doctor --bundle` de pilotos Windows reales.
 2. Agregar benchmark real de salida `system` si es seguro en CI.
 3. Documentar checklist de hallazgos para pilotos Windows/Ubuntu/macOS.
 4. Preparar checklist de bugs conocidos para beta publica.

@@ -3,9 +3,13 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
+from datetime import datetime, timezone
 from enum import Enum
 from importlib.util import find_spec
+import json
 import platform
+from pathlib import Path
+import re
 import shutil
 import sys
 import time
@@ -24,6 +28,25 @@ from .exceptions import AudioSourceError, BackendNotAvailable
 from .kit import AuralisVoiceKit
 from .models import AudioChunk
 from .windows_audio import windows_audio_error_hint
+
+
+DOCTOR_BUNDLE_SCHEMA = "auralisvoicekit.doctor-bundle.v1"
+_REDACTED_DEVICE = "[redacted-device]"
+_REDACTED_PATH = "[redacted-path]"
+_PATHLIKE_KEYS = {
+    "file",
+    "filename",
+    "ffmpeg_executable",
+    "input_file",
+    "output_file",
+    "path",
+    "search",
+}
+_PATH_PATTERN = re.compile(
+    r"[A-Za-z]:\\[^\s,;]+|"
+    r"(?:^|(?<=[\s\"']))/[^\s,;]+|"
+    r"(?:^|(?<=[\s\"']))~[\\/][^\s,;]+"
+)
 
 
 class DiagnosticStatus(str, Enum):
@@ -76,6 +99,46 @@ class DoctorReport:
         }
 
 
+def sanitize_doctor_report(report: DoctorReport) -> dict[str, Any]:
+    """Return a shareable doctor report with local paths and device names redacted."""
+
+    return _sanitize_doctor_value(report.to_dict())
+
+
+def create_doctor_bundle(report: DoctorReport) -> dict[str, Any]:
+    """Create a sanitized diagnostic bundle for pilot reports."""
+
+    return {
+        "schema": DOCTOR_BUNDLE_SCHEMA,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "redacted": True,
+        "share_safety": {
+            "paths": "redacted",
+            "device_names": "redacted",
+            "audio_bytes": "not_collected",
+            "transcripts": "not_collected",
+        },
+        "report": sanitize_doctor_report(report),
+        "next_steps": [
+            "Attach this JSON when reporting a capture, backend, ffmpeg or platform issue.",
+            "If the problem is audio capture, also include the exact command that failed.",
+            "Do not attach real audio unless you intentionally want to share that file.",
+        ],
+    }
+
+
+def write_doctor_bundle(path: str | Path, report: DoctorReport) -> str:
+    """Write a sanitized diagnostic bundle and return the written path."""
+
+    output_path = Path(path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(
+        json.dumps(create_doctor_bundle(report), indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    return str(output_path)
+
+
 def _platform_hint(system: str) -> str:
     if system == "Windows":
         return "Check Windows microphone privacy settings if real capture cannot start."
@@ -84,6 +147,56 @@ def _platform_hint(system: str) -> str:
     if system == "Darwin":
         return "On macOS, grant microphone permission to the terminal or app running Python."
     return "Use the wav backend for offline tests when real audio devices are unavailable."
+
+
+def _sanitize_doctor_value(
+    value: Any,
+    *,
+    key: str | None = None,
+    inside_device: bool = False,
+) -> Any:
+    if isinstance(value, dict):
+        looks_like_device = _looks_like_device_summary(value)
+        return {
+            str(child_key): _sanitize_doctor_value(
+                child_value,
+                key=str(child_key),
+                inside_device=looks_like_device,
+            )
+            for child_key, child_value in value.items()
+        }
+    if isinstance(value, list):
+        if key is not None and key.lower() in _PATHLIKE_KEYS:
+            return [_REDACTED_PATH for _ in value]
+        return [_sanitize_doctor_value(item) for item in value]
+    if isinstance(value, tuple):
+        if key is not None and key.lower() in _PATHLIKE_KEYS:
+            return tuple(_REDACTED_PATH for _ in value)
+        return tuple(_sanitize_doctor_value(item) for item in value)
+    if isinstance(value, str):
+        if key is not None:
+            normalized_key = key.lower()
+            if normalized_key in _PATHLIKE_KEYS and value:
+                return _REDACTED_PATH
+            if inside_device and normalized_key == "name" and value:
+                return _REDACTED_DEVICE
+        return _redact_pathlike_text(value)
+    if key is not None:
+        normalized_key = key.lower()
+        if normalized_key in _PATHLIKE_KEYS and value not in {None, ""}:
+            return _REDACTED_PATH
+        if inside_device and normalized_key == "name" and value not in {None, ""}:
+            return _REDACTED_DEVICE
+    return value
+
+
+def _looks_like_device_summary(value: dict[str, Any]) -> bool:
+    keys = set(value)
+    return {"id", "name", "kind", "channels"}.issubset(keys)
+
+
+def _redact_pathlike_text(value: str) -> str:
+    return _PATH_PATTERN.sub(_REDACTED_PATH, value)
 
 
 def _capture_failure_hint(

@@ -152,6 +152,32 @@ class CliTests(unittest.TestCase):
         self.assertEqual(checks["capture-test:null"]["status"], "ok")
         self.assertEqual(checks["capture-test:null"]["details"]["chunks_received"], 0)
 
+    def test_doctor_can_write_sanitized_bundle(self):
+        output = io.StringIO()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            bundle_path = os.path.join(tmpdir, "doctor-bundle.json")
+            with contextlib.redirect_stdout(output):
+                exit_code = main(
+                    [
+                        "doctor",
+                        "--devices",
+                        "--backend",
+                        "wav",
+                        "--bundle",
+                        bundle_path,
+                        "--json",
+                    ]
+                )
+            with open(bundle_path, "r", encoding="utf-8") as stream:
+                bundle = json.load(stream)
+
+        payload = json.loads(output.getvalue())
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(payload["bundle_path"], bundle_path)
+        self.assertEqual(bundle["schema"], "auralisvoicekit.doctor-bundle.v1")
+        self.assertEqual(bundle["report"]["version"], __version__)
+
     def test_doctor_wav_error_returns_nonzero(self):
         output = io.StringIO()
 
