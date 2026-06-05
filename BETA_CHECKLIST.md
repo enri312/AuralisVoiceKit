@@ -4,7 +4,7 @@ Este documento se genera con `tools\beta_readiness.py`. No debe incluir audio, t
 
 ## Estado
 
-- Version: `0.52.0`
+- Version: `0.53.0`
 - Estado: `pilot`
 - Listo para beta: `false`
 - Gate de pilotos reales: `true`
@@ -23,7 +23,7 @@ Este documento se genera con `tools\beta_readiness.py`. No debe incluir audio, t
 - [x] `stability_gate_pilot` (blocker) - Stability gate allows real-world pilots
 - [x] `windows_wasapi_capture` (blocker) - Windows WASAPI capture pilot
 - [ ] `real_transcription_quality` (blocker) - Real transcription quality pilot
-  - Accion: Run tools/transcription_pilot.py with --real-transcription, non-sensitive audio, --expected-text or --expected-text-file, and a meaningful --min-word-accuracy.
+  - Accion: Run tools/transcription_pilot.py with --real-transcription, non-sensitive audio, --expected-text or --expected-text-file, a meaningful --min-word-accuracy, and --min-audio-seconds/--max-audio-seconds duration guards.
   - Evidencia faltante: `Real transcription requested: True`
 - [ ] `system_output_audible` (blocker) - Audible system output pilot
   - Accion: Run tools/output_pilot.py --speak --operator-present --confirm-audible with a human operator and record only sanitized findings.
@@ -41,7 +41,7 @@ Este documento se genera con `tools\beta_readiness.py`. No debe incluir audio, t
 
 ## Siguientes acciones
 
-- Run tools/transcription_pilot.py with --real-transcription, non-sensitive audio, --expected-text or --expected-text-file, and a meaningful --min-word-accuracy.
+- Run tools/transcription_pilot.py with --real-transcription, non-sensitive audio, --expected-text or --expected-text-file, a meaningful --min-word-accuracy, and --min-audio-seconds/--max-audio-seconds duration guards.
 - Run tools/output_pilot.py --speak --operator-present --confirm-audible with a human operator and record only sanitized findings.
 - Run the manual capture pilot on Ubuntu/Linux with real hardware and sanitized artifacts.
 - Run the manual capture pilot on macOS with real hardware and sanitized artifacts.

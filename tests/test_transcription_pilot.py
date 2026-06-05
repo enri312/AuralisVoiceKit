@@ -222,6 +222,8 @@ class TranscriptionPilotTests(unittest.TestCase):
                 backend="whisper",
                 preflight_only=True,
                 audio_confirmed_non_sensitive=True,
+                min_audio_seconds=0.05,
+                max_audio_seconds=1.0,
                 sample_rate=8000,
             )
             report_path = Path(report["artifacts"]["transcription_pilot_report"])
@@ -236,9 +238,12 @@ class TranscriptionPilotTests(unittest.TestCase):
         self.assertTrue(report["audio"]["decoded"])
         self.assertEqual(report["audio"]["audio_file_name"], "sample.wav")
         self.assertEqual(report["audio"]["source_format"], "wav")
+        self.assertTrue(report["audio"]["duration_gate"]["enabled"])
+        self.assertTrue(report["audio"]["duration_gate"]["passed"])
         self.assertNotIn(str(audio_path), report_text)
         self.assertIn("Preflight only: True", findings)
         self.assertIn("Audio decode passed: True", findings)
+        self.assertIn("Duration gate passed: True", findings)
 
     def test_transcription_pilot_cli_preflight_allows_target_backend(self):
         module = _load_transcription_pilot()
@@ -263,6 +268,10 @@ class TranscriptionPilotTests(unittest.TestCase):
                         "whisper",
                         "--preflight-only",
                         "--audio-non-sensitive",
+                        "--min-audio-seconds",
+                        "0.05",
+                        "--max-audio-seconds",
+                        "1",
                         "--sample-rate",
                         "8000",
                         "--json",
@@ -273,6 +282,7 @@ class TranscriptionPilotTests(unittest.TestCase):
         self.assertEqual(exit_code, 0)
         self.assertTrue(payload["preflight_only"])
         self.assertTrue(payload["audio"]["decoded"])
+        self.assertTrue(payload["audio"]["duration_gate"]["passed"])
         self.assertIsNone(payload["transcript"])
 
     def test_transcription_pilot_preflight_rejects_quality_flags(self):
@@ -293,6 +303,40 @@ class TranscriptionPilotTests(unittest.TestCase):
                     audio_confirmed_non_sensitive=True,
                     expected_text="Hola",
                 )
+
+    def test_transcription_pilot_duration_gate_can_fail_preflight(self):
+        module = _load_transcription_pilot()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            audio_path = Path(tmpdir) / "sample.wav"
+            write_wav(
+                str(audio_path),
+                [AudioChunk(data=b"\x00\x00" * 800, format=AudioFormat(sample_rate=8000, channels=1))],
+            )
+            report = module.run_transcription_pilot(
+                root=ROOT,
+                output_dir=Path(tmpdir) / "pilot",
+                audio=audio_path,
+                backend="whisper",
+                preflight_only=True,
+                audio_confirmed_non_sensitive=True,
+                min_audio_seconds=1.0,
+                sample_rate=8000,
+            )
+            findings = Path(report["artifacts"]["pilot_findings"]).read_text(encoding="utf-8")
+
+        self.assertFalse(report["passed"])
+        self.assertTrue(report["audio"]["decoded"])
+        self.assertFalse(report["audio"]["duration_gate"]["passed"])
+        self.assertEqual(report["audio"]["duration_gate"]["reason"], "below_minimum")
+        self.assertIn("--min-audio-seconds", report["error"])
+        self.assertIn("Duration gate passed: False", findings)
+
+    def test_transcription_pilot_rejects_invalid_duration_limits(self):
+        module = _load_transcription_pilot()
+
+        with self.assertRaises(ValueError):
+            module.run_transcription_pilot(root=ROOT, min_audio_seconds=2.0, max_audio_seconds=1.0)
 
 
 if __name__ == "__main__":

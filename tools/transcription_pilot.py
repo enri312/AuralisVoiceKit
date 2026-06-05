@@ -46,6 +46,8 @@ def run_transcription_pilot(
     expected_text: str | None = None,
     expected_text_file: str | Path | None = None,
     min_word_accuracy: float | None = None,
+    min_audio_seconds: float | None = None,
+    max_audio_seconds: float | None = None,
     duration_seconds: float = 1.0,
     sample_rate: int = 16_000,
 ) -> dict[str, Any]:
@@ -63,6 +65,10 @@ def run_transcription_pilot(
         preflight_only=preflight_only,
         real_transcription=real_transcription,
         audio_confirmed_non_sensitive=audio_confirmed_non_sensitive,
+    )
+    _validate_duration_limits(
+        min_audio_seconds=min_audio_seconds,
+        max_audio_seconds=max_audio_seconds,
     )
     workspace = Path(root).resolve()
     timestamp = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
@@ -95,6 +101,11 @@ def run_transcription_pilot(
     result = None
     error = None
     chunk = None
+    duration_gate = _audio_duration_gate(
+        None,
+        min_audio_seconds=min_audio_seconds,
+        max_audio_seconds=max_audio_seconds,
+    )
     try:
         chunk = read_audio_as_chunk(
             str(source_audio_path),
@@ -102,6 +113,13 @@ def run_transcription_pilot(
             sample_rate=sample_rate,
             channels=1,
         )
+        duration_gate = _audio_duration_gate(
+            chunk.duration_seconds,
+            min_audio_seconds=min_audio_seconds,
+            max_audio_seconds=max_audio_seconds,
+        )
+        if duration_gate["passed"] is False:
+            raise ValueError(duration_gate["message"])
         if normalize:
             chunk = normalize_pcm16(chunk)
         if not preflight_only:
@@ -149,6 +167,7 @@ def run_transcription_pilot(
         "source_format": audio_source_format,
         "normalized": bool(normalize and chunk is not None),
         "duration_seconds": chunk.duration_seconds if chunk is not None else None,
+        "duration_gate": duration_gate,
         "sample_rate": chunk.format.sample_rate if chunk is not None else sample_rate,
         "channels": chunk.format.channels if chunk is not None else 1,
         "bytes": len(chunk.data) if chunk is not None else None,
@@ -244,6 +263,16 @@ def main(argv: list[str] | None = None) -> int:
         type=float,
         help="optional pass threshold from 0.0 to 1.0 for reference text quality",
     )
+    parser.add_argument(
+        "--min-audio-seconds",
+        type=float,
+        help="optional minimum decoded audio duration for pilot safety",
+    )
+    parser.add_argument(
+        "--max-audio-seconds",
+        type=float,
+        help="optional maximum decoded audio duration for pilot safety",
+    )
     parser.add_argument("--duration", type=float, default=1.0, help="synthetic audio duration")
     parser.add_argument("--sample-rate", type=int, default=16000, help="pilot audio sample rate")
     parser.add_argument("--json", action="store_true", help="print JSON report")
@@ -267,6 +296,8 @@ def main(argv: list[str] | None = None) -> int:
             expected_text=args.expected_text,
             expected_text_file=args.expected_text_file,
             min_word_accuracy=args.min_word_accuracy,
+            min_audio_seconds=args.min_audio_seconds,
+            max_audio_seconds=args.max_audio_seconds,
             duration_seconds=args.duration,
             sample_rate=args.sample_rate,
         )
@@ -329,6 +360,23 @@ def _validate_quality_flags(
         raise ValueError("--min-word-accuracy requires --expected-text or --expected-text-file.")
 
 
+def _validate_duration_limits(
+    *,
+    min_audio_seconds: float | None,
+    max_audio_seconds: float | None,
+) -> None:
+    if min_audio_seconds is not None and min_audio_seconds < 0:
+        raise ValueError("--min-audio-seconds must be greater than or equal to 0.")
+    if max_audio_seconds is not None and max_audio_seconds <= 0:
+        raise ValueError("--max-audio-seconds must be greater than 0.")
+    if (
+        min_audio_seconds is not None
+        and max_audio_seconds is not None
+        and min_audio_seconds > max_audio_seconds
+    ):
+        raise ValueError("--min-audio-seconds must be less than or equal to --max-audio-seconds.")
+
+
 def _load_expected_reference(
     expected_text: str | None,
     expected_text_file: str | Path | None,
@@ -378,6 +426,47 @@ def _audio_metadata_value(chunk, key: str) -> Any:
     if value is None and key == "source_format":
         return None
     return _sanitize_metadata(value)
+
+
+def _audio_duration_gate(
+    duration_seconds: float | None,
+    *,
+    min_audio_seconds: float | None,
+    max_audio_seconds: float | None,
+) -> dict[str, Any]:
+    enabled = min_audio_seconds is not None or max_audio_seconds is not None
+    report: dict[str, Any] = {
+        "enabled": enabled,
+        "passed": None,
+        "min_seconds": min_audio_seconds,
+        "max_seconds": max_audio_seconds,
+        "reason": "not_configured",
+        "message": None,
+    }
+    if not enabled:
+        return report
+    if duration_seconds is None:
+        report["reason"] = "pending_decode"
+        return report
+
+    rounded_duration = round(duration_seconds, 6)
+    report["duration_seconds"] = rounded_duration
+    if min_audio_seconds is not None and duration_seconds < min_audio_seconds:
+        report["passed"] = False
+        report["reason"] = "below_minimum"
+        report["message"] = (
+            f"Decoded audio duration {rounded_duration}s is below --min-audio-seconds {min_audio_seconds}s."
+        )
+    elif max_audio_seconds is not None and duration_seconds > max_audio_seconds:
+        report["passed"] = False
+        report["reason"] = "above_maximum"
+        report["message"] = (
+            f"Decoded audio duration {rounded_duration}s is above --max-audio-seconds {max_audio_seconds}s."
+        )
+    else:
+        report["passed"] = True
+        report["reason"] = "within_range"
+    return report
 
 
 def _transcript_report(text: str, *, include_hash: bool) -> dict[str, Any]:
@@ -522,6 +611,8 @@ def _build_findings_markdown(
         f"- Source format: {_format_optional(audio['source_format'])}",
         f"- Normalized: {audio['normalized']}",
         f"- Duration seconds: {_format_optional(audio['duration_seconds'])}",
+        f"- Duration gate enabled: {audio['duration_gate']['enabled']}",
+        f"- Duration gate passed: {_format_optional(audio['duration_gate']['passed'])}",
         f"- Transcript characters: {transcript_characters}",
         f"- Quality reference provided: {quality['enabled']}",
         f"- Quality gate passed: {_format_optional(quality['passed'])}",

@@ -49,6 +49,7 @@ class PilotRunTests(unittest.TestCase):
         self.assertIn("refresh-beta-checklist", plan)
         self.assertIn("--fail-on-audit-gaps", plan)
         self.assertIn("--preflight-only", plan)
+        self.assertIn("--max-audio-seconds 60", plan)
         self.assertIn("sample.mp3", plan)
         self.assertIn("Ubuntu/Linux - ubuntu-linux-capture", plan)
         self.assertIn("macOS - macos-capture", plan)

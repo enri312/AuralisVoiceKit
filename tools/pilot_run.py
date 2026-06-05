@@ -238,7 +238,12 @@ def _manual_pilot_steps() -> list[dict[str, str]]:
         },
         {
             "name": "real-transcription",
-            "command": "python tools/transcription_pilot.py --real-transcription --audio sample.mp3 --audio-non-sensitive --backend whisper --model base --normalize --expected-text \"Hola desde AuralisVoiceKit\" --min-word-accuracy 0.75 --json",
+            "command": (
+                "python tools/transcription_pilot.py --real-transcription --audio sample.mp3 "
+                "--audio-non-sensitive --backend whisper --model base --normalize "
+                "--expected-text \"Hola desde AuralisVoiceKit\" --min-word-accuracy 0.75 "
+                "--min-audio-seconds 0.2 --max-audio-seconds 60 --json"
+            ),
             "reason": "Uses a real non-sensitive audio file and may download or run a local model.",
         },
         {
@@ -356,13 +361,15 @@ def _transcription_audio_preflight_step(order: int) -> dict[str, Any]:
         "title": "Transcription audio preflight",
         "command": (
             "python tools/transcription_pilot.py --preflight-only --audio sample.mp3 "
-            "--audio-non-sensitive --backend whisper --normalize --json"
+            "--audio-non-sensitive --backend whisper --normalize "
+            "--min-audio-seconds 0.2 --max-audio-seconds 60 --json"
         ),
         "artifact": "transcription-pilot-report.json",
         "required_fields": [
             "project",
             "preflight_only",
             "audio.decoded",
+            "audio.duration_gate.passed",
             "audio.audio_file_extension",
             "audio.audio_confirmed_non_sensitive",
         ],
@@ -433,7 +440,8 @@ def _platform_pilot_matrix(blockers: list[str]) -> list[dict[str, Any]]:
             "blocker": None,
             "command": (
                 "python tools/transcription_pilot.py --preflight-only --audio sample.mp3 "
-                "--audio-non-sensitive --backend whisper --normalize --json"
+                "--audio-non-sensitive --backend whisper --normalize "
+                "--min-audio-seconds 0.2 --max-audio-seconds 60 --json"
             ),
             "artifact": "transcription-pilot-report.json",
             "requires_hardware": False,
@@ -448,7 +456,8 @@ def _platform_pilot_matrix(blockers: list[str]) -> list[dict[str, Any]]:
             "command": (
                 "python tools/transcription_pilot.py --real-transcription --audio sample.mp3 "
                 "--audio-non-sensitive --backend whisper --model base --normalize "
-                "--expected-text \"Hola desde AuralisVoiceKit\" --min-word-accuracy 0.75 --json"
+                "--expected-text \"Hola desde AuralisVoiceKit\" --min-word-accuracy 0.75 "
+                "--min-audio-seconds 0.2 --max-audio-seconds 60 --json"
             ),
             "artifact": "transcription-pilot-report.json",
             "requires_hardware": False,

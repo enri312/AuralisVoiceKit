@@ -6,6 +6,18 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.53.0] - 2026-06-05
+
+### Agregado
+
+- Guardas opcionales `--min-audio-seconds` y `--max-audio-seconds` en `tools/transcription_pilot.py` para validar la duracion decodificada de audios MP3/FLAC/WAV antes del preflight o piloto real.
+- Campo sanitizado `audio.duration_gate` en artifacts de transcripcion, con motivo de aprobacion/fallo sin guardar audio, transcripciones ni rutas completas.
+- Pruebas para preflight exitoso, fallo por audio demasiado corto y validacion de limites inconsistentes.
+
+### Cambiado
+
+- README, `PILOTS.md`, docs HTML, roadmap, checklist beta, planes de piloto y gate de estabilidad recomiendan limites de duracion para pilotos MP3 no sensibles.
+
 ## [0.52.0] - 2026-06-05
 
 ### Agregado

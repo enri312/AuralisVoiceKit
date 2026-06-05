@@ -58,7 +58,8 @@ def build_evidence_requirements_report() -> dict[str, Any]:
                 "command": (
                     "python tools/transcription_pilot.py --real-transcription --audio sample.mp3 "
                     "--audio-non-sensitive --backend whisper --model base --normalize "
-                    "--expected-text \"Hola desde AuralisVoiceKit\" --min-word-accuracy 0.75 --json"
+                    "--expected-text \"Hola desde AuralisVoiceKit\" --min-word-accuracy 0.75 "
+                    "--min-audio-seconds 0.2 --max-audio-seconds 60 --json"
                 ),
                 "fields": [
                     _required_field("project", "AuralisVoiceKit"),
@@ -214,7 +215,8 @@ def build_beta_readiness_report(
             ),
             next_action=(
                 "Run tools/transcription_pilot.py with --real-transcription, non-sensitive audio, "
-                "--expected-text or --expected-text-file, and a meaningful --min-word-accuracy."
+                "--expected-text or --expected-text-file, a meaningful --min-word-accuracy, "
+                "and --min-audio-seconds/--max-audio-seconds duration guards."
             ),
         ),
         _evidence_or_terms_check(
