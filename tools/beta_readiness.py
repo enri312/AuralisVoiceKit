@@ -128,7 +128,8 @@ def build_beta_readiness_report(
         "evidence": {
             "files": [_safe_evidence_source(report["_evidence_path"]) for report in evidence_reports],
             "count": len(evidence_reports),
-            "ignored_files": evidence["ignored"],
+            "ignored_files": [item["file"] for item in evidence["ignored"]],
+            "ignored_details": evidence["ignored"],
             "ignored_count": len(evidence["ignored"]),
         },
         "known_issues": known_issues,
@@ -171,6 +172,24 @@ def format_markdown(report: dict[str, Any]) -> str:
         "## Bloqueadores para beta",
         "",
     ]
+    ignored_details = report["evidence"].get("ignored_details", [])
+    if ignored_details:
+        lines = lines[:-2]
+        lines.extend(
+            [
+                "## Evidencias ignoradas",
+                "",
+            ]
+        )
+        for item in ignored_details:
+            lines.append(f"- `{item['file']}`: {item['message_es']} / {item['message_en']}.")
+        lines.extend(
+            [
+                "",
+                "## Bloqueadores para beta",
+                "",
+            ]
+        )
     if report["blockers"]:
         for blocker in report["blockers"]:
             lines.append(f"- `{blocker}`")
@@ -351,14 +370,43 @@ def _load_evidence_reports(workspace: Path, evidence_paths: list[str | Path]) ->
                 payload = json.loads(report_path.read_text(encoding="utf-8"))
             except (OSError, json.JSONDecodeError) as exc:
                 raise ValueError(f"Invalid evidence JSON: {report_path.name}") from exc
-            if isinstance(payload, dict):
-                payload = dict(payload)
-                payload["_evidence_path"] = str(report_path)
-                if payload.get("project") == "AuralisVoiceKit":
-                    accepted.append(payload)
-                else:
-                    ignored.append(report_path.name)
+            if not isinstance(payload, dict):
+                ignored.append(_ignored_evidence(report_path, "not_json_object"))
+                continue
+            payload = dict(payload)
+            payload["_evidence_path"] = str(report_path)
+            project = payload.get("project")
+            if project == "AuralisVoiceKit":
+                accepted.append(payload)
+            elif project is None:
+                ignored.append(_ignored_evidence(report_path, "missing_project"))
+            else:
+                ignored.append(_ignored_evidence(report_path, "wrong_project"))
     return {"accepted": accepted, "ignored": ignored}
+
+
+def _ignored_evidence(path: Path, reason: str) -> dict[str, str]:
+    messages = {
+        "missing_project": {
+            "message_es": "falta `project: AuralisVoiceKit`",
+            "message_en": "missing `project: AuralisVoiceKit`",
+        },
+        "wrong_project": {
+            "message_es": "declara otro proyecto",
+            "message_en": "declares a different project",
+        },
+        "not_json_object": {
+            "message_es": "la raiz JSON no es un objeto",
+            "message_en": "JSON root is not an object",
+        },
+    }
+    detail = messages[reason]
+    return {
+        "file": path.name,
+        "reason": reason,
+        "message_es": detail["message_es"],
+        "message_en": detail["message_en"],
+    }
 
 
 def _expand_evidence_path(path: Path) -> list[Path]:

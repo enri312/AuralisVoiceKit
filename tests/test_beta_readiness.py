@@ -226,7 +226,52 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertEqual(report["evidence"]["count"], 0)
         self.assertEqual(report["evidence"]["ignored_count"], 1)
         self.assertIn("output-pilot-report.json", report["evidence"]["ignored_files"])
+        self.assertEqual(report["evidence"]["ignored_details"][0]["reason"], "missing_project")
+        self.assertIn("falta", report["evidence"]["ignored_details"][0]["message_es"])
+        self.assertIn("missing", report["evidence"]["ignored_details"][0]["message_en"])
         self.assertFalse(checks["system_output_audible"]["ok"])
+
+    def test_markdown_lists_ignored_evidence_reasons_without_local_paths(self):
+        module = _load_beta_readiness()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmpdir_path = Path(tmpdir)
+            evidence_path = tmpdir_path / "output-pilot-report.json"
+            output_path = tmpdir_path / "BETA_CHECKLIST.md"
+            _write_json(
+                evidence_path,
+                {
+                    "project": "OtherProject",
+                    "backend": "system",
+                    "real_audio_requested": True,
+                    "operator_confirmation_status": "confirmed",
+                    "passed": True,
+                },
+            )
+
+            exit_code = module.main(
+                ["--root", str(ROOT), "--evidence", str(evidence_path), "--output", str(output_path)]
+            )
+            content = output_path.read_text(encoding="utf-8")
+
+        self.assertEqual(exit_code, 0)
+        self.assertIn("## Evidencias ignoradas", content)
+        self.assertIn("declara otro proyecto", content)
+        self.assertIn("declares a different project", content)
+        self.assertIn("output-pilot-report.json", content)
+        self.assertNotIn(str(tmpdir_path), content)
+
+    def test_non_object_evidence_is_ignored_with_reason(self):
+        module = _load_beta_readiness()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            evidence_path = Path(tmpdir) / "transcription-pilot-report.json"
+            evidence_path.write_text(json.dumps(["not", "a", "dict"]) + "\n", encoding="utf-8")
+
+            report = module.build_beta_readiness_report(ROOT, evidence_paths=[evidence_path])
+
+        self.assertEqual(report["evidence"]["ignored_count"], 1)
+        self.assertEqual(report["evidence"]["ignored_details"][0]["reason"], "not_json_object")
 
 
 def _write_json(path: Path, payload: dict):

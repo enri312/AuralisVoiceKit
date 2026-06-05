@@ -6,6 +6,18 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.42.0] - 2026-06-05
+
+### Agregado
+
+- Diagnostico de evidencias beta ignoradas con `ignored_details` en JSON y seccion Markdown cuando corresponde.
+- Motivos seguros y bilingues para artifacts ignorados: `missing_project`, `wrong_project` y `not_json_object`.
+- Pruebas automatizadas para motivos de evidencias ignoradas sin exponer rutas locales.
+
+### Cambiado
+
+- README, `PILOTS.md`, docs HTML, roadmap y gate de estabilidad documentan y exigen los motivos de evidencias ignoradas.
+
 ## [0.41.0] - 2026-06-05
 
 ### Agregado
