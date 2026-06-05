@@ -34,7 +34,11 @@ PILOT_CHECKS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
     ("safe_pilot_runner", "tools/pilot_run.py", ("run_safe_pilot", "manual_pilot_steps")),
     ("manual_pilot_runner", "tools/manual_pilot.py", ("run_manual_pilot", "--capture-test", "--sample-rate")),
     ("output_pilot_runner", "tools/output_pilot.py", ("run_output_pilot", "--speak", "--operator-present", "<text-redacted>")),
-    ("transcription_pilot_runner", "tools/transcription_pilot.py", ("run_transcription_pilot", "--real-transcription", "--audio-non-sensitive")),
+    (
+        "transcription_pilot_runner",
+        "tools/transcription_pilot.py",
+        ("run_transcription_pilot", "--real-transcription", "--audio-non-sensitive", "--expected-text"),
+    ),
     ("pilot_findings", "PILOT_FINDINGS.md", ("Windows manual seguro", "sounddevice")),
     ("doctor_bundle_api", "src/auralis_voicekit/diagnostics.py", ("create_doctor_bundle", "write_doctor_bundle")),
     ("doctor_bundle_analysis", "src/auralis_voicekit/diagnostics.py", ("analyze_doctor_bundles", "DoctorBundleAnalysis")),

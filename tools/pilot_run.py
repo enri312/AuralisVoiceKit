@@ -196,7 +196,7 @@ def _manual_pilot_steps() -> list[dict[str, str]]:
         },
         {
             "name": "real-transcription",
-            "command": "python tools/transcription_pilot.py --real-transcription --audio sample.mp3 --audio-non-sensitive --backend whisper --model base --normalize --json",
+            "command": "python tools/transcription_pilot.py --real-transcription --audio sample.mp3 --audio-non-sensitive --backend whisper --model base --normalize --expected-text \"Hola desde AuralisVoiceKit\" --min-word-accuracy 0.75 --json",
             "reason": "Uses a real non-sensitive audio file and may download or run a local model.",
         },
         {

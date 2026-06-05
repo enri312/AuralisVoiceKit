@@ -6,6 +6,19 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.38.0] - 2026-06-05
+
+### Agregado
+
+- Scoring redactado en `tools/transcription_pilot.py` con `--expected-text` y `--expected-text-file`.
+- Metricas de calidad para pilotos de transcripcion: word accuracy, word error rate, character error rate y exact match normalizado.
+- Umbral opcional `--min-word-accuracy` para que un piloto falle cuando la calidad no alcanza el minimo definido.
+- Hallazgo Windows de dry-run con scoring redactado, sin guardar transcripcion ni texto esperado completo.
+
+### Cambiado
+
+- README, `PILOTS.md`, docs HTML, roadmap, runner seguro y gate de estabilidad documentan el scoring redactado del piloto de transcripcion.
+
 ## [0.37.0] - 2026-06-05
 
 ### Agregado

@@ -110,6 +110,100 @@ class TranscriptionPilotTests(unittest.TestCase):
                     real_transcription=True,
                 )
 
+    def test_transcription_pilot_calculates_redacted_quality_metrics(self):
+        module = _load_transcription_pilot()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            report = module.run_transcription_pilot(
+                root=ROOT,
+                output_dir=tmpdir,
+                expected_text="Hola desde AuralisVoiceKit",
+                min_word_accuracy=0.0,
+                duration_seconds=0.3,
+                sample_rate=8000,
+            )
+            report_path = Path(report["artifacts"]["transcription_pilot_report"])
+            findings_path = Path(report["artifacts"]["pilot_findings"])
+            report_text = report_path.read_text(encoding="utf-8")
+            findings = findings_path.read_text(encoding="utf-8")
+
+        self.assertTrue(report["passed"])
+        self.assertTrue(report["quality"]["enabled"])
+        self.assertTrue(report["quality"]["expected_text_redacted"])
+        self.assertEqual(report["quality"]["expected_text_source"], "argument")
+        self.assertEqual(report["quality"]["word_accuracy"], 0.0)
+        self.assertEqual(report["quality"]["word_error_rate"], 1.0)
+        self.assertTrue(report["quality"]["passed"])
+        self.assertNotIn("Hola desde AuralisVoiceKit", report_text)
+        self.assertIn("Quality reference provided: True", findings)
+        self.assertIn("Word accuracy: 0.0", findings)
+
+    def test_transcription_pilot_quality_gate_can_fail(self):
+        module = _load_transcription_pilot()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output = io.StringIO()
+            with contextlib.redirect_stdout(output):
+                exit_code = module.main(
+                    [
+                        "--root",
+                        str(ROOT),
+                        "--output-dir",
+                        tmpdir,
+                        "--expected-text",
+                        "Hola desde AuralisVoiceKit",
+                        "--min-word-accuracy",
+                        "0.5",
+                        "--duration",
+                        "0.3",
+                        "--sample-rate",
+                        "8000",
+                        "--json",
+                    ]
+                )
+            payload = json.loads(output.getvalue())
+
+        self.assertEqual(exit_code, 1)
+        self.assertFalse(payload["passed"])
+        self.assertFalse(payload["quality"]["passed"])
+        self.assertEqual(payload["quality"]["word_accuracy"], 0.0)
+
+    def test_transcription_pilot_rejects_multiple_expected_text_sources(self):
+        module = _load_transcription_pilot()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            reference = Path(tmpdir) / "reference.txt"
+            reference.write_text("Hola", encoding="utf-8")
+            with self.assertRaises(ValueError):
+                module.run_transcription_pilot(
+                    root=ROOT,
+                    output_dir=tmpdir,
+                    expected_text="Hola",
+                    expected_text_file=reference,
+                )
+
+    def test_transcription_pilot_expected_text_file_reports_only_file_name(self):
+        module = _load_transcription_pilot()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            reference = Path(tmpdir) / "reference.txt"
+            reference.write_text("Hola desde archivo", encoding="utf-8")
+            report = module.run_transcription_pilot(
+                root=ROOT,
+                output_dir=tmpdir,
+                expected_text_file=reference,
+                min_word_accuracy=0.0,
+                duration_seconds=0.3,
+                sample_rate=8000,
+            )
+            report_path = Path(report["artifacts"]["transcription_pilot_report"])
+            report_text = report_path.read_text(encoding="utf-8")
+
+        self.assertTrue(report["passed"])
+        self.assertEqual(report["quality"]["expected_text_source"], "file")
+        self.assertEqual(report["quality"]["expected_text_file_name"], "reference.txt")
+        self.assertNotIn("Hola desde archivo", report_text)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -2,6 +2,38 @@
 
 Este documento resume hallazgos de pilotos reales o semi-manuales. No debe incluir audio, transcripciones privadas, rutas locales completas ni nombres reales de dispositivos.
 
+## 2026-06-05 - Windows transcripcion dry-run con scoring redactado
+
+Comando ejecutado:
+
+```powershell
+python tools\transcription_pilot.py --output-dir pilot_runs\transcription\20260605T1532Z-quality-safe --expected-text "Hola desde AuralisVoiceKit" --min-word-accuracy 0 --duration 0.3 --sample-rate 8000 --json
+```
+
+Alcance:
+
+- Sistema: Windows.
+- Backend diagnosticado: `null`.
+- Audio usado: sintetico generado por el runner.
+- Red/modelos reales: no.
+- Texto esperado completo guardado: no.
+- Texto transcrito completo guardado: no.
+
+Resultado:
+
+- Piloto de transcripcion: `passed=true`.
+- Quality reference provided: `true`.
+- Word accuracy: `0.0`.
+- Word error rate: `1.0`.
+- Quality gate passed: `true` con umbral `0`.
+- Resultado esperado: backend `null` no transcribe, asi que la metrica queda lista sin simular calidad real.
+
+Acciones siguientes:
+
+1. Ejecutar `python tools\transcription_pilot.py --real-transcription --audio sample.mp3 --audio-non-sensitive --backend whisper --model base --normalize --expected-text "Hola desde AuralisVoiceKit" --min-word-accuracy 0.75 --json` con audio propio no sensible.
+2. Si se usa un texto esperado desde archivo, pasar `--expected-text-file reference.txt` y no subir ese archivo si contiene contenido privado.
+3. Registrar solo metricas agregadas y hallazgos tecnicos; no pegar transcripciones completas.
+
 ## 2026-06-05 - Windows transcripcion dry-run sintetica
 
 Comando ejecutado:

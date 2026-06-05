@@ -12,7 +12,7 @@ English: AuralisVoiceKit is a modern voice toolkit for Python assistants, local 
 
 El objetivo principal es evitar que la captura de microfono dependa obligatoriamente de PyAudio o de wheels que tardan en llegar a las versiones nuevas de Python. El paquete base debe poder instalarse de forma liviana, sin compiladores y sin dependencias nativas obligatorias. Para MP3, FLAC y formatos comprimidos, AuralisVoiceKit usa `ffmpeg` como herramienta externa opcional.
 
-> Estado actual: alpha tecnica con gate de pilotos reales. El repositorio ya define el core, los contratos de backends, captura real inicial, diagnostico reforzado para WASAPI, bundles de diagnostico sanitizados y analizables, flujo WAV offline, transcripcion inicial por API y local opcional, sesiones de voz iniciales, una CLI de diagnostico, benchmarks offline y comparativos para Whisper exportables a JSON/CSV, errores accionables para `ffmpeg`, mensajes accionables para audio Windows, documentacion estatica, salida de voz del sistema con voces configurables y ejemplo seguro, salida custom en memoria, quickstart para PyPI sin extras, guia de privacidad/logs, ejemplo de asistente local con logs sanitizados, runner de piloto seguro, runner de piloto manual, pruebas unitarias y pruebas reales de MP3/FLAC. Los backends reales se iran agregando por etapas.
+> Estado actual: alpha tecnica con gate de pilotos reales. El repositorio ya define el core, los contratos de backends, captura real inicial, diagnostico reforzado para WASAPI, bundles de diagnostico sanitizados y analizables, flujo WAV offline, transcripcion inicial por API y local opcional, sesiones de voz iniciales, una CLI de diagnostico, benchmarks offline y comparativos para Whisper exportables a JSON/CSV, errores accionables para `ffmpeg`, mensajes accionables para audio Windows, documentacion estatica, salida de voz del sistema con voces configurables y ejemplo seguro, salida custom en memoria, quickstart para PyPI sin extras, guia de privacidad/logs, ejemplo de asistente local con logs sanitizados, runner de piloto seguro, runner de piloto manual, piloto de transcripcion con scoring redactado, pruebas unitarias y pruebas reales de MP3/FLAC. Los backends reales se iran agregando por etapas.
 
 ## Problema que resuelve
 
@@ -671,11 +671,12 @@ py tools\output_pilot.py --output-dir pilot_runs\output\system-dry-run --json
 py tools\output_pilot.py --speak --operator-present --text "Hola desde AuralisVoiceKit" --json
 ```
 
-`tools/transcription_pilot.py` prepara pilotos de transcripcion. Por defecto genera audio sintetico y usa backend `null`; para `whisper` u `openai` exige `--real-transcription`, un archivo `--audio` y confirmacion `--audio-non-sensitive`. El texto transcrito queda redactado en los artifacts:
+`tools/transcription_pilot.py` prepara pilotos de transcripcion. Por defecto genera audio sintetico y usa backend `null`; para `whisper` u `openai` exige `--real-transcription`, un archivo `--audio` y confirmacion `--audio-non-sensitive`. El texto transcrito queda redactado en los artifacts. Si agregas `--expected-text` o `--expected-text-file`, calcula metricas de calidad como word accuracy y word error rate sin guardar la transcripcion ni el texto esperado:
 
 ```powershell
 py tools\transcription_pilot.py --output-dir pilot_runs\transcription\safe --json
-py tools\transcription_pilot.py --real-transcription --audio sample.mp3 --audio-non-sensitive --backend whisper --model base --normalize --json
+py tools\transcription_pilot.py --output-dir pilot_runs\transcription\quality-safe --expected-text "Hola desde AuralisVoiceKit" --min-word-accuracy 0 --json
+py tools\transcription_pilot.py --real-transcription --audio sample.mp3 --audio-non-sensitive --backend whisper --model base --normalize --expected-text "Hola desde AuralisVoiceKit" --min-word-accuracy 0.75 --json
 ```
 
 Los pasos con hardware quedan documentados en:
@@ -695,7 +696,7 @@ ROADMAP.md
 
 Prioridad inmediata:
 
-1. Ejecutar piloto de transcripcion real con audio propio no sensible usando `tools\transcription_pilot.py --real-transcription --audio ... --audio-non-sensitive`.
+1. Ejecutar piloto de transcripcion real con audio propio no sensible usando `tools\transcription_pilot.py --real-transcription --audio ... --audio-non-sensitive --expected-text ... --min-word-accuracy 0.75`.
 2. Ejecutar piloto manual de salida `system` con `tools\output_pilot.py --speak --operator-present`.
 3. Repetir captura con microfono en Ubuntu/Linux y macOS.
 4. Preparar checklist de bugs conocidos para beta publica.
