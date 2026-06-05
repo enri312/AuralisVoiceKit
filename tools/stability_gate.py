@@ -55,8 +55,10 @@ PILOT_CHECKS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
         (
             "generate_pilot_audio_fixture",
             "--format",
+            "--run-preflight",
             "generated_public_fixture",
             "usable_as_beta_evidence",
+            "preflight",
             "pilot-sample.mp3",
         ),
     ),

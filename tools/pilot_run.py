@@ -362,7 +362,8 @@ def _transcription_audio_fixture_step(order: int) -> dict[str, Any]:
         "title": "Transcription audio fixture",
         "command": (
             "python tools/pilot_audio_fixture.py --output-dir pilot_runs/transcription/fixture "
-            "--format wav --format mp3 --duration 1.0 --sample-rate 16000 --json"
+            "--format wav --format mp3 --duration 1.0 --sample-rate 16000 "
+            "--run-preflight --min-audio-seconds 0.2 --max-audio-seconds 60 --json"
         ),
         "artifact": "pilot-audio-fixture-report.json",
         "required_fields": [
@@ -371,6 +372,7 @@ def _transcription_audio_fixture_step(order: int) -> dict[str, Any]:
             "contains_private_audio",
             "usable_as_beta_evidence",
             "files",
+            "preflight.passed",
             "passed",
         ],
         "requires_hardware": False,
@@ -467,7 +469,8 @@ def _platform_pilot_matrix(blockers: list[str]) -> list[dict[str, Any]]:
             "blocker": None,
             "command": (
                 "python tools/pilot_audio_fixture.py --output-dir pilot_runs/transcription/fixture "
-                "--format wav --format mp3 --duration 1.0 --sample-rate 16000 --json"
+                "--format wav --format mp3 --duration 1.0 --sample-rate 16000 "
+                "--run-preflight --min-audio-seconds 0.2 --max-audio-seconds 60 --json"
             ),
             "artifact": "pilot-audio-fixture-report.json",
             "requires_hardware": False,

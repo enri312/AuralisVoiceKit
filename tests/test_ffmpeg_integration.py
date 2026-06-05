@@ -326,6 +326,9 @@ class FfmpegIntegrationTests(unittest.TestCase):
                 duration_seconds=0.35,
                 sample_rate=8000,
                 ffmpeg=self.ffmpeg,
+                run_preflight=True,
+                min_audio_seconds=0.2,
+                max_audio_seconds=1.0,
             )
             mp3_path = Path(report["artifacts"]["mp3"])
             mp3_exists = mp3_path.exists()
@@ -333,6 +336,9 @@ class FfmpegIntegrationTests(unittest.TestCase):
 
         self.assertTrue(report["passed"])
         self.assertTrue(report["ffmpeg"]["available"])
+        self.assertTrue(report["preflight"]["passed"])
+        self.assertTrue(report["preflight"]["audio_decoded"])
+        self.assertTrue(report["preflight"]["duration_gate_passed"])
         self.assertTrue(report["generated_public_fixture"])
         self.assertFalse(report["usable_as_beta_evidence"])
         self.assertTrue(mp3_exists)

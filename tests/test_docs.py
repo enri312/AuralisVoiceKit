@@ -104,6 +104,7 @@ class DocumentationTests(unittest.TestCase):
         self.assertIn("pilot-plan.md", README.read_text(encoding="utf-8"))
         self.assertIn("recommended_pilot_sequence", README.read_text(encoding="utf-8"))
         self.assertIn("platform_pilot_matrix", README.read_text(encoding="utf-8"))
+        self.assertIn("--run-preflight", README.read_text(encoding="utf-8"))
         self.assertIn("--preflight-only", README.read_text(encoding="utf-8"))
         self.assertIn("--max-audio-seconds", README.read_text(encoding="utf-8"))
         self.assertIn("tools/pilot_run.py", MAIN_DOC.read_text(encoding="utf-8"))
@@ -116,6 +117,7 @@ class DocumentationTests(unittest.TestCase):
         self.assertIn("pilot-plan.md", MAIN_DOC.read_text(encoding="utf-8"))
         self.assertIn("recommended_pilot_sequence", MAIN_DOC.read_text(encoding="utf-8"))
         self.assertIn("platform_pilot_matrix", MAIN_DOC.read_text(encoding="utf-8"))
+        self.assertIn("--run-preflight", MAIN_DOC.read_text(encoding="utf-8"))
         self.assertIn("--preflight-only", MAIN_DOC.read_text(encoding="utf-8"))
         self.assertIn("--max-audio-seconds", MAIN_DOC.read_text(encoding="utf-8"))
         self.assertIn("tools/pilot_run.py", API_DOC.read_text(encoding="utf-8"))
@@ -128,6 +130,7 @@ class DocumentationTests(unittest.TestCase):
         self.assertIn("pilot-plan.md", API_DOC.read_text(encoding="utf-8"))
         self.assertIn("recommended_pilot_sequence", API_DOC.read_text(encoding="utf-8"))
         self.assertIn("platform_pilot_matrix", API_DOC.read_text(encoding="utf-8"))
+        self.assertIn("--run-preflight", API_DOC.read_text(encoding="utf-8"))
         self.assertIn("--preflight-only", API_DOC.read_text(encoding="utf-8"))
         self.assertIn("--max-audio-seconds", API_DOC.read_text(encoding="utf-8"))
 

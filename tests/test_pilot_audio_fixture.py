@@ -72,6 +72,30 @@ class PilotAudioFixtureTests(unittest.TestCase):
         self.assertTrue(payload["passed"])
         self.assertEqual(payload["formats_requested"], ["wav"])
 
+    def test_preflight_auto_adds_mp3_and_fails_safely_without_ffmpeg(self):
+        module = _load_pilot_audio_fixture()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            report = module.generate_pilot_audio_fixture(
+                root=ROOT,
+                output_dir=tmpdir,
+                formats=("wav",),
+                duration_seconds=0.2,
+                sample_rate=8000,
+                ffmpeg="missing-auralis-ffmpeg",
+                run_preflight=True,
+            )
+            findings = Path(report["artifacts"]["fixture_findings"]).read_text(encoding="utf-8")
+
+        self.assertFalse(report["passed"])
+        self.assertEqual(report["formats_requested"], ["wav", "mp3"])
+        self.assertTrue(report["preflight"]["requested"])
+        self.assertFalse(report["preflight"]["passed"])
+        self.assertEqual(report["preflight"]["reason"], "missing_mp3_fixture")
+        self.assertFalse(report["usable_as_beta_evidence"])
+        self.assertIn("your own non-sensitive MP3", report["next_step"])
+        self.assertIn("Fixture preflight passed: `False`", findings)
+
     def test_rejects_invalid_audio_shape(self):
         module = _load_pilot_audio_fixture()
 

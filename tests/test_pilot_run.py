@@ -49,6 +49,7 @@ class PilotRunTests(unittest.TestCase):
         self.assertIn("refresh-beta-checklist", plan)
         self.assertIn("--fail-on-audit-gaps", plan)
         self.assertIn("pilot_audio_fixture.py", plan)
+        self.assertIn("--run-preflight", plan)
         self.assertIn("--preflight-only", plan)
         self.assertIn("--max-audio-seconds 60", plan)
         self.assertIn("sample.mp3", plan)
@@ -67,6 +68,7 @@ class PilotRunTests(unittest.TestCase):
         self.assertIn("refresh-beta-checklist", sequence_names)
         self.assertFalse(report["recommended_pilot_sequence"][0]["requires_hardware"])
         self.assertFalse(report["recommended_pilot_sequence"][0]["requires_non_sensitive_audio"])
+        self.assertIn("preflight.passed", report["recommended_pilot_sequence"][0]["required_fields"])
         self.assertTrue(report["recommended_pilot_sequence"][1]["requires_non_sensitive_audio"])
         matrix = {row["name"]: row for row in report["platform_pilot_matrix"]}
         self.assertEqual(matrix["windows-wasapi-capture"]["status"], "closed")

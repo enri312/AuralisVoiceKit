@@ -4,10 +4,12 @@ from __future__ import annotations
 
 import argparse
 from datetime import datetime, timezone
+import importlib.util
 import json
 from pathlib import Path
 import platform
 import subprocess
+import sys
 from typing import Any
 
 from auralis_voicekit import (
@@ -34,10 +36,16 @@ def generate_pilot_audio_fixture(
     duration_seconds: float = 1.0,
     sample_rate: int = 16_000,
     ffmpeg: str = "ffmpeg",
+    run_preflight: bool = False,
+    min_audio_seconds: float | None = 0.2,
+    max_audio_seconds: float | None = 60.0,
+    normalize_preflight: bool = True,
 ) -> dict[str, Any]:
     """Generate a non-sensitive synthetic fixture and write sanitized artifacts."""
 
     requested_formats = _normalize_formats(formats)
+    if run_preflight and "mp3" not in requested_formats:
+        requested_formats = (*requested_formats, "mp3")
     _validate_audio_shape(duration_seconds=duration_seconds, sample_rate=sample_rate)
 
     workspace = Path(root).resolve()
@@ -80,6 +88,32 @@ def generate_pilot_audio_fixture(
         if entry["passed"]:
             artifacts[format_name] = str(output_path)
 
+    preflight = (
+        _run_fixture_preflight(
+            root=workspace,
+            output=output,
+            artifacts=artifacts,
+            ffmpeg_path=ffmpeg_path,
+            ffmpeg=ffmpeg,
+            sample_rate=sample_rate,
+            min_audio_seconds=min_audio_seconds,
+            max_audio_seconds=max_audio_seconds,
+            normalize=normalize_preflight,
+        )
+        if run_preflight
+        else {
+            "requested": False,
+            "passed": None,
+            "reason": "not_requested",
+            "artifact": None,
+            "audio_decoded": None,
+            "duration_gate_passed": None,
+            "error": None,
+        }
+    )
+    if preflight["artifact"] is not None:
+        artifacts["fixture_preflight_report"] = preflight["artifact"]
+
     findings_path = output / "pilot-audio-fixture-findings.md"
     report_path = output / "pilot-audio-fixture-report.json"
     report: dict[str, Any] = {
@@ -98,16 +132,14 @@ def generate_pilot_audio_fixture(
             "executable_name": Path(ffmpeg_path).name if ffmpeg_path is not None else None,
         },
         "files": files,
-        "passed": all(file_report["passed"] for file_report in files),
+        "preflight": preflight,
+        "passed": all(file_report["passed"] for file_report in files) and preflight["passed"] is not False,
         "artifacts": {
             **artifacts,
             "fixture_findings": str(findings_path),
             "fixture_report": str(report_path),
         },
-        "next_step": (
-            "Use the generated MP3 for a local ffmpeg preflight, then replace it with "
-            "your own non-sensitive MP3 for real beta evidence."
-        ),
+        "next_step": _fixture_next_step(run_preflight=run_preflight),
     }
 
     findings_path.write_text(_build_findings_markdown(report), encoding="utf-8")
@@ -129,6 +161,28 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--duration", type=float, default=1.0, help="synthetic fixture duration in seconds")
     parser.add_argument("--sample-rate", type=int, default=16000, help="synthetic fixture sample rate")
     parser.add_argument("--ffmpeg", default="ffmpeg", help="ffmpeg executable for compressed fixtures")
+    parser.add_argument(
+        "--run-preflight",
+        action="store_true",
+        help="run a safe transcription preflight against the generated MP3 fixture",
+    )
+    parser.add_argument(
+        "--min-audio-seconds",
+        type=float,
+        default=0.2,
+        help="minimum decoded audio duration for the fixture preflight",
+    )
+    parser.add_argument(
+        "--max-audio-seconds",
+        type=float,
+        default=60.0,
+        help="maximum decoded audio duration for the fixture preflight",
+    )
+    parser.add_argument(
+        "--no-normalize-preflight",
+        action="store_true",
+        help="disable normalization during the fixture preflight",
+    )
     parser.add_argument("--json", action="store_true", help="print JSON report")
     args = parser.parse_args(argv)
 
@@ -140,6 +194,10 @@ def main(argv: list[str] | None = None) -> int:
             duration_seconds=args.duration,
             sample_rate=args.sample_rate,
             ffmpeg=args.ffmpeg,
+            run_preflight=args.run_preflight,
+            min_audio_seconds=args.min_audio_seconds,
+            max_audio_seconds=args.max_audio_seconds,
+            normalize_preflight=not args.no_normalize_preflight,
         )
     except ValueError as exc:
         if args.json:
@@ -154,6 +212,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Pilot fixture passed: {report['passed']}")
         print(f"Generated public fixture: {report['generated_public_fixture']}")
         print(f"Beta evidence: {report['usable_as_beta_evidence']}")
+        print(f"Fixture preflight: {report['preflight']['passed']}")
         for file_report in report["files"]:
             status = "ok" if file_report["passed"] else "failed"
             print(f"- {file_report['file_name']}: {status}")
@@ -259,6 +318,95 @@ def _encode_fixture(
     )
 
 
+def _run_fixture_preflight(
+    *,
+    root: Path,
+    output: Path,
+    artifacts: dict[str, str],
+    ffmpeg_path: str | None,
+    ffmpeg: str,
+    sample_rate: int,
+    min_audio_seconds: float | None,
+    max_audio_seconds: float | None,
+    normalize: bool,
+) -> dict[str, Any]:
+    mp3_path = artifacts.get("mp3")
+    if mp3_path is None:
+        return {
+            "requested": True,
+            "passed": False,
+            "reason": "missing_mp3_fixture",
+            "artifact": None,
+            "audio_decoded": False,
+            "duration_gate_passed": None,
+            "error": "MP3 fixture was not generated; install ffmpeg or review the fixture file report.",
+        }
+
+    try:
+        module = _load_transcription_pilot_module()
+        report = module.run_transcription_pilot(
+            root=root,
+            output_dir=output / "preflight",
+            audio=mp3_path,
+            backend="whisper",
+            ffmpeg=ffmpeg_path or ffmpeg,
+            normalize=normalize,
+            preflight_only=True,
+            audio_confirmed_non_sensitive=True,
+            min_audio_seconds=min_audio_seconds,
+            max_audio_seconds=max_audio_seconds,
+            sample_rate=sample_rate,
+        )
+    except Exception as exc:  # noqa: BLE001 - converted into a public-safe report entry.
+        return {
+            "requested": True,
+            "passed": False,
+            "reason": "preflight_error",
+            "artifact": None,
+            "audio_decoded": False,
+            "duration_gate_passed": None,
+            "error": str(exc),
+        }
+
+    duration_gate = report["audio"]["duration_gate"]
+    return {
+        "requested": True,
+        "passed": report["passed"],
+        "reason": "completed",
+        "artifact": report["artifacts"]["transcription_pilot_report"],
+        "audio_file_name": report["audio"]["audio_file_name"],
+        "audio_decoded": report["audio"]["decoded"],
+        "source_format": report["audio"]["source_format"],
+        "duration_seconds": report["audio"]["duration_seconds"],
+        "duration_gate_passed": duration_gate["passed"],
+        "error": report["error"],
+    }
+
+
+def _load_transcription_pilot_module():
+    module_name = "auralis_fixture_transcription_pilot"
+    module_path = Path(__file__).resolve().with_name("transcription_pilot.py")
+    spec = importlib.util.spec_from_file_location(module_name, module_path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError("Cannot load tools/transcription_pilot.py")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def _fixture_next_step(*, run_preflight: bool) -> str:
+    if run_preflight:
+        return (
+            "Replace the generated fixture with your own non-sensitive MP3 and run "
+            "tools/transcription_pilot.py --preflight-only before collecting real beta evidence."
+        )
+    return (
+        "Use the generated MP3 for a local ffmpeg preflight, then replace it with "
+        "your own non-sensitive MP3 for real beta evidence."
+    )
+
+
 def _file_report(
     format_name: str,
     path: Path,
@@ -295,6 +443,8 @@ def _build_findings_markdown(report: dict[str, Any]) -> str:
         f"- Duration seconds: `{report['duration_seconds']}`",
         f"- ffmpeg requested: `{str(report['ffmpeg']['requested']).lower()}`",
         f"- ffmpeg available: `{str(report['ffmpeg']['available']).lower()}`",
+        f"- Fixture preflight requested: `{str(report['preflight']['requested']).lower()}`",
+        f"- Fixture preflight passed: `{report['preflight']['passed']}`",
         "",
         "## Files",
         "",
@@ -306,7 +456,7 @@ def _build_findings_markdown(report: dict[str, Any]) -> str:
                 f"  - Format: `{file_report['format']}`",
                 f"  - Passed: `{str(file_report['passed']).lower()}`",
                 f"  - Decoded: `{str(file_report['decoded']).lower()}`",
-                f"  - Duration seconds: `{file_report['duration_seconds']}`",
+                f"  - Duration seconds: `{file_report.get('duration_seconds')}`",
             ]
         )
         if file_report["error"]:
@@ -314,9 +464,16 @@ def _build_findings_markdown(report: dict[str, Any]) -> str:
     lines.extend(
         [
             "",
+            "## Fixture preflight",
+            "",
+            f"- Requested: `{str(report['preflight']['requested']).lower()}`",
+            f"- Passed: `{report['preflight']['passed']}`",
+            f"- Audio decoded: `{report['preflight']['audio_decoded']}`",
+            f"- Duration gate passed: `{report['preflight']['duration_gate_passed']}`",
+            "",
             "## Next step",
             "",
-            "- Run `tools/transcription_pilot.py --preflight-only` against the generated MP3 to test ffmpeg locally.",
+            "- Run `tools/transcription_pilot.py --preflight-only` against your own non-sensitive MP3.",
             "- Replace the fixture with your own non-sensitive MP3 before collecting beta evidence.",
             "",
         ]

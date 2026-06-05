@@ -6,6 +6,18 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.55.0] - 2026-06-05
+
+### Agregado
+
+- Flag `tools/pilot_audio_fixture.py --run-preflight` para generar un MP3 sintetico publico y ejecutar automaticamente `tools/transcription_pilot.py --preflight-only` contra ese fixture.
+- Campo `preflight` en `pilot-audio-fixture-report.json`, con `preflight.passed`, `audio_decoded` y `duration_gate_passed`.
+- Pruebas para fallo seguro sin ffmpeg y preflight MP3 exitoso con ffmpeg real.
+
+### Cambiado
+
+- `recommended_pilot_sequence`, `platform_pilot_matrix`, README, `PILOTS.md`, docs HTML, roadmap y gate de estabilidad recomiendan el fixture con preflight integrado antes del MP3 propio.
+
 ## [0.54.0] - 2026-06-05
 
 ### Agregado
