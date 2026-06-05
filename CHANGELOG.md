@@ -6,6 +6,18 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.50.0] - 2026-06-05
+
+### Agregado
+
+- Campo `recommended_pilot_sequence` en `tools/pilot_run.py` con orden de pilotos reales, auditoria estricta y refresco de checklist beta.
+- Seccion `Secuencia recomendada` en `pilot-plan.md` con comandos, artifacts, campos requeridos y flags de hardware, operador y audio no sensible.
+- Pruebas para asegurar que la secuencia recomendada se mantiene en JSON y Markdown.
+
+### Cambiado
+
+- README, `PILOTS.md`, docs HTML, roadmap y gate de estabilidad documentan la secuencia operativa del piloto real.
+
 ## [0.49.0] - 2026-06-05
 
 ### Agregado

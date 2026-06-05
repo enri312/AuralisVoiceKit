@@ -19,7 +19,8 @@ El reporte generado incluye:
 - demo de salida `system` en dry-run;
 - benchmark offline exportado a JSON y CSV;
 - resumen `beta_readiness` y pasos `next_beta_evidence_steps` para cerrar blockers beta;
-- artifact `pilot-plan.md` con evidencias JSON aceptadas/ignoradas, comandos pendientes y campos JSON requeridos;
+- campo `recommended_pilot_sequence` con el orden recomendado para pilotos reales, auditoria estricta y refresco del checklist beta;
+- artifact `pilot-plan.md` con evidencias JSON aceptadas/ignoradas, secuencia recomendada, comandos pendientes y campos JSON requeridos;
 - lista de pasos manuales pendientes.
 
 `pilot-plan.md` esta pensado para compartirse en el equipo sin audio, transcripciones, rutas locales completas ni nombres reales de dispositivos.

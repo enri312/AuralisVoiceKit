@@ -665,7 +665,7 @@ El checklist generado vive en `BETA_CHECKLIST.md` y separa dos estados: listo pa
 
 ## Pilotos seguros
 
-`tools/pilot_run.py` ejecuta un piloto automatizado sin microfono, sin audio real, sin red y sin modelos. Genera un reporte con el gate, `doctor` usando backend `wav`, el demo de asistente local con logs sanitizados, salida `system` en dry-run, benchmarks offline exportados, `pilot-report.json` y `pilot-plan.md`. El plan incluye evidencias JSON aceptadas/ignoradas y `next_beta_evidence_steps` segun las evidencias beta faltantes. English: the safe pilot can ingest JSON evidence and produce a public-safe Markdown plan for accepted evidence, ignored artifacts and next real-pilot commands.
+`tools/pilot_run.py` ejecuta un piloto automatizado sin microfono, sin audio real, sin red y sin modelos. Genera un reporte con el gate, `doctor` usando backend `wav`, el demo de asistente local con logs sanitizados, salida `system` en dry-run, benchmarks offline exportados, `pilot-report.json` y `pilot-plan.md`. El plan incluye evidencias JSON aceptadas/ignoradas, `next_beta_evidence_steps` y `recommended_pilot_sequence` con el orden recomendado para ejecutar pilotos reales, auditar evidencias y refrescar `BETA_CHECKLIST.md`. English: the safe pilot can ingest JSON evidence and produce a public-safe Markdown plan for accepted evidence, ignored artifacts and an ordered real-pilot sequence.
 
 ```powershell
 py tools\pilot_run.py --output-dir pilot_runs\safe --json

@@ -46,6 +46,10 @@ def run_safe_pilot(
     beta_readiness = beta_module.build_beta_readiness_report(workspace, evidence_paths=evidence_paths or [])
     beta_audit = beta_module.build_evidence_audit_report(workspace, evidence_paths=evidence_paths or [])
     next_beta_evidence_steps = _next_beta_evidence_steps(beta_module, beta_readiness["blockers"])
+    recommended_pilot_sequence = _recommended_pilot_sequence(
+        next_beta_evidence_steps,
+        ready_for_beta=beta_readiness["ready_for_beta"],
+    )
     steps: list[dict[str, Any]] = []
     artifacts: dict[str, str] = {}
 
@@ -176,6 +180,7 @@ def run_safe_pilot(
         "steps": steps,
         "manual_pilot_steps": manual_pilot_steps,
         "next_beta_evidence_steps": next_beta_evidence_steps,
+        "recommended_pilot_sequence": recommended_pilot_sequence,
         "artifacts": artifacts,
     }
     plan_path = output / "pilot-plan.md"
@@ -274,6 +279,72 @@ def _next_beta_evidence_steps(beta_module: Any, blockers: list[str]) -> list[dic
     return steps
 
 
+def _recommended_pilot_sequence(
+    next_beta_evidence_steps: list[dict[str, Any]],
+    *,
+    ready_for_beta: bool,
+) -> list[dict[str, Any]]:
+    hardware_required_blockers = {"system_output_audible", "ubuntu_linux_capture", "macos_capture"}
+    sequence = []
+    for index, step in enumerate(next_beta_evidence_steps, start=1):
+        sequence.append(
+            {
+                "order": index,
+                "name": step["name"],
+                "title": step["title"],
+                "command": step["command"],
+                "artifact": step["artifact"],
+                "required_fields": step["required_fields"],
+                "requires_hardware": step["name"] in hardware_required_blockers,
+                "requires_operator": step["name"] == "system_output_audible",
+                "requires_non_sensitive_audio": step["name"] == "real_transcription_quality",
+                "review_required": True,
+                "reason": step["reason"],
+            }
+        )
+
+    next_order = len(sequence) + 1
+    sequence.extend(
+        [
+            {
+                "order": next_order,
+                "name": "audit-evidence",
+                "title": "Auditoria estricta de evidencias",
+                "command": (
+                    "python tools/beta_readiness.py --audit-evidence "
+                    "--evidence pilot_runs/manual --evidence pilot_runs/output "
+                    "--evidence pilot_runs/transcription --fail-on-audit-gaps --json"
+                ),
+                "artifact": "beta-readiness-audit.json",
+                "required_fields": ["satisfied_blockers", "missing_blockers", "ready_for_beta_by_evidence"],
+                "requires_hardware": False,
+                "requires_operator": False,
+                "requires_non_sensitive_audio": False,
+                "review_required": True,
+                "reason": "Verifica que los artifacts reales cierren blockers sin exponer contenido privado.",
+            },
+            {
+                "order": next_order + 1,
+                "name": "refresh-beta-checklist",
+                "title": "Actualizar checklist beta",
+                "command": (
+                    "python tools/beta_readiness.py --evidence pilot_runs/manual "
+                    "--evidence pilot_runs/output --evidence pilot_runs/transcription "
+                    "--output BETA_CHECKLIST.md --fail-on-blockers --json"
+                ),
+                "artifact": "BETA_CHECKLIST.md",
+                "required_fields": ["ready_for_beta", "blockers", "evidence.count"],
+                "requires_hardware": False,
+                "requires_operator": False,
+                "requires_non_sensitive_audio": False,
+                "review_required": not ready_for_beta,
+                "reason": "Mantiene visible si beta sigue bloqueada o si ya puede evaluarse publicamente.",
+            },
+        ]
+    )
+    return sequence
+
+
 def _pilot_plan_artifact_summary(artifacts: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return [
         {
@@ -343,6 +414,29 @@ def _format_pilot_plan_markdown(report: dict[str, Any]) -> str:
         lines.append("")
     lines.extend(
         [
+            "## Secuencia recomendada",
+            "",
+        ]
+    )
+    for step in report["recommended_pilot_sequence"]:
+        lines.extend(
+            [
+                f"### {step['order']}. {step['title']}",
+                "",
+                f"- Paso: `{step['name']}`",
+                f"- Comando: `{step['command']}`",
+                f"- Artifact esperado: `{step['artifact']}`",
+                f"- Campos requeridos: {_format_inline_list(step['required_fields'])}",
+                f"- Requiere hardware: `{_format_bool(step['requires_hardware'])}`",
+                f"- Requiere operador: `{_format_bool(step['requires_operator'])}`",
+                f"- Requiere audio no sensible: `{_format_bool(step['requires_non_sensitive_audio'])}`",
+                f"- Revision requerida: `{_format_bool(step['review_required'])}`",
+                f"- Motivo: {step['reason']}",
+                "",
+            ]
+        )
+    lines.extend(
+        [
             "## Proximas evidencias beta",
             "",
         ]
@@ -402,6 +496,10 @@ def _format_inline_list(values: list[str]) -> str:
     return ", ".join(f"`{value}`" for value in values)
 
 
+def _format_bool(value: bool) -> str:
+    return str(value).lower()
+
+
 def _add_step(
     steps: list[dict[str, Any]],
     name: str,
@@ -447,6 +545,9 @@ def _print_report(report: dict[str, Any]) -> None:
     print("Next beta evidence steps:")
     for step in report["next_beta_evidence_steps"]:
         print(f"- {step['name']}: {step['command']}")
+    print("Recommended pilot sequence:")
+    for step in report["recommended_pilot_sequence"]:
+        print(f"- {step['order']}. {step['name']}: {step['command']}")
     print(f"Pilot plan: {Path(report['artifacts']['pilot_plan']).name}")
     print("Manual pilot steps:")
     for step in report["manual_pilot_steps"]:
