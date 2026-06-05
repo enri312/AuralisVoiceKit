@@ -8,6 +8,7 @@ Este piloto no abre microfono, no reproduce audio real, no usa red y no descarga
 
 ```powershell
 py tools\pilot_run.py --output-dir pilot_runs\safe --json
+py tools\pilot_run.py --output-dir pilot_runs\safe --evidence pilot_runs\manual --evidence pilot_runs\output --evidence pilot_runs\transcription --json
 ```
 
 El reporte generado incluye:
@@ -17,6 +18,7 @@ El reporte generado incluye:
 - demo de asistente local con logs sanitizados;
 - demo de salida `system` en dry-run;
 - benchmark offline exportado a JSON y CSV;
+- resumen `beta_readiness` y pasos `next_beta_evidence_steps` para cerrar blockers beta;
 - lista de pasos manuales pendientes.
 
 ## Piloto manual guiado
@@ -27,7 +29,7 @@ Este piloto genera bundle doctor, analisis `doctor-bundles`, reporte JSON y Mark
 py tools\manual_pilot.py --output-dir pilot_runs\manual\windows-safe --json
 py tools\manual_pilot.py --capture-test --backend wasapi --device default --sample-rate 48000 --json
 py tools\output_pilot.py --output-dir pilot_runs\output\system-dry-run --json
-py tools\output_pilot.py --speak --operator-present --text "Hola desde AuralisVoiceKit" --json
+py tools\output_pilot.py --speak --operator-present --confirm-audible --text "Hola desde AuralisVoiceKit" --json
 py tools\transcription_pilot.py --output-dir pilot_runs\transcription\safe --json
 py tools\transcription_pilot.py --output-dir pilot_runs\transcription\quality-safe --expected-text "Hola desde AuralisVoiceKit" --min-word-accuracy 0 --json
 py tools\transcription_pilot.py --real-transcription --audio sample.mp3 --audio-non-sensitive --backend whisper --model base --normalize --expected-text "Hola desde AuralisVoiceKit" --min-word-accuracy 0.75 --json
@@ -38,7 +40,7 @@ py tools\beta_readiness.py --audit-evidence --evidence pilot_runs\manual --evide
 py tools\beta_readiness.py --evidence pilot_runs\manual --evidence pilot_runs\output --evidence pilot_runs\transcription --output BETA_CHECKLIST.md --json
 ```
 
-`tools/output_pilot.py` no reproduce audio por defecto. El audio real requiere `--speak --operator-present`. El reporte JSON y el Markdown redactan el texto completo dentro de comandos como `<text-redacted>`.
+`tools/output_pilot.py` no reproduce audio por defecto. El audio real requiere `--speak --operator-present`; para cerrar el blocker beta tambien debe usarse `--confirm-audible` cuando el operador confirme que escucho la salida. El reporte JSON y el Markdown redactan el texto completo dentro de comandos como `<text-redacted>`.
 
 `tools/transcription_pilot.py` genera audio sintetico y usa `null` por defecto. Los backends reales `whisper` y `openai` requieren `--real-transcription --audio PATH --audio-non-sensitive`, y el texto transcrito no se guarda completo en artifacts. Con `--expected-text` o `--expected-text-file` calcula word accuracy, word error rate y character error rate sin guardar la transcripcion ni la referencia completa.
 
@@ -60,7 +62,7 @@ auralis doctor --devices --backend sounddevice --json
 auralis doctor --capture-test --backend sounddevice --device default --bundle pilot_runs\manual\doctor-capture.json --json
 auralis doctor-bundles pilot_runs\manual\doctor-capture.json --output pilot_runs\manual\doctor-analysis.json --json
 python tools\manual_pilot.py --capture-test --backend wasapi --device default --sample-rate 48000 --json
-python tools\output_pilot.py --speak --operator-present --text "Hola desde AuralisVoiceKit" --json
+python tools\output_pilot.py --speak --operator-present --confirm-audible --text "Hola desde AuralisVoiceKit" --json
 python tools\transcription_pilot.py --real-transcription --audio sample.mp3 --audio-non-sensitive --backend whisper --model base --normalize --expected-text "Hola desde AuralisVoiceKit" --min-word-accuracy 0.75 --json
 python tools\beta_readiness.py --requirements
 python tools\beta_readiness.py --audit-evidence --evidence pilot_runs\manual --evidence pilot_runs\output --evidence pilot_runs\transcription --json
@@ -95,6 +97,6 @@ Acciones siguientes:
 - Piloto manual guiado: preparado con `tools/manual_pilot.py`.
 - Analisis de bundles doctor: preparado con `auralis doctor-bundles`.
 - Pilotos manuales con microfono real: primer piloto Windows/WASAPI aprobado con `--sample-rate 48000`; Ubuntu/Linux y macOS pendientes.
-- Pilotos manuales con salida `system` real: runner preparado con `tools/output_pilot.py`; dry-run Windows aprobado, guard `--operator-present` listo y audio real pendiente con operador presente.
+- Pilotos manuales con salida `system` real: runner preparado con `tools/output_pilot.py`; dry-run Windows aprobado, guards `--operator-present` y `--confirm-audible` listos, audio real pendiente con operador presente.
 - Pilotos manuales con transcripcion real: runner preparado con `tools/transcription_pilot.py`; dry-run sintetico Windows aprobado, scoring redactado preparado y audio real pendiente con archivo no sensible.
 - Checklist de beta: preparado con `tools/beta_readiness.py`; acepta artifacts JSON con `--evidence`; estado actual `pilot`, beta bloqueada por pilotos reales pendientes.

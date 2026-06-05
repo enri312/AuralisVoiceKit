@@ -30,6 +30,7 @@ def run_safe_pilot(
     root: str | Path = ".",
     output_dir: str | Path | None = None,
     benchmark_iterations: int = 1,
+    evidence_paths: list[str | Path] | None = None,
 ) -> dict[str, Any]:
     """Run the safe automated pilot and return a structured report."""
 
@@ -41,6 +42,10 @@ def run_safe_pilot(
 
     gate_module = _load_module(workspace / "tools" / "stability_gate.py", "auralis_stability_gate")
     gate = gate_module.build_report(workspace)
+    beta_module = _load_module(workspace / "tools" / "beta_readiness.py", "auralis_beta_readiness_for_pilot")
+    beta_readiness = beta_module.build_beta_readiness_report(workspace, evidence_paths=evidence_paths or [])
+    beta_audit = beta_module.build_evidence_audit_report(workspace, evidence_paths=evidence_paths or [])
+    next_beta_evidence_steps = _next_beta_evidence_steps(beta_module, beta_readiness["blockers"])
     steps: list[dict[str, Any]] = []
     artifacts: dict[str, str] = {}
 
@@ -152,8 +157,22 @@ def run_safe_pilot(
             "pilot_blockers": gate["pilot_blockers"],
             "stable_blockers": gate["stable_blockers"],
         },
+        "beta_readiness": {
+            "ready_for_beta": beta_readiness["ready_for_beta"],
+            "blockers": beta_readiness["blockers"],
+            "evidence_count": beta_readiness["evidence"]["count"],
+            "ignored_evidence_count": beta_readiness["evidence"]["ignored_count"],
+            "ready_for_beta_by_json_evidence": beta_audit["ready_for_beta_by_evidence"],
+            "missing_json_blockers": beta_audit["missing_blockers"],
+            "strict_audit_command": (
+                "python tools/beta_readiness.py --audit-evidence "
+                "--evidence pilot_runs/manual --evidence pilot_runs/output "
+                "--evidence pilot_runs/transcription --fail-on-audit-gaps --json"
+            ),
+        },
         "steps": steps,
         "manual_pilot_steps": manual_pilot_steps,
+        "next_beta_evidence_steps": next_beta_evidence_steps,
         "artifacts": artifacts,
     }
     report_path = output / "pilot-report.json"
@@ -167,6 +186,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--root", default=".", help="workspace root")
     parser.add_argument("--output-dir", help="directory for pilot artifacts")
     parser.add_argument("--benchmark-iterations", type=int, default=1, help="offline benchmark iterations")
+    parser.add_argument(
+        "--evidence",
+        action="append",
+        default=[],
+        help="AuralisVoiceKit pilot JSON evidence file or directory; can be passed more than once",
+    )
     parser.add_argument("--json", action="store_true", help="print JSON report")
     args = parser.parse_args(argv)
 
@@ -174,6 +199,7 @@ def main(argv: list[str] | None = None) -> int:
         root=args.root,
         output_dir=args.output_dir,
         benchmark_iterations=args.benchmark_iterations,
+        evidence_paths=args.evidence,
     )
     if args.json:
         print(json.dumps(report, indent=2, sort_keys=True))
@@ -191,7 +217,10 @@ def _manual_pilot_steps() -> list[dict[str, str]]:
         },
         {
             "name": "system-speech",
-            "command": "python tools/output_pilot.py --speak --operator-present --text \"Hola desde AuralisVoiceKit\" --json",
+            "command": (
+                "python tools/output_pilot.py --speak --operator-present --confirm-audible "
+                "--text \"Hola desde AuralisVoiceKit\" --json"
+            ),
             "reason": "Plays real audio and should be run intentionally by a human.",
         },
         {
@@ -206,10 +235,37 @@ def _manual_pilot_steps() -> list[dict[str, str]]:
         },
         {
             "name": "beta-readiness",
-            "command": "python tools/beta_readiness.py --output BETA_CHECKLIST.md --fail-on-blockers --json",
+            "command": (
+                "python tools/beta_readiness.py --evidence pilot_runs/manual "
+                "--evidence pilot_runs/output --evidence pilot_runs/transcription "
+                "--output BETA_CHECKLIST.md --fail-on-blockers --json"
+            ),
             "reason": "Keeps public beta blocked until the real pilot evidence is documented.",
         },
     ]
+
+
+def _next_beta_evidence_steps(beta_module: Any, blockers: list[str]) -> list[dict[str, Any]]:
+    requirements = {
+        requirement["name"]: requirement
+        for requirement in beta_module.build_evidence_requirements_report()["requirements"]
+    }
+    steps = []
+    for blocker in blockers:
+        requirement = requirements.get(blocker)
+        if requirement is None:
+            continue
+        steps.append(
+            {
+                "name": blocker,
+                "title": requirement["title"],
+                "artifact": requirement["artifact"],
+                "command": requirement["command"],
+                "required_fields": [field["path"] for field in requirement["fields"]],
+                "reason": "Required real pilot evidence before public beta.",
+            }
+        )
+    return steps
 
 
 def _add_step(
@@ -246,9 +302,17 @@ def _print_report(report: dict[str, Any]) -> None:
     print(f"Version: {report['version']}")
     print(f"Stage: {report['stage']}")
     print(f"Passed: {report['safe_automated_pilot']['passed']}")
+    print(f"Ready for beta: {report['beta_readiness']['ready_for_beta']}")
+    if report["beta_readiness"]["blockers"]:
+        print("Beta blockers:")
+        for blocker in report["beta_readiness"]["blockers"]:
+            print(f"- {blocker}")
     print("Steps:")
     for step in report["steps"]:
         print(f"- [{step['status']}] {step['name']}")
+    print("Next beta evidence steps:")
+    for step in report["next_beta_evidence_steps"]:
+        print(f"- {step['name']}: {step['command']}")
     print("Manual pilot steps:")
     for step in report["manual_pilot_steps"]:
         print(f"- {step['name']}: {step['command']}")

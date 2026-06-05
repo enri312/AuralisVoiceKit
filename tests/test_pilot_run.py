@@ -37,6 +37,10 @@ class PilotRunTests(unittest.TestCase):
         self.assertFalse(report["safe_automated_pilot"]["hardware_used"])
         self.assertEqual(persisted["version"], report["version"])
         self.assertEqual({step["status"] for step in report["steps"]}, {"passed"})
+        self.assertFalse(report["beta_readiness"]["ready_for_beta"])
+        self.assertIn("real_transcription_quality", report["beta_readiness"]["blockers"])
+        self.assertIn("real_transcription_quality", {step["name"] for step in report["next_beta_evidence_steps"]})
+        self.assertIn("--fail-on-audit-gaps", report["beta_readiness"]["strict_audit_command"])
         self.assertIn("microphone-capture", {step["name"] for step in report["manual_pilot_steps"]})
         self.assertIn("beta-readiness", {step["name"] for step in report["manual_pilot_steps"]})
 
@@ -51,6 +55,32 @@ class PilotRunTests(unittest.TestCase):
 
         self.assertEqual(exit_code, 0)
         self.assertTrue(payload["safe_automated_pilot"]["passed"])
+        self.assertIn("next_beta_evidence_steps", payload)
+        self.assertIn("beta_readiness", payload)
+
+    def test_safe_pilot_accepts_beta_evidence_paths(self):
+        module = _load_pilot_run()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            evidence_root = Path(tmpdir) / "evidence"
+            _write_json(
+                evidence_root / "linux" / "manual-pilot-report.json",
+                {"project": "AuralisVoiceKit", "system": "Linux", "hardware_capture_tested": True, "passed": True},
+            )
+            report = module.run_safe_pilot(
+                root=ROOT,
+                output_dir=Path(tmpdir) / "pilot",
+                evidence_paths=[evidence_root],
+            )
+
+        self.assertEqual(report["beta_readiness"]["evidence_count"], 1)
+        self.assertNotIn("ubuntu_linux_capture", report["beta_readiness"]["blockers"])
+        self.assertNotIn("ubuntu_linux_capture", {step["name"] for step in report["next_beta_evidence_steps"]})
+
+
+def _write_json(path: Path, payload: dict):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
 if __name__ == "__main__":

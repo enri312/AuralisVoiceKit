@@ -6,6 +6,18 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.47.0] - 2026-06-05
+
+### Agregado
+
+- `tools/pilot_run.py --evidence` para incluir artifacts JSON reales en el piloto seguro.
+- Resumen `beta_readiness` y `next_beta_evidence_steps` en el reporte de piloto seguro, con comandos concretos para cerrar blockers beta pendientes.
+- Pruebas para el plan dinamico de evidencias beta dentro del piloto seguro.
+
+### Cambiado
+
+- README, `PILOTS.md`, docs HTML, roadmap y gate de estabilidad documentan el plan dinamico de evidencias.
+
 ## [0.46.0] - 2026-06-05
 
 ### Agregado

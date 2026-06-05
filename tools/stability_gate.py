@@ -31,9 +31,13 @@ PILOT_CHECKS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
     ("custom_output_example", "examples/custom_output_backend.py", ("MemorySpeechOutputBackend", "run_demo")),
     ("system_output_example", "examples/system_output_demo.py", ("DryRunSystemRunner", "--speak")),
     ("local_assistant_privacy_example", "examples/local_assistant_privacy_demo.py", ("PrivacyEventLogger", "privacy_checks")),
-    ("safe_pilot_runner", "tools/pilot_run.py", ("run_safe_pilot", "manual_pilot_steps")),
+    ("safe_pilot_runner", "tools/pilot_run.py", ("run_safe_pilot", "manual_pilot_steps", "next_beta_evidence_steps")),
     ("manual_pilot_runner", "tools/manual_pilot.py", ("run_manual_pilot", "--capture-test", "--sample-rate")),
-    ("output_pilot_runner", "tools/output_pilot.py", ("run_output_pilot", "--speak", "--operator-present", "<text-redacted>")),
+    (
+        "output_pilot_runner",
+        "tools/output_pilot.py",
+        ("run_output_pilot", "--speak", "--operator-present", "--confirm-audible", "<text-redacted>"),
+    ),
     (
         "transcription_pilot_runner",
         "tools/transcription_pilot.py",
