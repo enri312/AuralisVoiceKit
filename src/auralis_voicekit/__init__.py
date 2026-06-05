@@ -31,10 +31,13 @@ from .audio import (
     write_wav,
 )
 from .benchmarks import (
+    BenchmarkComparisonEntry,
+    BenchmarkComparisonReport,
     BenchmarkReport,
     BenchmarkResult,
     generate_synthetic_audio_chunks,
     run_offline_benchmarks,
+    run_whisper_comparison_benchmarks,
 )
 from .config import VoiceKitConfig
 from .diagnostics import DiagnosticCheck, DiagnosticStatus, DoctorReport, run_doctor
@@ -61,6 +64,8 @@ __all__ = [
     "AudioEncoding",
     "AudioFormat",
     "BackendNotAvailable",
+    "BenchmarkComparisonEntry",
+    "BenchmarkComparisonReport",
     "BenchmarkReport",
     "BenchmarkResult",
     "DiagnosticCheck",
@@ -105,6 +110,7 @@ __all__ = [
     "rms_pcm16",
     "run_doctor",
     "run_offline_benchmarks",
+    "run_whisper_comparison_benchmarks",
     "segment_voice_pcm16",
     "write_wav",
 ]

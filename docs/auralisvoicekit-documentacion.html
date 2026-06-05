@@ -517,16 +517,20 @@ py -m unittest tests.test_ffmpeg_integration
 
       <section id="benchmarks">
         <h2>Benchmarks de latencia</h2>
-        <p><code>auralis benchmark</code> mide una linea base offline y determinista sin microfono, red ni extras nativos. Genera audio PCM16 sintetico, lo captura desde el backend <code>wav</code>, segmenta por RMS y transcribe los segmentos con el backend elegido.</p>
+        <p><code>auralis benchmark</code> mide una linea base offline y determinista sin microfono, red ni extras nativos. Genera audio PCM16 sintetico, lo captura desde el backend <code>wav</code>, segmenta por RMS y transcribe los segmentos con el backend elegido. <code>auralis benchmark-whisper</code> compara configuraciones locales de <code>faster-whisper</code> cuando el extra <code>whisper</code> esta instalado.</p>
         <pre><code>auralis benchmark
 auralis benchmark --iterations 10 --duration 3 --json
-auralis benchmark --transcription-backend whisper --model base --iterations 3</code></pre>
-        <p>Por defecto se usa <code>transcription:null</code>; eso mide el costo del pipeline, no un modelo real. Para medir transcripcion local real instala <code>.[whisper]</code> y usa <code>--transcription-backend whisper</code>.</p>
-        <pre><code>from auralis_voicekit import run_offline_benchmarks
+auralis benchmark --transcription-backend whisper --model base --iterations 3
+auralis benchmark-whisper --models tiny,base --beam-sizes 1,5 --iterations 3 --json</code></pre>
+        <p>Por defecto se usa <code>transcription:null</code>; eso mide el costo del pipeline, no un modelo real. Para medir transcripcion local real instala <code>.[whisper]</code> y usa <code>--transcription-backend whisper</code> o <code>benchmark-whisper</code>.</p>
+        <pre><code>from auralis_voicekit import run_offline_benchmarks, run_whisper_comparison_benchmarks
 
 report = run_offline_benchmarks(iterations=5)
 for result in report.results:
-    print(result.name, result.mean_ms, result.p95_ms)</code></pre>
+    print(result.name, result.mean_ms, result.p95_ms)
+
+comparison = run_whisper_comparison_benchmarks(models=("tiny", "base"), beam_sizes=(1, 5))
+print(comparison.to_dict()["rankings"])</code></pre>
       </section>
 
       <section id="arquitectura">
@@ -538,7 +542,7 @@ for result in report.results:
   models.py          AudioChunk, AudioFormat, TranscriptResult
   events.py          EventBus, VoiceEventType
   audio.py           RMS, pico, silencio, normalizacion, segmentos y WAV PCM16
-  benchmarks.py      Benchmarks offline de captura, segmentacion y transcripcion
+  benchmarks.py      Benchmarks offline y comparativos para Whisper
   kit.py             AuralisVoiceKit
   session.py         VoiceSession, VoiceSessionConfig, VoiceTurn
   ffmpeg             Decodificacion opcional de MP3/FLAC a PCM16 con errores accionables
@@ -704,7 +708,7 @@ gh workflow run publish-pypi.yml -f index=pypi -f tag=v0.14.0</code></pre>
             <tr>
               <td>5+</td>
               <td>Loop de asistente, Windows primero, CI, beta publica y version 1.0.</td>
-              <td>Loop inicial cancelable, pruebas MP3/FLAC, errores ffmpeg accionables, benchmarks offline, referencia API inicial, PyPI preparada y salida system configurable</td>
+              <td>Loop inicial cancelable, pruebas MP3/FLAC, errores ffmpeg accionables, benchmarks offline y Whisper, referencia API inicial, PyPI preparada y salida system configurable</td>
             </tr>
           </tbody>
         </table>

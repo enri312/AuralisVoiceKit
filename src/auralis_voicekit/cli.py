@@ -16,7 +16,12 @@ from .audio import (
     write_wav,
 )
 from .backends import create_default_registry
-from .benchmarks import BenchmarkReport, run_offline_benchmarks
+from .benchmarks import (
+    BenchmarkComparisonReport,
+    BenchmarkReport,
+    run_offline_benchmarks,
+    run_whisper_comparison_benchmarks,
+)
 from .config import VoiceKitConfig
 from .diagnostics import DiagnosticStatus, run_doctor
 from .exceptions import AudioSourceError, BackendNotAvailable, TranscriptionError
@@ -453,6 +458,40 @@ def _print_benchmark_report(report: BenchmarkReport) -> None:
         )
 
 
+def _print_comparison_report(report: BenchmarkComparisonReport) -> None:
+    print(f"AuralisVoiceKit {report.version} {report.benchmark}")
+    print(
+        f"Audio: {report.duration_seconds:.3f}s, "
+        f"{report.sample_rate} Hz, {report.channels} channel(s), "
+        f"chunk={report.chunk_duration_ms} ms"
+    )
+    print(f"Iterations: {report.iterations}, warmups: {report.warmup_iterations}")
+    if report.warnings:
+        print("Warnings:")
+        for warning in report.warnings:
+            print(f"  - {warning}")
+    print()
+    print("Rankings:")
+    for index, entry in enumerate(report.entries, start=1):
+        print(
+            f"  {index}. {entry.name}: "
+            f"mean={entry.transcription_mean_ms:.3f}ms, "
+            f"p95={entry.transcription_p95_ms:.3f}ms"
+        )
+
+
+def _parse_csv(value: str) -> tuple[str, ...]:
+    return tuple(item.strip() for item in value.split(",") if item.strip())
+
+
+def _parse_int_csv(value: str) -> tuple[int, ...]:
+    items = _parse_csv(value)
+    try:
+        return tuple(int(item) for item in items)
+    except ValueError as exc:
+        raise ValueError(f"Expected comma-separated integers, got {value!r}") from exc
+
+
 def _run_benchmark(
     *,
     iterations: int,
@@ -507,6 +546,63 @@ def _run_benchmark(
         print(json.dumps(report.to_dict(), indent=2, sort_keys=True))
     else:
         _print_benchmark_report(report)
+    return 0
+
+
+def _run_whisper_benchmark(
+    *,
+    iterations: int,
+    warmups: int,
+    duration_seconds: float,
+    sample_rate: int,
+    channels: int,
+    chunk_duration_ms: int,
+    threshold: float,
+    min_voice_ms: int,
+    max_silence_ms: int,
+    pre_speech_ms: int,
+    models: str,
+    devices: str,
+    compute_types: str,
+    beam_sizes: str,
+    vad_filter: bool,
+    max_combinations: int,
+    language: str,
+    json_output: bool,
+) -> int:
+    try:
+        report = run_whisper_comparison_benchmarks(
+            models=_parse_csv(models),
+            devices=_parse_csv(devices),
+            compute_types=_parse_csv(compute_types),
+            beam_sizes=_parse_int_csv(beam_sizes),
+            vad_filter=vad_filter,
+            max_combinations=max_combinations,
+            iterations=iterations,
+            warmup_iterations=warmups,
+            duration_seconds=duration_seconds,
+            sample_rate=sample_rate,
+            channels=channels,
+            chunk_duration_ms=chunk_duration_ms,
+            voice_activity=VoiceActivityConfig(
+                threshold=threshold,
+                min_voice_ms=min_voice_ms,
+                max_silence_ms=max_silence_ms,
+                pre_speech_ms=pre_speech_ms,
+            ),
+            language=language,
+        )
+    except (BackendNotAvailable, TranscriptionError, ValueError) as exc:
+        if json_output:
+            print(json.dumps({"error": str(exc)}, indent=2, sort_keys=True))
+        else:
+            print(str(exc))
+        return 1
+
+    if json_output:
+        print(json.dumps(report.to_dict(), indent=2, sort_keys=True))
+    else:
+        _print_comparison_report(report)
     return 0
 
 
@@ -596,6 +692,54 @@ def main(argv: list[str] | None = None) -> int:
     benchmark_parser.add_argument("--beam-size", type=int, default=5, help="local whisper beam size")
     benchmark_parser.add_argument("--vad-filter", action="store_true", help="enable local whisper VAD filter")
     benchmark_parser.add_argument("--json", action="store_true", help="print a JSON report")
+    whisper_benchmark_parser = subparsers.add_parser(
+        "benchmark-whisper",
+        help="compare local faster-whisper configurations",
+    )
+    whisper_benchmark_parser.add_argument("--iterations", type=int, default=3, help="measured iterations")
+    whisper_benchmark_parser.add_argument("--warmups", type=int, default=1, help="warmup iterations")
+    whisper_benchmark_parser.add_argument("--duration", type=float, default=2.0, help="synthetic audio duration")
+    whisper_benchmark_parser.add_argument(
+        "--sample-rate",
+        type=int,
+        default=16000,
+        help="synthetic audio sample rate",
+    )
+    whisper_benchmark_parser.add_argument("--channels", type=int, default=1, help="synthetic audio channels")
+    whisper_benchmark_parser.add_argument("--chunk-ms", type=int, default=50, help="chunk size in milliseconds")
+    whisper_benchmark_parser.add_argument("--threshold", type=float, default=0.01, help="voice RMS threshold")
+    whisper_benchmark_parser.add_argument("--min-voice-ms", type=int, default=120, help="minimum voice duration")
+    whisper_benchmark_parser.add_argument(
+        "--max-silence-ms",
+        type=int,
+        default=350,
+        help="silence duration that closes a segment",
+    )
+    whisper_benchmark_parser.add_argument("--pre-speech-ms", type=int, default=100, help="silence kept before speech")
+    whisper_benchmark_parser.add_argument(
+        "--models",
+        default="tiny,base",
+        help="comma-separated faster-whisper models to compare",
+    )
+    whisper_benchmark_parser.add_argument(
+        "--devices",
+        default="auto",
+        help="comma-separated local whisper devices",
+    )
+    whisper_benchmark_parser.add_argument(
+        "--compute-types",
+        default="default",
+        help="comma-separated local whisper compute types",
+    )
+    whisper_benchmark_parser.add_argument(
+        "--beam-sizes",
+        default="1,5",
+        help="comma-separated local whisper beam sizes",
+    )
+    whisper_benchmark_parser.add_argument("--vad-filter", action="store_true", help="enable local whisper VAD filter")
+    whisper_benchmark_parser.add_argument("--max-combinations", type=int, default=8, help="safety limit")
+    whisper_benchmark_parser.add_argument("--language", default="es", help="audio language hint")
+    whisper_benchmark_parser.add_argument("--json", action="store_true", help="print a JSON report")
     transcribe_parser = subparsers.add_parser("transcribe", help="transcribe an audio file")
     transcribe_parser.add_argument("path", help="path to a WAV or ffmpeg-supported audio file")
     transcribe_parser.add_argument(
@@ -741,6 +885,27 @@ def main(argv: list[str] | None = None) -> int:
             compute_type=args.compute_type,
             beam_size=args.beam_size,
             vad_filter=args.vad_filter,
+            json_output=args.json,
+        )
+    if args.command == "benchmark-whisper":
+        return _run_whisper_benchmark(
+            iterations=args.iterations,
+            warmups=args.warmups,
+            duration_seconds=args.duration,
+            sample_rate=args.sample_rate,
+            channels=args.channels,
+            chunk_duration_ms=args.chunk_ms,
+            threshold=args.threshold,
+            min_voice_ms=args.min_voice_ms,
+            max_silence_ms=args.max_silence_ms,
+            pre_speech_ms=args.pre_speech_ms,
+            models=args.models,
+            devices=args.devices,
+            compute_types=args.compute_types,
+            beam_sizes=args.beam_sizes,
+            vad_filter=args.vad_filter,
+            max_combinations=args.max_combinations,
+            language=args.language,
             json_output=args.json,
         )
     if args.command == "transcribe":

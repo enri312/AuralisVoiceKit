@@ -89,6 +89,90 @@ class BenchmarkReport:
         }
 
 
+@dataclass(frozen=True, slots=True)
+class BenchmarkComparisonEntry:
+    """One comparable benchmark run inside a benchmark suite."""
+
+    name: str
+    model: str
+    device: str
+    compute_type: str
+    beam_size: int
+    vad_filter: bool
+    report: BenchmarkReport
+    transcription_mean_ms: float
+    transcription_p95_ms: float
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "name": self.name,
+            "model": self.model,
+            "device": self.device,
+            "compute_type": self.compute_type,
+            "beam_size": self.beam_size,
+            "vad_filter": self.vad_filter,
+            "transcription_mean_ms": self.transcription_mean_ms,
+            "transcription_p95_ms": self.transcription_p95_ms,
+            "report": self.report.to_dict(),
+        }
+
+
+@dataclass(frozen=True, slots=True)
+class BenchmarkComparisonReport:
+    """Comparable benchmark report for several backend configurations."""
+
+    version: str
+    created_at: str
+    benchmark: str
+    iterations: int
+    warmup_iterations: int
+    duration_seconds: float
+    sample_rate: int
+    channels: int
+    chunk_duration_ms: int
+    entries: tuple[BenchmarkComparisonEntry, ...]
+    warnings: tuple[str, ...] = ()
+
+    @property
+    def fastest(self) -> BenchmarkComparisonEntry | None:
+        if not self.entries:
+            return None
+        return min(self.entries, key=lambda entry: entry.transcription_mean_ms)
+
+    def to_dict(self) -> dict[str, object]:
+        fastest = self.fastest
+        return {
+            "version": self.version,
+            "created_at": self.created_at,
+            "benchmark": self.benchmark,
+            "iterations": self.iterations,
+            "warmup_iterations": self.warmup_iterations,
+            "duration_seconds": self.duration_seconds,
+            "sample_rate": self.sample_rate,
+            "channels": self.channels,
+            "chunk_duration_ms": self.chunk_duration_ms,
+            "fastest": fastest.name if fastest is not None else None,
+            "entries": [entry.to_dict() for entry in self.entries],
+            "rankings": [
+                {
+                    "rank": index + 1,
+                    "name": entry.name,
+                    "model": entry.model,
+                    "device": entry.device,
+                    "compute_type": entry.compute_type,
+                    "beam_size": entry.beam_size,
+                    "vad_filter": entry.vad_filter,
+                    "transcription_mean_ms": entry.transcription_mean_ms,
+                    "transcription_p95_ms": entry.transcription_p95_ms,
+                }
+                for index, entry in enumerate(
+                    sorted(self.entries, key=lambda item: item.transcription_mean_ms)
+                )
+            ],
+            "warnings": list(self.warnings),
+        }
+
+
 def generate_synthetic_audio_chunks(
     *,
     duration_seconds: float = 2.0,
@@ -228,11 +312,154 @@ def run_offline_benchmarks(
     )
 
 
+def run_whisper_comparison_benchmarks(
+    *,
+    models: tuple[str, ...] = ("tiny", "base"),
+    devices: tuple[str, ...] = ("auto",),
+    compute_types: tuple[str, ...] = ("default",),
+    beam_sizes: tuple[int, ...] = (1, 5),
+    vad_filter: bool = False,
+    max_combinations: int = 8,
+    iterations: int = 3,
+    warmup_iterations: int = 1,
+    duration_seconds: float = 2.0,
+    sample_rate: int = 16_000,
+    channels: int = 1,
+    chunk_duration_ms: int = 50,
+    voice_activity: VoiceActivityConfig | None = None,
+    language: str = "es",
+) -> BenchmarkComparisonReport:
+    """Compare several faster-whisper configurations on the local machine."""
+
+    _validate_benchmark_settings(iterations, warmup_iterations)
+    combinations = _whisper_configurations(
+        models=models,
+        devices=devices,
+        compute_types=compute_types,
+        beam_sizes=beam_sizes,
+        vad_filter=vad_filter,
+        max_combinations=max_combinations,
+    )
+    entries = []
+    warnings: list[str] = []
+    for model, device, compute_type, beam_size, use_vad in combinations:
+        report = run_offline_benchmarks(
+            iterations=iterations,
+            warmup_iterations=warmup_iterations,
+            duration_seconds=duration_seconds,
+            sample_rate=sample_rate,
+            channels=channels,
+            chunk_duration_ms=chunk_duration_ms,
+            voice_activity=voice_activity,
+            transcription_backend="whisper",
+            transcription_model=model,
+            language=language,
+            transcription_device=device,
+            transcription_compute_type=compute_type,
+            transcription_beam_size=beam_size,
+            transcription_vad_filter=use_vad,
+        )
+        warnings.extend(report.warnings)
+        transcription_result = _find_result(report, "transcription:whisper")
+        entries.append(
+            BenchmarkComparisonEntry(
+                name=_whisper_entry_name(
+                    model=model,
+                    device=device,
+                    compute_type=compute_type,
+                    beam_size=beam_size,
+                    vad_filter=use_vad,
+                ),
+                model=model,
+                device=device,
+                compute_type=compute_type,
+                beam_size=beam_size,
+                vad_filter=use_vad,
+                report=report,
+                transcription_mean_ms=transcription_result.mean_ms,
+                transcription_p95_ms=transcription_result.p95_ms,
+            )
+        )
+
+    return BenchmarkComparisonReport(
+        version=__version__,
+        created_at=datetime.now(timezone.utc).isoformat(),
+        benchmark="whisper-comparison",
+        iterations=iterations,
+        warmup_iterations=warmup_iterations,
+        duration_seconds=duration_seconds,
+        sample_rate=sample_rate,
+        channels=channels,
+        chunk_duration_ms=chunk_duration_ms,
+        entries=tuple(sorted(entries, key=lambda entry: entry.transcription_mean_ms)),
+        warnings=tuple(dict.fromkeys(warnings)),
+    )
+
+
 def _validate_benchmark_settings(iterations: int, warmup_iterations: int) -> None:
     if iterations <= 0:
         raise ValueError("iterations must be greater than zero")
     if warmup_iterations < 0:
         raise ValueError("warmup_iterations must be greater than or equal to zero")
+
+
+def _whisper_configurations(
+    *,
+    models: tuple[str, ...],
+    devices: tuple[str, ...],
+    compute_types: tuple[str, ...],
+    beam_sizes: tuple[int, ...],
+    vad_filter: bool,
+    max_combinations: int,
+) -> tuple[tuple[str, str, str, int, bool], ...]:
+    if not models:
+        raise ValueError("at least one whisper model is required")
+    if not devices:
+        raise ValueError("at least one whisper device is required")
+    if not compute_types:
+        raise ValueError("at least one whisper compute type is required")
+    if not beam_sizes:
+        raise ValueError("at least one whisper beam size is required")
+    if any(beam_size <= 0 for beam_size in beam_sizes):
+        raise ValueError("whisper beam sizes must be greater than zero")
+    if max_combinations <= 0:
+        raise ValueError("max_combinations must be greater than zero")
+
+    combinations = tuple(
+        (model, device, compute_type, beam_size, vad_filter)
+        for model in models
+        for device in devices
+        for compute_type in compute_types
+        for beam_size in beam_sizes
+    )
+    if len(combinations) > max_combinations:
+        raise ValueError(
+            f"whisper benchmark requested {len(combinations)} combinations; "
+            f"raise max_combinations above {max_combinations} to run them"
+        )
+    return combinations
+
+
+def _whisper_entry_name(
+    *,
+    model: str,
+    device: str,
+    compute_type: str,
+    beam_size: int,
+    vad_filter: bool,
+) -> str:
+    vad = "vad-on" if vad_filter else "vad-off"
+    return (
+        f"whisper:model={model}:device={device}:"
+        f"compute={compute_type}:beam={beam_size}:{vad}"
+    )
+
+
+def _find_result(report: BenchmarkReport, name: str) -> BenchmarkResult:
+    for result in report.results:
+        if result.name == name:
+            return result
+    raise ValueError(f"benchmark report did not include result {name!r}")
 
 
 def _benchmark_wav_capture(

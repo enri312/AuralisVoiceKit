@@ -12,7 +12,7 @@ English: AuralisVoiceKit is a modern voice toolkit for Python assistants, local 
 
 El objetivo principal es evitar que la captura de microfono dependa obligatoriamente de PyAudio o de wheels que tardan en llegar a las versiones nuevas de Python. El paquete base debe poder instalarse de forma liviana, sin compiladores y sin dependencias nativas obligatorias. Para MP3, FLAC y formatos comprimidos, AuralisVoiceKit usa `ffmpeg` como herramienta externa opcional.
 
-> Estado actual: alpha tecnica. El repositorio ya define el core, los contratos de backends, captura real inicial, diagnostico reforzado para WASAPI, flujo WAV offline, transcripcion inicial por API y local opcional, sesiones de voz iniciales, una CLI de diagnostico, benchmarks offline de latencia, errores accionables para `ffmpeg`, documentacion estatica, salida de voz del sistema con voces configurables, pruebas unitarias y pruebas reales de MP3/FLAC. Los backends reales se iran agregando por etapas.
+> Estado actual: alpha tecnica. El repositorio ya define el core, los contratos de backends, captura real inicial, diagnostico reforzado para WASAPI, flujo WAV offline, transcripcion inicial por API y local opcional, sesiones de voz iniciales, una CLI de diagnostico, benchmarks offline y comparativos para Whisper, errores accionables para `ffmpeg`, documentacion estatica, salida de voz del sistema con voces configurables, pruebas unitarias y pruebas reales de MP3/FLAC. Los backends reales se iran agregando por etapas.
 
 ## Problema que resuelve
 
@@ -431,18 +431,28 @@ La salida distingue entre `ok`, `warning` y `error`. Los warnings no bloquean el
 auralis benchmark
 auralis benchmark --iterations 10 --duration 3 --json
 auralis benchmark --transcription-backend whisper --model base --iterations 3
+auralis benchmark-whisper --models tiny,base --beam-sizes 1,5 --iterations 3 --json
 ```
 
 Por defecto se usa `transcription:null`; eso mide el costo del pipeline, no un modelo real. Para medir transcripcion local real instala `.[whisper]` y usa `--transcription-backend whisper`.
 
+`auralis benchmark-whisper` compara varias configuraciones de `faster-whisper` en el hardware local. Por defecto compara `tiny` y `base` con beam sizes `1` y `5`, y usa `--max-combinations` como proteccion para no lanzar una matriz enorme accidentalmente. English: this command is optional and only useful after installing the `whisper` extra.
+
 Desde Python:
 
 ```python
-from auralis_voicekit import run_offline_benchmarks
+from auralis_voicekit import run_offline_benchmarks, run_whisper_comparison_benchmarks
 
 report = run_offline_benchmarks(iterations=5)
 for result in report.results:
     print(result.name, result.mean_ms, result.p95_ms)
+
+comparison = run_whisper_comparison_benchmarks(
+    models=("tiny", "base"),
+    beam_sizes=(1, 5),
+    iterations=3,
+)
+print(comparison.to_dict()["rankings"])
 ```
 
 ## Arquitectura
@@ -466,7 +476,7 @@ auralis_voicekit
     system        Backend opcional de salida de voz del sistema
     registry      Registro de backends
   audio           Utilidades PCM16, calibracion y segmentacion
-  benchmarks      Latencia offline para captura, segmentacion y transcripcion
+  benchmarks      Latencia offline y comparativa para Whisper
   ffmpeg          Decodificacion opcional de MP3/FLAC a PCM16 con errores accionables
   cli             Diagnostico y utilidades
   diagnostics     Reportes doctor estructurados
@@ -506,11 +516,11 @@ ROADMAP.md
 
 Prioridad inmediata:
 
-1. Agregar benchmarks comparativos opcionales para `whisper` en hardware real.
-2. Preparar un ejemplo pequeno de integracion para usuarios de PyPI.
-3. Agregar una guia de privacidad y manejo de logs.
-4. Documentar patrones de backends de salida personalizados.
-5. Ampliar mensajes especificos para errores comunes de audio en Windows.
+1. Preparar un ejemplo pequeno de integracion para usuarios de PyPI.
+2. Agregar una guia de privacidad y manejo de logs.
+3. Documentar patrones de backends de salida personalizados.
+4. Ampliar mensajes especificos para errores comunes de audio en Windows.
+5. Agregar benchmarks exportables a archivo JSON/CSV.
 
 ## Documentacion
 

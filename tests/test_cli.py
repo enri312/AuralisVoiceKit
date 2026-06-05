@@ -8,7 +8,16 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from auralis_voicekit import AudioChunk, AudioFormat, __version__, write_wav
+from auralis_voicekit import (
+    AudioChunk,
+    AudioFormat,
+    BenchmarkComparisonEntry,
+    BenchmarkComparisonReport,
+    BenchmarkReport,
+    BenchmarkResult,
+    __version__,
+    write_wav,
+)
 from auralis_voicekit.backends import SystemVoice
 from auralis_voicekit.audio import peak_pcm16, read_wav_as_chunk
 from auralis_voicekit.cli import main
@@ -18,6 +27,57 @@ def _constant_chunk(amplitude: int, samples: int = 100, sample_rate: int = 1000)
     data = struct.pack("<" + "h" * samples, *([amplitude] * samples))
     audio_format = AudioFormat(sample_rate=sample_rate, channels=1, sample_width=2)
     return AudioChunk(data=data, format=audio_format)
+
+
+def _fake_whisper_comparison_report() -> BenchmarkComparisonReport:
+    result = BenchmarkResult(
+        name="transcription:whisper",
+        iterations=1,
+        samples_ms=(12.0,),
+        min_ms=12.0,
+        mean_ms=12.0,
+        median_ms=12.0,
+        p95_ms=12.0,
+        max_ms=12.0,
+        total_ms=12.0,
+    )
+    benchmark = BenchmarkReport(
+        version=__version__,
+        created_at="2026-01-01T00:00:00+00:00",
+        duration_seconds=0.1,
+        sample_rate=1000,
+        channels=1,
+        chunk_duration_ms=100,
+        iterations=1,
+        warmup_iterations=0,
+        chunks=1,
+        segments=1,
+        transcription_backend="whisper",
+        results=(result,),
+    )
+    entry = BenchmarkComparisonEntry(
+        name="whisper:model=tiny:device=auto:compute=default:beam=1:vad-off",
+        model="tiny",
+        device="auto",
+        compute_type="default",
+        beam_size=1,
+        vad_filter=False,
+        report=benchmark,
+        transcription_mean_ms=12.0,
+        transcription_p95_ms=12.0,
+    )
+    return BenchmarkComparisonReport(
+        version=__version__,
+        created_at="2026-01-01T00:00:00+00:00",
+        benchmark="whisper-comparison",
+        iterations=1,
+        warmup_iterations=0,
+        duration_seconds=0.1,
+        sample_rate=1000,
+        channels=1,
+        chunk_duration_ms=100,
+        entries=(entry,),
+    )
 
 
 class CliTests(unittest.TestCase):
@@ -274,6 +334,37 @@ class CliTests(unittest.TestCase):
         self.assertEqual(exit_code, 0)
         self.assertIn("AuralisVoiceKit", output.getvalue())
         self.assertIn("segmentation:rms", output.getvalue())
+
+    def test_benchmark_whisper_command_outputs_json_report(self):
+        output = io.StringIO()
+
+        with patch(
+            "auralis_voicekit.cli.run_whisper_comparison_benchmarks",
+            return_value=_fake_whisper_comparison_report(),
+        ) as runner:
+            with contextlib.redirect_stdout(output):
+                exit_code = main(
+                    [
+                        "benchmark-whisper",
+                        "--models",
+                        "tiny,base",
+                        "--beam-sizes",
+                        "1",
+                        "--iterations",
+                        "1",
+                        "--warmups",
+                        "0",
+                        "--json",
+                    ]
+                )
+
+        payload = json.loads(output.getvalue())
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(payload["benchmark"], "whisper-comparison")
+        self.assertEqual(payload["rankings"][0]["model"], "tiny")
+        runner.assert_called_once()
+        self.assertEqual(runner.call_args.kwargs["models"], ("tiny", "base"))
+        self.assertEqual(runner.call_args.kwargs["beam_sizes"], (1,))
 
     def test_transcribe_command_can_use_null_backend(self):
         audio_format = AudioFormat(sample_rate=8000, channels=1, sample_width=2)

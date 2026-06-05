@@ -13,6 +13,8 @@ El backend `openai` tambien es opcional. Usa el cliente oficial de OpenAI y no a
 
 El backend `whisper` tambien es opcional. Usa `faster-whisper` para transcripcion local, puede descargar modelos en el primer uso y puede requerir dependencias de ML mas pesadas segun plataforma. No cambia el paquete base.
 
+Los benchmarks comparativos de Whisper son opcionales. Requieren el extra `whisper` y se ejecutan con `auralis benchmark-whisper`; comparan modelos, dispositivos, compute types y beam sizes en el hardware local sin abrir el microfono.
+
 MP3, FLAC y otros formatos comprimidos usan `ffmpeg` como herramienta externa opcional. El core sigue sin depender de `ffmpeg` para instalarse, importar o procesar WAV PCM16.
 
 El backend de salida `system` usa herramientas del sistema operativo cuando estan disponibles: PowerShell/SAPI en Windows, `say` en macOS y `spd-say` o `espeak` en Ubuntu/Linux. Puede listar voces y aplicar voz, velocidad o volumen cuando el comando de la plataforma lo soporta. El backend `null` sigue siendo el default.
@@ -93,6 +95,7 @@ Con transcripcion local por Whisper:
 ```powershell
 py -m pip install -e ".[whisper]"
 py -m auralis_voicekit.cli transcribe sample.mp3 --backend whisper --model base
+py -m auralis_voicekit.cli benchmark-whisper --models tiny,base --beam-sizes 1,5 --iterations 3
 ```
 
 ## Ubuntu/Linux
@@ -133,6 +136,7 @@ python -m pip install -e ".[whisper]"
 sudo apt update
 sudo apt install ffmpeg
 python -m auralis_voicekit.cli transcribe sample.mp3 --backend whisper --model base
+python -m auralis_voicekit.cli benchmark-whisper --models tiny,base --beam-sizes 1,5 --iterations 3
 ```
 
 ## macOS
@@ -171,6 +175,7 @@ Con transcripcion local por Whisper:
 python -m pip install -e ".[whisper]"
 brew install ffmpeg
 python -m auralis_voicekit.cli transcribe sample.mp3 --backend whisper --model base
+python -m auralis_voicekit.cli benchmark-whisper --models tiny,base --beam-sizes 1,5 --iterations 3
 ```
 
 ## Diagnostico
@@ -189,6 +194,7 @@ python -m auralis_voicekit.cli doctor --wav sample.wav
 python -m auralis_voicekit.cli doctor --json
 python -m auralis_voicekit.cli benchmark --iterations 5
 python -m auralis_voicekit.cli benchmark --iterations 5 --json
+python -m auralis_voicekit.cli benchmark-whisper --models tiny,base --beam-sizes 1,5 --json
 python -m auralis_voicekit.cli transcribe sample.mp3 --backend null --ffmpeg /path/to/ffmpeg
 python -m auralis_voicekit.cli devices --backend sounddevice
 python -m auralis_voicekit.cli devices --backend wasapi

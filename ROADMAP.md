@@ -38,7 +38,7 @@ La meta no es competir con todos los motores de voz a la vez. La meta es constru
 | Salida de voz real | Inicial con backend `system`, listado de voces y parametros de voz |
 | CI multiplataforma | Inicial con pruebas reales de MP3 y FLAC |
 | Publicacion en PyPI | Preparada con workflow manual |
-| Benchmarks de latencia | Inicial offline para captura, segmentacion y transcripcion |
+| Benchmarks de latencia | Inicial offline y comparativo para Whisper |
 | Errores de ffmpeg | Inicial con diagnostico accionable |
 | Documentacion API | Inicial para usuarios de PyPI |
 
@@ -192,6 +192,7 @@ Entregables:
 - Matriz de Python estable y prerelease.
 - Pruebas reales de MP3 y FLAC con `ffmpeg` en Windows, Ubuntu/Linux y macOS. Estado: inicial.
 - Benchmarks basicos de latencia para captura offline, segmentacion y transcripcion. Estado: inicial.
+- Benchmarks comparativos opcionales para Whisper/faster-whisper en hardware local. Estado: inicial.
 - Mensajes accionables cuando `ffmpeg` falta, falla o no produce audio. Estado: inicial.
 - Build de wheel y sdist.
 - Versionado semantico.
@@ -254,13 +255,13 @@ Criterio de salida:
 - Medidor de energia en tiempo real.
 - Grabacion temporal con borrado seguro.
 - Exportacion de logs sin contenido sensible.
-- Benchmarks de latencia. Estado: inicial offline.
+- Benchmarks de latencia. Estado: inicial offline y comparativo para Whisper.
 - Publicacion en PyPI. Estado: workflow y guia inicial.
 
 ## Prioridad inmediata
 
-1. Agregar benchmarks comparativos opcionales para `whisper` en hardware real.
-2. Preparar un ejemplo pequeno de integracion para usuarios de PyPI.
-3. Agregar una guia de privacidad y manejo de logs.
-4. Documentar patrones de backends de salida personalizados.
-5. Ampliar mensajes especificos para errores comunes de audio en Windows.
+1. Preparar un ejemplo pequeno de integracion para usuarios de PyPI.
+2. Agregar una guia de privacidad y manejo de logs.
+3. Documentar patrones de backends de salida personalizados.
+4. Ampliar mensajes especificos para errores comunes de audio en Windows.
+5. Agregar benchmarks exportables a archivo JSON/CSV.

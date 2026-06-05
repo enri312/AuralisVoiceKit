@@ -6,6 +6,22 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.22.0] - 2026-06-05
+
+### Agregado
+
+- Modelo `BenchmarkComparisonEntry` para representar una configuracion comparada.
+- Modelo `BenchmarkComparisonReport` con ranking por latencia media de transcripcion.
+- Helper publico `run_whisper_comparison_benchmarks()` para comparar configuraciones de `faster-whisper` en hardware local.
+- CLI `auralis benchmark-whisper` con comparacion de modelos, dispositivos, compute types, beam sizes y salida JSON.
+- Limite `--max-combinations` para evitar matrices de benchmark demasiado grandes por accidente.
+- Pruebas unitarias para ranking, serializacion, limite de combinaciones y CLI.
+
+### Cambiado
+
+- README, documentacion HTML, referencia API y roadmap documentan los benchmarks comparativos de Whisper.
+- El roadmap mueve la prioridad inmediata a preparar un ejemplo pequeno de integracion para usuarios de PyPI.
+
 ## [0.21.0] - 2026-06-04
 
 ### Agregado

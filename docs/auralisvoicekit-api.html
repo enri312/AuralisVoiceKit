@@ -542,17 +542,28 @@ print(report.to_dict())</code></pre>
 
       <section id="benchmarks">
         <h2>Benchmarks</h2>
-        <p><code>run_offline_benchmarks()</code> mide una linea base determinista para captura WAV, segmentacion RMS y transcripcion con el backend elegido.</p>
+        <p><code>run_offline_benchmarks()</code> mide una linea base determinista para captura WAV, segmentacion RMS y transcripcion con el backend elegido. <code>run_whisper_comparison_benchmarks()</code> compara varias configuraciones locales de <code>faster-whisper</code> y devuelve un ranking por latencia media.</p>
         <pre><code>from auralis_voicekit import (
+    BenchmarkComparisonEntry,
+    BenchmarkComparisonReport,
     BenchmarkReport,
     BenchmarkResult,
     generate_synthetic_audio_chunks,
     run_offline_benchmarks,
+    run_whisper_comparison_benchmarks,
 )
 
 report = run_offline_benchmarks(iterations=5)
 for result in report.results:
-    print(result.name, result.mean_ms, result.p95_ms)</code></pre>
+    print(result.name, result.mean_ms, result.p95_ms)
+
+comparison: BenchmarkComparisonReport = run_whisper_comparison_benchmarks(
+    models=("tiny", "base"),
+    beam_sizes=(1, 5),
+    iterations=3,
+)
+for entry in comparison.entries:
+    print(entry.name, entry.transcription_mean_ms)</code></pre>
       </section>
 
       <section id="errors">
@@ -683,7 +694,7 @@ kit = AuralisVoiceKit(
             </tr>
             <tr>
               <td>Benchmarks</td>
-              <td><code>BenchmarkReport</code>, <code>BenchmarkResult</code>, <code>generate_synthetic_audio_chunks</code>, <code>run_offline_benchmarks</code></td>
+              <td><code>BenchmarkComparisonEntry</code>, <code>BenchmarkComparisonReport</code>, <code>BenchmarkReport</code>, <code>BenchmarkResult</code>, <code>generate_synthetic_audio_chunks</code>, <code>run_offline_benchmarks</code>, <code>run_whisper_comparison_benchmarks</code></td>
             </tr>
             <tr>
               <td>Errores</td>
