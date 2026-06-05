@@ -654,6 +654,30 @@ kit = AuralisVoiceKit(
 kit.speak("Hola desde AuralisVoiceKit")</code></pre>
         <pre><code>auralis voices --backend system --json
 auralis speak "Hola" --backend system --voice es --rate 160 --volume 80</code></pre>
+        <h3>Salida personalizada</h3>
+        <p>Un backend de salida custom implementa <code>SpeechOutputBackend</code>, reporta <code>BackendInfo(kind="output")</code> y se registra con <code>BackendRegistry.register_output()</code>. La guia completa vive en <a href="../CUSTOM_OUTPUT_BACKENDS.md">CUSTOM_OUTPUT_BACKENDS.md</a>.</p>
+        <pre><code>from auralis_voicekit import AuralisVoiceKit, VoiceKitConfig
+from auralis_voicekit.backends import BackendInfo, create_default_registry
+
+class QueueOutputBackend:
+    name = "queue"
+
+    def __init__(self):
+        self.items = []
+
+    def info(self):
+        return BackendInfo(name=self.name, kind="output")
+
+    def speak(self, text, config):
+        if text.strip():
+            self.items.append(text)
+
+backend = QueueOutputBackend()
+registry = create_default_registry()
+registry.register_output("queue", lambda: backend)
+kit = AuralisVoiceKit(VoiceKitConfig(output_backend="queue"), registry=registry)
+kit.speak("Hola desde una salida custom")</code></pre>
+        <pre><code>python examples/custom_output_backend.py --json</code></pre>
         <h3>Registro custom</h3>
         <pre><code>from auralis_voicekit import AuralisVoiceKit, TranscriptResult, VoiceKitConfig
 from auralis_voicekit.backends import BackendRegistry, create_default_registry
@@ -675,6 +699,10 @@ kit = AuralisVoiceKit(
     registry=registry,
 )</code></pre>
         <p>Contratos disponibles: <code>CaptureBackend</code>, <code>TranscriptionBackend</code>, <code>SpeechOutputBackend</code> y <code>BackendInfo</code>.</p>
+        <h3>Automatizacion de estabilidad</h3>
+        <p><code>tools/stability_gate.py</code> revisa documentacion, ejemplos, CI y version para indicar si el proyecto esta en <code>alpha</code>, listo para pilotos reales o listo para estable.</p>
+        <pre><code>python tools/stability_gate.py --json
+python tools/stability_gate.py --min-stage pilot</code></pre>
       </section>
 
       <section id="symbols">

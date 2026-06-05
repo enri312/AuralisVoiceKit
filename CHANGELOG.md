@@ -6,6 +6,21 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.25.0] - 2026-06-05
+
+### Agregado
+
+- Guia `CUSTOM_OUTPUT_BACKENDS.md` en espanol e ingles para backends de salida personalizados.
+- Ejemplo `examples/custom_output_backend.py` con backend de salida en memoria, sin reproducir audio real.
+- Automatizacion `tools/stability_gate.py` para medir si el proyecto esta listo para pilotos reales o version estable.
+- Paso de CI `Run stability gate` con requisito minimo `pilot`.
+- Pruebas automatizadas para el ejemplo custom y el gate de estabilidad.
+
+### Cambiado
+
+- README, referencia API, documentacion HTML y roadmap documentan backends de salida custom y la automatizacion de estabilidad.
+- El roadmap mueve la prioridad inmediata a mejorar mensajes especificos para errores comunes de audio en Windows.
+
 ## [0.24.0] - 2026-06-05
 
 ### Agregado

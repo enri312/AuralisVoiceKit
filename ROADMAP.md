@@ -43,6 +43,8 @@ La meta no es competir con todos los motores de voz a la vez. La meta es constru
 | Documentacion API | Inicial para usuarios de PyPI |
 | Ejemplos para PyPI | Quickstart inicial sin extras |
 | Privacidad y logs | Guia inicial y exportacion JSONL sanitizada |
+| Backends de salida custom | Guia inicial y ejemplo en memoria |
+| Automatizacion de estabilidad | Gate inicial para pilotos reales |
 
 ## Fase 0 - Base del proyecto
 
@@ -137,6 +139,8 @@ Entregables:
 - Backend `system` inicial para TTS local por sistema operativo. Estado: inicial.
 - Listado de voces disponibles en Windows, macOS y Linux con `espeak`. Estado: inicial.
 - Seleccion de voz, velocidad y volumen cuando el comando del sistema lo soporta. Estado: inicial.
+- Guia de backends de salida personalizados. Estado: inicial con `CUSTOM_OUTPUT_BACKENDS.md`.
+- Ejemplo de backend de salida en memoria. Estado: inicial con `examples/custom_output_backend.py`.
 - Backend Windows inicial para TTS local si es viable. Estado: inicial via PowerShell/SAPI.
 - Backend por API como extra opcional.
 - Cola simple de reproduccion.
@@ -200,6 +204,7 @@ Entregables:
 - Versionado semantico.
 - Licencia y metadata final.
 - Workflow manual para TestPyPI/PyPI con Trusted Publishing. Estado: inicial.
+- Gate de estabilidad para CI. Estado: inicial con `tools/stability_gate.py`.
 
 Criterio de salida:
 
@@ -261,11 +266,13 @@ Criterio de salida:
 - Benchmarks de latencia. Estado: inicial offline y comparativo para Whisper.
 - Publicacion en PyPI. Estado: workflow y guia inicial.
 - Ejemplo PyPI sin extras. Estado: inicial.
+- Backends de salida personalizados. Estado: guia y ejemplo inicial.
+- Automatizacion de estabilidad. Estado: gate inicial listo para CI y uso local.
 
 ## Prioridad inmediata
 
-1. Documentar patrones de backends de salida personalizados.
-2. Ampliar mensajes especificos para errores comunes de audio en Windows.
-3. Agregar benchmarks exportables a archivo JSON/CSV.
-4. Preparar un ejemplo de salida de voz con backend `system`.
-5. Agregar ejemplos completos de asistente local con logs sanitizados.
+1. Ampliar mensajes especificos para errores comunes de audio en Windows.
+2. Agregar benchmarks exportables a archivo JSON/CSV.
+3. Preparar un ejemplo de salida de voz con backend `system`.
+4. Agregar ejemplos completos de asistente local con logs sanitizados.
+5. Ejecutar pilotos reales guiados por `tools/stability_gate.py`.

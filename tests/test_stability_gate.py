@@ -1,0 +1,42 @@
+import contextlib
+import importlib.util
+import io
+import unittest
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[1]
+STABILITY_GATE = ROOT / "tools" / "stability_gate.py"
+
+
+def _load_stability_gate():
+    spec = importlib.util.spec_from_file_location("stability_gate", STABILITY_GATE)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+    return module
+
+
+class StabilityGateTests(unittest.TestCase):
+    def test_report_marks_project_ready_for_real_world_pilots(self):
+        module = _load_stability_gate()
+
+        report = module.build_report(ROOT)
+
+        self.assertEqual(report["stage"], "pilot")
+        self.assertTrue(report["ready_for_real_world_pilots"])
+        self.assertFalse(report["ready_for_stable_release"])
+        self.assertIn("version_is_pre_1_0", report["stable_blockers"])
+
+    def test_min_stage_pilot_exits_successfully(self):
+        module = _load_stability_gate()
+
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            exit_code = module.main(["--root", str(ROOT), "--min-stage", "pilot"])
+
+        self.assertEqual(exit_code, 0)
+
+
+if __name__ == "__main__":
+    unittest.main()

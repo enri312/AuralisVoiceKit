@@ -12,7 +12,7 @@ English: AuralisVoiceKit is a modern voice toolkit for Python assistants, local 
 
 El objetivo principal es evitar que la captura de microfono dependa obligatoriamente de PyAudio o de wheels que tardan en llegar a las versiones nuevas de Python. El paquete base debe poder instalarse de forma liviana, sin compiladores y sin dependencias nativas obligatorias. Para MP3, FLAC y formatos comprimidos, AuralisVoiceKit usa `ffmpeg` como herramienta externa opcional.
 
-> Estado actual: alpha tecnica. El repositorio ya define el core, los contratos de backends, captura real inicial, diagnostico reforzado para WASAPI, flujo WAV offline, transcripcion inicial por API y local opcional, sesiones de voz iniciales, una CLI de diagnostico, benchmarks offline y comparativos para Whisper, errores accionables para `ffmpeg`, documentacion estatica, salida de voz del sistema con voces configurables, quickstart para PyPI sin extras, guia de privacidad/logs, pruebas unitarias y pruebas reales de MP3/FLAC. Los backends reales se iran agregando por etapas.
+> Estado actual: alpha tecnica con gate de pilotos reales. El repositorio ya define el core, los contratos de backends, captura real inicial, diagnostico reforzado para WASAPI, flujo WAV offline, transcripcion inicial por API y local opcional, sesiones de voz iniciales, una CLI de diagnostico, benchmarks offline y comparativos para Whisper, errores accionables para `ffmpeg`, documentacion estatica, salida de voz del sistema con voces configurables, salida custom en memoria, quickstart para PyPI sin extras, guia de privacidad/logs, pruebas unitarias y pruebas reales de MP3/FLAC. Los backends reales se iran agregando por etapas.
 
 ## Problema que resuelve
 
@@ -176,6 +176,46 @@ Rutas usadas por plataforma:
 - Ubuntu/Linux: `spd-say` o `espeak`; `espeak` permite voz, velocidad, volumen y listado de voces.
 
 English: the `system` output backend can list voices and select voice/rate/volume when the operating system command supports those options.
+
+## Backends de salida personalizados
+
+Un backend custom de salida implementa `info()` y `speak(text, config)`, se registra con `BackendRegistry.register_output()` y se selecciona con `VoiceKitConfig(output_backend="...")`.
+
+```python
+from auralis_voicekit import AuralisVoiceKit, VoiceKitConfig
+from auralis_voicekit.backends import BackendInfo, create_default_registry
+
+class QueueOutputBackend:
+    name = "queue"
+
+    def __init__(self):
+        self.items = []
+
+    def info(self):
+        return BackendInfo(name=self.name, kind="output")
+
+    def speak(self, text, config):
+        if text.strip():
+            self.items.append(text)
+
+backend = QueueOutputBackend()
+registry = create_default_registry()
+registry.register_output("queue", lambda: backend)
+kit = AuralisVoiceKit(VoiceKitConfig(output_backend="queue"), registry=registry)
+kit.speak("Hola desde una salida custom")
+```
+
+Ejemplo ejecutable sin reproducir audio real:
+
+```powershell
+py examples\custom_output_backend.py --json
+```
+
+La guia completa esta en:
+
+```text
+CUSTOM_OUTPUT_BACKENDS.md
+```
 
 ## Utilidades de audio
 
@@ -539,6 +579,18 @@ La guia bilingue completa esta en:
 PRIVACY.md
 ```
 
+## Automatizacion de estabilidad
+
+El proyecto incluye un gate local y de CI para saber si estamos en alpha, listos para pilotos reales o listos para estable:
+
+```powershell
+py tools\stability_gate.py
+py tools\stability_gate.py --json
+py tools\stability_gate.py --min-stage pilot
+```
+
+Hoy el gate exige documentacion clave, privacidad/logs, guia de salida custom, ejemplos, PyPI, referencia API y CI. Si pasa en etapa `pilot`, ya se puede empezar a probar con microfono real, voces del sistema y transcripcion real controlada antes de pensar en `1.0.0`.
+
 ## Roadmap
 
 El roadmap completo esta en:
@@ -549,11 +601,11 @@ ROADMAP.md
 
 Prioridad inmediata:
 
-1. Documentar patrones de backends de salida personalizados.
-2. Ampliar mensajes especificos para errores comunes de audio en Windows.
-3. Agregar benchmarks exportables a archivo JSON/CSV.
-4. Preparar un ejemplo de salida de voz con backend `system`.
-5. Agregar ejemplos completos de asistente local con logs sanitizados.
+1. Ampliar mensajes especificos para errores comunes de audio en Windows.
+2. Agregar benchmarks exportables a archivo JSON/CSV.
+3. Preparar un ejemplo de salida de voz con backend `system`.
+4. Agregar ejemplos completos de asistente local con logs sanitizados.
+5. Ejecutar pilotos reales guiados por `tools/stability_gate.py`.
 
 ## Documentacion
 
@@ -582,4 +634,5 @@ COMPATIBILITY.md
 CONTRIBUTING.md
 PYPI.md
 PRIVACY.md
+CUSTOM_OUTPUT_BACKENDS.md
 ```

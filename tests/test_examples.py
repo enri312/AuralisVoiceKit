@@ -9,12 +9,23 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 PYPI_QUICKSTART = ROOT / "examples" / "pypi_quickstart.py"
+CUSTOM_OUTPUT_BACKEND = ROOT / "examples" / "custom_output_backend.py"
 
 
 def _load_pypi_quickstart():
     spec = importlib.util.spec_from_file_location("pypi_quickstart", PYPI_QUICKSTART)
     module = importlib.util.module_from_spec(spec)
     assert spec.loader is not None
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def _load_custom_output_backend():
+    spec = importlib.util.spec_from_file_location("custom_output_backend", CUSTOM_OUTPUT_BACKEND)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    sys.modules[spec.name] = module
     spec.loader.exec_module(module)
     return module
 
@@ -56,6 +67,36 @@ class ExampleTests(unittest.TestCase):
         payload = json.loads(completed.stdout)
         self.assertEqual(payload["transcription_backend"], "null")
         self.assertGreaterEqual(len(payload["turns"]), 1)
+
+    def test_custom_output_backend_demo_collects_utterances_and_events(self):
+        module = _load_custom_output_backend()
+
+        payload = module.run_demo("Hola custom")
+
+        self.assertEqual(payload["backend"], "memory")
+        self.assertEqual(payload["utterances"], ["Hola custom"])
+        self.assertEqual(
+            [event["type"] for event in payload["events"]],
+            ["output.started", "output.completed"],
+        )
+
+    def test_custom_output_backend_script_outputs_json(self):
+        completed = subprocess.run(
+            [
+                sys.executable,
+                str(CUSTOM_OUTPUT_BACKEND),
+                "--text",
+                "Hola JSON",
+                "--json",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        payload = json.loads(completed.stdout)
+        self.assertEqual(payload["backend"], "memory")
+        self.assertEqual(payload["utterances"], ["Hola JSON"])
 
 
 if __name__ == "__main__":

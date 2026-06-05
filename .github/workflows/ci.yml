@@ -35,6 +35,9 @@ jobs:
       - name: Run doctor
         run: python -m auralis_voicekit.cli doctor
 
+      - name: Run stability gate
+        run: python tools/stability_gate.py --min-stage pilot
+
   future-python:
     name: Experimental future Python
     runs-on: ubuntu-latest
