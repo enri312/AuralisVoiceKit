@@ -120,6 +120,7 @@ class BetaReadinessTests(unittest.TestCase):
                         "min_word_accuracy": 0.75,
                         "word_accuracy": 0.92,
                     },
+                    "transcription_checklist": {"ready_for_beta_evidence": True},
                 },
             )
 
@@ -153,6 +154,29 @@ class BetaReadinessTests(unittest.TestCase):
                         "min_word_accuracy": 0.1,
                         "word_accuracy": 1.0,
                     },
+                    "transcription_checklist": {"ready_for_beta_evidence": True},
+                },
+            )
+
+            report = module.build_beta_readiness_report(ROOT, evidence_paths=[evidence_path])
+            checks = {check["name"]: check for check in report["checks"]}
+
+        self.assertFalse(checks["real_transcription_quality"]["ok"])
+        self.assertIn("real_transcription_quality", report["blockers"])
+
+    def test_real_transcription_evidence_requires_review_checklist(self):
+        module = _load_beta_readiness()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            evidence_path = Path(tmpdir) / "transcription-pilot-report.json"
+            _write_json(
+                evidence_path,
+                {
+                    "project": "AuralisVoiceKit",
+                    "real_transcription_requested": True,
+                    "audio_confirmed_non_sensitive": True,
+                    "passed": True,
+                    "quality": {"enabled": True, "passed": True, "min_word_accuracy": 0.75},
                 },
             )
 
@@ -216,6 +240,7 @@ class BetaReadinessTests(unittest.TestCase):
                     "audio_confirmed_non_sensitive": True,
                     "passed": True,
                     "quality": {"enabled": True, "passed": True, "min_word_accuracy": 0.8},
+                    "transcription_checklist": {"ready_for_beta_evidence": True},
                 },
             )
             output = io.StringIO()
@@ -326,6 +351,7 @@ class BetaReadinessTests(unittest.TestCase):
         }
         output_fields = {field["path"] for field in requirements["system_output_audible"]["fields"]}
         self.assertEqual(transcription_fields["quality.min_word_accuracy"], ">= 0.75")
+        self.assertEqual(transcription_fields["transcription_checklist.ready_for_beta_evidence"], True)
         self.assertIn("operator_checklist.ready_for_beta_evidence", output_fields)
 
     def test_cli_requirements_markdown_is_public_safe(self):
@@ -340,6 +366,7 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertIn("Requisitos de evidencias beta", content)
         self.assertIn("transcription-pilot-report.json", content)
         self.assertIn("quality.min_word_accuracy", content)
+        self.assertIn("transcription_checklist.ready_for_beta_evidence", content)
         self.assertIn("No audio bytes", content)
         self.assertNotIn(str(ROOT), content)
 
@@ -379,6 +406,7 @@ class BetaReadinessTests(unittest.TestCase):
                     "audio_confirmed_non_sensitive": True,
                     "passed": True,
                     "quality": {"enabled": True, "passed": True, "min_word_accuracy": 0.2},
+                    "transcription_checklist": {"ready_for_beta_evidence": True},
                 },
             )
             _write_json(
@@ -527,6 +555,7 @@ class BetaReadinessTests(unittest.TestCase):
                     "audio_confirmed_non_sensitive": True,
                     "passed": True,
                     "quality": {"enabled": True, "passed": True, "min_word_accuracy": 0.75},
+                    "transcription_checklist": {"ready_for_beta_evidence": True},
                 },
             )
 
@@ -578,6 +607,7 @@ class BetaReadinessTests(unittest.TestCase):
                     "audio_confirmed_non_sensitive": True,
                     "passed": True,
                     "quality": {"enabled": True, "passed": True, "min_word_accuracy": 0.75},
+                    "transcription_checklist": {"ready_for_beta_evidence": True},
                 },
             )
 

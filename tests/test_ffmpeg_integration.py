@@ -308,12 +308,15 @@ class FfmpegIntegrationTests(unittest.TestCase):
                 sample_rate=8000,
             )
             report_text = Path(report["artifacts"]["transcription_pilot_report"]).read_text(encoding="utf-8")
+            checklist = Path(report["artifacts"]["transcription_review_checklist"]).read_text(encoding="utf-8")
 
         self.assertTrue(report["passed"])
         self.assertTrue(report["preflight_only"])
         self.assertTrue(report["audio"]["decoded"])
         self.assertEqual(report["audio"]["source_format"], "mp3")
         self.assertIsNone(report["transcript"])
+        self.assertFalse(report["transcription_checklist"]["ready_for_beta_evidence"])
+        self.assertIn("Transcription review checklist", checklist)
         self.assertNotIn(mp3_path, report_text)
 
     def test_pilot_audio_fixture_generates_decodable_mp3(self):
@@ -331,7 +334,9 @@ class FfmpegIntegrationTests(unittest.TestCase):
                 max_audio_seconds=1.0,
             )
             mp3_path = Path(report["artifacts"]["mp3"])
+            checklist_path = Path(report["artifacts"]["fixture_preflight_checklist"])
             mp3_exists = mp3_path.exists()
+            checklist_exists = checklist_path.exists()
             findings = Path(report["artifacts"]["fixture_findings"]).read_text(encoding="utf-8")
 
         self.assertTrue(report["passed"])
@@ -342,9 +347,12 @@ class FfmpegIntegrationTests(unittest.TestCase):
         self.assertTrue(report["generated_public_fixture"])
         self.assertFalse(report["usable_as_beta_evidence"])
         self.assertTrue(mp3_exists)
+        self.assertTrue(checklist_exists)
+        self.assertIn("transcription-review-checklist.md", report["preflight"]["review_checklist"])
         self.assertEqual(report["files"][0]["format"], "mp3")
         self.assertTrue(report["files"][0]["decoded"])
         self.assertIn("pilot-sample.mp3", findings)
+        self.assertIn("Review checklist:", findings)
 
 
 if __name__ == "__main__":

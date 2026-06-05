@@ -6,6 +6,19 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.57.0] - 2026-06-05
+
+### Agregado
+
+- Artifact `transcription-review-checklist.md` generado por `tools/transcription_pilot.py` en dry-run, preflight y pilotos reales.
+- Bloque JSON `transcription_checklist` con redaccion de audio/transcripcion/referencia, checklist antes/despues de transcribir y estados `ready_for_real_transcription` / `ready_for_beta_evidence`.
+- Validaciones de pruebas para preflight MP3 con ffmpeg y checklist de revision sin ejecutar Whisper/OpenAI.
+
+### Cambiado
+
+- `tools/beta_readiness.py --requirements` y la auditoria de evidencias ahora requieren `transcription_checklist.ready_for_beta_evidence=true` para cerrar `real_transcription_quality`.
+- `recommended_pilot_sequence`, README, `PILOTS.md`, docs HTML, roadmap y gate de estabilidad documentan `transcription-review-checklist.md`.
+
 ## [0.56.0] - 2026-06-05
 
 ### Agregado

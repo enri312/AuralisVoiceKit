@@ -52,6 +52,8 @@ class PilotRunTests(unittest.TestCase):
         self.assertIn("--run-preflight", plan)
         self.assertIn("--preflight-only", plan)
         self.assertIn("--max-audio-seconds 60", plan)
+        self.assertIn("transcription-review-checklist.md", plan)
+        self.assertIn("transcription_checklist.ready_for_beta_evidence", plan)
         self.assertIn("output-operator-checklist.md", plan)
         self.assertIn("operator_checklist.ready_for_beta_evidence", plan)
         self.assertIn("sample.mp3", plan)
@@ -73,6 +75,10 @@ class PilotRunTests(unittest.TestCase):
         self.assertFalse(report["recommended_pilot_sequence"][0]["requires_non_sensitive_audio"])
         self.assertIn("preflight.passed", report["recommended_pilot_sequence"][0]["required_fields"])
         self.assertTrue(report["recommended_pilot_sequence"][1]["requires_non_sensitive_audio"])
+        self.assertIn(
+            "artifacts.transcription_review_checklist",
+            report["recommended_pilot_sequence"][1]["required_fields"],
+        )
         checklist_step = {
             step["name"]: step for step in report["recommended_pilot_sequence"]
         }["system-output-operator-checklist"]

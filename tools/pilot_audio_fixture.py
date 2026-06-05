@@ -22,6 +22,7 @@ from auralis_voicekit import (
 
 SUPPORTED_FORMATS = ("wav", "mp3", "flac")
 MP3_FIXTURE_NAME = "pilot-sample.mp3"
+TRANSCRIPTION_REVIEW_CHECKLIST_NAME = "transcription-review-checklist.md"
 ENCODER_ARGS = {
     "mp3": ("-codec:a", "libmp3lame", "-q:a", "4"),
     "flac": ("-codec:a", "flac", "-compression_level", "5"),
@@ -106,6 +107,7 @@ def generate_pilot_audio_fixture(
             "passed": None,
             "reason": "not_requested",
             "artifact": None,
+            "review_checklist": None,
             "audio_decoded": None,
             "duration_gate_passed": None,
             "error": None,
@@ -113,6 +115,8 @@ def generate_pilot_audio_fixture(
     )
     if preflight["artifact"] is not None:
         artifacts["fixture_preflight_report"] = preflight["artifact"]
+    if preflight.get("review_checklist") is not None:
+        artifacts["fixture_preflight_checklist"] = preflight["review_checklist"]
 
     findings_path = output / "pilot-audio-fixture-findings.md"
     report_path = output / "pilot-audio-fixture-report.json"
@@ -337,6 +341,7 @@ def _run_fixture_preflight(
             "passed": False,
             "reason": "missing_mp3_fixture",
             "artifact": None,
+            "review_checklist": None,
             "audio_decoded": False,
             "duration_gate_passed": None,
             "error": "MP3 fixture was not generated; install ffmpeg or review the fixture file report.",
@@ -363,6 +368,7 @@ def _run_fixture_preflight(
             "passed": False,
             "reason": "preflight_error",
             "artifact": None,
+            "review_checklist": None,
             "audio_decoded": False,
             "duration_gate_passed": None,
             "error": str(exc),
@@ -374,6 +380,7 @@ def _run_fixture_preflight(
         "passed": report["passed"],
         "reason": "completed",
         "artifact": report["artifacts"]["transcription_pilot_report"],
+        "review_checklist": report["artifacts"]["transcription_review_checklist"],
         "audio_file_name": report["audio"]["audio_file_name"],
         "audio_decoded": report["audio"]["decoded"],
         "source_format": report["audio"]["source_format"],
@@ -399,7 +406,8 @@ def _fixture_next_step(*, run_preflight: bool) -> str:
     if run_preflight:
         return (
             "Replace the generated fixture with your own non-sensitive MP3 and run "
-            "tools/transcription_pilot.py --preflight-only before collecting real beta evidence."
+            "tools/transcription_pilot.py --preflight-only before collecting real beta evidence. "
+            f"Review {TRANSCRIPTION_REVIEW_CHECKLIST_NAME} from the preflight artifacts."
         )
     return (
         "Use the generated MP3 for a local ffmpeg preflight, then replace it with "
@@ -468,6 +476,7 @@ def _build_findings_markdown(report: dict[str, Any]) -> str:
             "",
             f"- Requested: `{str(report['preflight']['requested']).lower()}`",
             f"- Passed: `{report['preflight']['passed']}`",
+            f"- Review checklist: `{report['preflight'].get('review_checklist') or 'none'}`",
             f"- Audio decoded: `{report['preflight']['audio_decoded']}`",
             f"- Duration gate passed: `{report['preflight']['duration_gate_passed']}`",
             "",

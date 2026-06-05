@@ -69,6 +69,7 @@ def build_evidence_requirements_report() -> dict[str, Any]:
                     _required_field("quality.enabled", True),
                     _required_field("quality.passed", True),
                     _required_field("quality.min_word_accuracy", f">= {BETA_MIN_WORD_ACCURACY}"),
+                    _required_field("transcription_checklist.ready_for_beta_evidence", True),
                 ],
             },
             {
@@ -214,11 +215,13 @@ def build_beta_readiness_report(
             required_terms=(
                 "Real transcription requested: True",
                 "Quality gate passed: `true`",
+                "Transcription checklist ready for beta evidence: True",
             ),
             next_action=(
                 "Run tools/transcription_pilot.py with --real-transcription, non-sensitive audio, "
                 "--expected-text or --expected-text-file, a meaningful --min-word-accuracy, "
-                "and --min-audio-seconds/--max-audio-seconds duration guards."
+                "--min-audio-seconds/--max-audio-seconds duration guards, then keep "
+                "transcription-review-checklist.md."
             ),
         ),
         _evidence_or_terms_check(
@@ -844,6 +847,7 @@ def _is_system_output_audible_evidence(report: dict[str, Any]) -> bool:
 
 def _is_real_transcription_quality_evidence(report: dict[str, Any]) -> bool:
     quality = report.get("quality", {})
+    transcription_checklist = report.get("transcription_checklist", {})
     return (
         report.get("real_transcription_requested") is True
         and report.get("audio_confirmed_non_sensitive") is True
@@ -852,6 +856,8 @@ def _is_real_transcription_quality_evidence(report: dict[str, Any]) -> bool:
         and quality.get("enabled") is True
         and quality.get("passed") is True
         and float(quality.get("min_word_accuracy") or 0.0) >= BETA_MIN_WORD_ACCURACY
+        and isinstance(transcription_checklist, dict)
+        and transcription_checklist.get("ready_for_beta_evidence") is True
     )
 
 

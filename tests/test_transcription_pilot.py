@@ -34,9 +34,11 @@ class TranscriptionPilotTests(unittest.TestCase):
             )
             report_path = Path(report["artifacts"]["transcription_pilot_report"])
             findings_path = Path(report["artifacts"]["pilot_findings"])
+            checklist_path = Path(report["artifacts"]["transcription_review_checklist"])
             synthetic_audio = Path(report["artifacts"]["synthetic_audio"])
             payload = json.loads(report_path.read_text(encoding="utf-8"))
             findings = findings_path.read_text(encoding="utf-8")
+            checklist = checklist_path.read_text(encoding="utf-8")
             synthetic_audio_exists = synthetic_audio.exists()
             report_text = report_path.read_text(encoding="utf-8")
 
@@ -47,9 +49,16 @@ class TranscriptionPilotTests(unittest.TestCase):
         self.assertTrue(synthetic_audio_exists)
         self.assertEqual(payload["transcript"]["text_characters"], 0)
         self.assertTrue(payload["transcript"]["text_redacted"])
+        self.assertFalse(payload["transcription_checklist"]["records_audio_path"])
+        self.assertFalse(payload["transcription_checklist"]["records_transcript_text"])
+        self.assertFalse(payload["transcription_checklist"]["records_expected_text"])
+        self.assertIn("transcription_review_checklist", report["artifacts"])
         self.assertNotIn("text\": \"", report_text)
         self.assertIn("Transcription pilot findings", findings)
         self.assertIn("Generated synthetic audio: True", findings)
+        self.assertIn("Transcription checklist ready for beta evidence: False", findings)
+        self.assertIn("Transcription review checklist", checklist)
+        self.assertIn("Records transcript text: False", checklist)
 
     def test_transcription_pilot_cli_outputs_json(self):
         module = _load_transcription_pilot()
@@ -76,6 +85,8 @@ class TranscriptionPilotTests(unittest.TestCase):
         self.assertEqual(payload["backend"], "null")
         self.assertTrue(payload["generated_synthetic_audio"])
         self.assertFalse(payload["real_transcription_requested"])
+        self.assertIn("transcription_review_checklist", payload["artifacts"])
+        self.assertFalse(payload["transcription_checklist"]["ready_for_beta_evidence"])
 
     def test_transcription_pilot_rejects_real_backend_without_guard(self):
         module = _load_transcription_pilot()
@@ -126,8 +137,10 @@ class TranscriptionPilotTests(unittest.TestCase):
             )
             report_path = Path(report["artifacts"]["transcription_pilot_report"])
             findings_path = Path(report["artifacts"]["pilot_findings"])
+            checklist_path = Path(report["artifacts"]["transcription_review_checklist"])
             report_text = report_path.read_text(encoding="utf-8")
             findings = findings_path.read_text(encoding="utf-8")
+            checklist = checklist_path.read_text(encoding="utf-8")
 
         self.assertTrue(report["passed"])
         self.assertTrue(report["quality"]["enabled"])
@@ -228,8 +241,10 @@ class TranscriptionPilotTests(unittest.TestCase):
             )
             report_path = Path(report["artifacts"]["transcription_pilot_report"])
             findings_path = Path(report["artifacts"]["pilot_findings"])
+            checklist_path = Path(report["artifacts"]["transcription_review_checklist"])
             report_text = report_path.read_text(encoding="utf-8")
             findings = findings_path.read_text(encoding="utf-8")
+            checklist = checklist_path.read_text(encoding="utf-8")
 
         self.assertTrue(report["passed"])
         self.assertTrue(report["preflight_only"])
@@ -244,6 +259,9 @@ class TranscriptionPilotTests(unittest.TestCase):
         self.assertIn("Preflight only: True", findings)
         self.assertIn("Audio decode passed: True", findings)
         self.assertIn("Duration gate passed: True", findings)
+        self.assertIn("Review checklist: transcription-review-checklist.md", findings)
+        self.assertFalse(report["transcription_checklist"]["ready_for_beta_evidence"])
+        self.assertIn("Ready for beta evidence: False", checklist)
 
     def test_transcription_pilot_cli_preflight_allows_target_backend(self):
         module = _load_transcription_pilot()
@@ -284,6 +302,39 @@ class TranscriptionPilotTests(unittest.TestCase):
         self.assertTrue(payload["audio"]["decoded"])
         self.assertTrue(payload["audio"]["duration_gate"]["passed"])
         self.assertIsNone(payload["transcript"])
+
+    def test_transcription_checklist_marks_beta_ready_real_quality(self):
+        module = _load_transcription_pilot()
+
+        checklist = module._transcription_checklist(
+            backend="whisper",
+            preflight_only=False,
+            real_transcription=True,
+            passed=True,
+            audio={
+                "generated_synthetic_audio": False,
+                "audio_confirmed_non_sensitive": True,
+                "decoded": True,
+                "duration_gate": {"enabled": True, "passed": True},
+            },
+            transcript={"text_redacted": True, "text_characters": 26},
+            quality={
+                "enabled": True,
+                "passed": True,
+                "min_word_accuracy": 0.75,
+            },
+        )
+        markdown = module._build_transcription_checklist_markdown(
+            timestamp="2026-06-05T00:00:00+00:00",
+            backend="whisper",
+            transcription_checklist=checklist,
+        )
+
+        self.assertTrue(checklist["ready_for_real_transcription"])
+        self.assertTrue(checklist["ready_for_beta_evidence"])
+        self.assertFalse(checklist["records_transcript_text"])
+        self.assertFalse(checklist["records_expected_text"])
+        self.assertIn("Ready for beta evidence: True", markdown)
 
     def test_transcription_pilot_preflight_rejects_quality_flags(self):
         module = _load_transcription_pilot()

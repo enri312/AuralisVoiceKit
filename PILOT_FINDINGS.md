@@ -2,6 +2,39 @@
 
 Este documento resume hallazgos de pilotos reales o semi-manuales. No debe incluir audio, transcripciones privadas, rutas locales completas ni nombres reales de dispositivos.
 
+## 2026-06-05 - Windows fixture MP3 sintetico con checklist de transcripcion
+
+Comando ejecutado:
+
+```powershell
+python tools\pilot_audio_fixture.py --output-dir pilot_runs\transcription\20260605T1908Z-review-checklist --format mp3 --duration 0.5 --sample-rate 8000 --run-preflight --min-audio-seconds 0.2 --max-audio-seconds 1.0 --json
+```
+
+Alcance:
+
+- Sistema: Windows.
+- Audio usado: sintetico publico generado por el runner.
+- Audio privado: no.
+- Red/modelos reales: no.
+- Backend de preflight: `whisper` como destino declarado, sin ejecutar modelo por `--preflight-only`.
+- Artifact nuevo: `transcription-review-checklist.md`.
+
+Resultado:
+
+- Fixture MP3: `passed=true`.
+- Preflight: `passed=true`.
+- Audio decoded: `true`.
+- Duration gate passed: `true`.
+- `fixture_preflight_checklist`: generado.
+- `transcription_checklist.ready_for_beta_evidence`: `false`, esperado porque no hubo backend real ni audio propio no sensible.
+- Usable as beta evidence: `false`.
+
+Acciones siguientes:
+
+1. Reemplazar `pilot-sample.mp3` por un MP3 propio no sensible.
+2. Ejecutar `python tools\transcription_pilot.py --preflight-only --audio sample.mp3 --audio-non-sensitive --backend whisper --normalize --min-audio-seconds 0.2 --max-audio-seconds 60 --json`.
+3. Ejecutar transcripcion real solo despues de revisar `transcription-review-checklist.md` y preparar `--expected-text` o `--expected-text-file`.
+
 ## 2026-06-05 - Windows salida system dry-run con checklist de operador
 
 Comando ejecutado:

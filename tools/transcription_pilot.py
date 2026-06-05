@@ -28,6 +28,9 @@ from auralis_voicekit import (
 from auralis_voicekit.exceptions import AudioSourceError, BackendNotAvailable, TranscriptionError
 
 
+BETA_MIN_WORD_ACCURACY = 0.75
+
+
 def run_transcription_pilot(
     *,
     root: str | Path = ".",
@@ -172,8 +175,18 @@ def run_transcription_pilot(
         "channels": chunk.format.channels if chunk is not None else 1,
         "bytes": len(chunk.data) if chunk is not None else None,
     }
+    transcription_checklist = _transcription_checklist(
+        backend=backend,
+        preflight_only=preflight_only,
+        real_transcription=real_transcription,
+        passed=passed,
+        audio=audio_payload,
+        transcript=result_payload,
+        quality=quality_report,
+    )
 
     findings_path = output / "transcription-pilot-findings.md"
+    checklist_path = output / "transcription-review-checklist.md"
     report_path = output / "transcription-pilot-report.json"
     findings = _build_findings_markdown(
         timestamp=timestamp,
@@ -185,7 +198,14 @@ def run_transcription_pilot(
         audio=audio_payload,
         transcript=result_payload,
         quality=quality_report,
+        transcription_checklist=transcription_checklist,
         report_path=report_path,
+        checklist_path=checklist_path,
+    )
+    checklist = _build_transcription_checklist_markdown(
+        timestamp=timestamp,
+        backend=backend,
+        transcription_checklist=transcription_checklist,
     )
 
     report: dict[str, Any] = {
@@ -205,9 +225,11 @@ def run_transcription_pilot(
         "audio": audio_payload,
         "transcript": result_payload,
         "quality": quality_report,
+        "transcription_checklist": transcription_checklist,
         "notes": _pilot_notes(real_transcription, preflight_only),
         "artifacts": {
             "pilot_findings": str(findings_path),
+            "transcription_review_checklist": str(checklist_path),
             "transcription_pilot_report": str(report_path),
         },
     }
@@ -215,6 +237,7 @@ def run_transcription_pilot(
         report["artifacts"]["synthetic_audio"] = str(source_audio_path)
 
     findings_path.write_text(findings, encoding="utf-8")
+    checklist_path.write_text(checklist, encoding="utf-8")
     report_path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return report
 
@@ -580,6 +603,116 @@ def _error_rate(errors: int, reference_count: int, hypothesis_count: int) -> flo
     return 0.0 if hypothesis_count == 0 else 1.0
 
 
+def _transcription_checklist(
+    *,
+    backend: str,
+    preflight_only: bool,
+    real_transcription: bool,
+    passed: bool,
+    audio: dict[str, Any],
+    transcript: dict[str, Any] | None,
+    quality: dict[str, Any],
+) -> dict[str, Any]:
+    duration_gate = audio["duration_gate"]
+    meaningful_quality_threshold = quality["min_word_accuracy"] is not None and float(
+        quality["min_word_accuracy"]
+    ) >= BETA_MIN_WORD_ACCURACY
+    quality_ready = bool(quality["enabled"] and quality["passed"] is True and meaningful_quality_threshold)
+    transcript_redacted = transcript is not None and transcript.get("text_redacted") is True
+    ready_for_real_transcription = bool(
+        real_transcription
+        and backend != "null"
+        and audio["audio_confirmed_non_sensitive"]
+        and audio["decoded"]
+        and duration_gate["passed"] is not False
+    )
+    ready_for_beta_evidence = bool(
+        ready_for_real_transcription
+        and passed
+        and transcript_redacted
+        and quality_ready
+        and not preflight_only
+    )
+    before = [
+        _checklist_item(
+            "audio_non_sensitive_confirmed",
+            "Confirm the audio is non-sensitive before using --audio-non-sensitive.",
+            ok=audio["audio_confirmed_non_sensitive"] if not audio["generated_synthetic_audio"] else None,
+            required=True,
+        ),
+        _checklist_item(
+            "audio_decoded",
+            "Decode the audio successfully before running a real backend.",
+            ok=audio["decoded"],
+            required=True,
+        ),
+        _checklist_item(
+            "duration_gate_reviewed",
+            "Use --min-audio-seconds and --max-audio-seconds for real pilot audio.",
+            ok=duration_gate["passed"] if duration_gate["enabled"] else None,
+            required=True,
+        ),
+        _checklist_item(
+            "reference_text_ready",
+            "Provide --expected-text or --expected-text-file for redacted quality metrics.",
+            ok=quality["enabled"],
+            required=True,
+        ),
+        _checklist_item(
+            "real_backend_selected",
+            "Use whisper or openai with --real-transcription only after preflight passes.",
+            ok=backend != "null" if real_transcription or preflight_only else None,
+            required=True,
+        ),
+    ]
+    after = [
+        _checklist_item(
+            "transcript_redacted",
+            "Verify artifacts contain transcript metadata only, not full transcript text.",
+            ok=transcript_redacted if transcript is not None else None,
+            required=True,
+        ),
+        _checklist_item(
+            "quality_threshold_reviewed",
+            "Require a meaningful min_word_accuracy threshold before beta evidence.",
+            ok=quality_ready if quality["enabled"] else None,
+            required=True,
+        ),
+        _checklist_item(
+            "findings_public_safe",
+            "Record only backend, model, aggregate metrics and technical issues in public findings.",
+            ok=None,
+            required=True,
+        ),
+    ]
+    return {
+        "records_audio_path": False,
+        "records_transcript_text": False,
+        "records_expected_text": False,
+        "redacts_transcript_text": True,
+        "redacts_expected_text": True,
+        "ready_for_real_transcription": ready_for_real_transcription,
+        "ready_for_beta_evidence": ready_for_beta_evidence,
+        "before_transcription": before,
+        "after_transcription": after,
+    }
+
+
+def _checklist_item(
+    item_id: str,
+    instruction: str,
+    *,
+    ok: bool | None,
+    required: bool,
+) -> dict[str, Any]:
+    return {
+        "id": item_id,
+        "required": required,
+        "ok": ok,
+        "instruction": instruction,
+    }
+
+
 def _build_findings_markdown(
     *,
     timestamp: str,
@@ -591,7 +724,9 @@ def _build_findings_markdown(
     audio: dict[str, Any],
     transcript: dict[str, Any] | None,
     quality: dict[str, Any],
+    transcription_checklist: dict[str, Any],
     report_path: Path,
+    checklist_path: Path,
 ) -> str:
     transcript_characters = transcript.get("text_characters") if transcript is not None else 0
     lines = [
@@ -616,7 +751,9 @@ def _build_findings_markdown(
         f"- Transcript characters: {transcript_characters}",
         f"- Quality reference provided: {quality['enabled']}",
         f"- Quality gate passed: {_format_optional(quality['passed'])}",
+        f"- Transcription checklist ready for beta evidence: {transcription_checklist['ready_for_beta_evidence']}",
         f"- Report: {report_path.name}",
+        f"- Review checklist: {checklist_path.name}",
         "",
         "## Privacy",
         "",
@@ -672,6 +809,58 @@ def _build_findings_markdown(
     lines.append("- Record backend/model, audio type and high-level quality findings in PILOT_FINDINGS.md.")
     lines.append("")
     return "\n".join(lines)
+
+
+def _build_transcription_checklist_markdown(
+    *,
+    timestamp: str,
+    backend: str,
+    transcription_checklist: dict[str, Any],
+) -> str:
+    lines = [
+        "# Transcription review checklist",
+        "",
+        f"- Created at: {timestamp}",
+        f"- Backend: {backend}",
+        f"- Records audio path: {transcription_checklist['records_audio_path']}",
+        f"- Records transcript text: {transcription_checklist['records_transcript_text']}",
+        f"- Records expected text: {transcription_checklist['records_expected_text']}",
+        f"- Redacts transcript text: {transcription_checklist['redacts_transcript_text']}",
+        f"- Redacts expected text: {transcription_checklist['redacts_expected_text']}",
+        f"- Ready for real transcription: {transcription_checklist['ready_for_real_transcription']}",
+        f"- Ready for beta evidence: {transcription_checklist['ready_for_beta_evidence']}",
+        "",
+        "## Before Transcription",
+        "",
+    ]
+    for item in transcription_checklist["before_transcription"]:
+        lines.append(_format_checklist_item(item))
+    lines.extend(
+        [
+            "",
+            "## After Transcription",
+            "",
+        ]
+    )
+    for item in transcription_checklist["after_transcription"]:
+        lines.append(_format_checklist_item(item))
+    lines.extend(
+        [
+            "",
+            "## Notes",
+            "",
+            "- Do not write private audio paths, full transcripts or full expected text in shared findings.",
+            "- A preflight checklist is preparation only; beta evidence requires a real backend and quality gate.",
+            "",
+        ]
+    )
+    return "\n".join(lines)
+
+
+def _format_checklist_item(item: dict[str, Any]) -> str:
+    marker = "x" if item["ok"] is True else " "
+    state = "unknown" if item["ok"] is None else str(item["ok"]).lower()
+    return f"- [{marker}] `{item['id']}` ok={state} required={item['required']} - {item['instruction']}"
 
 
 def _pilot_notes(real_transcription: bool, preflight_only: bool) -> str:

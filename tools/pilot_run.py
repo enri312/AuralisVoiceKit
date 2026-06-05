@@ -403,12 +403,18 @@ def _transcription_audio_preflight_step(order: int) -> dict[str, Any]:
             "audio.duration_gate.passed",
             "audio.audio_file_extension",
             "audio.audio_confirmed_non_sensitive",
+            "transcription_checklist.records_transcript_text",
+            "transcription_checklist.redacts_expected_text",
+            "artifacts.transcription_review_checklist",
         ],
         "requires_hardware": False,
         "requires_operator": False,
         "requires_non_sensitive_audio": True,
         "review_required": True,
-        "reason": "Confirma que el MP3 propio se decodifica con ffmpeg antes de ejecutar un modelo real.",
+        "reason": (
+            "Confirma que el MP3 propio se decodifica con ffmpeg y genera "
+            "transcription-review-checklist.md antes de ejecutar un modelo real."
+        ),
     }
 
 

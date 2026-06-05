@@ -92,6 +92,7 @@ class PilotAudioFixtureTests(unittest.TestCase):
         self.assertTrue(report["preflight"]["requested"])
         self.assertFalse(report["preflight"]["passed"])
         self.assertEqual(report["preflight"]["reason"], "missing_mp3_fixture")
+        self.assertIsNone(report["preflight"]["review_checklist"])
         self.assertFalse(report["usable_as_beta_evidence"])
         self.assertIn("your own non-sensitive MP3", report["next_step"])
         self.assertIn("Fixture preflight passed: `False`", findings)
