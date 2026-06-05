@@ -186,7 +186,7 @@ def _manual_pilot_steps() -> list[dict[str, str]]:
     return [
         {
             "name": "microphone-capture",
-            "command": "python tools/manual_pilot.py --capture-test --backend wasapi --device default --json",
+            "command": "python tools/manual_pilot.py --capture-test --backend wasapi --device default --sample-rate 48000 --json",
             "reason": "Requires real microphone hardware and OS permissions.",
         },
         {

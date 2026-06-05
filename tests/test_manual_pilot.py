@@ -28,6 +28,7 @@ class ManualPilotTests(unittest.TestCase):
                 root=ROOT,
                 output_dir=tmpdir,
                 capture_backend="wav",
+                sample_rate=48000,
             )
             bundle_path = Path(report["artifacts"]["doctor_bundle"])
             analysis_path = Path(report["artifacts"]["doctor_analysis"])
@@ -43,9 +44,11 @@ class ManualPilotTests(unittest.TestCase):
 
         self.assertTrue(report["passed"])
         self.assertFalse(report["hardware_capture_tested"])
+        self.assertEqual(report["sample_rate"], 48000)
         self.assertEqual(analysis["bundle_count"], 1)
         self.assertIn("Manual pilot findings", findings)
         self.assertIn("Capture test requested: False", findings)
+        self.assertIn("Sample rate: 48000", findings)
         self.assertIn("Bundle: doctor-bundle.json", findings)
         self.assertNotIn(str(Path(tempfile.gettempdir())), findings)
 
@@ -63,6 +66,8 @@ class ManualPilotTests(unittest.TestCase):
                         tmpdir,
                         "--backend",
                         "wav",
+                        "--sample-rate",
+                        "48000",
                         "--json",
                     ]
                 )
@@ -70,6 +75,7 @@ class ManualPilotTests(unittest.TestCase):
 
         self.assertEqual(exit_code, 0)
         self.assertEqual(payload["capture_backend"], "wav")
+        self.assertEqual(payload["sample_rate"], 48000)
         self.assertFalse(payload["capture_test_requested"])
 
 

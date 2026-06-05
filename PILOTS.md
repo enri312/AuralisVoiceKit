@@ -25,7 +25,7 @@ Este piloto genera bundle doctor, analisis `doctor-bundles`, reporte JSON y Mark
 
 ```powershell
 py tools\manual_pilot.py --output-dir pilot_runs\manual\windows-safe --json
-py tools\manual_pilot.py --capture-test --backend wasapi --device default --json
+py tools\manual_pilot.py --capture-test --backend wasapi --device default --sample-rate 48000 --json
 ```
 
 Los hallazgos resumidos se mantienen en:
@@ -42,7 +42,7 @@ Ejecutar estos pasos solo cuando haya hardware, permisos y tiempo para revisar r
 auralis doctor --devices --backend sounddevice --json
 auralis doctor --capture-test --backend sounddevice --device default --bundle pilot_runs\manual\doctor-capture.json --json
 auralis doctor-bundles pilot_runs\manual\doctor-capture.json --output pilot_runs\manual\doctor-analysis.json --json
-python tools\manual_pilot.py --capture-test --backend wasapi --device default --json
+python tools\manual_pilot.py --capture-test --backend wasapi --device default --sample-rate 48000 --json
 python examples\system_output_demo.py --speak --text "Hola desde AuralisVoiceKit" --json
 auralis transcribe sample.mp3 --backend whisper --model base --normalize --json
 python examples\local_assistant_privacy_demo.py --output-dir pilot_runs\assistant --json
@@ -73,6 +73,6 @@ Acciones siguientes:
 - Piloto automatizado seguro: preparado con `tools/pilot_run.py`.
 - Piloto manual guiado: preparado con `tools/manual_pilot.py`.
 - Analisis de bundles doctor: preparado con `auralis doctor-bundles`.
-- Pilotos manuales con microfono real: pendientes.
+- Pilotos manuales con microfono real: primer piloto Windows/WASAPI aprobado con `--sample-rate 48000`; Ubuntu/Linux y macOS pendientes.
 - Pilotos manuales con salida `system` real: pendientes.
 - Pilotos manuales con transcripcion real: pendientes.

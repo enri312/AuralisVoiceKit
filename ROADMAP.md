@@ -281,14 +281,14 @@ Criterio de salida:
 - Ejemplo de asistente local con logs sanitizados. Estado: inicial con `examples/local_assistant_privacy_demo.py`.
 - Backends de salida personalizados. Estado: guia y ejemplo inicial.
 - Automatizacion de estabilidad. Estado: gate inicial listo para CI y uso local.
-- Pilotos seguros. Estado: runner automatizado, piloto manual guiado con `tools/manual_pilot.py`, runbook inicial con `PILOTS.md`, hallazgos en `PILOT_FINDINGS.md`, bundles `doctor` sanitizados y analisis `doctor-bundles`.
+- Pilotos seguros. Estado: runner automatizado, piloto manual guiado con `tools/manual_pilot.py`, runbook inicial con `PILOTS.md`, hallazgos en `PILOT_FINDINGS.md`, bundles `doctor` sanitizados, analisis `doctor-bundles`, control explicito de sample rate para pilotos WASAPI y primera captura Windows real aprobada a 48000 Hz.
 - Mensajes Windows audio. Estado: inicial para permisos, dispositivo, sample rate, canales y host API.
 - Ejemplo de salida `system`. Estado: inicial con dry-run y `--speak` para pilotos reales.
 
 ## Prioridad inmediata
 
-1. Instalar el extra `sounddevice` y ejecutar `tools/manual_pilot.py --capture-test --backend wasapi`.
-2. Agregar benchmark real de salida `system` si es seguro en CI.
-3. Documentar checklist de hallazgos para pilotos Windows/Ubuntu/macOS.
+1. Ejecutar piloto manual de salida `system` con voz real y operador presente.
+2. Ejecutar piloto de transcripcion real con audio propio no sensible.
+3. Repetir captura con microfono en Ubuntu/Linux y macOS.
 4. Preparar checklist de bugs conocidos para beta publica.
-5. Ejecutar pilotos manuales con microfono, salida `system` y transcripcion real.
+5. Evaluar si el siguiente lote de pilotos permite declarar beta.

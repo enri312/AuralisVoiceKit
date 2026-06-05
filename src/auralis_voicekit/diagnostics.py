@@ -609,6 +609,7 @@ def _capture_test_check(
     *,
     seconds: float,
     input_device: str | int | None,
+    sample_rate: int | None,
 ) -> DiagnosticCheck:
     name = f"capture-test:{capture_backend}"
     if seconds <= 0:
@@ -619,6 +620,14 @@ def _capture_test_check(
             hint="Use --capture-seconds with a positive value such as 0.25.",
             details={"requested_seconds": seconds},
         )
+    if sample_rate is not None and sample_rate <= 0:
+        return DiagnosticCheck(
+            name=name,
+            status=DiagnosticStatus.ERROR,
+            message="Capture sample rate must be greater than zero.",
+            hint="Use --sample-rate with a positive value such as 48000 or 44100.",
+            details={"requested_sample_rate": sample_rate},
+        )
 
     chunks_received = 0
     bytes_received = 0
@@ -628,11 +637,14 @@ def _capture_test_check(
         chunks_received += 1
         bytes_received += len(chunk.data)
 
-    config = VoiceKitConfig(
-        capture_backend=capture_backend,
-        input_device=input_device,
-        privacy_mode=True,
-    )
+    config_options: dict[str, Any] = {
+        "capture_backend": capture_backend,
+        "input_device": input_device,
+        "privacy_mode": True,
+    }
+    if sample_rate is not None:
+        config_options["sample_rate"] = sample_rate
+    config = VoiceKitConfig(**config_options)
     backend_details = _capture_backend_details(capture_backend)
     config_details = {
         "sample_rate": config.sample_rate,
@@ -702,6 +714,7 @@ def run_doctor(
     include_capture_test: bool = False,
     capture_test_seconds: float = 0.25,
     capture_device: str | int | None = None,
+    capture_sample_rate: int | None = None,
     wav_path: str | None = None,
 ) -> DoctorReport:
     """Run environment diagnostics and return a structured report."""
@@ -743,6 +756,7 @@ def run_doctor(
                 capture_backend,
                 seconds=capture_test_seconds,
                 input_device=capture_device,
+                sample_rate=capture_sample_rate,
             )
         )
     if wav_path:

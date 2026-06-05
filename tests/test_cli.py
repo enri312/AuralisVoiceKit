@@ -142,6 +142,8 @@ class CliTests(unittest.TestCase):
                     "0.001",
                     "--backend",
                     "null",
+                    "--sample-rate",
+                    "48000",
                     "--json",
                 ]
             )
@@ -151,6 +153,7 @@ class CliTests(unittest.TestCase):
         checks = {check["name"]: check for check in payload["checks"]}
         self.assertEqual(checks["capture-test:null"]["status"], "ok")
         self.assertEqual(checks["capture-test:null"]["details"]["chunks_received"], 0)
+        self.assertEqual(checks["capture-test:null"]["details"]["sample_rate"], 48000)
 
     def test_doctor_can_write_sanitized_bundle(self):
         output = io.StringIO()

@@ -86,7 +86,7 @@ def windows_audio_error_hint(
                 "Open Settings > Privacy & security > Microphone.",
                 "Enable Microphone access and Let desktop apps access your microphone.",
                 "Restart the terminal or app running Python after changing permissions.",
-                "Run auralis doctor --capture-test --backend wasapi --device default --json.",
+                "Run auralis doctor --capture-test --backend wasapi --device default --sample-rate 48000 --json.",
             ),
             backend=backend,
             device=device,
@@ -119,6 +119,7 @@ def windows_audio_error_hint(
             message="The microphone or shared-mode driver may not accept the configured sample rate.",
             actions=(
                 "Try sample_rate=48000 or sample_rate=44100 in VoiceKitConfig.",
+                "For CLI pilots, retry with --sample-rate 48000 or --sample-rate 44100.",
                 "Check the device Default Format in Windows Sound > More sound settings.",
                 "Run a short capture test with --capture-seconds 0.25.",
             ),
@@ -182,7 +183,7 @@ def windows_audio_error_hint(
         message="The error did not match a known Windows audio pattern, but doctor can collect the next useful details.",
         actions=(
             "Run auralis doctor --devices --backend wasapi --json.",
-            "Run auralis doctor --capture-test --backend wasapi --device default --json.",
+            "Run auralis doctor --capture-test --backend wasapi --device default --sample-rate 48000 --json.",
             "Try the wav backend to confirm the core works without live audio.",
         ),
         backend=backend,

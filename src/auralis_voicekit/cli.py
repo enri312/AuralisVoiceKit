@@ -95,6 +95,7 @@ def _print_doctor(
     capture_test: bool = False,
     capture_seconds: float = 0.25,
     capture_device: str | None = None,
+    capture_sample_rate: int | None = None,
     json_output: bool = False,
     wav_path: str | None = None,
     bundle_path: str | None = None,
@@ -105,6 +106,7 @@ def _print_doctor(
         include_capture_test=capture_test,
         capture_test_seconds=capture_seconds,
         capture_device=capture_device,
+        capture_sample_rate=capture_sample_rate,
         wav_path=wav_path,
     )
     written_bundle = write_doctor_bundle(bundle_path, report) if bundle_path else None
@@ -723,6 +725,11 @@ def main(argv: list[str] | None = None) -> int:
         help="duration for --capture-test",
     )
     doctor_parser.add_argument("--device", help="input device selector for --capture-test")
+    doctor_parser.add_argument(
+        "--sample-rate",
+        type=int,
+        help="sample rate used by --capture-test, for example 48000 on many WASAPI devices",
+    )
     doctor_parser.add_argument("--json", action="store_true", help="print a JSON report")
     doctor_parser.add_argument("--wav", help="validate a PCM16 WAV file")
     doctor_parser.add_argument(
@@ -947,6 +954,7 @@ def main(argv: list[str] | None = None) -> int:
             capture_test=args.capture_test,
             capture_seconds=args.capture_seconds,
             capture_device=args.device,
+            capture_sample_rate=args.sample_rate,
             json_output=args.json,
             wav_path=args.wav,
             bundle_path=args.bundle,

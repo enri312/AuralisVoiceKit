@@ -31,6 +31,7 @@ def run_manual_pilot(
     capture_test: bool = False,
     capture_seconds: float = 0.25,
     capture_device: str | int | None = "default",
+    sample_rate: int | None = None,
 ) -> dict[str, Any]:
     """Run a manual-pilot diagnostic pass and write shareable artifacts."""
 
@@ -48,6 +49,7 @@ def run_manual_pilot(
         include_capture_test=capture_test,
         capture_test_seconds=capture_seconds,
         capture_device=capture_device,
+        capture_sample_rate=sample_rate,
     )
     bundle_path = output / "doctor-bundle.json"
     analysis_path = output / "doctor-analysis.json"
@@ -61,6 +63,7 @@ def run_manual_pilot(
         system=system,
         backend=backend,
         capture_test=capture_test,
+        sample_rate=sample_rate,
         doctor_status=doctor.status.value,
         analysis=analysis.to_dict(),
         bundle_path=bundle_path,
@@ -76,6 +79,7 @@ def run_manual_pilot(
         "capture_backend": backend,
         "capture_test_requested": capture_test,
         "capture_device": capture_device,
+        "sample_rate": sample_rate,
         "doctor_status": doctor.status.value,
         "passed": doctor.status is not DiagnosticStatus.ERROR and high_priority_issues == 0,
         "hardware_capture_tested": capture_test,
@@ -105,6 +109,11 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--capture-seconds", type=float, default=0.25, help="duration for --capture-test")
     parser.add_argument("--device", default="default", help="input device selector for --capture-test")
+    parser.add_argument(
+        "--sample-rate",
+        type=int,
+        help="sample rate used by --capture-test, for example 48000 on many WASAPI devices",
+    )
     parser.add_argument("--json", action="store_true", help="print JSON report")
     args = parser.parse_args(argv)
 
@@ -115,6 +124,7 @@ def main(argv: list[str] | None = None) -> int:
         capture_test=args.capture_test,
         capture_seconds=args.capture_seconds,
         capture_device=args.device,
+        sample_rate=args.sample_rate,
     )
     if args.json:
         print(json.dumps(report, indent=2, sort_keys=True))
@@ -133,6 +143,7 @@ def _build_findings_markdown(
     system: str,
     backend: str,
     capture_test: bool,
+    sample_rate: int | None,
     doctor_status: str,
     analysis: dict[str, Any],
     bundle_path: Path,
@@ -145,6 +156,7 @@ def _build_findings_markdown(
         f"- System: {system}",
         f"- Capture backend: {backend}",
         f"- Capture test requested: {capture_test}",
+        f"- Sample rate: {_format_optional(sample_rate)}",
         f"- Doctor status: {doctor_status}",
         f"- Bundle: {bundle_path.name}",
         f"- Analysis: {analysis_path.name}",
@@ -191,6 +203,10 @@ def _format_counts(counts: dict[str, int]) -> str:
     if not counts:
         return "none"
     return ", ".join(f"{key}={counts[key]}" for key in sorted(counts))
+
+
+def _format_optional(value: object | None) -> str:
+    return "default" if value is None else str(value)
 
 
 def _slug(value: str) -> str:

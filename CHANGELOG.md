@@ -6,6 +6,19 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.34.0] - 2026-06-05
+
+### Agregado
+
+- `auralis doctor --capture-test` acepta `--sample-rate` para probar hardware real con frecuencias como 48000 Hz en WASAPI.
+- `tools/manual_pilot.py` acepta `--sample-rate` y registra ese valor en el reporte JSON y Markdown del piloto.
+- Hallazgos de piloto real Windows/WASAPI documentados: primera captura corta fallo por sample rate invalido y el reintento a 48000 Hz paso correctamente.
+
+### Cambiado
+
+- El gate de estabilidad exige que el runner manual documente `--sample-rate`.
+- README, `PILOTS.md`, referencia HTML, roadmap y pasos de piloto recomiendan sample rate explicito para WASAPI.
+
 ## [0.33.0] - 2026-06-05
 
 ### Agregado

@@ -122,7 +122,7 @@ En Windows tambien existe un backend `wasapi` inicial. Usa el extra `sounddevice
 
 ```powershell
 py -m auralis_voicekit.cli doctor --devices --backend wasapi --json
-py -m auralis_voicekit.cli doctor --capture-test --backend wasapi --device default --json
+py -m auralis_voicekit.cli doctor --capture-test --backend wasapi --device default --sample-rate 48000 --json
 ```
 
 Ese diagnostico incluye host APIs reportadas por `sounddevice`, ids WASAPI, dispositivo de entrada default y el dispositivo WASAPI que se usaria al pedir `default`. English: the WASAPI diagnostic snapshot helps inspect real Windows hardware without opening an audio stream unless `--capture-test` is requested.
@@ -130,7 +130,7 @@ Ese diagnostico incluye host APIs reportadas por `sounddevice`, ids WASAPI, disp
 Cuando una captura falla en Windows, `auralis doctor --capture-test` agrega un `windows_audio_hint` con categoria y acciones concretas para permisos de microfono, dispositivo invalido, sample rate, canales o errores de host API:
 
 ```powershell
-py -m auralis_voicekit.cli doctor --capture-test --backend wasapi --device default --json
+py -m auralis_voicekit.cli doctor --capture-test --backend wasapi --device default --sample-rate 48000 --json
 ```
 
 Tambien se puede clasificar un error desde Python:
@@ -501,6 +501,7 @@ auralis doctor --devices --backend wav
 auralis doctor --devices --backend sounddevice
 auralis doctor --capture-test --backend sounddevice --capture-seconds 0.25
 auralis doctor --capture-test --backend sounddevice --device default --json
+auralis doctor --capture-test --backend wasapi --device 15 --sample-rate 48000 --json
 auralis doctor --wav sample.wav
 auralis doctor --json
 auralis doctor --devices --backend wasapi --bundle reports/doctor-windows.json
@@ -658,7 +659,7 @@ py tools\pilot_run.py --output-dir pilot_runs\safe --json
 
 ```powershell
 py tools\manual_pilot.py --output-dir pilot_runs\manual\windows-safe --json
-py tools\manual_pilot.py --capture-test --backend wasapi --device default --json
+py tools\manual_pilot.py --capture-test --backend wasapi --device default --sample-rate 48000 --json
 ```
 
 Los pasos con hardware quedan documentados en:
@@ -678,11 +679,11 @@ ROADMAP.md
 
 Prioridad inmediata:
 
-1. Instalar el extra `sounddevice` y ejecutar `tools/manual_pilot.py --capture-test --backend wasapi`.
-2. Agregar benchmark real de salida `system` si es seguro en CI.
-3. Documentar checklist de hallazgos para pilotos Windows/Ubuntu/macOS.
+1. Ejecutar piloto manual de salida `system` con voz real y operador presente.
+2. Ejecutar piloto de transcripcion real con audio propio no sensible.
+3. Repetir captura con microfono en Ubuntu/Linux y macOS.
 4. Preparar checklist de bugs conocidos para beta publica.
-5. Ejecutar pilotos manuales con salida `system` y transcripcion real.
+5. Evaluar si el siguiente lote de pilotos permite declarar beta.
 
 ## Documentacion
 
