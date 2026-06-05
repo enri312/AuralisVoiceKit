@@ -29,7 +29,7 @@ La meta no es competir con todos los motores de voz a la vez. La meta es constru
 | Backend `null` | Funcional |
 | Backend `wav` | Inicial funcional |
 | Backend `sounddevice` | Inicial funcional |
-| Backend `wasapi` | Inicial funcional |
+| Backend `wasapi` | Inicial con diagnostico reforzado |
 | Utilidades de audio | Normalizacion, calibracion y segmentacion inicial |
 | Versionado | Politica inicial |
 | Compatibilidad Windows/Linux/macOS | Documentacion inicial |
@@ -72,12 +72,13 @@ Estado: completada para la base inicial.
 Entregables:
 
 - Backend `sounddevice` funcional para captura PCM16. Estado: inicial.
-- Backend `wasapi` funcional para captura Windows con host API WASAPI. Estado: inicial.
+- Backend `wasapi` funcional para captura Windows con host API WASAPI. Estado: inicial con diagnostico reforzado.
 - Enumeracion de dispositivos de entrada. Estado: inicial.
 - Seleccion de dispositivo por id, nombre o default. Estado: inicial.
 - Start/stop robusto sin dejar streams abiertos. Estado: inicial.
 - Eventos `capture.started`, `audio.chunk`, `capture.stopped` con payload seguro.
 - Ejemplo `examples/capture_microphone.py`. Estado: creado.
+- Snapshot de diagnostico WASAPI con host APIs, default y dispositivo seleccionado. Estado: inicial.
 - Tests con mocks para no depender de hardware. Estado: inicial.
 
 Criterio de salida:
@@ -169,14 +170,14 @@ Criterio de salida:
 Entregables:
 
 - Mejor diagnostico de permisos de microfono. Estado: inicial con sugerencias por OS y test de apertura bajo demanda.
-- Mejor reporte de dispositivos y host APIs. Estado: inicial.
+- Mejor reporte de dispositivos y host APIs. Estado: inicial con snapshot WASAPI.
 - Investigacion de backend WASAPI dedicado. Estado: inicial.
 - Mensajes especificos para errores comunes de audio en Windows.
 - Guia de instalacion para PowerShell.
 
 Criterio de salida:
 
-- `auralis doctor` ayuda a diagnosticar microfono, backend y permisos. Estado: inicial con `--capture-test`.
+- `auralis doctor` ayuda a diagnosticar microfono, backend, host APIs y permisos. Estado: inicial con `--capture-test` y snapshot WASAPI.
 - La documentacion explica claramente que hacer cuando no hay audio.
 
 ## Fase 7 - Calidad, CI y empaquetado
@@ -241,7 +242,7 @@ Criterio de salida:
 
 ## Backlog tecnico
 
-- Backend WASAPI dedicado. Estado: inicial sobre `sounddevice`.
+- Backend WASAPI dedicado. Estado: inicial sobre `sounddevice` con diagnostico reforzado.
 - Backend PyAudio solo como compatibilidad opcional.
 - Backend de salida `system`. Estado: inicial con listado de voces, seleccion de voz, velocidad y volumen.
 - Soporte para archivos WAV/FLAC como entrada. WAV PCM16 completado; FLAC inicial validado via `ffmpeg`.
@@ -258,8 +259,8 @@ Criterio de salida:
 
 ## Prioridad inmediata
 
-1. Robustecer WASAPI con pruebas manuales en hardware Windows real.
-2. Agregar benchmarks comparativos opcionales para `whisper` en hardware real.
-3. Preparar un ejemplo pequeno de integracion para usuarios de PyPI.
-4. Agregar una guia de privacidad y manejo de logs.
-5. Documentar patrones de backends de salida personalizados.
+1. Agregar benchmarks comparativos opcionales para `whisper` en hardware real.
+2. Preparar un ejemplo pequeno de integracion para usuarios de PyPI.
+3. Agregar una guia de privacidad y manejo de logs.
+4. Documentar patrones de backends de salida personalizados.
+5. Ampliar mensajes especificos para errores comunes de audio en Windows.

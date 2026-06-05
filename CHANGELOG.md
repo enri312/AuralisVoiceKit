@@ -6,6 +6,22 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.21.0] - 2026-06-04
+
+### Agregado
+
+- Modelo `WasapiDiagnosticSnapshot` para inspeccionar el entorno WASAPI sin abrir el microfono.
+- Helper `inspect_wasapi_environment()` en `auralis_voicekit.backends`.
+- Detalles WASAPI en `auralis doctor --devices --backend wasapi --json`: host APIs, ids WASAPI, dispositivo default, dispositivo seleccionado y conteos de entradas.
+- Resumen WASAPI legible en la salida de texto de `auralis doctor`.
+- Cobertura de pruebas para snapshot WASAPI, host API faltante y diagnostico `doctor` con `sounddevice` simulado.
+
+### Cambiado
+
+- `auralis doctor --capture-test --backend wasapi` incluye formato solicitado y snapshot WASAPI en sus detalles de exito o error.
+- README, compatibilidad, roadmap y documentacion HTML describen el diagnostico WASAPI reforzado.
+- El roadmap mueve la prioridad inmediata a benchmarks comparativos opcionales para `whisper` en hardware real.
+
 ## [0.20.0] - 2026-06-04
 
 ### Agregado

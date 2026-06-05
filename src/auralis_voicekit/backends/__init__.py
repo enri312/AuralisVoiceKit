@@ -5,7 +5,7 @@ from .null import NullCaptureBackend, NullSpeechOutputBackend, NullTranscription
 from .openai_transcription import OpenAITranscriptionBackend
 from .registry import BackendRegistry, create_default_registry
 from .system_output import SystemSpeechOutputBackend, SystemVoice
-from .wasapi import WasapiCaptureBackend
+from .wasapi import WasapiCaptureBackend, WasapiDiagnosticSnapshot, inspect_wasapi_environment
 from .wav_file import WavFileCaptureBackend
 from .whisper_transcription import WhisperTranscriptionBackend
 
@@ -22,7 +22,9 @@ __all__ = [
     "SystemVoice",
     "TranscriptionBackend",
     "WasapiCaptureBackend",
+    "WasapiDiagnosticSnapshot",
     "WavFileCaptureBackend",
     "WhisperTranscriptionBackend",
     "create_default_registry",
+    "inspect_wasapi_environment",
 ]

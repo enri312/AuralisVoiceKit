@@ -4,7 +4,12 @@ import unittest
 from unittest.mock import patch
 
 from auralis_voicekit import AudioDeviceNotFound, BackendNotAvailable, VoiceKitConfig
-from auralis_voicekit.backends import WasapiCaptureBackend, create_default_registry
+from auralis_voicekit.backends import (
+    WasapiCaptureBackend,
+    WasapiDiagnosticSnapshot,
+    create_default_registry,
+    inspect_wasapi_environment,
+)
 
 
 class FakeRawInputStream:
@@ -87,6 +92,27 @@ class WasapiBackendTests(unittest.TestCase):
         self.assertEqual(devices[0].name, "WASAPI microphone")
         self.assertEqual(devices[0].host_api, "Windows WASAPI")
         self.assertTrue(devices[0].is_default)
+
+    def test_inspect_wasapi_environment_reports_snapshot(self):
+        with patch.dict(sys.modules, {"sounddevice": _fake_sounddevice()}):
+            snapshot = inspect_wasapi_environment(system="Windows")
+
+        payload = snapshot.to_dict()
+        self.assertIsInstance(snapshot, WasapiDiagnosticSnapshot)
+        self.assertTrue(snapshot.available)
+        self.assertEqual(snapshot.wasapi_host_api_indices, (0,))
+        self.assertEqual(snapshot.default_input_device_id, 1)
+        self.assertEqual(snapshot.selected_input_device_id, 1)
+        self.assertEqual(payload["wasapi_input_device_count"], 1)
+        self.assertEqual(payload["host_apis"][0]["name"], "Windows WASAPI")
+
+    def test_inspect_wasapi_environment_reports_missing_host_api(self):
+        with patch.dict(sys.modules, {"sounddevice": _fake_sounddevice(include_wasapi=False)}):
+            snapshot = inspect_wasapi_environment(system="Windows")
+
+        self.assertFalse(snapshot.available)
+        self.assertIn("WASAPI host API", snapshot.reason)
+        self.assertEqual(snapshot.to_dict()["wasapi_host_api_indices"], [])
 
     def test_resolve_default_chooses_wasapi_device(self):
         with patch.dict(sys.modules, {"sounddevice": _fake_sounddevice()}):

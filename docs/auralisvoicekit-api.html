@@ -596,6 +596,14 @@ for result in report.results:
       <section id="backends">
         <h2>Backends personalizados</h2>
         <p>Los contratos viven en <code>auralis_voicekit.backends.base</code>. Un backend custom implementa los metodos requeridos y se registra en un <code>BackendRegistry</code>.</p>
+        <h3>Diagnostico WASAPI</h3>
+        <p>El backend Windows <code>wasapi</code> expone <code>inspect_wasapi_environment()</code> y <code>WasapiDiagnosticSnapshot</code> desde <code>auralis_voicekit.backends</code>. El snapshot inspecciona host APIs y dispositivos sin abrir un stream de microfono.</p>
+        <pre><code>from auralis_voicekit.backends import WasapiDiagnosticSnapshot, inspect_wasapi_environment
+
+snapshot: WasapiDiagnosticSnapshot = inspect_wasapi_environment()
+print(snapshot.to_dict())</code></pre>
+        <pre><code>auralis doctor --devices --backend wasapi --json
+auralis doctor --capture-test --backend wasapi --device default --json</code></pre>
         <h3>Salida system</h3>
         <p>El backend <code>system</code> vive en <code>auralis_voicekit.backends</code>. Puede listar voces del sistema como <code>SystemVoice</code> y aplicar parametros de salida segun plataforma.</p>
         <pre><code>from auralis_voicekit import AuralisVoiceKit, VoiceKitConfig

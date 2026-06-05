@@ -60,6 +60,23 @@ def _print_devices(backend_name: str) -> int:
     return 0
 
 
+def _print_wasapi_details(details: dict) -> None:
+    wasapi = details.get("wasapi")
+    if not wasapi:
+        return
+    reason = f", reason={wasapi.get('reason')}" if wasapi.get("reason") else ""
+    print(
+        "      wasapi: "
+        f"available={wasapi.get('available')}, "
+        f"host_apis={len(wasapi.get('host_apis', []))}, "
+        f"wasapi_inputs={wasapi.get('wasapi_input_device_count')}, "
+        f"selected_input={wasapi.get('selected_input_device_id')}"
+        f"{reason}"
+    )
+    for host_api in wasapi.get("host_apis", []):
+        print(f"      host_api[{host_api.get('index')}]: {host_api.get('name')}")
+
+
 def _print_doctor(
     show_devices: bool = False,
     device_backend: str = "sounddevice",
@@ -94,6 +111,7 @@ def _print_doctor(
         if check.hint:
             print(f"      hint: {check.hint}")
         if check.name.startswith("devices:"):
+            _print_wasapi_details(check.details)
             for device in check.details.get("devices", []):
                 marker = " default" if device.get("is_default") else ""
                 channels = (
@@ -115,6 +133,7 @@ def _print_doctor(
                     f"      chunks={chunks}, bytes={bytes_received}, "
                     f"elapsed={elapsed}s"
                 )
+            _print_wasapi_details(check.details)
     return 1 if report.status is DiagnosticStatus.ERROR else 0
 
 

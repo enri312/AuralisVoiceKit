@@ -349,9 +349,16 @@ print(result.text)</code></pre>
         <pre><code>py -m pip install -e ".[sounddevice]"
 py -m auralis_voicekit.cli devices --backend sounddevice
 py -m auralis_voicekit.cli devices --backend wasapi
+py -m auralis_voicekit.cli doctor --devices --backend wasapi --json
 py examples\capture_microphone.py --seconds 3 --output capture.wav</code></pre>
-        <p>En Windows, <code>wasapi</code> filtra dispositivos por la host API WASAPI usando el extra opcional <code>sounddevice</code>.</p>
-        <pre><code>kit = AuralisVoiceKit(VoiceKitConfig(capture_backend="wasapi"))
+        <p>En Windows, <code>wasapi</code> filtra dispositivos por la host API WASAPI usando el extra opcional <code>sounddevice</code>. El diagnostico WASAPI muestra host APIs, ids WASAPI, dispositivo default y el dispositivo que se usaria al pedir <code>default</code>.</p>
+        <pre><code>from auralis_voicekit import AuralisVoiceKit, VoiceKitConfig
+from auralis_voicekit.backends import inspect_wasapi_environment
+
+snapshot = inspect_wasapi_environment()
+print(snapshot.to_dict())
+
+kit = AuralisVoiceKit(VoiceKitConfig(capture_backend="wasapi"))
 kit.start_capture()</code></pre>
         <h3>Segmentacion de voz</h3>
         <p>El core puede calibrar ruido y agrupar chunks en segmentos de voz sin instalar modelos ni NumPy.</p>
@@ -492,11 +499,13 @@ kit.speak("Hola desde AuralisVoiceKit")</code></pre>
 
       <section id="diagnostico">
         <h2>Diagnostico</h2>
-        <p><code>auralis doctor</code> produce checks de Python, plataforma, dependencias opcionales, backends, dispositivos, archivos WAV y busqueda de <code>ffmpeg</code>. MP3 y FLAC se validan con pruebas de integracion reales cuando <code>ffmpeg</code> esta disponible.</p>
+        <p><code>auralis doctor</code> produce checks de Python, plataforma, dependencias opcionales, backends, dispositivos, archivos WAV y busqueda de <code>ffmpeg</code>. Para <code>wasapi</code>, el reporte incluye un snapshot de host APIs y dispositivos de entrada. MP3 y FLAC se validan con pruebas de integracion reales cuando <code>ffmpeg</code> esta disponible.</p>
         <pre><code>auralis doctor
 auralis doctor --devices --backend wav
 auralis doctor --devices --backend sounddevice
+auralis doctor --devices --backend wasapi --json
 auralis doctor --capture-test --backend sounddevice --capture-seconds 0.25
+auralis doctor --capture-test --backend wasapi --device default --json
 auralis doctor --capture-test --backend sounddevice --device default --json
 auralis doctor --wav sample.wav
 auralis doctor --json</code></pre>
@@ -538,7 +547,7 @@ for result in report.results:
     null.py          Backend seguro para pruebas
     wav_file.py      Backend offline WAV PCM16
     sounddevice.py   Backend opcional funcional
-    wasapi.py         Backend inicial Windows WASAPI
+    wasapi.py         Backend inicial Windows WASAPI con diagnostico
     whisper_transcription.py  Backend opcional de transcripcion local
     openai_transcription.py  Backend opcional de transcripcion por API
     system_output.py Backend opcional de salida de voz del sistema
@@ -619,8 +628,8 @@ python -m auralis_voicekit.cli doctor</code></pre>
             </tr>
             <tr>
               <td><code>wasapi</code></td>
-              <td>Inicial funcional</td>
-              <td>Captura Windows filtrada por host API WASAPI.</td>
+              <td>Inicial con diagnostico reforzado</td>
+              <td>Captura Windows filtrada por host API WASAPI y snapshot de host APIs/dispositivos.</td>
             </tr>
             <tr>
               <td><code>whisper</code></td>
@@ -675,7 +684,7 @@ gh workflow run publish-pypi.yml -f index=pypi -f tag=v0.14.0</code></pre>
             <tr>
               <td>1</td>
               <td>Captura real de microfono con <code>sounddevice</code>.</td>
-              <td>Inicial con sounddevice y wasapi</td>
+              <td>Inicial con sounddevice y wasapi diagnosticable</td>
             </tr>
             <tr>
               <td>2</td>

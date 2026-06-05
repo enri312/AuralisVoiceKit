@@ -160,8 +160,17 @@ def _backend_checks() -> list[DiagnosticCheck]:
     return checks
 
 
+def _capture_backend_details(capture_backend: str) -> dict[str, Any]:
+    if capture_backend != "wasapi":
+        return {}
+    from .backends.wasapi import inspect_wasapi_environment
+
+    return {"wasapi": inspect_wasapi_environment().to_dict()}
+
+
 def _device_check(capture_backend: str) -> DiagnosticCheck:
     registry = create_default_registry()
+    backend_details = _capture_backend_details(capture_backend)
     try:
         backend = registry.create_capture(capture_backend)
         devices = list(backend.list_devices())
@@ -171,6 +180,7 @@ def _device_check(capture_backend: str) -> DiagnosticCheck:
             status=DiagnosticStatus.WARNING,
             message=f"Cannot inspect devices for {capture_backend!r}: {exc}",
             hint="Use --backend wav for offline checks or install the requested backend.",
+            details=backend_details,
         )
 
     if not devices:
@@ -179,24 +189,27 @@ def _device_check(capture_backend: str) -> DiagnosticCheck:
             status=DiagnosticStatus.WARNING,
             message=f"No input devices were reported by {capture_backend!r}.",
             hint="Use the wav backend for offline tests or check OS audio permissions.",
+            details=backend_details,
         )
+    details = {
+        "devices": [
+            {
+                "id": device.id,
+                "name": device.name,
+                "kind": device.kind,
+                "channels": device.channels,
+                "host_api": device.host_api,
+                "is_default": device.is_default,
+            }
+            for device in devices
+        ]
+    }
+    details.update(backend_details)
     return DiagnosticCheck(
         name=f"devices:{capture_backend}",
         status=DiagnosticStatus.OK,
         message=f"{len(devices)} input device(s) reported by {capture_backend!r}.",
-        details={
-            "devices": [
-                {
-                    "id": device.id,
-                    "name": device.name,
-                    "kind": device.kind,
-                    "channels": device.channels,
-                    "host_api": device.host_api,
-                    "is_default": device.is_default,
-                }
-                for device in devices
-            ]
-        },
+        details=details,
     )
 
 
@@ -254,6 +267,13 @@ def _capture_test_check(
         input_device=input_device,
         privacy_mode=True,
     )
+    backend_details = _capture_backend_details(capture_backend)
+    config_details = {
+        "sample_rate": config.sample_rate,
+        "channels": config.channels,
+        "capture_block_ms": config.capture_block_ms,
+        "capture_block_frames": config.capture_block_frames,
+    }
     started = False
     started_at = time.monotonic()
     try:
@@ -273,6 +293,8 @@ def _capture_test_check(
                 "requested_seconds": seconds,
                 "elapsed_seconds": round(time.monotonic() - started_at, 6),
                 "error_type": type(exc).__name__,
+                **config_details,
+                **backend_details,
             },
         )
     finally:
@@ -293,6 +315,8 @@ def _capture_test_check(
             "elapsed_seconds": round(time.monotonic() - started_at, 6),
             "chunks_received": chunks_received,
             "bytes_received": bytes_received,
+            **config_details,
+            **backend_details,
         },
     )
 

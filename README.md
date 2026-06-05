@@ -12,7 +12,7 @@ English: AuralisVoiceKit is a modern voice toolkit for Python assistants, local 
 
 El objetivo principal es evitar que la captura de microfono dependa obligatoriamente de PyAudio o de wheels que tardan en llegar a las versiones nuevas de Python. El paquete base debe poder instalarse de forma liviana, sin compiladores y sin dependencias nativas obligatorias. Para MP3, FLAC y formatos comprimidos, AuralisVoiceKit usa `ffmpeg` como herramienta externa opcional.
 
-> Estado actual: alpha tecnica. El repositorio ya define el core, los contratos de backends, captura real inicial, flujo WAV offline, transcripcion inicial por API y local opcional, sesiones de voz iniciales, una CLI de diagnostico, benchmarks offline de latencia, errores accionables para `ffmpeg`, documentacion estatica, salida de voz del sistema con voces configurables, pruebas unitarias y pruebas reales de MP3/FLAC. Los backends reales se iran agregando por etapas.
+> Estado actual: alpha tecnica. El repositorio ya define el core, los contratos de backends, captura real inicial, diagnostico reforzado para WASAPI, flujo WAV offline, transcripcion inicial por API y local opcional, sesiones de voz iniciales, una CLI de diagnostico, benchmarks offline de latencia, errores accionables para `ffmpeg`, documentacion estatica, salida de voz del sistema con voces configurables, pruebas unitarias y pruebas reales de MP3/FLAC. Los backends reales se iran agregando por etapas.
 
 ## Problema que resuelve
 
@@ -108,8 +108,19 @@ py examples\capture_microphone.py --device "Nombre del microfono" --seconds 3
 
 En Windows tambien existe un backend `wasapi` inicial. Usa el extra `sounddevice`, pero filtra dispositivos por la host API WASAPI:
 
+```powershell
+py -m auralis_voicekit.cli doctor --devices --backend wasapi --json
+py -m auralis_voicekit.cli doctor --capture-test --backend wasapi --device default --json
+```
+
+Ese diagnostico incluye host APIs reportadas por `sounddevice`, ids WASAPI, dispositivo de entrada default y el dispositivo WASAPI que se usaria al pedir `default`. English: the WASAPI diagnostic snapshot helps inspect real Windows hardware without opening an audio stream unless `--capture-test` is requested.
+
 ```python
 from auralis_voicekit import AuralisVoiceKit, VoiceKitConfig
+from auralis_voicekit.backends import inspect_wasapi_environment
+
+snapshot = inspect_wasapi_environment()
+print(snapshot.to_dict())
 
 kit = AuralisVoiceKit(
     VoiceKitConfig(
@@ -449,7 +460,7 @@ auralis_voicekit
     null          Backend seguro para pruebas
     wav_file      Backend offline para WAV PCM16
     sounddevice   Backend opcional de captura real
-    wasapi        Backend inicial de captura Windows WASAPI
+    wasapi        Backend inicial de captura Windows WASAPI con diagnostico
     whisper       Backend opcional de transcripcion local
     openai        Backend opcional de transcripcion por API
     system        Backend opcional de salida de voz del sistema
@@ -468,7 +479,7 @@ auralis_voicekit
 | `null` | incluido | pruebas, demos, integracion temprana |
 | `wav` | inicial funcional | pruebas offline con WAV PCM16 |
 | `sounddevice` | inicial funcional | captura moderna multiplataforma |
-| `wasapi` | inicial funcional | captura Windows filtrada por host API WASAPI |
+| `wasapi` | inicial con diagnostico reforzado | captura Windows filtrada por host API WASAPI |
 | `pyaudio` | pendiente | compatibilidad con proyectos existentes |
 | `whisper` | inicial funcional | transcripcion local opcional con faster-whisper |
 | `openai` | inicial funcional | transcripcion por API |
@@ -495,11 +506,11 @@ ROADMAP.md
 
 Prioridad inmediata:
 
-1. Robustecer WASAPI con pruebas manuales en hardware Windows real.
-2. Agregar benchmarks comparativos opcionales para `whisper` en hardware real.
-3. Preparar un ejemplo pequeno de integracion para usuarios de PyPI.
-4. Agregar una guia de privacidad y manejo de logs.
-5. Documentar patrones de backends de salida personalizados.
+1. Agregar benchmarks comparativos opcionales para `whisper` en hardware real.
+2. Preparar un ejemplo pequeno de integracion para usuarios de PyPI.
+3. Agregar una guia de privacidad y manejo de logs.
+4. Documentar patrones de backends de salida personalizados.
+5. Ampliar mensajes especificos para errores comunes de audio en Windows.
 
 ## Documentacion
 

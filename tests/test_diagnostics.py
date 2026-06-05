@@ -1,6 +1,10 @@
 import os
+import sys
 import tempfile
+import types
 import unittest
+from importlib.machinery import ModuleSpec
+from unittest.mock import patch
 
 from auralis_voicekit import (
     AudioChunk,
@@ -9,6 +13,31 @@ from auralis_voicekit import (
     run_doctor,
     write_wav,
 )
+
+
+def _fake_wasapi_sounddevice():
+    fake_sounddevice = types.SimpleNamespace()
+    fake_sounddevice.__spec__ = ModuleSpec("sounddevice", loader=None)
+    fake_sounddevice.default = types.SimpleNamespace(device=(1, -1))
+    fake_sounddevice.query_hostapis = lambda: [
+        {"name": "Windows WASAPI", "device_count": 1, "default_input_device": 1},
+        {"name": "MME", "device_count": 1, "default_input_device": 0},
+    ]
+    fake_sounddevice.query_devices = lambda: [
+        {
+            "name": "MME microphone",
+            "max_input_channels": 1,
+            "hostapi": 1,
+            "default_samplerate": 44100.0,
+        },
+        {
+            "name": "WASAPI microphone",
+            "max_input_channels": 2,
+            "hostapi": 0,
+            "default_samplerate": 48000.0,
+        },
+    ]
+    return fake_sounddevice
 
 
 class DiagnosticsTests(unittest.TestCase):
@@ -33,6 +62,18 @@ class DiagnosticsTests(unittest.TestCase):
         check = checks["executable:ffmpeg"]
         self.assertIn("search", check.details)
         self.assertTrue(check.details["search"])
+
+    def test_run_doctor_includes_wasapi_snapshot_for_devices(self):
+        with patch.dict(sys.modules, {"sounddevice": _fake_wasapi_sounddevice()}):
+            with patch("auralis_voicekit.backends.wasapi.platform.system", return_value="Windows"):
+                report = run_doctor(include_devices=True, capture_backend="wasapi")
+
+        checks = {check.name: check for check in report.checks}
+        check = checks["devices:wasapi"]
+        self.assertEqual(check.status, DiagnosticStatus.OK)
+        self.assertIn("wasapi", check.details)
+        self.assertEqual(check.details["wasapi"]["selected_input_device_id"], 1)
+        self.assertEqual(check.details["wasapi"]["wasapi_input_device_count"], 1)
 
     def test_run_doctor_can_test_null_capture_opening(self):
         report = run_doctor(
