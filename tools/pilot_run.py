@@ -50,6 +50,7 @@ def run_safe_pilot(
         next_beta_evidence_steps,
         ready_for_beta=beta_readiness["ready_for_beta"],
     )
+    platform_pilot_matrix = _platform_pilot_matrix(beta_readiness["blockers"])
     steps: list[dict[str, Any]] = []
     artifacts: dict[str, str] = {}
 
@@ -181,6 +182,7 @@ def run_safe_pilot(
         "manual_pilot_steps": manual_pilot_steps,
         "next_beta_evidence_steps": next_beta_evidence_steps,
         "recommended_pilot_sequence": recommended_pilot_sequence,
+        "platform_pilot_matrix": platform_pilot_matrix,
         "artifacts": artifacts,
     }
     plan_path = output / "pilot-plan.md"
@@ -372,6 +374,100 @@ def _transcription_audio_preflight_step(order: int) -> dict[str, Any]:
     }
 
 
+def _platform_pilot_matrix(blockers: list[str]) -> list[dict[str, Any]]:
+    pending = set(blockers)
+    rows = [
+        {
+            "name": "windows-wasapi-capture",
+            "platform": "Windows",
+            "blocker": "windows_wasapi_capture",
+            "command": (
+                "python tools/manual_pilot.py --capture-test --backend wasapi "
+                "--device default --sample-rate 48000 --json"
+            ),
+            "artifact": "manual-pilot-report.json",
+            "requires_hardware": True,
+            "requires_operator": False,
+            "requires_non_sensitive_audio": False,
+            "notes": "Captura Windows ya esta documentada; repetir si cambia hardware o driver.",
+        },
+        {
+            "name": "ubuntu-linux-capture",
+            "platform": "Ubuntu/Linux",
+            "blocker": "ubuntu_linux_capture",
+            "command": "python tools/manual_pilot.py --capture-test --backend sounddevice --device default --json",
+            "artifact": "manual-pilot-report.json",
+            "requires_hardware": True,
+            "requires_operator": False,
+            "requires_non_sensitive_audio": False,
+            "notes": "Requiere microfono, permisos de audio y PortAudio/sounddevice instalados.",
+        },
+        {
+            "name": "macos-capture",
+            "platform": "macOS",
+            "blocker": "macos_capture",
+            "command": "python tools/manual_pilot.py --capture-test --backend sounddevice --device default --json",
+            "artifact": "manual-pilot-report.json",
+            "requires_hardware": True,
+            "requires_operator": False,
+            "requires_non_sensitive_audio": False,
+            "notes": "Requiere permiso de microfono en macOS y revisar el dispositivo default.",
+        },
+        {
+            "name": "system-output-audible",
+            "platform": "Windows / Ubuntu/Linux / macOS",
+            "blocker": "system_output_audible",
+            "command": (
+                "python tools/output_pilot.py --speak --operator-present "
+                "--confirm-audible --text \"Hola desde AuralisVoiceKit\" --json"
+            ),
+            "artifact": "output-pilot-report.json",
+            "requires_hardware": True,
+            "requires_operator": True,
+            "requires_non_sensitive_audio": False,
+            "notes": "Ejecutar solo con operador presente; el reporte redacta el texto completo.",
+        },
+        {
+            "name": "transcription-mp3-preflight",
+            "platform": "Windows / Ubuntu/Linux / macOS",
+            "blocker": None,
+            "command": (
+                "python tools/transcription_pilot.py --preflight-only --audio sample.mp3 "
+                "--audio-non-sensitive --backend whisper --normalize --json"
+            ),
+            "artifact": "transcription-pilot-report.json",
+            "requires_hardware": False,
+            "requires_operator": False,
+            "requires_non_sensitive_audio": True,
+            "notes": "Paso previo: valida ffmpeg y metadata antes de transcribir con un modelo.",
+        },
+        {
+            "name": "real-transcription-quality",
+            "platform": "Windows / Ubuntu/Linux / macOS",
+            "blocker": "real_transcription_quality",
+            "command": (
+                "python tools/transcription_pilot.py --real-transcription --audio sample.mp3 "
+                "--audio-non-sensitive --backend whisper --model base --normalize "
+                "--expected-text \"Hola desde AuralisVoiceKit\" --min-word-accuracy 0.75 --json"
+            ),
+            "artifact": "transcription-pilot-report.json",
+            "requires_hardware": False,
+            "requires_operator": False,
+            "requires_non_sensitive_audio": True,
+            "notes": "Usar un MP3 propio no sensible y una referencia redactable para calidad.",
+        },
+    ]
+    for row in rows:
+        blocker = row["blocker"]
+        if blocker is None:
+            row["status"] = "recommended"
+        elif blocker in pending:
+            row["status"] = "pending"
+        else:
+            row["status"] = "closed"
+    return rows
+
+
 def _pilot_plan_artifact_summary(artifacts: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return [
         {
@@ -490,6 +586,28 @@ def _format_pilot_plan_markdown(report: dict[str, Any]) -> str:
             "",
             f"- Comando: `{beta['strict_audit_command']}`",
             "",
+            "## Matriz por plataforma",
+            "",
+        ]
+    )
+    for row in report["platform_pilot_matrix"]:
+        lines.extend(
+            [
+                f"### {row['platform']} - {row['name']}",
+                "",
+                f"- Estado: `{row['status']}`",
+                f"- Blocker: `{row['blocker'] or 'ninguno'}`",
+                f"- Comando: `{row['command']}`",
+                f"- Artifact esperado: `{row['artifact']}`",
+                f"- Requiere hardware: `{_format_bool(row['requires_hardware'])}`",
+                f"- Requiere operador: `{_format_bool(row['requires_operator'])}`",
+                f"- Requiere audio no sensible: `{_format_bool(row['requires_non_sensitive_audio'])}`",
+                f"- Nota: {row['notes']}",
+                "",
+            ]
+        )
+    lines.extend(
+        [
             "## Pasos manuales",
             "",
         ]
@@ -575,6 +693,9 @@ def _print_report(report: dict[str, Any]) -> None:
     print("Recommended pilot sequence:")
     for step in report["recommended_pilot_sequence"]:
         print(f"- {step['order']}. {step['name']}: {step['command']}")
+    print("Platform pilot matrix:")
+    for row in report["platform_pilot_matrix"]:
+        print(f"- [{row['status']}] {row['platform']} {row['name']}: {row['command']}")
     print(f"Pilot plan: {Path(report['artifacts']['pilot_plan']).name}")
     print("Manual pilot steps:")
     for step in report["manual_pilot_steps"]:

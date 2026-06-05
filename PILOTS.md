@@ -20,6 +20,7 @@ El reporte generado incluye:
 - benchmark offline exportado a JSON y CSV;
 - resumen `beta_readiness` y pasos `next_beta_evidence_steps` para cerrar blockers beta;
 - campo `recommended_pilot_sequence` con el orden recomendado para pilotos reales, preflight MP3 de transcripcion, auditoria estricta y refresco del checklist beta;
+- campo `platform_pilot_matrix` y seccion `Matriz por plataforma` para separar comandos Windows, Ubuntu/Linux, macOS, salida audible y transcripcion MP3;
 - artifact `pilot-plan.md` con evidencias JSON aceptadas/ignoradas, secuencia recomendada, comandos pendientes y campos JSON requeridos;
 - lista de pasos manuales pendientes.
 

@@ -6,6 +6,18 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.52.0] - 2026-06-05
+
+### Agregado
+
+- Campo `platform_pilot_matrix` en `tools/pilot_run.py` con comandos y estados por Windows, Ubuntu/Linux, macOS, salida audible y transcripcion MP3.
+- Seccion `Matriz por plataforma` en `pilot-plan.md` para separar blockers cerrados, pendientes y pasos recomendados sin exponer rutas locales.
+- Pruebas para validar que la matriz cambia de estado al ingerir evidencias JSON.
+
+### Cambiado
+
+- README, `PILOTS.md`, docs HTML, roadmap y gate de estabilidad documentan la matriz por plataforma.
+
 ## [0.51.0] - 2026-06-05
 
 ### Agregado

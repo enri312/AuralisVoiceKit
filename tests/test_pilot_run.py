@@ -42,6 +42,7 @@ class PilotRunTests(unittest.TestCase):
         self.assertIn("pilot_plan", persisted["artifacts"])
         self.assertIn("Plan de pilotos AuralisVoiceKit", plan)
         self.assertIn("Secuencia recomendada", plan)
+        self.assertIn("Matriz por plataforma", plan)
         self.assertIn("Proximas evidencias beta", plan)
         self.assertIn("--confirm-audible", plan)
         self.assertIn("audit-evidence", plan)
@@ -49,6 +50,8 @@ class PilotRunTests(unittest.TestCase):
         self.assertIn("--fail-on-audit-gaps", plan)
         self.assertIn("--preflight-only", plan)
         self.assertIn("sample.mp3", plan)
+        self.assertIn("Ubuntu/Linux - ubuntu-linux-capture", plan)
+        self.assertIn("macOS - macos-capture", plan)
         self.assertNotIn(str(tmpdir), plan)
         self.assertEqual({step["status"] for step in report["steps"]}, {"passed"})
         self.assertFalse(report["beta_readiness"]["ready_for_beta"])
@@ -61,6 +64,12 @@ class PilotRunTests(unittest.TestCase):
         self.assertIn("refresh-beta-checklist", sequence_names)
         self.assertFalse(report["recommended_pilot_sequence"][0]["requires_hardware"])
         self.assertTrue(report["recommended_pilot_sequence"][0]["requires_non_sensitive_audio"])
+        matrix = {row["name"]: row for row in report["platform_pilot_matrix"]}
+        self.assertEqual(matrix["windows-wasapi-capture"]["status"], "closed")
+        self.assertEqual(matrix["ubuntu-linux-capture"]["status"], "pending")
+        self.assertEqual(matrix["macos-capture"]["status"], "pending")
+        self.assertEqual(matrix["transcription-mp3-preflight"]["status"], "recommended")
+        self.assertTrue(matrix["system-output-audible"]["requires_operator"])
         self.assertIn("--fail-on-audit-gaps", report["beta_readiness"]["strict_audit_command"])
         self.assertIn("microphone-capture", {step["name"] for step in report["manual_pilot_steps"]})
         self.assertIn("beta-readiness", {step["name"] for step in report["manual_pilot_steps"]})
@@ -78,6 +87,7 @@ class PilotRunTests(unittest.TestCase):
         self.assertTrue(payload["safe_automated_pilot"]["passed"])
         self.assertIn("next_beta_evidence_steps", payload)
         self.assertIn("recommended_pilot_sequence", payload)
+        self.assertIn("platform_pilot_matrix", payload)
         self.assertIn("beta_readiness", payload)
         self.assertIn("pilot_plan", payload["artifacts"])
 
@@ -114,10 +124,13 @@ class PilotRunTests(unittest.TestCase):
         self.assertIn("refresh-beta-checklist", sequence_names)
         self.assertIn("Evidencias JSON", plan)
         self.assertIn("Secuencia recomendada", plan)
+        self.assertIn("Matriz por plataforma", plan)
         self.assertIn("Blockers cerrados: `ubuntu_linux_capture`", plan)
         self.assertIn("missing_project", plan)
         self.assertNotIn(str(evidence_root), plan)
         self.assertNotIn("Ubuntu/Linux capture pilot", plan)
+        matrix = {row["name"]: row for row in report["platform_pilot_matrix"]}
+        self.assertEqual(matrix["ubuntu-linux-capture"]["status"], "closed")
 
 
 def _write_json(path: Path, payload: dict):
