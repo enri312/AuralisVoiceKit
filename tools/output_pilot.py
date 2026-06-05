@@ -64,8 +64,19 @@ def run_output_pilot(
         operator_present=operator_present,
         operator_confirmed_audio=operator_confirmed_audio,
     )
+    operator_checklist = _operator_checklist(
+        system=system_name,
+        speak=speak,
+        operator_present=operator_present,
+        operator_confirmed_audio=operator_confirmed_audio,
+        voice=voice,
+        rate=rate,
+        volume=volume,
+        payload=sanitized_payload,
+    )
 
     findings_path = output / "output-pilot-findings.md"
+    checklist_path = output / "output-operator-checklist.md"
     report_path = output / "output-pilot-report.json"
     findings = _build_findings_markdown(
         timestamp=timestamp,
@@ -76,7 +87,14 @@ def run_output_pilot(
         confirmation_status=confirmation_status,
         passed=passed,
         payload=sanitized_payload,
+        operator_checklist=operator_checklist,
         report_path=report_path,
+        checklist_path=checklist_path,
+    )
+    checklist = _build_operator_checklist_markdown(
+        timestamp=timestamp,
+        system=system_name,
+        operator_checklist=operator_checklist,
     )
 
     report: dict[str, Any] = {
@@ -101,13 +119,16 @@ def run_output_pilot(
         "voices_count": len(payload.get("voices", [])),
         "commands_count": len(payload.get("commands", [])),
         "notes": _pilot_notes(speak),
+        "operator_checklist": operator_checklist,
         "output": sanitized_payload,
         "artifacts": {
+            "operator_checklist": str(checklist_path),
             "pilot_findings": str(findings_path),
             "output_pilot_report": str(report_path),
         },
     }
     findings_path.write_text(findings, encoding="utf-8")
+    checklist_path.write_text(checklist, encoding="utf-8")
     report_path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return report
 
@@ -219,6 +240,87 @@ def _operator_confirmation_status(
     return "missing-operator"
 
 
+def _operator_checklist(
+    *,
+    system: str,
+    speak: bool,
+    operator_present: bool,
+    operator_confirmed_audio: bool,
+    voice: str | None,
+    rate: int | None,
+    volume: int | None,
+    payload: dict[str, Any],
+) -> dict[str, Any]:
+    before = [
+        _checklist_item(
+            "operator_present",
+            "Confirm a human operator is present before enabling --speak.",
+            ok=operator_present if speak else None,
+            required=True,
+        ),
+        _checklist_item(
+            "safe_volume",
+            "Set OS volume to a comfortable level and avoid headphones at high volume.",
+            ok=None,
+            required=True,
+        ),
+        _checklist_item(
+            "quiet_environment",
+            "Run the audible pilot in a place where private conversations will not be captured in notes.",
+            ok=None,
+            required=True,
+        ),
+        _checklist_item(
+            "voice_selected",
+            "Review the selected voice/rate/volume before playback.",
+            ok=voice is not None or rate is not None or volume is not None,
+            required=False,
+        ),
+    ]
+    after = [
+        _checklist_item(
+            "audible_confirmed",
+            "Use --confirm-audible only after the operator confirms hearing the output.",
+            ok=operator_confirmed_audio if speak else None,
+            required=True,
+        ),
+        _checklist_item(
+            "voice_quality_reviewed",
+            "Record voice, volume or pronunciation issues in PILOT_FINDINGS.md without private text.",
+            ok=None,
+            required=False,
+        ),
+    ]
+    commands_available = len(payload.get("commands", [])) > 0 or bool(
+        speak and payload.get("spoken") and payload.get("error") is None
+    )
+    return {
+        "system": system,
+        "records_operator_identity": False,
+        "redacts_spoken_text": True,
+        "commands_available": commands_available,
+        "ready_for_real_audio": bool(speak and operator_present and commands_available),
+        "ready_for_beta_evidence": bool(speak and operator_present and operator_confirmed_audio and commands_available),
+        "before_playback": before,
+        "after_playback": after,
+    }
+
+
+def _checklist_item(
+    item_id: str,
+    instruction: str,
+    *,
+    ok: bool | None,
+    required: bool,
+) -> dict[str, Any]:
+    return {
+        "id": item_id,
+        "required": required,
+        "ok": ok,
+        "instruction": instruction,
+    }
+
+
 def _build_findings_markdown(
     *,
     timestamp: str,
@@ -229,7 +331,9 @@ def _build_findings_markdown(
     confirmation_status: str,
     passed: bool,
     payload: dict[str, Any],
+    operator_checklist: dict[str, Any],
     report_path: Path,
+    checklist_path: Path,
 ) -> str:
     lines = [
         "# System output pilot findings",
@@ -245,7 +349,9 @@ def _build_findings_markdown(
         f"- Passed: {passed}",
         f"- Voices reported: {len(payload.get('voices', []))}",
         f"- Commands observed: {len(payload.get('commands', []))}",
+        f"- Operator checklist ready for beta evidence: {operator_checklist['ready_for_beta_evidence']}",
         f"- Report: {report_path.name}",
+        f"- Operator checklist: {checklist_path.name}",
         "",
         "## Privacy",
         "",
@@ -271,6 +377,56 @@ def _build_findings_markdown(
     lines.append("- Record any platform-specific voice or command failures in PILOT_FINDINGS.md.")
     lines.append("")
     return "\n".join(lines)
+
+
+def _build_operator_checklist_markdown(
+    *,
+    timestamp: str,
+    system: str,
+    operator_checklist: dict[str, Any],
+) -> str:
+    lines = [
+        "# System output operator checklist",
+        "",
+        f"- Created at: {timestamp}",
+        f"- System: {system}",
+        f"- Records operator identity: {operator_checklist['records_operator_identity']}",
+        f"- Redacts spoken text: {operator_checklist['redacts_spoken_text']}",
+        f"- Commands available: {operator_checklist['commands_available']}",
+        f"- Ready for real audio: {operator_checklist['ready_for_real_audio']}",
+        f"- Ready for beta evidence: {operator_checklist['ready_for_beta_evidence']}",
+        "",
+        "## Before Playback",
+        "",
+    ]
+    for item in operator_checklist["before_playback"]:
+        lines.append(_format_checklist_item(item))
+    lines.extend(
+        [
+            "",
+            "## After Playback",
+            "",
+        ]
+    )
+    for item in operator_checklist["after_playback"]:
+        lines.append(_format_checklist_item(item))
+    lines.extend(
+        [
+            "",
+            "## Notes",
+            "",
+            "- Do not write private spoken text, operator names or local paths in shared findings.",
+            "- A dry-run checklist is preparation only; beta evidence requires real audio with --confirm-audible.",
+            "",
+        ]
+    )
+    return "\n".join(lines)
+
+
+def _format_checklist_item(item: dict[str, Any]) -> str:
+    marker = "x" if item["ok"] is True else " "
+    state = "unknown" if item["ok"] is None else str(item["ok"]).lower()
+    return f"- [{marker}] `{item['id']}` ok={state} required={item['required']} - {item['instruction']}"
 
 
 def _pilot_notes(speak: bool) -> str:

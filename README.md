@@ -12,7 +12,7 @@ English: AuralisVoiceKit is a modern voice toolkit for Python assistants, local 
 
 El objetivo principal es evitar que la captura de microfono dependa obligatoriamente de PyAudio o de wheels que tardan en llegar a las versiones nuevas de Python. El paquete base debe poder instalarse de forma liviana, sin compiladores y sin dependencias nativas obligatorias. Para MP3, FLAC y formatos comprimidos, AuralisVoiceKit usa `ffmpeg` como herramienta externa opcional.
 
-> Estado actual: alpha tecnica con gate de pilotos reales y checklist de beta. El repositorio ya define el core, los contratos de backends, captura real inicial, diagnostico reforzado para WASAPI, bundles de diagnostico sanitizados y analizables, flujo WAV offline, transcripcion inicial por API y local opcional, sesiones de voz iniciales, una CLI de diagnostico, benchmarks offline y comparativos para Whisper exportables a JSON/CSV, errores accionables para `ffmpeg`, mensajes accionables para audio Windows, documentacion estatica, salida de voz del sistema con voces configurables y ejemplo seguro, salida custom en memoria, quickstart para PyPI sin extras, guia de privacidad/logs, ejemplo de asistente local con logs sanitizados, runner de piloto seguro, runner de piloto manual, piloto de transcripcion con scoring redactado, checklist de beta automatizado, pruebas unitarias y pruebas reales de MP3/FLAC. Los backends reales se iran agregando por etapas.
+> Estado actual: alpha tecnica con gate de pilotos reales y checklist de beta. El repositorio ya define el core, los contratos de backends, captura real inicial, diagnostico reforzado para WASAPI, bundles de diagnostico sanitizados y analizables, flujo WAV offline, transcripcion inicial por API y local opcional, sesiones de voz iniciales, una CLI de diagnostico, benchmarks offline y comparativos para Whisper exportables a JSON/CSV, errores accionables para `ffmpeg`, mensajes accionables para audio Windows, documentacion estatica, salida de voz del sistema con voces configurables y ejemplo seguro, salida custom en memoria, quickstart para PyPI sin extras, guia de privacidad/logs, ejemplo de asistente local con logs sanitizados, runner de piloto seguro, runner de piloto manual, piloto de salida con checklist de operador, piloto de transcripcion con scoring redactado, checklist de beta automatizado, pruebas unitarias y pruebas reales de MP3/FLAC. Los backends reales se iran agregando por etapas.
 
 ## Problema que resuelve
 
@@ -200,12 +200,12 @@ Rutas usadas por plataforma:
 
 English: the `system` output backend can list voices and select voice/rate/volume when the operating system command supports those options.
 
-El ejemplo `system_output_demo.py` usa dry-run por defecto: registra el comando que se ejecutaria, lista voces simuladas para Windows/macOS/Linux y emite eventos `output.*` sin reproducir audio. Para pilotos con artifacts, `tools/output_pilot.py` escribe JSON y Markdown con el texto redactado en comandos. Para un piloto real que pueda cerrar el blocker beta, usa `--speak --operator-present --confirm-audible` de forma explicita:
+El ejemplo `system_output_demo.py` usa dry-run por defecto: registra el comando que se ejecutaria, lista voces simuladas para Windows/macOS/Linux y emite eventos `output.*` sin reproducir audio. Para pilotos con artifacts, `tools/output_pilot.py` escribe `output-pilot-report.json`, `output-pilot-findings.md` y `output-operator-checklist.md` con el texto redactado en comandos. Para un piloto real que pueda cerrar el blocker beta, usa `--speak --operator-present --confirm-audible` de forma explicita:
 
 ```powershell
 py examples\system_output_demo.py --speak --text "Hola desde AuralisVoiceKit"
 py tools\output_pilot.py --output-dir pilot_runs\output\system-dry-run --json
-py tools\output_pilot.py --speak --operator-present --confirm-audible --text "Hola desde AuralisVoiceKit" --json
+py tools\output_pilot.py --speak --operator-present --confirm-audible --output-dir pilot_runs\output\system-real --text "Hola desde AuralisVoiceKit" --json
 ```
 
 ## Backends de salida personalizados
@@ -661,11 +661,11 @@ py tools\beta_readiness.py --evidence pilot_runs\manual\linux --evidence pilot_r
 py tools\beta_readiness.py --fail-on-blockers --json
 ```
 
-El checklist generado vive en `BETA_CHECKLIST.md` y separa dos estados: listo para pilotos reales no significa listo para beta. `--requirements` imprime los campos JSON necesarios para cada blocker antes de ejecutar pilotos reales. `--audit-evidence` revisa artifacts reales, resume blockers cerrados/pendientes y explica que campo falta; `--fail-on-audit-gaps` devuelve codigo 1 si todavia faltan blockers o si algun artifact fue ignorado. `--evidence` acepta archivos o carpetas con JSON generados por `tools\manual_pilot.py`, `tools\output_pilot.py` y `tools\transcription_pilot.py`; solo cuenta artifacts con `project: AuralisVoiceKit`, reporta evidencias ignoradas con motivo (`missing_project`, `wrong_project`, `not_json_object`) y usa campos estructurados/nombres de artifacts, no transcripciones ni audio. English: beta readiness requires real pilot evidence, can fail CI on audit gaps, explains ignored artifacts, and never copies private transcripts or audio.
+El checklist generado vive en `BETA_CHECKLIST.md` y separa dos estados: listo para pilotos reales no significa listo para beta. `--requirements` imprime los campos JSON necesarios para cada blocker antes de ejecutar pilotos reales, incluido `operator_checklist.ready_for_beta_evidence` para salida audible. `--audit-evidence` revisa artifacts reales, resume blockers cerrados/pendientes y explica que campo falta; `--fail-on-audit-gaps` devuelve codigo 1 si todavia faltan blockers o si algun artifact fue ignorado. `--evidence` acepta archivos o carpetas con JSON generados por `tools\manual_pilot.py`, `tools\output_pilot.py` y `tools\transcription_pilot.py`; solo cuenta artifacts con `project: AuralisVoiceKit`, reporta evidencias ignoradas con motivo (`missing_project`, `wrong_project`, `not_json_object`) y usa campos estructurados/nombres de artifacts, no transcripciones ni audio. English: beta readiness requires real pilot evidence, can fail CI on audit gaps, explains ignored artifacts, and never copies private transcripts or audio.
 
 ## Pilotos seguros
 
-`tools/pilot_run.py` ejecuta un piloto automatizado sin microfono, sin audio real, sin red y sin modelos. Genera un reporte con el gate, `doctor` usando backend `wav`, el demo de asistente local con logs sanitizados, salida `system` en dry-run, benchmarks offline exportados, `pilot-report.json` y `pilot-plan.md`. El plan incluye evidencias JSON aceptadas/ignoradas, `next_beta_evidence_steps`, `recommended_pilot_sequence` y `platform_pilot_matrix` con comandos separados para Windows, Ubuntu/Linux, macOS, salida audible y transcripcion MP3; si falta transcripcion real, la secuencia inicia con un fixture sintetico publico y sigue con `--preflight-only` para validar el MP3 propio con ffmpeg y guardas de duracion sin ejecutar Whisper/OpenAI. English: the safe pilot can ingest JSON evidence and produce a public-safe Markdown plan for accepted evidence, ignored artifacts, an ordered real-pilot sequence and a platform matrix.
+`tools/pilot_run.py` ejecuta un piloto automatizado sin microfono, sin audio real, sin red y sin modelos. Genera un reporte con el gate, `doctor` usando backend `wav`, el demo de asistente local con logs sanitizados, salida `system` en dry-run, benchmarks offline exportados, `pilot-report.json` y `pilot-plan.md`. El plan incluye evidencias JSON aceptadas/ignoradas, `next_beta_evidence_steps`, `recommended_pilot_sequence` y `platform_pilot_matrix` con comandos separados para Windows, Ubuntu/Linux, macOS, salida audible y transcripcion MP3; si falta salida audible, inserta `system-output-operator-checklist` para revisar `output-operator-checklist.md` antes del audio real; si falta transcripcion real, la secuencia inicia con un fixture sintetico publico y sigue con `--preflight-only` para validar el MP3 propio con ffmpeg y guardas de duracion sin ejecutar Whisper/OpenAI. English: the safe pilot can ingest JSON evidence and produce a public-safe Markdown plan for accepted evidence, ignored artifacts, an ordered real-pilot sequence and a platform matrix.
 
 ```powershell
 py tools\pilot_run.py --output-dir pilot_runs\safe --json
@@ -679,11 +679,11 @@ py tools\manual_pilot.py --output-dir pilot_runs\manual\windows-safe --json
 py tools\manual_pilot.py --capture-test --backend wasapi --device default --sample-rate 48000 --json
 ```
 
-`tools/output_pilot.py` prepara pilotos de salida `system`. Por defecto es dry-run y no reproduce audio; con `--speak --operator-present --confirm-audible` usa voz real del sistema y registra artifacts sanitizados que pueden cerrar el blocker beta:
+`tools/output_pilot.py` prepara pilotos de salida `system`. Por defecto es dry-run y no reproduce audio; siempre escribe `output-operator-checklist.md` y `operator_checklist` en el JSON. Con `--speak --operator-present --confirm-audible` usa voz real del sistema y registra artifacts sanitizados que pueden cerrar el blocker beta:
 
 ```powershell
 py tools\output_pilot.py --output-dir pilot_runs\output\system-dry-run --json
-py tools\output_pilot.py --speak --operator-present --confirm-audible --text "Hola desde AuralisVoiceKit" --json
+py tools\output_pilot.py --speak --operator-present --confirm-audible --output-dir pilot_runs\output\system-real --text "Hola desde AuralisVoiceKit" --json
 ```
 
 `tools/pilot_audio_fixture.py` genera WAV/MP3/FLAC sinteticos publicos para ensayar ffmpeg antes de usar audio privado; con `--run-preflight` tambien ejecuta un preflight seguro contra el MP3 generado y no cuenta como evidencia beta. `tools/transcription_pilot.py` prepara pilotos de transcripcion. Por defecto genera audio sintetico y usa backend `null`; con `--preflight-only` decodifica un archivo propio no sensible (por ejemplo MP3) y escribe metadata sanitizada sin ejecutar Whisper/OpenAI. `--min-audio-seconds` y `--max-audio-seconds` validan la duracion decodificada antes de continuar, util para rechazar archivos vacios o demasiado largos. Para `whisper` u `openai` exige `--real-transcription`, un archivo `--audio` y confirmacion `--audio-non-sensitive`. El texto transcrito queda redactado en los artifacts. Si agregas `--expected-text` o `--expected-text-file`, calcula metricas de calidad como word accuracy y word error rate sin guardar la transcripcion ni el texto esperado:
@@ -696,7 +696,7 @@ py tools\transcription_pilot.py --preflight-only --audio sample.mp3 --audio-non-
 py tools\transcription_pilot.py --real-transcription --audio sample.mp3 --audio-non-sensitive --backend whisper --model base --normalize --expected-text "Hola desde AuralisVoiceKit" --min-word-accuracy 0.75 --min-audio-seconds 0.2 --max-audio-seconds 60 --json
 ```
 
-`tools/beta_readiness.py` resume blockers de beta a partir del gate, `PILOT_FINDINGS.md` y artifacts JSON pasados con `--evidence`. Hoy marca como pendientes la transcripcion real con calidad, salida `system` audible confirmada, captura Ubuntu/Linux y captura macOS.
+`tools/beta_readiness.py` resume blockers de beta a partir del gate, `PILOT_FINDINGS.md` y artifacts JSON pasados con `--evidence`. Hoy marca como pendientes la transcripcion real con calidad, salida `system` audible confirmada con `operator_checklist.ready_for_beta_evidence=true`, captura Ubuntu/Linux y captura macOS.
 
 Los pasos con hardware quedan documentados en:
 
@@ -717,7 +717,7 @@ ROADMAP.md
 Prioridad inmediata:
 
 1. Ejecutar piloto de transcripcion real con audio propio no sensible usando `tools\transcription_pilot.py --real-transcription --audio ... --audio-non-sensitive --expected-text ... --min-word-accuracy 0.75 --min-audio-seconds 0.2 --max-audio-seconds 60`.
-2. Ejecutar piloto manual de salida `system` con `tools\output_pilot.py --speak --operator-present --confirm-audible`.
+2. Preparar `output-operator-checklist.md` con `tools\output_pilot.py --output-dir pilot_runs\output\system-dry-run --json` y luego ejecutar salida `system` real con `tools\output_pilot.py --speak --operator-present --confirm-audible --output-dir pilot_runs\output\system-real`.
 3. Repetir captura con microfono en Ubuntu/Linux y macOS.
 4. Cerrar blockers de beta reportados por `tools\beta_readiness.py` y `BETA_CHECKLIST.md`.
 5. Evaluar si el siguiente lote de pilotos permite declarar beta.

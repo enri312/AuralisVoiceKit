@@ -4,7 +4,7 @@ Este documento se genera con `tools\beta_readiness.py`. No debe incluir audio, t
 
 ## Estado
 
-- Version: `0.55.0`
+- Version: `0.56.0`
 - Estado: `pilot`
 - Listo para beta: `false`
 - Gate de pilotos reales: `true`
@@ -26,8 +26,8 @@ Este documento se genera con `tools\beta_readiness.py`. No debe incluir audio, t
   - Accion: Run tools/transcription_pilot.py with --real-transcription, non-sensitive audio, --expected-text or --expected-text-file, a meaningful --min-word-accuracy, and --min-audio-seconds/--max-audio-seconds duration guards.
   - Evidencia faltante: `Real transcription requested: True`
 - [ ] `system_output_audible` (blocker) - Audible system output pilot
-  - Accion: Run tools/output_pilot.py --speak --operator-present --confirm-audible with a human operator and record only sanitized findings.
-  - Evidencia faltante: `Real audio requested: True`, `Operator confirmation status: confirmed`
+  - Accion: Run tools/output_pilot.py --speak --operator-present --confirm-audible --output-dir pilot_runs/output/system-real with a human operator, then keep output-operator-checklist.md and only sanitized findings.
+  - Evidencia faltante: `Real audio requested: True`, `Operator confirmation status: confirmed`, `Operator checklist ready for beta evidence: True`
 - [ ] `ubuntu_linux_capture` (blocker) - Ubuntu/Linux capture pilot
   - Accion: Run the manual capture pilot on Ubuntu/Linux with real hardware and sanitized artifacts.
   - Evidencia faltante: `Sistema: Ubuntu/Linux`
@@ -42,6 +42,6 @@ Este documento se genera con `tools\beta_readiness.py`. No debe incluir audio, t
 ## Siguientes acciones
 
 - Run tools/transcription_pilot.py with --real-transcription, non-sensitive audio, --expected-text or --expected-text-file, a meaningful --min-word-accuracy, and --min-audio-seconds/--max-audio-seconds duration guards.
-- Run tools/output_pilot.py --speak --operator-present --confirm-audible with a human operator and record only sanitized findings.
+- Run tools/output_pilot.py --speak --operator-present --confirm-audible --output-dir pilot_runs/output/system-real with a human operator, then keep output-operator-checklist.md and only sanitized findings.
 - Run the manual capture pilot on Ubuntu/Linux with real hardware and sanitized artifacts.
 - Run the manual capture pilot on macOS with real hardware and sanitized artifacts.

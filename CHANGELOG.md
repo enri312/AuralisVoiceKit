@@ -6,6 +6,19 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.56.0] - 2026-06-05
+
+### Agregado
+
+- Artifact `output-operator-checklist.md` generado por `tools/output_pilot.py` para preparar pilotos de salida audible sin guardar identidad del operador, texto privado ni rutas locales.
+- Bloque JSON `operator_checklist` con `ready_for_real_audio`, `ready_for_beta_evidence`, estado de redaccion y checklist antes/despues de playback.
+- Paso `system-output-operator-checklist` en `recommended_pilot_sequence` para revisar el checklist antes de ejecutar audio real.
+
+### Cambiado
+
+- `tools/beta_readiness.py --requirements` y la auditoria de evidencias ahora requieren `operator_checklist.ready_for_beta_evidence=true` para cerrar el blocker `system_output_audible` por JSON.
+- README, `PILOTS.md`, docs HTML, roadmap y gate de estabilidad documentan el artifact del checklist y el directorio recomendado `pilot_runs/output/system-real`.
+
 ## [0.55.0] - 2026-06-05
 
 ### Agregado

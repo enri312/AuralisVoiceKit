@@ -42,6 +42,8 @@ PILOT_CHECKS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
             "platform_pilot_matrix",
             "transcription-audio-fixture",
             "transcription-audio-preflight",
+            "system-output-operator-checklist",
+            "output-operator-checklist.md",
             "accepted_json_artifacts",
             "ignored_json_artifacts",
             "pilot-plan.md",
@@ -66,7 +68,16 @@ PILOT_CHECKS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
     (
         "output_pilot_runner",
         "tools/output_pilot.py",
-        ("run_output_pilot", "--speak", "--operator-present", "--confirm-audible", "<text-redacted>"),
+        (
+            "run_output_pilot",
+            "--speak",
+            "--operator-present",
+            "--confirm-audible",
+            "operator_checklist",
+            "output-operator-checklist.md",
+            "ready_for_beta_evidence",
+            "<text-redacted>",
+        ),
     ),
     (
         "transcription_pilot_runner",

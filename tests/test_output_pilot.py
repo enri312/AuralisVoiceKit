@@ -35,8 +35,10 @@ class OutputPilotTests(unittest.TestCase):
             )
             report_path = Path(report["artifacts"]["output_pilot_report"])
             findings_path = Path(report["artifacts"]["pilot_findings"])
+            checklist_path = Path(report["artifacts"]["operator_checklist"])
             report_text = report_path.read_text(encoding="utf-8")
             findings = findings_path.read_text(encoding="utf-8")
+            checklist = checklist_path.read_text(encoding="utf-8")
 
         self.assertTrue(report["passed"])
         self.assertTrue(report["dry_run"])
@@ -46,9 +48,18 @@ class OutputPilotTests(unittest.TestCase):
         self.assertEqual(report["text_characters"], len(private_text))
         self.assertIn("<text-redacted>", report_text)
         self.assertNotIn(private_text, report_text)
+        self.assertFalse(report["operator_checklist"]["records_operator_identity"])
+        self.assertTrue(report["operator_checklist"]["redacts_spoken_text"])
+        self.assertFalse(report["operator_checklist"]["ready_for_beta_evidence"])
+        self.assertIn("operator_checklist", report["artifacts"])
         self.assertIn("System output pilot findings", findings)
         self.assertIn("Real audio requested: False", findings)
+        self.assertIn("Operator checklist ready for beta evidence: False", findings)
         self.assertNotIn(private_text, findings)
+        self.assertIn("System output operator checklist", checklist)
+        self.assertIn("Records operator identity: False", checklist)
+        self.assertIn("Ready for beta evidence: False", checklist)
+        self.assertNotIn(private_text, checklist)
 
     def test_output_pilot_cli_outputs_json(self):
         module = _load_output_pilot()
@@ -81,8 +92,34 @@ class OutputPilotTests(unittest.TestCase):
         self.assertEqual(payload["system"], "Linux")
         self.assertTrue(payload["dry_run"])
         self.assertFalse(payload["real_audio_requested"])
+        self.assertIn("operator_checklist", payload["artifacts"])
+        self.assertFalse(payload["operator_checklist"]["ready_for_beta_evidence"])
         self.assertEqual(payload["voice"], "spanish")
         self.assertEqual(payload["commands_count"], 2)
+
+    def test_output_pilot_operator_checklist_marks_confirmed_real_audio(self):
+        module = _load_output_pilot()
+
+        operator_checklist = module._operator_checklist(
+            system="Linux",
+            speak=True,
+            operator_present=True,
+            operator_confirmed_audio=True,
+            voice=None,
+            rate=None,
+            volume=None,
+            payload={"commands": [], "spoken": True, "error": None},
+        )
+        checklist = module._build_operator_checklist_markdown(
+            timestamp="2026-06-05T00:00:00+00:00",
+            system="Linux",
+            operator_checklist=operator_checklist,
+        )
+
+        self.assertTrue(operator_checklist["ready_for_real_audio"])
+        self.assertTrue(operator_checklist["ready_for_beta_evidence"])
+        self.assertTrue(operator_checklist["commands_available"])
+        self.assertIn("Ready for beta evidence: True", checklist)
 
     def test_output_pilot_requires_operator_for_real_audio(self):
         module = _load_output_pilot()

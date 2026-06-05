@@ -2,6 +2,40 @@
 
 Este documento resume hallazgos de pilotos reales o semi-manuales. No debe incluir audio, transcripciones privadas, rutas locales completas ni nombres reales de dispositivos.
 
+## 2026-06-05 - Windows salida system dry-run con checklist de operador
+
+Comando ejecutado:
+
+```powershell
+python tools\output_pilot.py --output-dir pilot_runs\output\20260605T1850Z-system-checklist --json
+```
+
+Alcance:
+
+- Sistema: Windows.
+- Backend diagnosticado: `system`.
+- Audio reproducido: no.
+- Modo: dry-run.
+- Artifact nuevo: `output-operator-checklist.md`.
+- Identidad del operador guardada: no.
+- Texto completo guardado: no; comandos sanitizados con `<text-redacted>`.
+
+Resultado:
+
+- Piloto de salida: `passed=true`.
+- `operator_confirmation_status`: `not-required`.
+- `operator_checklist.records_operator_identity`: `false`.
+- `operator_checklist.redacts_spoken_text`: `true`.
+- Operator checklist ready for beta evidence: False.
+- Comandos observados: 2.
+- Voces reportadas por dry-run: 2.
+
+Acciones siguientes:
+
+1. Ejecutar `python tools\output_pilot.py --speak --operator-present --confirm-audible --output-dir pilot_runs\output\system-real --text "Hola desde AuralisVoiceKit" --json` solo con operador presente.
+2. Verificar que `operator_checklist.ready_for_beta_evidence=true` antes de usar el JSON como evidencia beta.
+3. Registrar solo voz, volumen, audibilidad y fallos tecnicos; no guardar texto privado ni nombres del operador.
+
 ## 2026-06-05 - Windows transcripcion dry-run con scoring redactado
 
 Comando ejecutado:

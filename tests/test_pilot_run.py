@@ -52,6 +52,8 @@ class PilotRunTests(unittest.TestCase):
         self.assertIn("--run-preflight", plan)
         self.assertIn("--preflight-only", plan)
         self.assertIn("--max-audio-seconds 60", plan)
+        self.assertIn("output-operator-checklist.md", plan)
+        self.assertIn("operator_checklist.ready_for_beta_evidence", plan)
         self.assertIn("sample.mp3", plan)
         self.assertIn("Ubuntu/Linux - ubuntu-linux-capture", plan)
         self.assertIn("macOS - macos-capture", plan)
@@ -64,12 +66,19 @@ class PilotRunTests(unittest.TestCase):
         self.assertEqual(sequence_names[0], "transcription-audio-fixture")
         self.assertEqual(sequence_names[1], "transcription-audio-preflight")
         self.assertEqual(sequence_names[2], "real_transcription_quality")
+        self.assertIn("system-output-operator-checklist", sequence_names)
         self.assertIn("audit-evidence", sequence_names)
         self.assertIn("refresh-beta-checklist", sequence_names)
         self.assertFalse(report["recommended_pilot_sequence"][0]["requires_hardware"])
         self.assertFalse(report["recommended_pilot_sequence"][0]["requires_non_sensitive_audio"])
         self.assertIn("preflight.passed", report["recommended_pilot_sequence"][0]["required_fields"])
         self.assertTrue(report["recommended_pilot_sequence"][1]["requires_non_sensitive_audio"])
+        checklist_step = {
+            step["name"]: step for step in report["recommended_pilot_sequence"]
+        }["system-output-operator-checklist"]
+        self.assertFalse(checklist_step["requires_hardware"])
+        self.assertFalse(checklist_step["requires_operator"])
+        self.assertIn("operator_checklist.ready_for_beta_evidence", checklist_step["required_fields"])
         matrix = {row["name"]: row for row in report["platform_pilot_matrix"]}
         self.assertEqual(matrix["windows-wasapi-capture"]["status"], "closed")
         self.assertEqual(matrix["ubuntu-linux-capture"]["status"], "pending")

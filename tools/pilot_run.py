@@ -232,7 +232,7 @@ def _manual_pilot_steps() -> list[dict[str, str]]:
             "name": "system-speech",
             "command": (
                 "python tools/output_pilot.py --speak --operator-present --confirm-audible "
-                "--text \"Hola desde AuralisVoiceKit\" --json"
+                "--output-dir pilot_runs/output/system-real --text \"Hola desde AuralisVoiceKit\" --json"
             ),
             "reason": "Plays real audio and should be run intentionally by a human.",
         },
@@ -297,6 +297,8 @@ def _recommended_pilot_sequence(
         if step["name"] == "real_transcription_quality":
             sequence.append(_transcription_audio_fixture_step(len(sequence) + 1))
             sequence.append(_transcription_audio_preflight_step(len(sequence) + 1))
+        if step["name"] == "system_output_audible":
+            sequence.append(_system_output_operator_checklist_step(len(sequence) + 1))
         sequence.append(
             {
                 "order": len(sequence) + 1,
@@ -410,6 +412,27 @@ def _transcription_audio_preflight_step(order: int) -> dict[str, Any]:
     }
 
 
+def _system_output_operator_checklist_step(order: int) -> dict[str, Any]:
+    return {
+        "order": order,
+        "name": "system-output-operator-checklist",
+        "title": "System output operator checklist",
+        "command": "python tools/output_pilot.py --output-dir pilot_runs/output/system-dry-run --json",
+        "artifact": "output-operator-checklist.md",
+        "required_fields": [
+            "operator_checklist.records_operator_identity",
+            "operator_checklist.redacts_spoken_text",
+            "operator_checklist.ready_for_beta_evidence",
+            "artifacts.operator_checklist",
+        ],
+        "requires_hardware": False,
+        "requires_operator": False,
+        "requires_non_sensitive_audio": False,
+        "review_required": True,
+        "reason": "Prepara el checklist redactado antes de ejecutar salida audible real con operador presente.",
+    }
+
+
 def _platform_pilot_matrix(blockers: list[str]) -> list[dict[str, Any]]:
     pending = set(blockers)
     rows = [
@@ -455,7 +478,8 @@ def _platform_pilot_matrix(blockers: list[str]) -> list[dict[str, Any]]:
             "blocker": "system_output_audible",
             "command": (
                 "python tools/output_pilot.py --speak --operator-present "
-                "--confirm-audible --text \"Hola desde AuralisVoiceKit\" --json"
+                "--confirm-audible --output-dir pilot_runs/output/system-real "
+                "--text \"Hola desde AuralisVoiceKit\" --json"
             ),
             "artifact": "output-pilot-report.json",
             "requires_hardware": True,

@@ -103,6 +103,7 @@ class BetaReadinessTests(unittest.TestCase):
                     "backend": "system",
                     "real_audio_requested": True,
                     "operator_confirmation_status": "confirmed",
+                    "operator_checklist": {"ready_for_beta_evidence": True},
                     "passed": True,
                 },
             )
@@ -161,6 +162,28 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertFalse(checks["real_transcription_quality"]["ok"])
         self.assertIn("real_transcription_quality", report["blockers"])
 
+    def test_system_output_evidence_requires_operator_checklist(self):
+        module = _load_beta_readiness()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            evidence_path = Path(tmpdir) / "output-pilot-report.json"
+            _write_json(
+                evidence_path,
+                {
+                    "project": "AuralisVoiceKit",
+                    "backend": "system",
+                    "real_audio_requested": True,
+                    "operator_confirmation_status": "confirmed",
+                    "passed": True,
+                },
+            )
+
+            report = module.build_beta_readiness_report(ROOT, evidence_paths=[evidence_path])
+            checks = {check["name"]: check for check in report["checks"]}
+
+        self.assertFalse(checks["system_output_audible"]["ok"])
+        self.assertIn("system_output_audible", report["blockers"])
+
     def test_cli_evidence_allows_strict_beta_pass(self):
         module = _load_beta_readiness()
 
@@ -181,6 +204,7 @@ class BetaReadinessTests(unittest.TestCase):
                     "backend": "system",
                     "real_audio_requested": True,
                     "operator_confirmation_status": "confirmed",
+                    "operator_checklist": {"ready_for_beta_evidence": True},
                     "passed": True,
                 },
             )
@@ -216,6 +240,7 @@ class BetaReadinessTests(unittest.TestCase):
                     "backend": "system",
                     "real_audio_requested": True,
                     "operator_confirmation_status": "confirmed",
+                    "operator_checklist": {"ready_for_beta_evidence": True},
                     "passed": True,
                 },
             )
@@ -245,6 +270,7 @@ class BetaReadinessTests(unittest.TestCase):
                     "backend": "system",
                     "real_audio_requested": True,
                     "operator_confirmation_status": "confirmed",
+                    "operator_checklist": {"ready_for_beta_evidence": True},
                     "passed": True,
                 },
             )
@@ -298,7 +324,9 @@ class BetaReadinessTests(unittest.TestCase):
         transcription_fields = {
             field["path"]: field["expected"] for field in requirements["real_transcription_quality"]["fields"]
         }
+        output_fields = {field["path"] for field in requirements["system_output_audible"]["fields"]}
         self.assertEqual(transcription_fields["quality.min_word_accuracy"], ">= 0.75")
+        self.assertIn("operator_checklist.ready_for_beta_evidence", output_fields)
 
     def test_cli_requirements_markdown_is_public_safe(self):
         module = _load_beta_readiness()
@@ -339,6 +367,7 @@ class BetaReadinessTests(unittest.TestCase):
                     "backend": "system",
                     "real_audio_requested": True,
                     "operator_confirmation_status": "confirmed",
+                    "operator_checklist": {"ready_for_beta_evidence": True},
                     "passed": True,
                 },
             )
@@ -486,6 +515,7 @@ class BetaReadinessTests(unittest.TestCase):
                     "backend": "system",
                     "real_audio_requested": True,
                     "operator_confirmation_status": "confirmed",
+                    "operator_checklist": {"ready_for_beta_evidence": True},
                     "passed": True,
                 },
             )
@@ -536,6 +566,7 @@ class BetaReadinessTests(unittest.TestCase):
                     "backend": "system",
                     "real_audio_requested": True,
                     "operator_confirmation_status": "confirmed",
+                    "operator_checklist": {"ready_for_beta_evidence": True},
                     "passed": True,
                 },
             )
