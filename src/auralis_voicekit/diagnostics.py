@@ -210,6 +210,7 @@ def analyze_doctor_bundles(paths: Iterable[str | Path]) -> DoctorBundleAnalysis:
     for path in bundle_paths:
         bundle = _read_doctor_bundle(path)
         report = _extract_bundle_report(bundle, path)
+        bundle_label = _bundle_label(path)
         bundle_schema = str(bundle.get("schema", "raw-doctor-report")) if isinstance(bundle, dict) else "unknown"
         system = str(report.get("system", "unknown"))
         status = str(report.get("status", "unknown"))
@@ -232,7 +233,7 @@ def analyze_doctor_bundles(paths: Iterable[str | Path]) -> DoctorBundleAnalysis:
             priority_counts[priority] += 1
             issues.append(
                 DoctorBundleIssue(
-                    bundle=str(path),
+                    bundle=bundle_label,
                     system=system,
                     python=python_version,
                     check=check_name,
@@ -260,7 +261,7 @@ def analyze_doctor_bundles(paths: Iterable[str | Path]) -> DoctorBundleAnalysis:
         schema=DOCTOR_BUNDLE_ANALYSIS_SCHEMA,
         created_at=datetime.now(timezone.utc).isoformat(),
         bundle_count=len(bundle_paths),
-        bundles=tuple(str(path) for path in bundle_paths),
+        bundles=tuple(_bundle_label(path) for path in bundle_paths),
         bundle_schemas=_counter_to_dict(bundle_schemas),
         systems=_counter_to_dict(systems),
         statuses=_counter_to_dict(statuses),
@@ -357,6 +358,10 @@ def _read_doctor_bundle(path: Path) -> dict[str, Any]:
     if not isinstance(payload, dict):
         raise ValueError(f"Doctor bundle {path} must contain a JSON object.")
     return payload
+
+
+def _bundle_label(path: Path) -> str:
+    return path.name
 
 
 def _extract_bundle_report(bundle: dict[str, Any], path: Path) -> dict[str, Any]:

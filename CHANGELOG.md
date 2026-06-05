@@ -6,6 +6,23 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.33.0] - 2026-06-05
+
+### Agregado
+
+- Herramienta `tools/manual_pilot.py` para ejecutar un piloto manual guiado con bundle doctor, analisis `doctor-bundles`, reporte JSON y Markdown de hallazgos.
+- Modo seguro por defecto en el piloto manual: no abre el microfono salvo que se use `--capture-test`.
+- Documento `PILOT_FINDINGS.md` con el primer hallazgo Windows seguro: `ffmpeg` disponible y captura real pendiente por falta de `sounddevice`.
+- Pruebas automatizadas para el runner de piloto manual.
+
+### Cambiado
+
+- `analyze_doctor_bundles()` usa nombres de bundle en vez de rutas locales para evitar filtrar paths en reportes compartibles.
+- `tools/pilot_run.py` apunta el paso manual de microfono al nuevo runner `tools/manual_pilot.py`.
+- README, `PILOTS.md`, referencia API, documentacion HTML y roadmap documentan el flujo de piloto manual guiado.
+- `tools/stability_gate.py` exige ahora el runner de piloto manual y el documento de hallazgos.
+- `.gitignore` ignora `pilot_runs/` para evitar subir artifacts locales.
+
 ## [0.32.0] - 2026-06-05
 
 ### Agregado

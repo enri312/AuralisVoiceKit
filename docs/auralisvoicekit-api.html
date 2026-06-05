@@ -593,8 +593,10 @@ print(hint.format_hint())</code></pre>
         <pre><code>auralis doctor --devices --backend wasapi --bundle reports/doctor-windows.json
 auralis doctor --capture-test --backend sounddevice --device default --bundle reports/doctor-capture.json --json
 auralis doctor-bundles reports/doctor-windows.json reports/doctor-capture.json --output reports/doctor-analysis.json --json</code></pre>
-        <pre><code>python tools/pilot_run.py --output-dir pilot_runs/safe --json</code></pre>
-        <p><code>tools/pilot_run.py</code> usa <code>tools/stability_gate.py</code> y genera un piloto seguro sin hardware. El checklist manual esta en <a href="../PILOTS.md">PILOTS.md</a>.</p>
+        <pre><code>python tools/pilot_run.py --output-dir pilot_runs/safe --json
+python tools/manual_pilot.py --output-dir pilot_runs/manual/windows-safe --json
+python tools/manual_pilot.py --capture-test --backend wasapi --device default --json</code></pre>
+        <p><code>tools/pilot_run.py</code> usa <code>tools/stability_gate.py</code> y genera un piloto seguro sin hardware. <code>tools/manual_pilot.py</code> genera bundle doctor, analisis, reporte JSON y Markdown de hallazgos, sin abrir microfono salvo <code>--capture-test</code>. El checklist manual esta en <a href="../PILOTS.md">PILOTS.md</a> y los hallazgos resumidos en <a href="../PILOT_FINDINGS.md">PILOT_FINDINGS.md</a>.</p>
       </section>
 
       <section id="benchmarks">

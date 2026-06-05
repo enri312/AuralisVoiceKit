@@ -12,7 +12,7 @@ English: AuralisVoiceKit is a modern voice toolkit for Python assistants, local 
 
 El objetivo principal es evitar que la captura de microfono dependa obligatoriamente de PyAudio o de wheels que tardan en llegar a las versiones nuevas de Python. El paquete base debe poder instalarse de forma liviana, sin compiladores y sin dependencias nativas obligatorias. Para MP3, FLAC y formatos comprimidos, AuralisVoiceKit usa `ffmpeg` como herramienta externa opcional.
 
-> Estado actual: alpha tecnica con gate de pilotos reales. El repositorio ya define el core, los contratos de backends, captura real inicial, diagnostico reforzado para WASAPI, bundles de diagnostico sanitizados y analizables, flujo WAV offline, transcripcion inicial por API y local opcional, sesiones de voz iniciales, una CLI de diagnostico, benchmarks offline y comparativos para Whisper exportables a JSON/CSV, errores accionables para `ffmpeg`, mensajes accionables para audio Windows, documentacion estatica, salida de voz del sistema con voces configurables y ejemplo seguro, salida custom en memoria, quickstart para PyPI sin extras, guia de privacidad/logs, ejemplo de asistente local con logs sanitizados, runner de piloto seguro, pruebas unitarias y pruebas reales de MP3/FLAC. Los backends reales se iran agregando por etapas.
+> Estado actual: alpha tecnica con gate de pilotos reales. El repositorio ya define el core, los contratos de backends, captura real inicial, diagnostico reforzado para WASAPI, bundles de diagnostico sanitizados y analizables, flujo WAV offline, transcripcion inicial por API y local opcional, sesiones de voz iniciales, una CLI de diagnostico, benchmarks offline y comparativos para Whisper exportables a JSON/CSV, errores accionables para `ffmpeg`, mensajes accionables para audio Windows, documentacion estatica, salida de voz del sistema con voces configurables y ejemplo seguro, salida custom en memoria, quickstart para PyPI sin extras, guia de privacidad/logs, ejemplo de asistente local con logs sanitizados, runner de piloto seguro, runner de piloto manual, pruebas unitarias y pruebas reales de MP3/FLAC. Los backends reales se iran agregando por etapas.
 
 ## Problema que resuelve
 
@@ -654,10 +654,18 @@ Ruta portable del gate: `tools/stability_gate.py`.
 py tools\pilot_run.py --output-dir pilot_runs\safe --json
 ```
 
+`tools/manual_pilot.py` genera bundle doctor, analisis `doctor-bundles` y Markdown de hallazgos. Por defecto no abre microfono; para un piloto real de captura se debe pasar `--capture-test` de forma explicita:
+
+```powershell
+py tools\manual_pilot.py --output-dir pilot_runs\manual\windows-safe --json
+py tools\manual_pilot.py --capture-test --backend wasapi --device default --json
+```
+
 Los pasos con hardware quedan documentados en:
 
 ```text
 PILOTS.md
+PILOT_FINDINGS.md
 ```
 
 ## Roadmap
@@ -670,11 +678,11 @@ ROADMAP.md
 
 Prioridad inmediata:
 
-1. Ejecutar piloto manual Windows con `auralis doctor --bundle` y revisar el resultado con `auralis doctor-bundles`.
+1. Instalar el extra `sounddevice` y ejecutar `tools/manual_pilot.py --capture-test --backend wasapi`.
 2. Agregar benchmark real de salida `system` si es seguro en CI.
 3. Documentar checklist de hallazgos para pilotos Windows/Ubuntu/macOS.
 4. Preparar checklist de bugs conocidos para beta publica.
-5. Ejecutar pilotos manuales con microfono, salida `system` y transcripcion real.
+5. Ejecutar pilotos manuales con salida `system` y transcripcion real.
 
 ## Documentacion
 

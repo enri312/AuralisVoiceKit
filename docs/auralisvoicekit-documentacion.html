@@ -548,8 +548,10 @@ print(analysis.priority_counts)</code></pre>
 python tools/stability_gate.py --min-stage pilot</code></pre>
         <p>El gate tambien exige el ejemplo de asistente local con logs sanitizados para mantener lista la ruta de pilotos reales.</p>
         <h3>Piloto seguro</h3>
-        <p><code>tools/pilot_run.py</code> ejecuta un piloto automatizado sin microfono, sin audio real, sin red y sin modelos. Genera reporte JSON con gate, doctor <code>wav</code>, asistente local con privacidad, salida <code>system</code> en dry-run y benchmark offline exportado. Los pasos manuales viven en <a href="../PILOTS.md">PILOTS.md</a>.</p>
-        <pre><code>python tools/pilot_run.py --output-dir pilot_runs/safe --json</code></pre>
+        <p><code>tools/pilot_run.py</code> ejecuta un piloto automatizado sin microfono, sin audio real, sin red y sin modelos. <code>tools/manual_pilot.py</code> genera bundle doctor, analisis <code>doctor-bundles</code>, reporte JSON y Markdown de hallazgos; no abre microfono salvo que se use <code>--capture-test</code>. Los pasos manuales viven en <a href="../PILOTS.md">PILOTS.md</a> y los hallazgos resumidos en <a href="../PILOT_FINDINGS.md">PILOT_FINDINGS.md</a>.</p>
+        <pre><code>python tools/pilot_run.py --output-dir pilot_runs/safe --json
+python tools/manual_pilot.py --output-dir pilot_runs/manual/windows-safe --json
+python tools/manual_pilot.py --capture-test --backend wasapi --device default --json</code></pre>
         <pre><code>$env:AURALIS_RUN_FFMPEG_INTEGRATION="1"
 py -m unittest tests.test_ffmpeg_integration
         Remove-Item Env:\AURALIS_RUN_FFMPEG_INTEGRATION</code></pre>

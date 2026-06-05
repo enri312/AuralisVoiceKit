@@ -186,7 +186,7 @@ def _manual_pilot_steps() -> list[dict[str, str]]:
     return [
         {
             "name": "microphone-capture",
-            "command": "auralis doctor --capture-test --backend sounddevice --device default --json",
+            "command": "python tools/manual_pilot.py --capture-test --backend wasapi --device default --json",
             "reason": "Requires real microphone hardware and OS permissions.",
         },
         {
@@ -201,7 +201,7 @@ def _manual_pilot_steps() -> list[dict[str, str]]:
         },
         {
             "name": "record-findings",
-            "command": "Update PILOTS.md with OS, Python, hardware, command output and follow-up issues.",
+            "command": "Update PILOT_FINDINGS.md with OS, Python, hardware, command output and follow-up issues.",
             "reason": "Turns pilot observations into actionable project work.",
         },
     ]

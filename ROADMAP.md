@@ -46,7 +46,7 @@ La meta no es competir con todos los motores de voz a la vez. La meta es constru
 | Asistente local con privacidad | Ejemplo offline inicial con logs sanitizados |
 | Backends de salida custom | Guia inicial y ejemplo en memoria |
 | Automatizacion de estabilidad | Gate inicial para pilotos reales |
-| Pilotos seguros | Runner automatizado inicial, runbook, bundle doctor y analisis de bundles |
+| Pilotos seguros | Runner automatizado, piloto manual guiado, runbook, bundle doctor y analisis de bundles |
 | Mensajes Windows audio | Helper inicial para errores comunes |
 
 ## Fase 0 - Base del proyecto
@@ -70,6 +70,7 @@ Criterio de salida:
 - `python -m auralis_voicekit.cli doctor` corre sin instalar extras.
 - `python -m auralis_voicekit.cli doctor --bundle reports/doctor.json` genera un reporte sanitizado.
 - `python -m auralis_voicekit.cli doctor-bundles reports/doctor.json --json` resume hallazgos de pilotos.
+- `python tools/manual_pilot.py --json` genera artifacts de piloto manual sin abrir microfono por defecto.
 - `import auralis_voicekit` no intenta cargar backends nativos.
 
 Estado: completada para la base inicial.
@@ -215,6 +216,7 @@ Entregables:
 - Workflow manual para TestPyPI/PyPI con Trusted Publishing. Estado: inicial.
 - Gate de estabilidad para CI. Estado: inicial con `tools/stability_gate.py`.
 - Runner de piloto automatizado seguro. Estado: inicial con `tools/pilot_run.py`.
+- Runner de piloto manual guiado. Estado: inicial con `tools/manual_pilot.py`, sin captura real salvo `--capture-test`.
 
 Criterio de salida:
 
@@ -279,13 +281,13 @@ Criterio de salida:
 - Ejemplo de asistente local con logs sanitizados. Estado: inicial con `examples/local_assistant_privacy_demo.py`.
 - Backends de salida personalizados. Estado: guia y ejemplo inicial.
 - Automatizacion de estabilidad. Estado: gate inicial listo para CI y uso local.
-- Pilotos seguros. Estado: runner automatizado, runbook inicial con `PILOTS.md`, bundles `doctor` sanitizados y analisis `doctor-bundles`.
+- Pilotos seguros. Estado: runner automatizado, piloto manual guiado con `tools/manual_pilot.py`, runbook inicial con `PILOTS.md`, hallazgos en `PILOT_FINDINGS.md`, bundles `doctor` sanitizados y analisis `doctor-bundles`.
 - Mensajes Windows audio. Estado: inicial para permisos, dispositivo, sample rate, canales y host API.
 - Ejemplo de salida `system`. Estado: inicial con dry-run y `--speak` para pilotos reales.
 
 ## Prioridad inmediata
 
-1. Ejecutar piloto manual Windows con `auralis doctor --bundle` y revisar el resultado con `auralis doctor-bundles`.
+1. Instalar el extra `sounddevice` y ejecutar `tools/manual_pilot.py --capture-test --backend wasapi`.
 2. Agregar benchmark real de salida `system` si es seguro en CI.
 3. Documentar checklist de hallazgos para pilotos Windows/Ubuntu/macOS.
 4. Preparar checklist de bugs conocidos para beta publica.

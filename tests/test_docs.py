@@ -13,7 +13,9 @@ CUSTOM_OUTPUT = ROOT / "CUSTOM_OUTPUT_BACKENDS.md"
 SYSTEM_OUTPUT_DEMO = ROOT / "examples" / "system_output_demo.py"
 LOCAL_ASSISTANT_PRIVACY_DEMO = ROOT / "examples" / "local_assistant_privacy_demo.py"
 PILOTS = ROOT / "PILOTS.md"
+PILOT_FINDINGS = ROOT / "PILOT_FINDINGS.md"
 PILOT_RUN = ROOT / "tools" / "pilot_run.py"
+MANUAL_PILOT = ROOT / "tools" / "manual_pilot.py"
 
 
 class DocumentationTests(unittest.TestCase):
@@ -73,13 +75,20 @@ class DocumentationTests(unittest.TestCase):
 
     def test_pilot_runbook_and_runner_are_linked_from_public_docs(self):
         self.assertTrue(PILOTS.exists())
+        self.assertTrue(PILOT_FINDINGS.exists())
         self.assertTrue(PILOT_RUN.exists())
+        self.assertTrue(MANUAL_PILOT.exists())
         self.assertIn("PILOTS.md", README.read_text(encoding="utf-8"))
+        self.assertIn("PILOT_FINDINGS.md", README.read_text(encoding="utf-8"))
         self.assertIn("PILOTS.md", MAIN_DOC.read_text(encoding="utf-8"))
+        self.assertIn("PILOT_FINDINGS.md", MAIN_DOC.read_text(encoding="utf-8"))
         self.assertIn("PILOTS.md", API_DOC.read_text(encoding="utf-8"))
         self.assertIn("tools\\pilot_run.py", README.read_text(encoding="utf-8"))
+        self.assertIn("tools\\manual_pilot.py", README.read_text(encoding="utf-8"))
         self.assertIn("tools/pilot_run.py", MAIN_DOC.read_text(encoding="utf-8"))
+        self.assertIn("tools/manual_pilot.py", MAIN_DOC.read_text(encoding="utf-8"))
         self.assertIn("tools/pilot_run.py", API_DOC.read_text(encoding="utf-8"))
+        self.assertIn("tools/manual_pilot.py", API_DOC.read_text(encoding="utf-8"))
 
     def test_doctor_bundle_is_documented(self):
         self.assertIn("--bundle", README.read_text(encoding="utf-8"))

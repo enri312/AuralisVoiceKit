@@ -262,10 +262,12 @@ class DiagnosticsTests(unittest.TestCase):
         self.assertEqual(analysis.schema, DOCTOR_BUNDLE_ANALYSIS_SCHEMA)
         self.assertEqual(analysis.bundle_count, 1)
         self.assertEqual(analysis.systems["Windows"], 1)
+        self.assertEqual(analysis.bundles, ("doctor-windows.json",))
         self.assertEqual(analysis.statuses["error"], 1)
         self.assertEqual(analysis.check_statuses["capture-test:wasapi"]["error"], 1)
         self.assertEqual(analysis.issue_categories["windows_audio:microphone_permission"], 1)
         self.assertEqual(analysis.priority_counts["high"], 1)
+        self.assertEqual(analysis.issues[0].bundle, "doctor-windows.json")
         self.assertEqual(analysis.issues[0].priority, "high")
         self.assertEqual(analysis.issues[0].details["windows_audio_category"], "microphone_permission")
 
