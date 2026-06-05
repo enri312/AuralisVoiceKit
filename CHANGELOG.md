@@ -6,6 +6,21 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.29.0] - 2026-06-05
+
+### Agregado
+
+- Ejemplo `examples/local_assistant_privacy_demo.py` para un asistente local offline con logs sanitizados.
+- Flujo completo sin extras: audio sintetico, WAV temporal, `VoiceSession`, transcripcion `null`, respuesta `null` y JSONL con `PrivacyEventLogger`.
+- Checks de privacidad en el payload del ejemplo para confirmar que texto, path y token privados no se filtran al log.
+- Pruebas automatizadas del ejemplo como modulo y como script.
+
+### Cambiado
+
+- `tools/stability_gate.py` exige ahora el ejemplo de asistente local con privacidad como parte del estado `pilot`.
+- README, referencia API, documentacion HTML y roadmap documentan el nuevo ejemplo.
+- El roadmap mueve la prioridad inmediata a pilotos reales guiados por `tools/stability_gate.py`.
+
 ## [0.28.0] - 2026-06-05
 
 ### Agregado

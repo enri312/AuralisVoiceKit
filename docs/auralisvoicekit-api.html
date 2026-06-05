@@ -548,6 +548,8 @@ unsubscribe()</code></pre>
     unsubscribe()
 
 debug_config = PrivacyLogConfig(privacy_mode=False)</code></pre>
+        <pre><code>python examples/local_assistant_privacy_demo.py --output-dir auralis_demo --json</code></pre>
+        <p>El ejemplo <code>local_assistant_privacy_demo.py</code> ejecuta un asistente offline con <code>VoiceSession</code>, salida <code>null</code> y logs JSONL sanitizados. El payload incluye <code>privacy_checks</code> para verificar que texto, path y token privados quedaron redactados.</p>
       </section>
 
       <section id="diagnostics">

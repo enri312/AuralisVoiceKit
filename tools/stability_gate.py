@@ -29,6 +29,7 @@ PILOT_CHECKS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
     ("pypi_quickstart", "examples/pypi_quickstart.py", ("run_demo", "transcription_backend")),
     ("custom_output_example", "examples/custom_output_backend.py", ("MemorySpeechOutputBackend", "run_demo")),
     ("system_output_example", "examples/system_output_demo.py", ("DryRunSystemRunner", "--speak")),
+    ("local_assistant_privacy_example", "examples/local_assistant_privacy_demo.py", ("PrivacyEventLogger", "privacy_checks")),
     ("ci", ".github/workflows/ci.yml", ("stability_gate.py", "unittest discover")),
 )
 

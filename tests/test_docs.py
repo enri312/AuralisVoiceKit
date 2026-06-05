@@ -11,6 +11,7 @@ README = ROOT / "README.md"
 PRIVACY = ROOT / "PRIVACY.md"
 CUSTOM_OUTPUT = ROOT / "CUSTOM_OUTPUT_BACKENDS.md"
 SYSTEM_OUTPUT_DEMO = ROOT / "examples" / "system_output_demo.py"
+LOCAL_ASSISTANT_PRIVACY_DEMO = ROOT / "examples" / "local_assistant_privacy_demo.py"
 
 
 class DocumentationTests(unittest.TestCase):
@@ -59,6 +60,14 @@ class DocumentationTests(unittest.TestCase):
         self.assertIn(system_output_name, README.read_text(encoding="utf-8"))
         self.assertIn(system_output_name, MAIN_DOC.read_text(encoding="utf-8"))
         self.assertIn(system_output_name, API_DOC.read_text(encoding="utf-8"))
+
+    def test_local_assistant_privacy_demo_is_linked_from_public_docs(self):
+        demo_name = "local_assistant_privacy_demo.py"
+
+        self.assertTrue(LOCAL_ASSISTANT_PRIVACY_DEMO.exists())
+        self.assertIn(demo_name, README.read_text(encoding="utf-8"))
+        self.assertIn(demo_name, MAIN_DOC.read_text(encoding="utf-8"))
+        self.assertIn(demo_name, API_DOC.read_text(encoding="utf-8"))
 
 
 if __name__ == "__main__":

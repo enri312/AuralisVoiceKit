@@ -12,7 +12,7 @@ English: AuralisVoiceKit is a modern voice toolkit for Python assistants, local 
 
 El objetivo principal es evitar que la captura de microfono dependa obligatoriamente de PyAudio o de wheels que tardan en llegar a las versiones nuevas de Python. El paquete base debe poder instalarse de forma liviana, sin compiladores y sin dependencias nativas obligatorias. Para MP3, FLAC y formatos comprimidos, AuralisVoiceKit usa `ffmpeg` como herramienta externa opcional.
 
-> Estado actual: alpha tecnica con gate de pilotos reales. El repositorio ya define el core, los contratos de backends, captura real inicial, diagnostico reforzado para WASAPI, flujo WAV offline, transcripcion inicial por API y local opcional, sesiones de voz iniciales, una CLI de diagnostico, benchmarks offline y comparativos para Whisper exportables a JSON/CSV, errores accionables para `ffmpeg`, mensajes accionables para audio Windows, documentacion estatica, salida de voz del sistema con voces configurables y ejemplo seguro, salida custom en memoria, quickstart para PyPI sin extras, guia de privacidad/logs, pruebas unitarias y pruebas reales de MP3/FLAC. Los backends reales se iran agregando por etapas.
+> Estado actual: alpha tecnica con gate de pilotos reales. El repositorio ya define el core, los contratos de backends, captura real inicial, diagnostico reforzado para WASAPI, flujo WAV offline, transcripcion inicial por API y local opcional, sesiones de voz iniciales, una CLI de diagnostico, benchmarks offline y comparativos para Whisper exportables a JSON/CSV, errores accionables para `ffmpeg`, mensajes accionables para audio Windows, documentacion estatica, salida de voz del sistema con voces configurables y ejemplo seguro, salida custom en memoria, quickstart para PyPI sin extras, guia de privacidad/logs, ejemplo de asistente local con logs sanitizados, pruebas unitarias y pruebas reales de MP3/FLAC. Los backends reales se iran agregando por etapas.
 
 ## Problema que resuelve
 
@@ -486,7 +486,10 @@ Ejemplo completo de loop:
 py examples\assistant_loop.py --file sample.mp3 --transcription-backend openai
 py examples\assistant_loop.py --seconds 5 --capture-backend sounddevice --transcription-backend openai
 py examples\assistant_loop.py --seconds 30 --capture-backend sounddevice --transcription-backend whisper --model base
+py examples\local_assistant_privacy_demo.py --json
 ```
+
+`local_assistant_privacy_demo.py` corre offline y sin extras: genera audio sintetico, lo procesa con `VoiceSession`, responde con salida `null` y escribe eventos JSONL con `PrivacyEventLogger`. El payload incluye `privacy_checks` para confirmar que texto, path y token privados fueron redactados del log.
 
 ## Diagnostico
 
@@ -613,6 +616,12 @@ with PrivacyEventLogger("auralis-events.jsonl") as logger:
     unsubscribe()
 ```
 
+Ejemplo completo con asistente local y log sanitizado:
+
+```powershell
+py examples\local_assistant_privacy_demo.py --output-dir auralis_demo --json
+```
+
 La guia bilingue completa esta en:
 
 ```text
@@ -629,7 +638,7 @@ py tools\stability_gate.py --json
 py tools\stability_gate.py --min-stage pilot
 ```
 
-Hoy el gate exige documentacion clave, privacidad/logs, guia de salida custom, ejemplos, PyPI, referencia API y CI. Si pasa en etapa `pilot`, ya se puede empezar a probar con microfono real, voces del sistema y transcripcion real controlada antes de pensar en `1.0.0`.
+Hoy el gate exige documentacion clave, privacidad/logs, guia de salida custom, ejemplos, PyPI, referencia API, ejemplo de asistente local con logs sanitizados y CI. Si pasa en etapa `pilot`, ya se puede empezar a probar con microfono real, voces del sistema y transcripcion real controlada antes de pensar en `1.0.0`.
 
 ## Roadmap
 
@@ -641,11 +650,11 @@ ROADMAP.md
 
 Prioridad inmediata:
 
-1. Agregar ejemplos completos de asistente local con logs sanitizados.
-2. Ejecutar pilotos reales guiados por `tools/stability_gate.py`.
-3. Ampliar diagnostico Windows con casos reales reportados por pilotos.
-4. Agregar benchmark real de salida `system` si es seguro en CI.
-5. Documentar checklist de hallazgos para pilotos Windows/Ubuntu/macOS.
+1. Ejecutar pilotos reales guiados por `tools/stability_gate.py`.
+2. Ampliar diagnostico Windows con casos reales reportados por pilotos.
+3. Agregar benchmark real de salida `system` si es seguro en CI.
+4. Documentar checklist de hallazgos para pilotos Windows/Ubuntu/macOS.
+5. Preparar checklist de bugs conocidos para beta publica.
 
 ## Documentacion
 

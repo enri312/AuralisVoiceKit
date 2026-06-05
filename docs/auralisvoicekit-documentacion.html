@@ -480,7 +480,9 @@ auralis transcribe-segments sample.mp3 --backend openai --language es --json
 auralis transcribe-segments sample.mp3 --backend openai --normalize --json
 auralis transcribe-segments sample.wav --backend null --json
 py examples\assistant_loop.py --file sample.mp3 --transcription-backend whisper --model base
-py examples\assistant_loop.py --seconds 30 --capture-backend sounddevice --transcription-backend whisper --model base</code></pre>
+py examples\assistant_loop.py --seconds 30 --capture-backend sounddevice --transcription-backend whisper --model base
+py examples\local_assistant_privacy_demo.py --json</code></pre>
+        <p><code>examples/local_assistant_privacy_demo.py</code> corre offline sin extras: genera audio sintetico, procesa turnos con <code>VoiceSession</code>, responde con salida <code>null</code> y escribe logs JSONL sanitizados con <code>PrivacyEventLogger</code>.</p>
       </section>
 
       <section id="salida">
@@ -535,6 +537,7 @@ print(hint.format_hint())</code></pre>
         <p><code>tools/stability_gate.py</code> automatiza el criterio de avance: alpha, piloto real o estable. En CI se ejecuta con requisito minimo <code>pilot</code>.</p>
         <pre><code>python tools/stability_gate.py --json
 python tools/stability_gate.py --min-stage pilot</code></pre>
+        <p>El gate tambien exige el ejemplo de asistente local con logs sanitizados para mantener lista la ruta de pilotos reales.</p>
         <pre><code>$env:AURALIS_RUN_FFMPEG_INTEGRATION="1"
 py -m unittest tests.test_ffmpeg_integration
         Remove-Item Env:\AURALIS_RUN_FFMPEG_INTEGRATION</code></pre>
@@ -753,7 +756,7 @@ gh workflow run publish-pypi.yml -f index=pypi -f tag=v0.14.0</code></pre>
             <tr>
               <td>5+</td>
               <td>Loop de asistente, Windows primero, CI, beta publica y version 1.0.</td>
-              <td>Loop inicial cancelable, pruebas MP3/FLAC, errores ffmpeg accionables, mensajes Windows audio iniciales, benchmarks offline y Whisper exportables, referencia API inicial, PyPI preparada, quickstart sin extras, privacidad/logs inicial, salida custom inicial, gate de estabilidad y salida system configurable con ejemplo seguro</td>
+              <td>Loop inicial cancelable, pruebas MP3/FLAC, errores ffmpeg accionables, mensajes Windows audio iniciales, benchmarks offline y Whisper exportables, referencia API inicial, PyPI preparada, quickstart sin extras, privacidad/logs inicial, asistente local con logs sanitizados, salida custom inicial, gate de estabilidad y salida system configurable con ejemplo seguro</td>
             </tr>
           </tbody>
         </table>

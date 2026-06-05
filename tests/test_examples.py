@@ -11,6 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 PYPI_QUICKSTART = ROOT / "examples" / "pypi_quickstart.py"
 CUSTOM_OUTPUT_BACKEND = ROOT / "examples" / "custom_output_backend.py"
 SYSTEM_OUTPUT_DEMO = ROOT / "examples" / "system_output_demo.py"
+LOCAL_ASSISTANT_PRIVACY_DEMO = ROOT / "examples" / "local_assistant_privacy_demo.py"
 
 
 def _load_pypi_quickstart():
@@ -33,6 +34,18 @@ def _load_custom_output_backend():
 
 def _load_system_output_demo():
     spec = importlib.util.spec_from_file_location("system_output_demo", SYSTEM_OUTPUT_DEMO)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def _load_local_assistant_privacy_demo():
+    spec = importlib.util.spec_from_file_location(
+        "local_assistant_privacy_demo",
+        LOCAL_ASSISTANT_PRIVACY_DEMO,
+    )
     module = importlib.util.module_from_spec(spec)
     assert spec.loader is not None
     sys.modules[spec.name] = module
@@ -170,6 +183,54 @@ class ExampleTests(unittest.TestCase):
                 "Hola JSON system",
             ],
         )
+
+    def test_local_assistant_privacy_demo_writes_sanitized_logs(self):
+        module = _load_local_assistant_privacy_demo()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            payload = module.run_demo(output_dir=tmpdir, duration_seconds=0.5, chunk_duration_ms=100)
+            log_path = Path(payload["log_path"])
+
+            self.assertTrue(Path(payload["input_wav"]).exists())
+            self.assertTrue(log_path.exists())
+            self.assertGreaterEqual(len(payload["turns"]), 1)
+            self.assertEqual(payload["responses"], payload["utterances"])
+            self.assertTrue(payload["privacy_checks"]["text_redacted"])
+            self.assertTrue(payload["privacy_checks"]["path_redacted"])
+            self.assertTrue(payload["privacy_checks"]["token_redacted"])
+
+            log_text = log_path.read_text(encoding="utf-8")
+
+        self.assertIn("transcription.completed", payload["log_event_types"])
+        self.assertIn("output.completed", payload["log_event_types"])
+        self.assertNotIn(module.DEMO_PRIVATE_COMMAND, log_text)
+        self.assertNotIn(module.DEMO_PRIVATE_TOKEN, log_text)
+        self.assertIn("[redacted]", log_text)
+
+    def test_local_assistant_privacy_demo_script_outputs_json(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            completed = subprocess.run(
+                [
+                    sys.executable,
+                    str(LOCAL_ASSISTANT_PRIVACY_DEMO),
+                    "--output-dir",
+                    tmpdir,
+                    "--duration",
+                    "0.5",
+                    "--chunk-ms",
+                    "100",
+                    "--json",
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+
+        payload = json.loads(completed.stdout)
+        self.assertGreaterEqual(len(payload["turns"]), 1)
+        self.assertTrue(payload["privacy_checks"]["text_redacted"])
+        self.assertTrue(payload["privacy_checks"]["path_redacted"])
+        self.assertTrue(payload["privacy_checks"]["token_redacted"])
 
 
 if __name__ == "__main__":

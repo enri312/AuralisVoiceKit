@@ -43,6 +43,7 @@ La meta no es competir con todos los motores de voz a la vez. La meta es constru
 | Documentacion API | Inicial para usuarios de PyPI |
 | Ejemplos para PyPI | Quickstart inicial sin extras |
 | Privacidad y logs | Guia inicial y exportacion JSONL sanitizada |
+| Asistente local con privacidad | Ejemplo offline inicial con logs sanitizados |
 | Backends de salida custom | Guia inicial y ejemplo en memoria |
 | Automatizacion de estabilidad | Gate inicial para pilotos reales |
 | Mensajes Windows audio | Helper inicial para errores comunes |
@@ -164,6 +165,7 @@ Entregables:
 - Hooks para wake word o activacion externa.
 - Integracion limpia con loops de agente externos.
 - Ejemplo `examples/assistant_loop.py`. Estado: creado.
+- Ejemplo local offline con logs sanitizados. Estado: inicial con `examples/local_assistant_privacy_demo.py`.
 - Cancelacion y cierre ordenado. Estado: inicial.
 
 Criterio de salida:
@@ -268,6 +270,7 @@ Criterio de salida:
 - Benchmarks de latencia. Estado: inicial offline, comparativo para Whisper y exportacion JSON/CSV.
 - Publicacion en PyPI. Estado: workflow y guia inicial.
 - Ejemplo PyPI sin extras. Estado: inicial.
+- Ejemplo de asistente local con logs sanitizados. Estado: inicial con `examples/local_assistant_privacy_demo.py`.
 - Backends de salida personalizados. Estado: guia y ejemplo inicial.
 - Automatizacion de estabilidad. Estado: gate inicial listo para CI y uso local.
 - Mensajes Windows audio. Estado: inicial para permisos, dispositivo, sample rate, canales y host API.
@@ -275,8 +278,8 @@ Criterio de salida:
 
 ## Prioridad inmediata
 
-1. Agregar ejemplos completos de asistente local con logs sanitizados.
-2. Ejecutar pilotos reales guiados por `tools/stability_gate.py`.
-3. Ampliar diagnostico Windows con casos reales reportados por pilotos.
-4. Agregar benchmark real de salida `system` si es seguro en CI.
-5. Documentar checklist de hallazgos para pilotos Windows/Ubuntu/macOS.
+1. Ejecutar pilotos reales guiados por `tools/stability_gate.py`.
+2. Ampliar diagnostico Windows con casos reales reportados por pilotos.
+3. Agregar benchmark real de salida `system` si es seguro en CI.
+4. Documentar checklist de hallazgos para pilotos Windows/Ubuntu/macOS.
+5. Preparar checklist de bugs conocidos para beta publica.
