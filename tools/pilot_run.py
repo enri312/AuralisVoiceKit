@@ -204,6 +204,11 @@ def _manual_pilot_steps() -> list[dict[str, str]]:
             "command": "Update PILOT_FINDINGS.md with OS, Python, hardware, command output and follow-up issues.",
             "reason": "Turns pilot observations into actionable project work.",
         },
+        {
+            "name": "beta-readiness",
+            "command": "python tools/beta_readiness.py --output BETA_CHECKLIST.md --fail-on-blockers --json",
+            "reason": "Keeps public beta blocked until the real pilot evidence is documented.",
+        },
     ]
 
 

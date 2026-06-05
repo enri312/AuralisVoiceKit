@@ -550,13 +550,14 @@ print(analysis.priority_counts)</code></pre>
 python tools/stability_gate.py --min-stage pilot</code></pre>
         <p>El gate tambien exige el ejemplo de asistente local con logs sanitizados para mantener lista la ruta de pilotos reales.</p>
         <h3>Piloto seguro</h3>
-        <p><code>tools/pilot_run.py</code> ejecuta un piloto automatizado sin microfono, sin audio real, sin red y sin modelos. <code>tools/manual_pilot.py</code> genera bundle doctor, analisis <code>doctor-bundles</code>, reporte JSON y Markdown de hallazgos; no abre microfono salvo que se use <code>--capture-test</code>. <code>tools/output_pilot.py</code> prepara pilotos de salida <code>system</code> sin reproducir audio por defecto. <code>tools/transcription_pilot.py</code> prepara pilotos de transcripcion con audio sintetico y backend <code>null</code> por defecto, y puede calcular scoring redactado con <code>--expected-text</code> o <code>--expected-text-file</code>. Los pasos manuales viven en <a href="../PILOTS.md">PILOTS.md</a> y los hallazgos resumidos en <a href="../PILOT_FINDINGS.md">PILOT_FINDINGS.md</a>.</p>
+        <p><code>tools/pilot_run.py</code> ejecuta un piloto automatizado sin microfono, sin audio real, sin red y sin modelos. <code>tools/manual_pilot.py</code> genera bundle doctor, analisis <code>doctor-bundles</code>, reporte JSON y Markdown de hallazgos; no abre microfono salvo que se use <code>--capture-test</code>. <code>tools/output_pilot.py</code> prepara pilotos de salida <code>system</code> sin reproducir audio por defecto. <code>tools/transcription_pilot.py</code> prepara pilotos de transcripcion con audio sintetico y backend <code>null</code> por defecto, y puede calcular scoring redactado con <code>--expected-text</code> o <code>--expected-text-file</code>. <code>tools/beta_readiness.py</code> genera <a href="../BETA_CHECKLIST.md">BETA_CHECKLIST.md</a> con blockers de beta. Los pasos manuales viven en <a href="../PILOTS.md">PILOTS.md</a> y los hallazgos resumidos en <a href="../PILOT_FINDINGS.md">PILOT_FINDINGS.md</a>.</p>
         <pre><code>python tools/pilot_run.py --output-dir pilot_runs/safe --json
 python tools/manual_pilot.py --output-dir pilot_runs/manual/windows-safe --json
 python tools/manual_pilot.py --capture-test --backend wasapi --device default --sample-rate 48000 --json
 python tools/output_pilot.py --output-dir pilot_runs/output/system-dry-run --json
 python tools/transcription_pilot.py --output-dir pilot_runs/transcription/safe --json
-python tools/transcription_pilot.py --output-dir pilot_runs/transcription/quality-safe --expected-text "Hola desde AuralisVoiceKit" --min-word-accuracy 0 --json</code></pre>
+python tools/transcription_pilot.py --output-dir pilot_runs/transcription/quality-safe --expected-text "Hola desde AuralisVoiceKit" --min-word-accuracy 0 --json
+python tools/beta_readiness.py --output BETA_CHECKLIST.md --json</code></pre>
         <pre><code>$env:AURALIS_RUN_FFMPEG_INTEGRATION="1"
 py -m unittest tests.test_ffmpeg_integration
         Remove-Item Env:\AURALIS_RUN_FFMPEG_INTEGRATION</code></pre>

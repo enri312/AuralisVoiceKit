@@ -12,7 +12,7 @@ English: AuralisVoiceKit is a modern voice toolkit for Python assistants, local 
 
 El objetivo principal es evitar que la captura de microfono dependa obligatoriamente de PyAudio o de wheels que tardan en llegar a las versiones nuevas de Python. El paquete base debe poder instalarse de forma liviana, sin compiladores y sin dependencias nativas obligatorias. Para MP3, FLAC y formatos comprimidos, AuralisVoiceKit usa `ffmpeg` como herramienta externa opcional.
 
-> Estado actual: alpha tecnica con gate de pilotos reales. El repositorio ya define el core, los contratos de backends, captura real inicial, diagnostico reforzado para WASAPI, bundles de diagnostico sanitizados y analizables, flujo WAV offline, transcripcion inicial por API y local opcional, sesiones de voz iniciales, una CLI de diagnostico, benchmarks offline y comparativos para Whisper exportables a JSON/CSV, errores accionables para `ffmpeg`, mensajes accionables para audio Windows, documentacion estatica, salida de voz del sistema con voces configurables y ejemplo seguro, salida custom en memoria, quickstart para PyPI sin extras, guia de privacidad/logs, ejemplo de asistente local con logs sanitizados, runner de piloto seguro, runner de piloto manual, piloto de transcripcion con scoring redactado, pruebas unitarias y pruebas reales de MP3/FLAC. Los backends reales se iran agregando por etapas.
+> Estado actual: alpha tecnica con gate de pilotos reales y checklist de beta. El repositorio ya define el core, los contratos de backends, captura real inicial, diagnostico reforzado para WASAPI, bundles de diagnostico sanitizados y analizables, flujo WAV offline, transcripcion inicial por API y local opcional, sesiones de voz iniciales, una CLI de diagnostico, benchmarks offline y comparativos para Whisper exportables a JSON/CSV, errores accionables para `ffmpeg`, mensajes accionables para audio Windows, documentacion estatica, salida de voz del sistema con voces configurables y ejemplo seguro, salida custom en memoria, quickstart para PyPI sin extras, guia de privacidad/logs, ejemplo de asistente local con logs sanitizados, runner de piloto seguro, runner de piloto manual, piloto de transcripcion con scoring redactado, checklist de beta automatizado, pruebas unitarias y pruebas reales de MP3/FLAC. Los backends reales se iran agregando por etapas.
 
 ## Problema que resuelve
 
@@ -649,6 +649,16 @@ Hoy el gate exige documentacion clave, privacidad/logs, guia de salida custom, e
 
 Ruta portable del gate: `tools/stability_gate.py`.
 
+Para evaluar si ya corresponde declarar beta publica, usa el checklist conservador. Por defecto no falla aunque existan blockers; con `--fail-on-blockers` sirve para auditorias estrictas:
+
+```powershell
+py tools\beta_readiness.py --json
+py tools\beta_readiness.py --output BETA_CHECKLIST.md
+py tools\beta_readiness.py --fail-on-blockers --json
+```
+
+El checklist generado vive en `BETA_CHECKLIST.md` y separa dos estados: listo para pilotos reales no significa listo para beta. English: beta readiness requires real pilot evidence, not only safe dry-runs.
+
 ## Pilotos seguros
 
 `tools/pilot_run.py` ejecuta un piloto automatizado sin microfono, sin audio real, sin red y sin modelos. Genera un reporte con el gate, `doctor` usando backend `wav`, el demo de asistente local con logs sanitizados, salida `system` en dry-run y benchmarks offline exportados:
@@ -679,11 +689,14 @@ py tools\transcription_pilot.py --output-dir pilot_runs\transcription\quality-sa
 py tools\transcription_pilot.py --real-transcription --audio sample.mp3 --audio-non-sensitive --backend whisper --model base --normalize --expected-text "Hola desde AuralisVoiceKit" --min-word-accuracy 0.75 --json
 ```
 
+`tools/beta_readiness.py` resume blockers de beta a partir del gate y `PILOT_FINDINGS.md`. Hoy marca como pendientes la transcripcion real con calidad, salida `system` audible confirmada, captura Ubuntu/Linux y captura macOS.
+
 Los pasos con hardware quedan documentados en:
 
 ```text
 PILOTS.md
 PILOT_FINDINGS.md
+BETA_CHECKLIST.md
 ```
 
 ## Roadmap
@@ -699,7 +712,7 @@ Prioridad inmediata:
 1. Ejecutar piloto de transcripcion real con audio propio no sensible usando `tools\transcription_pilot.py --real-transcription --audio ... --audio-non-sensitive --expected-text ... --min-word-accuracy 0.75`.
 2. Ejecutar piloto manual de salida `system` con `tools\output_pilot.py --speak --operator-present`.
 3. Repetir captura con microfono en Ubuntu/Linux y macOS.
-4. Preparar checklist de bugs conocidos para beta publica.
+4. Cerrar blockers de beta reportados por `tools\beta_readiness.py` y `BETA_CHECKLIST.md`.
 5. Evaluar si el siguiente lote de pilotos permite declarar beta.
 
 ## Documentacion

@@ -38,6 +38,7 @@ class PilotRunTests(unittest.TestCase):
         self.assertEqual(persisted["version"], report["version"])
         self.assertEqual({step["status"] for step in report["steps"]}, {"passed"})
         self.assertIn("microphone-capture", {step["name"] for step in report["manual_pilot_steps"]})
+        self.assertIn("beta-readiness", {step["name"] for step in report["manual_pilot_steps"]})
 
     def test_safe_pilot_cli_outputs_json(self):
         module = _load_pilot_run()

@@ -14,10 +14,12 @@ SYSTEM_OUTPUT_DEMO = ROOT / "examples" / "system_output_demo.py"
 LOCAL_ASSISTANT_PRIVACY_DEMO = ROOT / "examples" / "local_assistant_privacy_demo.py"
 PILOTS = ROOT / "PILOTS.md"
 PILOT_FINDINGS = ROOT / "PILOT_FINDINGS.md"
+BETA_CHECKLIST = ROOT / "BETA_CHECKLIST.md"
 PILOT_RUN = ROOT / "tools" / "pilot_run.py"
 MANUAL_PILOT = ROOT / "tools" / "manual_pilot.py"
 OUTPUT_PILOT = ROOT / "tools" / "output_pilot.py"
 TRANSCRIPTION_PILOT = ROOT / "tools" / "transcription_pilot.py"
+BETA_READINESS = ROOT / "tools" / "beta_readiness.py"
 
 
 class DocumentationTests(unittest.TestCase):
@@ -78,27 +80,35 @@ class DocumentationTests(unittest.TestCase):
     def test_pilot_runbook_and_runner_are_linked_from_public_docs(self):
         self.assertTrue(PILOTS.exists())
         self.assertTrue(PILOT_FINDINGS.exists())
+        self.assertTrue(BETA_CHECKLIST.exists())
         self.assertTrue(PILOT_RUN.exists())
         self.assertTrue(MANUAL_PILOT.exists())
         self.assertTrue(OUTPUT_PILOT.exists())
         self.assertTrue(TRANSCRIPTION_PILOT.exists())
+        self.assertTrue(BETA_READINESS.exists())
         self.assertIn("PILOTS.md", README.read_text(encoding="utf-8"))
         self.assertIn("PILOT_FINDINGS.md", README.read_text(encoding="utf-8"))
+        self.assertIn("BETA_CHECKLIST.md", README.read_text(encoding="utf-8"))
         self.assertIn("PILOTS.md", MAIN_DOC.read_text(encoding="utf-8"))
         self.assertIn("PILOT_FINDINGS.md", MAIN_DOC.read_text(encoding="utf-8"))
+        self.assertIn("BETA_CHECKLIST.md", MAIN_DOC.read_text(encoding="utf-8"))
         self.assertIn("PILOTS.md", API_DOC.read_text(encoding="utf-8"))
+        self.assertIn("BETA_CHECKLIST.md", API_DOC.read_text(encoding="utf-8"))
         self.assertIn("tools\\pilot_run.py", README.read_text(encoding="utf-8"))
         self.assertIn("tools\\manual_pilot.py", README.read_text(encoding="utf-8"))
         self.assertIn("tools\\output_pilot.py", README.read_text(encoding="utf-8"))
         self.assertIn("tools\\transcription_pilot.py", README.read_text(encoding="utf-8"))
+        self.assertIn("tools\\beta_readiness.py", README.read_text(encoding="utf-8"))
         self.assertIn("tools/pilot_run.py", MAIN_DOC.read_text(encoding="utf-8"))
         self.assertIn("tools/manual_pilot.py", MAIN_DOC.read_text(encoding="utf-8"))
         self.assertIn("tools/output_pilot.py", MAIN_DOC.read_text(encoding="utf-8"))
         self.assertIn("tools/transcription_pilot.py", MAIN_DOC.read_text(encoding="utf-8"))
+        self.assertIn("tools/beta_readiness.py", MAIN_DOC.read_text(encoding="utf-8"))
         self.assertIn("tools/pilot_run.py", API_DOC.read_text(encoding="utf-8"))
         self.assertIn("tools/manual_pilot.py", API_DOC.read_text(encoding="utf-8"))
         self.assertIn("tools/output_pilot.py", API_DOC.read_text(encoding="utf-8"))
         self.assertIn("tools/transcription_pilot.py", API_DOC.read_text(encoding="utf-8"))
+        self.assertIn("tools/beta_readiness.py", API_DOC.read_text(encoding="utf-8"))
 
     def test_doctor_bundle_is_documented(self):
         self.assertIn("--bundle", README.read_text(encoding="utf-8"))

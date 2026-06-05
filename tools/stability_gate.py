@@ -39,6 +39,8 @@ PILOT_CHECKS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
         "tools/transcription_pilot.py",
         ("run_transcription_pilot", "--real-transcription", "--audio-non-sensitive", "--expected-text"),
     ),
+    ("beta_readiness_runner", "tools/beta_readiness.py", ("build_beta_readiness_report", "--fail-on-blockers", "BETA_CHECKLIST.md")),
+    ("beta_checklist", "BETA_CHECKLIST.md", ("Checklist de beta", "Bloqueadores para beta", "tools\\beta_readiness.py")),
     ("pilot_findings", "PILOT_FINDINGS.md", ("Windows manual seguro", "sounddevice")),
     ("doctor_bundle_api", "src/auralis_voicekit/diagnostics.py", ("create_doctor_bundle", "write_doctor_bundle")),
     ("doctor_bundle_analysis", "src/auralis_voicekit/diagnostics.py", ("analyze_doctor_bundles", "DoctorBundleAnalysis")),

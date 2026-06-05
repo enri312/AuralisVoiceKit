@@ -6,6 +6,21 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.39.0] - 2026-06-05
+
+### Agregado
+
+- Herramienta `tools/beta_readiness.py` para generar reportes JSON/Markdown de readiness para beta publica.
+- `BETA_CHECKLIST.md` generado con blockers actuales: transcripcion real con calidad, salida `system` audible confirmada, captura Ubuntu/Linux y captura macOS.
+- Modo `--fail-on-blockers` para auditorias estrictas de beta.
+- Pruebas automatizadas para el checklist de beta y su salida CLI.
+
+### Cambiado
+
+- README, `PILOTS.md`, docs HTML, roadmap y gate de estabilidad enlazan el nuevo checklist de beta.
+- `tools/pilot_run.py` incluye `beta-readiness` como paso manual pendiente.
+- `tools/stability_gate.py` exige que el runner y el checklist de beta existan antes de conservar el estado `pilot`.
+
 ## [0.38.0] - 2026-06-05
 
 ### Agregado
