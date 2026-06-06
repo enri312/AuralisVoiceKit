@@ -6,6 +6,14 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.113.0] - 2026-06-06
+
+### Agregado
+
+- `tools/pilot_run.py` ahora genera `real-pilot-next-evidence-focus.md`, una tarjeta publica dedicada al siguiente blocker beta activo.
+- `pilot-plan.md` y `real-pilot-handoff.md` enlazan la tarjeta de foco para que el operador no tenga que buscar dentro de artifacts largos.
+- Nuevas pruebas verifican que la tarjeta no registre audio, transcripciones, texto hablado, rutas locales, nombres de dispositivos ni identidad del operador.
+
 ## [0.112.0] - 2026-06-06
 
 ### Agregado

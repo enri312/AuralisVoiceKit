@@ -66,6 +66,8 @@ Nota `v0.111.0`: el piloto seguro propaga esos `blocker_summaries` a `pilot-repo
 
 Nota `v0.112.0`: la auditoria beta y el piloto seguro agregan `next_evidence_focus` para apuntar al primer blocker beta activo, con comando base, campos faltantes y candidato mas cercano publicos.
 
+Nota `v0.113.0`: el piloto seguro genera `real-pilot-next-evidence-focus.md`, una tarjeta publica dedicada al siguiente foco de evidencia antes de tocar hardware, audio o texto real.
+
 ## Fase 0 - Base del proyecto
 
 **Objetivo:** dejar una libreria instalable, importable y testeable.

@@ -208,6 +208,7 @@ def run_safe_pilot(
     system_output_readiness_path = output / "real-pilot-system-output-readiness.md"
     evidence_manifest_path = output / "real-pilot-evidence-manifest.md"
     decision_gate_path = output / "real-pilot-decision-gate.md"
+    next_focus_path = output / "real-pilot-next-evidence-focus.md"
     plan_path = output / "pilot-plan.md"
     report_path = output / "pilot-report.json"
     report["fixture_preflight_card"] = _real_pilot_fixture_preflight_card(report)
@@ -339,6 +340,20 @@ def run_safe_pilot(
         "records_device_names": False,
         "records_operator_identity": False,
     }
+    report["real_pilot_next_evidence_focus"] = {
+        "artifact": str(next_focus_path),
+        "safe_to_share": True,
+        "source": "beta_readiness.next_evidence_focus + pilot_decision_gate",
+        "usable_as_beta_evidence": False,
+        "tracks_next_evidence_focus": True,
+        "records_audio": False,
+        "records_transcripts": False,
+        "records_spoken_text": False,
+        "records_expected_text": False,
+        "records_local_paths": False,
+        "records_device_names": False,
+        "records_operator_identity": False,
+    }
     artifacts["real_pilot_findings_template"] = str(findings_template_path)
     artifacts["real_pilot_handoff"] = str(handoff_path)
     artifacts["real_pilot_command_pack"] = str(command_pack_path)
@@ -348,6 +363,7 @@ def run_safe_pilot(
     artifacts["real_pilot_system_output_readiness"] = str(system_output_readiness_path)
     artifacts["real_pilot_evidence_manifest"] = str(evidence_manifest_path)
     artifacts["real_pilot_decision_gate"] = str(decision_gate_path)
+    artifacts["real_pilot_next_evidence_focus"] = str(next_focus_path)
     artifacts["pilot_plan"] = str(plan_path)
     artifacts["pilot_report"] = str(report_path)
     findings_template_path.write_text(_format_real_pilot_findings_template_markdown(report), encoding="utf-8")
@@ -362,6 +378,7 @@ def run_safe_pilot(
     )
     evidence_manifest_path.write_text(_format_real_pilot_evidence_manifest_markdown(report), encoding="utf-8")
     decision_gate_path.write_text(_format_real_pilot_decision_gate_markdown(report), encoding="utf-8")
+    next_focus_path.write_text(_format_real_pilot_next_evidence_focus_markdown(report), encoding="utf-8")
     plan_path.write_text(_format_pilot_plan_markdown(report), encoding="utf-8")
     report_path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return report
@@ -1671,6 +1688,9 @@ def _format_pilot_plan_markdown(report: dict[str, Any]) -> str:
     decision_gate_name = Path(
         report["artifacts"].get("real_pilot_decision_gate", "real-pilot-decision-gate.md")
     ).name
+    next_focus_name = Path(
+        report["artifacts"].get("real_pilot_next_evidence_focus", "real-pilot-next-evidence-focus.md")
+    ).name
     lines = [
         "# Plan de pilotos AuralisVoiceKit",
         "",
@@ -1696,6 +1716,7 @@ def _format_pilot_plan_markdown(report: dict[str, Any]) -> str:
         f"- Readiness de salida system: `{system_output_readiness_name}`",
         f"- Manifiesto de evidencias: `{evidence_manifest_name}`",
         f"- Compuerta go/no-go: `{decision_gate_name}`",
+        f"- Tarjeta de foco: `{next_focus_name}`",
         f"- Plantilla de hallazgos: `{findings_template_name}`",
         "",
         "## Checks seguros",
@@ -2578,6 +2599,79 @@ def _format_real_pilot_decision_gate_markdown(report: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
+def _format_real_pilot_next_evidence_focus_markdown(report: dict[str, Any]) -> str:
+    focus = report["beta_readiness"].get("next_evidence_focus", {})
+    policy = report["real_pilot_next_evidence_focus"]
+    gate = report["pilot_decision_gate"]
+    command_pack_name = Path(
+        report["artifacts"].get("real_pilot_command_pack", "real-pilot-command-pack.md")
+    ).name
+    evidence_manifest_name = Path(
+        report["artifacts"].get("real_pilot_evidence_manifest", "real-pilot-evidence-manifest.md")
+    ).name
+    decision_gate_name = Path(
+        report["artifacts"].get("real_pilot_decision_gate", "real-pilot-decision-gate.md")
+    ).name
+    transcription_readiness_name = Path(
+        report["artifacts"].get("real_pilot_transcription_readiness", "real-pilot-transcription-readiness.md")
+    ).name
+    system_output_readiness_name = Path(
+        report["artifacts"].get("real_pilot_system_output_readiness", "real-pilot-system-output-readiness.md")
+    ).name
+    environment_checklist_name = Path(
+        report["artifacts"].get("real_pilot_environment_checklist", "real-pilot-environment-checklist.md")
+    ).name
+    lines = [
+        "# Siguiente foco de evidencia AuralisVoiceKit",
+        "",
+        "Esta tarjeta resume el proximo blocker beta a cerrar. No ejecuta hardware, no cuenta como evidencia beta y no incluye contenido privado.",
+        "",
+        "## Estado",
+        "",
+        f"- Version: `{report['version']}`",
+        f"- Stage: `{report['stage']}`",
+        f"- Pilotos reales: `{gate['real_world_pilot']['decision']}`",
+        f"- Beta: `{gate['beta']['decision']}`",
+        f"- Usable como evidencia beta: `{_format_bool(policy['usable_as_beta_evidence'])}`",
+        "",
+        "## Politica de contenido",
+        "",
+        f"- Seguro para compartir: `{_format_bool(policy['safe_to_share'])}`",
+        f"- Registra audio: `{_format_bool(policy['records_audio'])}`",
+        f"- Registra transcripciones: `{_format_bool(policy['records_transcripts'])}`",
+        f"- Registra texto hablado: `{_format_bool(policy['records_spoken_text'])}`",
+        f"- Registra texto esperado completo: `{_format_bool(policy['records_expected_text'])}`",
+        f"- Registra rutas locales: `{_format_bool(policy['records_local_paths'])}`",
+        f"- Registra nombres reales de dispositivos: `{_format_bool(policy['records_device_names'])}`",
+        f"- Registra identidad del operador: `{_format_bool(policy['records_operator_identity'])}`",
+        "",
+        "## Foco",
+        "",
+    ]
+    _append_next_evidence_focus_lines(lines, focus)
+    lines.extend(
+        [
+            "## Artifacts de apoyo",
+            "",
+            f"- Paquete de comandos: `{command_pack_name}`",
+            f"- Manifiesto de evidencias: `{evidence_manifest_name}`",
+            f"- Compuerta go/no-go: `{decision_gate_name}`",
+            f"- Readiness de transcripcion real: `{transcription_readiness_name}`",
+            f"- Readiness de salida system: `{system_output_readiness_name}`",
+            f"- Checklist de entorno: `{environment_checklist_name}`",
+            "",
+            "## Antes de ejecutar",
+            "",
+            "- Revisar la compuerta go/no-go y mantener beta bloqueada si `Beta` sigue en `blocked`.",
+            "- Usar solo audio/texto no sensible y confirmar revisiones humanas antes de pasar flags `--confirm-*`.",
+            "- Conservar solo artifacts JSON/Markdown generados por las herramientas; no pegar audio, transcripciones, rutas locales ni identidad del operador.",
+            "- Correr la auditoria estricta despues de recolectar evidencia real.",
+            "",
+        ]
+    )
+    return "\n".join(lines)
+
+
 def _format_real_pilot_handoff_markdown(report: dict[str, Any]) -> str:
     beta = report["beta_readiness"]
     policy = report["real_pilot_handoff"]["content_policy"]
@@ -2602,6 +2696,9 @@ def _format_real_pilot_handoff_markdown(report: dict[str, Any]) -> str:
     decision_gate_name = Path(
         report["artifacts"].get("real_pilot_decision_gate", "real-pilot-decision-gate.md")
     ).name
+    next_focus_name = Path(
+        report["artifacts"].get("real_pilot_next_evidence_focus", "real-pilot-next-evidence-focus.md")
+    ).name
     lines = [
         "# Handoff de pilotos reales AuralisVoiceKit",
         "",
@@ -2623,6 +2720,7 @@ def _format_real_pilot_handoff_markdown(report: dict[str, Any]) -> str:
         f"- Readiness de salida system: `{system_output_readiness_name}`",
         f"- Manifiesto de evidencias: `{evidence_manifest_name}`",
         f"- Compuerta go/no-go: `{decision_gate_name}`",
+        f"- Tarjeta de foco: `{next_focus_name}`",
         "",
         "## Politica de contenido",
         "",
