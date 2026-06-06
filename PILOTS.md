@@ -58,6 +58,8 @@ Nota `v0.132.0`: el piloto seguro escribe `real-pilot-evidence-intake-card.md` c
 
 Nota `v0.133.0`: el piloto seguro escribe `real-pilot-execution-card.md` con el orden local del siguiente piloto real, confirmaciones humanas, comando del foco, ingesta y auditoria estricta. English: safe pilots now include a public-safe execution card for the next real pilot.
 
+Nota `v0.134.0`: `real_pilot_execution_card.operator_gate` declara `allowed_to_run`, revisiones previas, confirmaciones humanas, guard backend estricto y cierre de auditoria antes de que un operador local ejecute el piloto real. English: the execution card now includes a structured operator gate.
+
 ```powershell
 py tools\pilot_run.py --output-dir pilot_runs\safe --json
 py tools\pilot_run.py --output-dir pilot_runs\safe --evidence pilot_runs\manual --evidence pilot_runs\output --evidence pilot_runs\transcription --json

@@ -6,6 +6,18 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.134.0] - 2026-06-06
+
+### Agregado
+
+- `real_pilot_execution_card` ahora incluye `operator_gate`, una compuerta estructurada para decidir si el siguiente piloto real queda listo para operador local o bloqueado.
+- La compuerta lista revisiones previas, confirmaciones humanas obligatorias, guard backend estricto, artifact JSON esperado y cierre de auditoria sin exponer audio, transcripciones, rutas locales, dispositivos ni identidad del operador.
+- `real-pilot-execution-card.md` muestra la compuerta del operador en Markdown para preparar el piloto real seguro sin ejecutar hardware automaticamente.
+
+### Pruebas
+
+- Nuevas pruebas validan `operator_gate`, sus flags publicos de privacidad, las confirmaciones humanas y el cierre de auditoria.
+
 ## [0.133.0] - 2026-06-06
 
 ### Agregado

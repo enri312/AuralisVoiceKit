@@ -108,6 +108,8 @@ Nota `v0.132.0`: `tools/pilot_run.py` genera `real-pilot-evidence-intake-card.md
 
 Nota `v0.133.0`: `tools/pilot_run.py` genera `real-pilot-execution-card.md`, una tarjeta publica para ejecutar el siguiente piloto real en orden, revisar confirmaciones humanas y cerrar con auditoria estricta antes de refrescar beta.
 
+Nota `v0.134.0`: `real_pilot_execution_card.operator_gate` agrega decision `ready_for_local_operator|blocked`, revisiones previas, confirmaciones humanas, guard backend estricto, artifact JSON esperado y cierre de auditoria para que el siguiente piloto real se ejecute solo con operador local y evidencia sanitizada.
+
 ## Fase 0 - Base del proyecto
 
 **Objetivo:** dejar una libreria instalable, importable y testeable.

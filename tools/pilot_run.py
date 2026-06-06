@@ -411,6 +411,7 @@ def run_safe_pilot(
         "tracks_human_confirmations": True,
         "tracks_audit_closure": True,
         "focus": report["beta_readiness"]["next_evidence_focus"].get("name") or "ninguno",
+        "operator_gate": _real_pilot_execution_operator_gate(report),
         "records_audio": False,
         "records_transcripts": False,
         "records_spoken_text": False,
@@ -1777,6 +1778,105 @@ def _real_pilot_decision_gate(report: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _real_pilot_execution_operator_gate(report: dict[str, Any]) -> dict[str, Any]:
+    """Build a structured, public-safe operator gate for the next real pilot."""
+
+    gate = report["pilot_decision_gate"]
+    focus = report["beta_readiness"].get("next_evidence_focus", {})
+    focus_name = focus.get("name") or ""
+    focus_status = focus.get("status") or "unknown"
+    focus_command = focus.get("command") or ""
+    focus_artifact = focus.get("artifact") or "ninguno"
+    sequence = report.get("next_evidence_focus_preparation_sequence", [])
+    strict_guard_required = any(bool(step.get("strict_backend_guard_required")) for step in sequence)
+    requires_local_review = any(
+        bool(step.get("review_required") or step.get("requires_hardware") or step.get("requires_operator"))
+        for step in sequence
+    )
+    blocking_reasons: list[str] = []
+    if gate["real_world_pilot"]["decision"] != "go":
+        blocking_reasons.append("real_world_pilot_gate_blocked")
+    if gate.get("privacy_audit", {}).get("blocking"):
+        blocking_reasons.append("privacy_audit_blocking")
+    if not focus_name:
+        blocking_reasons.append("no_next_evidence_focus")
+    if focus_status == "complete":
+        blocking_reasons.append("next_evidence_focus_complete")
+    if not sequence:
+        blocking_reasons.append("no_preparation_sequence")
+    allowed_to_run = not blocking_reasons
+
+    human_confirmations = _operator_gate_human_confirmations(focus_command, focus, sequence)
+    return {
+        "decision": "ready_for_local_operator" if allowed_to_run else "blocked",
+        "allowed_to_run": allowed_to_run,
+        "blocking_reasons": blocking_reasons,
+        "requires_local_operator_review": requires_local_review,
+        "focus": focus_name or "ninguno",
+        "focus_status": focus_status,
+        "focus_artifact": focus_artifact,
+        "pre_run_reviews": [
+            "real-pilot-decision-gate.md",
+            "real-pilot-hard-stop-card.md",
+            "real-pilot-evidence-intake-card.md",
+            "real-pilot-command-pack.md",
+            "real-pilot-environment-checklist.md",
+            "real-pilot-next-evidence-focus.md",
+        ],
+        "human_confirmations": human_confirmations,
+        "strict_backend_guard_required": strict_guard_required,
+        "audit_closure": {
+            "required": True,
+            "strict_audit_command": report["evidence_manifest"]["strict_audit_command"],
+            "refresh_checklist_command": report["evidence_manifest"]["refresh_checklist_command"],
+            "expected_json_artifact": focus_artifact,
+            "suggested_roots": report["real_pilot_evidence_intake_card"]["suggested_roots"],
+            "findings_template": "real-pilot-findings-template.md",
+        },
+        "content_policy": {
+            "records_audio": False,
+            "records_transcripts": False,
+            "records_spoken_text": False,
+            "records_expected_text": False,
+            "records_local_paths": False,
+            "records_device_names": False,
+            "records_operator_identity": False,
+        },
+    }
+
+
+def _operator_gate_human_confirmations(
+    command: str,
+    focus: dict[str, Any],
+    sequence: list[dict[str, Any]],
+) -> list[str]:
+    confirmations: list[str] = []
+    required_fields = set(focus.get("required_fields", []))
+    if "--expected-system" in command or "system_guard.expected_system_matched" in required_fields:
+        confirmations.append("expected_system_review")
+    if "--confirm-input-reviewed" in command or "input_review_confirmed" in required_fields:
+        confirmations.append("input_review_confirmed")
+    if "--operator-present" in command or any(step.get("requires_operator") for step in sequence):
+        confirmations.append("operator_present")
+    if "--confirm-audible" in command:
+        confirmations.append("audible_output_confirmed")
+    if "--confirm-text-reviewed" in command or "text_review_confirmed" in required_fields:
+        confirmations.append("spoken_text_reviewed")
+    if "--confirm-voice-reviewed" in command or "voice_review_confirmed" in required_fields:
+        confirmations.append("voice_reviewed")
+    if "--confirm-audio-reviewed" in command or "audio_review_confirmed" in required_fields:
+        confirmations.append("audio_privacy_reviewed")
+    if "--confirm-reference-reviewed" in command or "reference_review_confirmed" in required_fields:
+        confirmations.append("reference_reviewed")
+    if "--confirm-quality-reviewed" in command or "quality_review_confirmed" in required_fields:
+        confirmations.append("quality_reviewed")
+    if any(step.get("requires_non_sensitive_audio") for step in sequence):
+        confirmations.append("non_sensitive_audio_confirmed")
+    if any(step.get("strict_backend_guard_required") for step in sequence):
+        confirmations.append("strict_backend_guard_enabled")
+    return confirmations
+
+
 def _pilot_plan_artifact_summary(artifacts: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return [
         {
@@ -1982,6 +2082,8 @@ def _format_pilot_plan_markdown(report: dict[str, Any]) -> str:
             f"- Orden de ejecucion: `{_format_bool(report['real_pilot_execution_card']['tracks_execution_order'])}`",
             f"- Confirmaciones humanas: `{_format_bool(report['real_pilot_execution_card']['tracks_human_confirmations'])}`",
             f"- Cierre por auditoria: `{_format_bool(report['real_pilot_execution_card']['tracks_audit_closure'])}`",
+            f"- Compuerta operador: `{report['real_pilot_execution_card']['operator_gate']['decision']}`",
+            f"- Permitido ejecutar localmente: `{_format_bool(report['real_pilot_execution_card']['operator_gate']['allowed_to_run'])}`",
             "",
             "## Preflight de fixture de transcripcion",
             "",
@@ -3109,6 +3211,7 @@ def _format_real_pilot_execution_card_markdown(report: dict[str, Any]) -> str:
     focus = report["beta_readiness"].get("next_evidence_focus", {})
     gate = report["pilot_decision_gate"]
     policy = report["real_pilot_execution_card"]
+    operator_gate = policy["operator_gate"]
     evidence_manifest = report["evidence_manifest"]
     command_pack_name = Path(
         report["artifacts"].get("real_pilot_command_pack", "real-pilot-command-pack.md")
@@ -3152,6 +3255,9 @@ def _format_real_pilot_execution_card_markdown(report: dict[str, Any]) -> str:
         f"- Orden de ejecucion: `{_format_bool(policy['tracks_execution_order'])}`",
         f"- Confirmaciones humanas: `{_format_bool(policy['tracks_human_confirmations'])}`",
         f"- Cierre por auditoria: `{_format_bool(policy['tracks_audit_closure'])}`",
+        f"- Compuerta operador: `{operator_gate['decision']}`",
+        f"- Permitido ejecutar localmente: `{_format_bool(operator_gate['allowed_to_run'])}`",
+        f"- Requiere revision humana local: `{_format_bool(operator_gate['requires_local_operator_review'])}`",
         "",
         "## Politica de contenido",
         "",
@@ -3164,26 +3270,55 @@ def _format_real_pilot_execution_card_markdown(report: dict[str, Any]) -> str:
         f"- Registra nombres reales de dispositivos: `{_format_bool(policy['records_device_names'])}`",
         f"- Registra identidad del operador: `{_format_bool(policy['records_operator_identity'])}`",
         "",
-        "## Artifacts de apoyo",
+        "## Compuerta del operador",
         "",
-        f"- Compuerta go/no-go: `{decision_gate_name}`",
-        f"- Foco de evidencia: `{next_focus_name}`",
-        f"- Alto operativo: `{hard_stop_name}`",
-        f"- Ingesta de evidencia: `{evidence_intake_name}`",
-        f"- Paquete de comandos: `{command_pack_name}`",
-        f"- Checklist de entorno: `{environment_checklist_name}`",
-        f"- Plantilla de hallazgos: `{findings_template_name}`",
+        f"- Decision: `{operator_gate['decision']}`",
+        f"- Permitido ejecutar localmente: `{_format_bool(operator_gate['allowed_to_run'])}`",
+        f"- Razones de bloqueo: {_format_inline_list(operator_gate['blocking_reasons'])}",
+        f"- Guard backend estricto requerido: `{_format_bool(operator_gate['strict_backend_guard_required'])}`",
+        f"- Artifact JSON esperado: `{operator_gate['focus_artifact']}`",
         "",
-        "## Antes de iniciar",
-        "",
-        "- Confirmar que `Pilotos reales` este en `go` y que `Beta` siga en `blocked` hasta cerrar evidencias reales.",
-        "- Revisar el alto operativo y detenerse si el audio, texto hablado, referencia, dispositivo o entorno no son publicos/no sensibles.",
-        "- Reemplazar placeholders solo en la maquina local del operador.",
-        "- No pasar flags `--confirm-*` hasta que la revision humana correspondiente haya ocurrido.",
-        "",
-        "## Orden local",
+        "## Revisiones previas",
         "",
     ]
+    for item in operator_gate["pre_run_reviews"]:
+        lines.append(f"- `{item}`")
+    lines.extend(
+        [
+            "",
+            "## Confirmaciones humanas requeridas",
+            "",
+        ]
+    )
+    if operator_gate["human_confirmations"]:
+        for item in operator_gate["human_confirmations"]:
+            lines.append(f"- `{item}`")
+    else:
+        lines.append("- `ninguno`")
+    lines.extend(
+        [
+            "",
+            "## Artifacts de apoyo",
+            "",
+            f"- Compuerta go/no-go: `{decision_gate_name}`",
+            f"- Foco de evidencia: `{next_focus_name}`",
+            f"- Alto operativo: `{hard_stop_name}`",
+            f"- Ingesta de evidencia: `{evidence_intake_name}`",
+            f"- Paquete de comandos: `{command_pack_name}`",
+            f"- Checklist de entorno: `{environment_checklist_name}`",
+            f"- Plantilla de hallazgos: `{findings_template_name}`",
+            "",
+            "## Antes de iniciar",
+            "",
+            "- Confirmar que `Pilotos reales` este en `go` y que `Beta` siga en `blocked` hasta cerrar evidencias reales.",
+            "- Revisar el alto operativo y detenerse si el audio, texto hablado, referencia, dispositivo o entorno no son publicos/no sensibles.",
+            "- Reemplazar placeholders solo en la maquina local del operador.",
+            "- No pasar flags `--confirm-*` hasta que la revision humana correspondiente haya ocurrido.",
+            "",
+            "## Orden local",
+            "",
+        ]
+    )
     if sequence:
         for step in sequence:
             lines.extend(
@@ -3218,9 +3353,9 @@ def _format_real_pilot_execution_card_markdown(report: dict[str, Any]) -> str:
             "",
             f"- Guardar solo `{focus_artifact}` sanitizado en uno de estos directorios: {_format_inline_list(report['real_pilot_evidence_intake_card']['suggested_roots'])}.",
             "- Mantener fuera del repositorio audio, transcripciones completas, texto esperado completo, texto hablado real, rutas locales, nombres reales de dispositivos e identidad del operador.",
-            f"- Correr auditoria estricta: `{evidence_manifest['strict_audit_command']}`",
-            f"- Refrescar checklist solo si la auditoria no expone contenido privado: `{evidence_manifest['refresh_checklist_command']}`",
-            f"- Registrar hallazgos publicos con `{findings_template_name}`.",
+            f"- Correr auditoria estricta: `{operator_gate['audit_closure']['strict_audit_command']}`",
+            f"- Refrescar checklist solo si la auditoria no expone contenido privado: `{operator_gate['audit_closure']['refresh_checklist_command']}`",
+            f"- Registrar hallazgos publicos con `{operator_gate['audit_closure']['findings_template']}`.",
             "",
             "## Condiciones de alto",
             "",
