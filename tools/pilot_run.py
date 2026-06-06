@@ -185,9 +185,23 @@ def run_safe_pilot(
         "platform_pilot_matrix": platform_pilot_matrix,
         "artifacts": artifacts,
     }
+    findings_template_path = output / "real-pilot-findings-template.md"
     handoff_path = output / "real-pilot-handoff.md"
     plan_path = output / "pilot-plan.md"
     report_path = output / "pilot-report.json"
+    report["real_pilot_findings_template"] = {
+        "artifact": str(findings_template_path),
+        "safe_to_share": True,
+        "target_document": "PILOT_FINDINGS.md",
+        "uses_placeholders": True,
+        "records_audio": False,
+        "records_transcripts": False,
+        "records_spoken_text": False,
+        "records_expected_text": False,
+        "records_local_paths": False,
+        "records_device_names": False,
+        "records_operator_identity": False,
+    }
     report["real_pilot_handoff"] = {
         "artifact": str(handoff_path),
         "safe_to_share": True,
@@ -202,9 +216,11 @@ def run_safe_pilot(
             "records_operator_identity": False,
         },
     }
+    artifacts["real_pilot_findings_template"] = str(findings_template_path)
     artifacts["real_pilot_handoff"] = str(handoff_path)
     artifacts["pilot_plan"] = str(plan_path)
     artifacts["pilot_report"] = str(report_path)
+    findings_template_path.write_text(_format_real_pilot_findings_template_markdown(report), encoding="utf-8")
     handoff_path.write_text(_format_real_pilot_handoff_markdown(report), encoding="utf-8")
     plan_path.write_text(_format_pilot_plan_markdown(report), encoding="utf-8")
     report_path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
@@ -632,6 +648,9 @@ def _pilot_plan_artifact_summary(artifacts: list[dict[str, Any]]) -> list[dict[s
 
 def _format_pilot_plan_markdown(report: dict[str, Any]) -> str:
     beta = report["beta_readiness"]
+    findings_template_name = Path(
+        report["artifacts"].get("real_pilot_findings_template", "real-pilot-findings-template.md")
+    ).name
     handoff_name = Path(report["artifacts"].get("real_pilot_handoff", "real-pilot-handoff.md")).name
     lines = [
         "# Plan de pilotos AuralisVoiceKit",
@@ -651,6 +670,7 @@ def _format_pilot_plan_markdown(report: dict[str, Any]) -> str:
         f"- Blockers cerrados por JSON: {_format_inline_list(beta['satisfied_json_blockers'])}",
         f"- Blockers JSON pendientes: {_format_inline_list(beta['missing_json_blockers'])}",
         f"- Handoff seguro: `{handoff_name}`",
+        f"- Plantilla de hallazgos: `{findings_template_name}`",
         "",
         "## Checks seguros",
         "",
@@ -785,6 +805,80 @@ def _format_pilot_plan_markdown(report: dict[str, Any]) -> str:
             "",
         ]
     )
+    return "\n".join(lines)
+
+
+def _format_real_pilot_findings_template_markdown(report: dict[str, Any]) -> str:
+    beta = report["beta_readiness"]
+    template = report["real_pilot_findings_template"]
+    lines = [
+        "# Plantilla de hallazgos de pilotos reales",
+        "",
+        "Copiar esta plantilla a `PILOT_FINDINGS.md` despues de ejecutar pilotos reales. Mantener placeholders hasta tener datos publicos y sanitizados.",
+        "",
+        "## Politica de contenido",
+        "",
+        f"- Seguro para compartir: `{_format_bool(template['safe_to_share'])}`",
+        f"- Usa placeholders: `{_format_bool(template['uses_placeholders'])}`",
+        f"- Registra audio: `{_format_bool(template['records_audio'])}`",
+        f"- Registra transcripciones completas: `{_format_bool(template['records_transcripts'])}`",
+        f"- Registra texto hablado real: `{_format_bool(template['records_spoken_text'])}`",
+        f"- Registra texto esperado completo: `{_format_bool(template['records_expected_text'])}`",
+        f"- Registra rutas locales: `{_format_bool(template['records_local_paths'])}`",
+        f"- Registra nombres reales de dispositivos: `{_format_bool(template['records_device_names'])}`",
+        f"- Registra identidad del operador: `{_format_bool(template['records_operator_identity'])}`",
+        "",
+        "## Resumen",
+        "",
+        "- Fecha: `<YYYY-MM-DD>`",
+        "- Version AuralisVoiceKit: `" + str(report["version"]) + "`",
+        "- Sistema operativo: `<Windows|Linux|Darwin>`",
+        "- Python: `<major.minor.patch>`",
+        "- Hardware revisado: `<microfono|salida-system|audio-transcripcion>`",
+        "- Resultado general: `<passed|warning|failed>`",
+        "- Blockers beta pendientes antes del piloto: " + _format_inline_list(beta["blockers"]),
+        "- Blockers cerrados por este piloto: `<ninguno|blocker-id-list>`",
+        "",
+        "## Evidencias JSON",
+        "",
+        "- `manual-pilot-report.json`: `<presente|no-aplica>`",
+        "- `output-pilot-report.json`: `<presente|no-aplica>`",
+        "- `transcription-pilot-report.json`: `<presente|no-aplica>`",
+        "- Auditoria estricta: `python tools/beta_readiness.py --audit-evidence --evidence pilot_runs/manual --evidence pilot_runs/output --evidence pilot_runs/transcription --fail-on-audit-gaps --json`",
+        "",
+        "## Captura real",
+        "",
+        "- Sistema esperado coincidio: `<true|false|no-aplica>`",
+        "- Entrada revisada: `<true|false|no-aplica>`",
+        "- Checklist listo para beta: `<true|false|no-aplica>`",
+        "- Hallazgo sanitizado: `<resumen sin nombres de dispositivos ni rutas locales>`",
+        "",
+        "## Salida audible",
+        "",
+        "- Texto revisado y publico/no sensible: `<true|false|no-aplica>`",
+        "- Scan de privacidad del texto hablado paso: `<true|false|no-aplica>`",
+        "- Operador confirmo audio audible: `<true|false|no-aplica>`",
+        "- Voz/volumen/pronunciacion revisados: `<true|false|no-aplica>`",
+        "- Hallazgo sanitizado: `<resumen sin texto hablado real ni identidad del operador>`",
+        "",
+        "## Transcripcion real",
+        "",
+        "- Audio confirmado no sensible: `<true|false|no-aplica>`",
+        "- Nombre del archivo de audio redactado: `<true|false|no-aplica>`",
+        "- Referencia revisada: `<true|false|no-aplica>`",
+        "- Scan de privacidad de referencia paso: `<true|false|no-aplica>`",
+        "- Calidad revisada: `<true|false|no-aplica>`",
+        "- Word accuracy: `<valor-agregado-o-no-aplica>`",
+        "- Hallazgo sanitizado: `<resumen sin transcripcion, referencia, rutas ni nombres de archivos>`",
+        "",
+        "## Seguimiento",
+        "",
+        "- Issue o tarea sugerida: `<titulo-sanitizado>`",
+        "- Severidad: `<baja|media|alta>`",
+        "- Reproducible con artifact publico: `<si|no>`",
+        "- Proximo paso: `<accion-sin-datos-privados>`",
+        "",
+    ]
     return "\n".join(lines)
 
 

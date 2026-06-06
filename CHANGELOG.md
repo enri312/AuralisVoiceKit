@@ -6,6 +6,17 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.72.0] - 2026-06-06
+
+### Agregado
+
+- Artifact `real-pilot-findings-template.md` en `tools/pilot_run.py` para copiar hallazgos sanitizados a `PILOT_FINDINGS.md` despues de pilotos reales.
+- Bloque JSON `real_pilot_findings_template` con politica explicita de no registrar audio, transcripciones, texto hablado, texto esperado, rutas locales, nombres reales de dispositivos ni identidad del operador.
+
+### Cambiado
+
+- README, `PILOTS.md`, docs HTML, roadmap y gate de estabilidad documentan la plantilla segura de hallazgos reales.
+
 ## [0.71.0] - 2026-06-06
 
 ### Agregado

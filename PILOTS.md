@@ -21,10 +21,10 @@ El reporte generado incluye:
 - resumen `beta_readiness` y pasos `next_beta_evidence_steps` para cerrar blockers beta;
 - campo `recommended_pilot_sequence` con el orden recomendado para pilotos reales, checklist de captura, checklist de operador para salida audible, fixture sintetico, preflight MP3 de transcripcion, checklist de revision de transcripcion, auditoria estricta y refresco del checklist beta;
 - campo `platform_pilot_matrix` y seccion `Matriz por plataforma` para separar comandos Windows, Ubuntu/Linux, macOS, salida audible y transcripcion MP3;
-- artifacts `pilot-plan.md` y `real-pilot-handoff.md` con evidencias JSON aceptadas/ignoradas, secuencia recomendada, comandos pendientes, campos JSON requeridos y una tarjeta de traspaso segura para el operador;
+- artifacts `pilot-plan.md`, `real-pilot-handoff.md` y `real-pilot-findings-template.md` con evidencias JSON aceptadas/ignoradas, secuencia recomendada, comandos pendientes, campos JSON requeridos, una tarjeta de traspaso segura para el operador y una plantilla sanitizada para `PILOT_FINDINGS.md`;
 - lista de pasos manuales pendientes.
 
-`pilot-plan.md` y `real-pilot-handoff.md` estan pensados para compartirse en el equipo sin audio, transcripciones, texto hablado real, rutas locales completas, nombres reales de dispositivos ni identidad del operador.
+`pilot-plan.md`, `real-pilot-handoff.md` y `real-pilot-findings-template.md` estan pensados para compartirse en el equipo sin audio, transcripciones, texto hablado real, rutas locales completas, nombres reales de dispositivos ni identidad del operador.
 
 ## Piloto manual guiado
 
@@ -107,7 +107,7 @@ Acciones siguientes:
 
 ## Estado actual
 
-- Piloto automatizado seguro: preparado con `tools/pilot_run.py`, `pilot-plan.md` y `real-pilot-handoff.md`.
+- Piloto automatizado seguro: preparado con `tools/pilot_run.py`, `pilot-plan.md`, `real-pilot-handoff.md` y `real-pilot-findings-template.md`.
 - Piloto manual guiado: preparado con `tools/manual_pilot.py`, `manual-capture-checklist.md` y `capture_checklist`.
 - Analisis de bundles doctor: preparado con `auralis doctor-bundles`.
 - Pilotos manuales con microfono real: primer piloto Windows/WASAPI aprobado con `--sample-rate 48000`; Ubuntu/Linux y macOS pendientes con `--expected-system`, `--confirm-input-reviewed`, `input_review_confirmed`, `capture_checklist.input_review_confirmed` y `manual-capture-checklist.md`.
