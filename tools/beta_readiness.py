@@ -154,6 +154,9 @@ def build_evidence_requirements_report() -> dict[str, Any]:
                     _required_field("backend", "system"),
                     _required_field("system_guard.expected_system_matched", True),
                     _required_field("target_output_backend.available", True),
+                    _required_field("target_output_backend.readiness_plan.uses_pip_extra", False),
+                    _required_field("target_output_backend.readiness_plan.python_extra", None),
+                    _required_field("target_output_backend.readiness_plan.pip_command", None),
                     _required_field("output_backend_ready_required", True),
                     _required_field("real_audio_requested", True),
                     _required_field("operator_confirmation_status", "confirmed"),
@@ -468,6 +471,9 @@ def build_beta_readiness_report(
                 "output-operator-checklist.md, system-output-next-step.md, "
                 "system_guard.expected_system_matched=true, "
                 "target_output_backend.available=true, output_backend_ready_required=true, "
+                "target_output_backend.readiness_plan.uses_pip_extra=false, "
+                "target_output_backend.readiness_plan.python_extra=null, "
+                "target_output_backend.readiness_plan.pip_command=null, "
                 "operator_checklist.expected_system_matched=true, "
                 "spoken_text_privacy_scan.passed=true, "
                 "operator_checklist.redacts_spoken_text=true, "
@@ -1828,6 +1834,9 @@ def _has_safe_system_dependency_plan(card: dict[str, Any]) -> bool:
         and isinstance(plan.get("setup_commands"), list)
         and all(isinstance(command, str) for command in plan.get("setup_commands", []))
         and isinstance(plan.get("uses_system_package_manager"), bool)
+        and plan.get("uses_pip_extra") is False
+        and plan.get("python_extra") is None
+        and plan.get("pip_command") is None
         and isinstance(plan.get("post_install_check"), str)
         and "<pilot-output-dir>" in plan["post_install_check"]
         and plan.get("post_install_check_plays_audio") is False
@@ -2008,6 +2017,7 @@ def _is_system_output_audible_evidence(report: dict[str, Any]) -> bool:
         and system_guard.get("expected_system_matched") is True
         and isinstance(target_output_backend, dict)
         and target_output_backend.get("available") is True
+        and _has_safe_system_output_readiness_plan(target_output_backend)
         and report.get("output_backend_ready_required") is True
         and report.get("real_audio_requested") is True
         and report.get("operator_confirmation_status") == "confirmed"
@@ -2032,6 +2042,25 @@ def _is_system_output_audible_evidence(report: dict[str, Any]) -> bool:
         and operator_checklist.get("ready_for_real_audio") is True
         and operator_checklist.get("ready_for_beta_evidence") is True
         and report.get("passed") is True
+    )
+
+
+def _has_safe_system_output_readiness_plan(target_output_backend: dict[str, Any]) -> bool:
+    plan = target_output_backend.get("readiness_plan", {})
+    return (
+        isinstance(plan, dict)
+        and plan.get("backend") == "system"
+        and isinstance(plan.get("system"), str)
+        and isinstance(plan.get("candidate_commands"), list)
+        and all(isinstance(command, str) for command in plan.get("candidate_commands", []))
+        and isinstance(plan.get("setup_commands"), list)
+        and all(isinstance(command, str) for command in plan.get("setup_commands", []))
+        and isinstance(plan.get("requires_package_manager"), bool)
+        and plan.get("uses_pip_extra") is False
+        and plan.get("python_extra") is None
+        and plan.get("pip_command") is None
+        and isinstance(plan.get("post_install_check"), str)
+        and plan.get("post_install_check_plays_audio") is False
     )
 
 

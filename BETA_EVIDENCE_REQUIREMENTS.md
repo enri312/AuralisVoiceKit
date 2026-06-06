@@ -161,6 +161,9 @@ Este documento describe los campos JSON que pueden cerrar blockers de beta. No r
   - `backend` = `system`
   - `system_guard.expected_system_matched` = `True`
   - `target_output_backend.available` = `True`
+  - `target_output_backend.readiness_plan.uses_pip_extra` = `False`
+  - `target_output_backend.readiness_plan.python_extra` = `None`
+  - `target_output_backend.readiness_plan.pip_command` = `None`
   - `output_backend_ready_required` = `True`
   - `real_audio_requested` = `True`
   - `operator_confirmation_status` = `confirmed`

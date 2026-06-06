@@ -713,6 +713,29 @@ class BetaReadinessTests(unittest.TestCase):
                 self.assertFalse(checks["system_output_audible"]["ok"])
                 self.assertIn("system_output_audible", report["blockers"])
 
+    def test_system_output_evidence_requires_structured_readiness_plan(self):
+        module = _load_beta_readiness()
+
+        unsafe_cases = [
+            ("uses_pip_extra", True),
+            ("python_extra", "system"),
+            ("pip_command", 'python -m pip install "auralisvoicekit[system]"'),
+            ("post_install_check_plays_audio", True),
+        ]
+        for field, value in unsafe_cases:
+            with self.subTest(field=field):
+                with tempfile.TemporaryDirectory() as tmpdir:
+                    evidence_path = Path(tmpdir) / "output-pilot-report.json"
+                    payload = _output_evidence()
+                    payload["target_output_backend"]["readiness_plan"][field] = value
+                    _write_json(evidence_path, payload)
+
+                    report = module.build_beta_readiness_report(ROOT, evidence_paths=[evidence_path])
+                    checks = {check["name"]: check for check in report["checks"]}
+
+                self.assertFalse(checks["system_output_audible"]["ok"])
+                self.assertIn("system_output_audible", report["blockers"])
+
     def test_system_output_evidence_requires_safe_system_dependency_plan(self):
         module = _load_beta_readiness()
 
@@ -1284,6 +1307,9 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertEqual(transcription_conditional_fields["credentials.records_openai_api_key"], False)
         self.assertIn("system_guard.expected_system_matched", output_fields)
         self.assertIn("target_output_backend.available", output_fields)
+        self.assertEqual(output_fields["target_output_backend.readiness_plan.uses_pip_extra"], False)
+        self.assertIsNone(output_fields["target_output_backend.readiness_plan.python_extra"])
+        self.assertIsNone(output_fields["target_output_backend.readiness_plan.pip_command"])
         self.assertIn("output_backend_ready_required", output_fields)
         self.assertIn("text_review_confirmed", output_fields)
         self.assertIn("spoken_text_privacy_scan.passed", output_fields)
@@ -1474,6 +1500,9 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertIn("text_review_confirmed", content)
         self.assertIn("spoken_text_privacy_scan.passed", content)
         self.assertIn("output_backend_ready_required", content)
+        self.assertIn("target_output_backend.readiness_plan.uses_pip_extra", content)
+        self.assertIn("target_output_backend.readiness_plan.python_extra", content)
+        self.assertIn("target_output_backend.readiness_plan.pip_command", content)
         self.assertIn("voice_review_confirmed", content)
         self.assertIn("operator_checklist.expected_system_matched", content)
         self.assertIn("operator_checklist.records_operator_identity", content)
@@ -1961,6 +1990,7 @@ def _output_evidence() -> dict:
             "available": True,
             "dependencies": ["test-tts"],
             "reason": None,
+            "readiness_plan": _system_output_readiness_plan(),
         },
         "output_backend_ready_required": True,
         "system_guard": _system_guard(),
@@ -2027,6 +2057,9 @@ def _system_output_command_card() -> dict:
             "candidate_commands": ["test-tts"],
             "setup_commands": ["sudo apt-get install -y speech-dispatcher espeak"],
             "uses_system_package_manager": True,
+            "uses_pip_extra": False,
+            "python_extra": None,
+            "pip_command": None,
             "post_install_check": (
                 "python tools/output_pilot.py --system Linux --require-output-backend-ready "
                 "--json --output-dir <pilot-output-dir>"
@@ -2039,6 +2072,28 @@ def _system_output_command_card() -> dict:
         "records_spoken_text": False,
         "records_operator_identity": False,
         "records_local_paths": False,
+    }
+
+
+def _system_output_readiness_plan() -> dict:
+    return {
+        "backend": "system",
+        "system": "Linux",
+        "candidate_commands": ["test-tts"],
+        "setup_commands": ["sudo apt-get install -y speech-dispatcher espeak"],
+        "requires_package_manager": True,
+        "uses_pip_extra": False,
+        "python_extra": None,
+        "pip_command": None,
+        "post_install_check": "python tools/output_pilot.py --system Linux --require-output-backend-ready --json",
+        "post_install_check_plays_audio": False,
+        "audible_check_template": (
+            "python tools/output_pilot.py --speak --operator-present --confirm-audible "
+            "--confirm-text-reviewed --confirm-voice-reviewed --require-output-backend-ready "
+            "--expected-system \"Linux\" --output-dir <pilot-output-dir> "
+            "--text <public-spoken-text> --json"
+        ),
+        "platform_notes": [],
     }
 
 

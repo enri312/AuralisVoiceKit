@@ -6,6 +6,17 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.158.0] - 2026-06-06
+
+### Agregado
+
+- `target_output_backend.readiness_plan` ahora declara `uses_pip_extra=false`, `python_extra=null` y `pip_command=null` para salida `system`, alineando el plan de readiness con la command card y el vocabulario publico de extras opcionales.
+- `tools/beta_readiness.py` exige esos campos antes de aceptar evidencia beta de salida audible.
+
+### Pruebas
+
+- Nuevas aserciones validan readiness plan estructurado en el runner de salida, contrato beta, piloto seguro y documentacion publica.
+
 ## [0.157.0] - 2026-06-06
 
 ### Agregado

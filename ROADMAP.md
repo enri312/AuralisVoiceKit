@@ -156,6 +156,8 @@ Nota `v0.156.0`: `real_transcription_command_card` ahora declara `uses_pip_extra
 
 Nota `v0.157.0`: `system_output_command_card` declara `uses_pip_extra=false`, `python_extra=null`, `pip_command=null` y un `system_dependency_plan` seguro para Windows, Ubuntu/Linux y macOS; el auditor beta de salida audible exige ese plan antes de cerrar evidencia.
 
+Nota `v0.158.0`: `target_output_backend.readiness_plan` para salida `system` tambien declara `uses_pip_extra=false`, `python_extra=null` y `pip_command=null`, y el auditor beta exige esos campos antes de aceptar evidencia audible.
+
 ## Fase 0 - Base del proyecto
 
 **Objetivo:** dejar una libreria instalable, importable y testeable.

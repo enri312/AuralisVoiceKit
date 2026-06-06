@@ -1016,6 +1016,7 @@ def _platform_pilot_matrix(blockers: list[str]) -> list[dict[str, Any]]:
             "notes": (
                 "Ejecutar solo con operador presente; confirmar privacidad del texto, audibilidad, "
                 "plataforma esperada, output_backend_ready_required=true, revision de voz "
+                "target_output_backend.readiness_plan.uses_pip_extra=false, "
                 "operator_checklist.redacts_spoken_text=true, "
                 "next_system_output.records_spoken_text=false, "
                 "system_output_command_card.uses_pip_extra=false, "
