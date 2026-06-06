@@ -235,6 +235,7 @@ def build_evidence_requirements_report() -> dict[str, Any]:
             "Manual capture command cards must use placeholders and must not record audio, device names or local paths.",
             "Real transcription command cards must use placeholders and must not record audio, transcripts, expected text, file names or local paths.",
             "System output command cards must use placeholders and must not record audio, spoken text, operator identity or local paths.",
+            "Evidence audits flag suspicious raw fields by path only; they do not print private values.",
             "Only structured fields and sanitized artifact names are used.",
         ],
     }
@@ -255,6 +256,7 @@ def build_evidence_audit_report(
         evidence_path = Path(report["_evidence_path"])
         candidate_requirements = [item for item in requirements if item["artifact"] == evidence_path.name]
         candidates = [_audit_requirement(report, requirement) for requirement in candidate_requirements]
+        privacy_findings = _privacy_findings_for_evidence(report)
         artifacts.append(
             {
                 "file": _public_evidence_source(report),
@@ -262,6 +264,8 @@ def build_evidence_audit_report(
                 "satisfied_blockers": [candidate["name"] for candidate in candidates if candidate["ok"]],
                 "candidate_count": len(candidates),
                 "candidates": candidates,
+                "privacy_finding_count": len(privacy_findings),
+                "privacy_findings": privacy_findings,
             }
         )
     blocker_summaries = _evidence_blocker_summaries(requirements, artifacts)
@@ -279,6 +283,17 @@ def build_evidence_audit_report(
     if active_beta_blockers:
         focus_blockers = active_beta_blockers
     next_evidence_focus = _next_evidence_focus(requirements, blocker_summaries, focus_blockers)
+    privacy_findings = [
+        {"file": artifact["file"], "artifact": artifact["artifact"], **finding}
+        for artifact in artifacts
+        for finding in artifact["privacy_findings"]
+    ]
+    privacy_audit = {
+        "status": "failed" if privacy_findings else "passed",
+        "finding_count": len(privacy_findings),
+        "findings": privacy_findings,
+        "blocking": bool(privacy_findings),
+    }
 
     return {
         "project": "AuralisVoiceKit",
@@ -298,12 +313,14 @@ def build_evidence_audit_report(
         "missing_blockers": missing_blockers,
         "blocker_summaries": blocker_summaries,
         "next_evidence_focus": next_evidence_focus,
-        "ready_for_beta_by_evidence": not missing_blockers,
+        "privacy_audit": privacy_audit,
+        "ready_for_beta_by_evidence": not missing_blockers and not privacy_findings,
         "artifacts": artifacts,
         "notes": (
             "Evidence audit uses only structured fields needed for beta blockers. "
             "It does not require audio, transcripts, expected text or full local paths. "
-            "It audits JSON evidence only; existing PILOT_FINDINGS.md text is not counted here."
+            "It audits JSON evidence only; existing PILOT_FINDINGS.md text is not counted here. "
+            "Privacy findings report field paths only, never raw values."
         ),
     }
 
@@ -589,6 +606,18 @@ def format_audit_markdown(report: dict[str, Any]) -> str:
         for item in report["ignored_details"]:
             lines.append(f"- `{item['file']}`: {item['message_es']} / {item['message_en']}.")
         lines.append("")
+    lines.extend(["## Escaneo de privacidad", ""])
+    privacy_audit = report.get("privacy_audit", {})
+    lines.append(f"- Estado: `{privacy_audit.get('status', 'unknown')}`")
+    lines.append(f"- Hallazgos: `{privacy_audit.get('finding_count', 0)}`")
+    if privacy_audit.get("findings"):
+        for finding in privacy_audit["findings"]:
+            lines.append(
+                f"- `{finding['file']}` campo `{finding['field']}`: `{finding['reason']}`"
+            )
+    else:
+        lines.append("- No se detectaron campos crudos sospechosos.")
+    lines.append("")
     lines.extend(["## Resumen por blocker", ""])
     for blocker in report["blocker_summaries"]:
         accepted_sources = _format_name_list(blocker["accepted_sources"]) if blocker["accepted_sources"] else "`ninguna`"
@@ -620,6 +649,7 @@ def format_audit_markdown(report: dict[str, Any]) -> str:
         lines.append("")
         lines.append(f"- Artifact: `{artifact['artifact']}`")
         lines.append(f"- Blockers cerrados: {satisfied}")
+        lines.append(f"- Hallazgos de privacidad: `{artifact['privacy_finding_count']}`")
         lines.append("")
         for candidate in artifact["candidates"]:
             marker = "x" if candidate["ok"] else " "
@@ -817,7 +847,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--fail-on-audit-gaps",
         action="store_true",
-        help="exit with code 1 when --audit-evidence has missing blockers or ignored artifacts",
+        help="exit with code 1 when --audit-evidence has missing blockers, ignored artifacts or privacy findings",
     )
     args = parser.parse_args(argv)
 
@@ -839,7 +869,9 @@ def main(argv: list[str] | None = None) -> int:
             print(json.dumps(report, indent=2, sort_keys=True))
         elif not args.output:
             print(format_audit_markdown(report))
-        if args.fail_on_audit_gaps and (report["missing_blockers"] or report["ignored_count"]):
+        if args.fail_on_audit_gaps and (
+            report["missing_blockers"] or report["ignored_count"] or report["privacy_audit"]["finding_count"]
+        ):
             return 1
         return 0
 
@@ -1072,6 +1104,94 @@ def _evidence_blocker_summaries(
             }
         )
     return summaries
+
+
+def _privacy_findings_for_evidence(report: dict[str, Any]) -> list[dict[str, str]]:
+    findings: list[dict[str, str]] = []
+    for path, value in _iter_public_evidence_fields(report):
+        reason = _privacy_finding_reason(path, value)
+        if reason is None:
+            continue
+        findings.append({"field": path, "reason": reason})
+    return findings
+
+
+def _iter_public_evidence_fields(payload: Any, prefix: str = ""):
+    if isinstance(payload, dict):
+        for key, value in payload.items():
+            if str(key).startswith("_evidence_"):
+                continue
+            path = f"{prefix}.{key}" if prefix else str(key)
+            yield from _iter_public_evidence_fields(value, path)
+    elif isinstance(payload, list):
+        for index, value in enumerate(payload):
+            yield from _iter_public_evidence_fields(value, f"{prefix}[{index}]")
+    else:
+        yield prefix, payload
+
+
+def _privacy_finding_reason(path: str, value: Any) -> str | None:
+    if not isinstance(value, str):
+        return None
+    normalized_path = path.casefold()
+    field = normalized_path.rsplit(".", 1)[-1]
+    if _is_safe_placeholder_value(value):
+        return None
+    if _is_raw_text_field(normalized_path, field):
+        return "raw_text_field"
+    if _is_raw_path_field(normalized_path, field):
+        return "raw_local_path_field"
+    if _is_raw_file_name_field(field):
+        return "raw_file_name_field"
+    if _is_raw_credential_field(field):
+        return "raw_credential_field"
+    return None
+
+
+def _is_safe_placeholder_value(value: str) -> bool:
+    normalized = value.strip().casefold()
+    return (
+        normalized == ""
+        or normalized.startswith("<")
+        and normalized.endswith(">")
+        or "redacted" in normalized
+    )
+
+
+def _is_raw_text_field(path: str, field: str) -> bool:
+    if field in {"text_redacted", "records_spoken_text", "records_transcript_text", "records_expected_text"}:
+        return False
+    if field in {"text", "transcript", "transcript_text", "expected_text", "reference_text", "spoken_text"}:
+        return True
+    return path.endswith(
+        (
+            ".transcript.full_text",
+            ".transcript.raw_text",
+            ".transcription.text",
+            ".quality.expected_text",
+        )
+    )
+
+
+def _is_raw_path_field(path: str, field: str) -> bool:
+    if path.startswith("artifacts."):
+        return False
+    return field in {"path", "file_path", "local_path", "audio_path", "input_path", "output_path"}
+
+
+def _is_raw_file_name_field(field: str) -> bool:
+    return field in {"file_name", "audio_file_name", "expected_text_file_name", "device_name"}
+
+
+def _is_raw_credential_field(field: str) -> bool:
+    safe_credential_fields = {
+        "checked",
+        "status",
+        "openai_api_key_required",
+        "openai_api_key_present",
+        "records_openai_api_key",
+    }
+    return "api_key" in field and field not in safe_credential_fields
 
 
 def _next_evidence_focus(

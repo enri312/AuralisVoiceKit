@@ -1254,6 +1254,8 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertEqual(report["accepted_count"], 2)
         self.assertEqual(report["ignored_count"], 1)
         self.assertEqual(report["ignored_details"][0]["reason"], "missing_project")
+        self.assertEqual(report["privacy_audit"]["status"], "passed")
+        self.assertEqual(report["privacy_audit"]["finding_count"], 0)
         self.assertFalse(report["ready_for_beta_by_evidence"])
         self.assertEqual(report["satisfied_blockers"], ["system_output_audible"])
         self.assertIn("real_transcription_quality", report["missing_blockers"])
@@ -1314,6 +1316,7 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertIn("Auditoria de evidencias beta", content)
         self.assertIn("Resumen de blockers", content)
         self.assertIn("Resumen por blocker", content)
+        self.assertIn("Escaneo de privacidad", content)
         self.assertIn("Siguiente foco de evidencia", content)
         self.assertIn("Listo para beta segun evidencias JSON", content)
         self.assertIn("ubuntu_linux_capture", content)
@@ -1336,6 +1339,8 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertEqual(payload["artifacts"], [])
         self.assertFalse(payload["ready_for_beta_by_evidence"])
         self.assertIn("real_transcription_quality", payload["missing_blockers"])
+        self.assertEqual(payload["privacy_audit"]["status"], "passed")
+        self.assertEqual(payload["privacy_audit"]["finding_count"], 0)
         self.assertIn("blocker_summaries", payload)
         self.assertEqual(payload["blocker_summaries"][0]["candidate_count"], 0)
         self.assertEqual(payload["next_evidence_focus"]["status"], "pending")
@@ -1375,6 +1380,88 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertEqual(payload["ignored_count"], 1)
         self.assertEqual(payload["ignored_details"][0]["reason"], "missing_project")
 
+    def test_evidence_audit_blocks_raw_private_fields_without_printing_values(self):
+        module = _load_beta_readiness()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            evidence_root = Path(tmpdir)
+            _write_json(
+                evidence_root / "windows" / "manual-pilot-report.json",
+                _capture_evidence("Windows", "wasapi"),
+            )
+            _write_json(
+                evidence_root / "linux" / "manual-pilot-report.json",
+                _capture_evidence("Linux", "sounddevice"),
+            )
+            _write_json(
+                evidence_root / "macos" / "manual-pilot-report.json",
+                _capture_evidence("Darwin", "pyaudio"),
+            )
+            _write_json(
+                evidence_root / "output" / "output-pilot-report.json",
+                _output_evidence(),
+            )
+            transcription = _transcription_evidence()
+            transcription["transcript"]["text"] = "hola secreto interno"
+            transcription["audio"]["path"] = "C:\\Users\\Private\\sample.mp3"
+            _write_json(
+                evidence_root / "transcription" / "transcription-pilot-report.json",
+                transcription,
+            )
+
+            report = module.build_evidence_audit_report(ROOT, evidence_paths=[evidence_root])
+
+        self.assertEqual(report["missing_blockers"], [])
+        self.assertFalse(report["ready_for_beta_by_evidence"])
+        self.assertEqual(report["privacy_audit"]["status"], "failed")
+        self.assertEqual(report["privacy_audit"]["finding_count"], 2)
+        fields = {finding["field"] for finding in report["privacy_audit"]["findings"]}
+        self.assertIn("transcript.text", fields)
+        self.assertIn("audio.path", fields)
+        serialized = json.dumps(report, sort_keys=True)
+        self.assertNotIn("hola secreto interno", serialized)
+        self.assertNotIn("Private", serialized)
+
+    def test_cli_audit_evidence_can_fail_on_privacy_findings(self):
+        module = _load_beta_readiness()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            evidence_root = Path(tmpdir)
+            _write_json(
+                evidence_root / "windows" / "manual-pilot-report.json",
+                _capture_evidence("Windows", "wasapi"),
+            )
+            _write_json(
+                evidence_root / "linux" / "manual-pilot-report.json",
+                _capture_evidence("Linux", "sounddevice"),
+            )
+            _write_json(
+                evidence_root / "macos" / "manual-pilot-report.json",
+                _capture_evidence("Darwin", "pyaudio"),
+            )
+            _write_json(
+                evidence_root / "output" / "output-pilot-report.json",
+                _output_evidence(),
+            )
+            transcription = _transcription_evidence()
+            transcription["expected_text"] = "texto esperado privado"
+            _write_json(
+                evidence_root / "transcription" / "transcription-pilot-report.json",
+                transcription,
+            )
+            output = io.StringIO()
+            with contextlib.redirect_stdout(output):
+                exit_code = module.main(
+                    ["--audit-evidence", "--evidence", str(evidence_root), "--json", "--fail-on-audit-gaps"]
+                )
+            payload = json.loads(output.getvalue())
+
+        self.assertEqual(exit_code, 1)
+        self.assertEqual(payload["missing_blockers"], [])
+        self.assertEqual(payload["privacy_audit"]["status"], "failed")
+        self.assertEqual(payload["privacy_audit"]["findings"][0]["field"], "expected_text")
+        self.assertNotIn("texto esperado privado", output.getvalue())
+
     def test_evidence_audit_can_mark_all_json_blockers_satisfied(self):
         module = _load_beta_readiness()
 
@@ -1404,6 +1491,8 @@ class BetaReadinessTests(unittest.TestCase):
             report = module.build_evidence_audit_report(ROOT, evidence_paths=[evidence_root])
 
         self.assertTrue(report["ready_for_beta_by_evidence"])
+        self.assertEqual(report["privacy_audit"]["status"], "passed")
+        self.assertEqual(report["privacy_audit"]["finding_count"], 0)
         self.assertEqual(report["missing_blockers"], [])
         self.assertEqual(set(report["satisfied_blockers"]), set(report["required_blockers"]))
 
@@ -1442,6 +1531,7 @@ class BetaReadinessTests(unittest.TestCase):
 
         self.assertEqual(exit_code, 0)
         self.assertTrue(payload["ready_for_beta_by_evidence"])
+        self.assertEqual(payload["privacy_audit"]["status"], "passed")
         self.assertEqual(payload["missing_blockers"], [])
         self.assertEqual(payload["ignored_count"], 0)
 

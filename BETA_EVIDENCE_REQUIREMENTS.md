@@ -221,4 +221,5 @@ Este documento describe los campos JSON que pueden cerrar blockers de beta. No r
 - Manual capture command cards must use placeholders and must not record audio, device names or local paths.
 - Real transcription command cards must use placeholders and must not record audio, transcripts, expected text, file names or local paths.
 - System output command cards must use placeholders and must not record audio, spoken text, operator identity or local paths.
+- Evidence audits flag suspicious raw fields by path only; they do not print private values.
 - Only structured fields and sanitized artifact names are used.

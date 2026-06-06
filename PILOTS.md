@@ -44,6 +44,8 @@ Nota `v0.122.0`: `tools/manual_pilot.py` agrega `beta_evidence_gap` a `manual-pi
 
 Nota `v0.123.0`: `tools/manual_pilot.py` escribe `manual-capture-command.md` y `manual_capture_command_card` con setup, preflight sin microfono, captura real y auditoria beta usando placeholders. English: manual capture pilots now write a public-safe command card.
 
+Nota `v0.127.0`: `tools/beta_readiness.py --audit-evidence` agrega `privacy_audit` para detectar campos crudos sospechosos en artifacts JSON aceptados, como `transcript.text`, `expected_text`, `spoken_text`, `audio.path`, nombres de archivo sin redaccion o credenciales. El reporte muestra solo rutas de campos y motivos, nunca valores privados. English: evidence audits now block beta on suspicious raw fields without printing private values.
+
 ```powershell
 py tools\pilot_run.py --output-dir pilot_runs\safe --json
 py tools\pilot_run.py --output-dir pilot_runs\safe --evidence pilot_runs\manual --evidence pilot_runs\output --evidence pilot_runs\transcription --json

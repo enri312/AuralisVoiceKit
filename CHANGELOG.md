@@ -6,6 +6,19 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.127.0] - 2026-06-06
+
+### Cambiado
+
+- `tools/beta_readiness.py --audit-evidence` ahora agrega `privacy_audit` para artifacts JSON aceptados.
+- El escaneo de privacidad marca campos crudos sospechosos como `transcript.text`, `expected_text`, `spoken_text`, `audio.path`, nombres de archivo sin redaccion o credenciales crudas.
+- `--fail-on-audit-gaps` ahora tambien falla si hay hallazgos de privacidad, aunque todos los blockers JSON esten satisfechos.
+- El reporte Markdown de auditoria muestra solo nombres de campos y motivos; nunca imprime valores privados.
+
+### Pruebas
+
+- Nuevas pruebas validan que evidencias limpias siguen pasando y que artifacts con texto/rutas crudas quedan bloqueados sin filtrar esos valores en JSON o Markdown.
+
 ## [0.126.0] - 2026-06-06
 
 ### Cambiado

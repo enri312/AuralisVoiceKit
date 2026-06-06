@@ -94,6 +94,8 @@ Nota `v0.125.0`: la evidencia beta de salida audible requiere `system_output_com
 
 Nota `v0.126.0`: la evidencia beta de transcripcion real requiere `real_transcription_command_card` segura, con placeholders, preflight sin modelo, audio real y revision humana de calidad obligatorios y flags que prueban que no guarda audio, rutas, transcripciones, texto esperado ni nombres de archivos.
 
+Nota `v0.127.0`: la auditoria de evidencias beta agrega `privacy_audit`, que bloquea beta si artifacts JSON aceptados contienen campos crudos sospechosos y reporta solo rutas de campos, no valores privados.
+
 ## Fase 0 - Base del proyecto
 
 **Objetivo:** dejar una libreria instalable, importable y testeable.
