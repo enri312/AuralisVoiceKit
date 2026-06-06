@@ -802,6 +802,7 @@ def _platform_pilot_matrix(blockers: list[str]) -> list[dict[str, Any]]:
             "notes": (
                 "Usar un MP3 propio no sensible, revisar privacidad del audio y referencia, "
                 "confirmar target_backend.available=true, target_backend_ready_required=true, "
+                "usar --timeout-seconds 30 si el backend real es openai, "
                 "audio.generated_synthetic_audio=false, audio.decoded=true, "
                 "audio.duration_gate.enabled=true, audio.duration_gate.passed=true, "
                 "transcript.text_redacted=true, reference_privacy_scan.passed=true "
@@ -1240,6 +1241,7 @@ def _real_pilot_transcription_readiness_card(report: dict[str, Any]) -> dict[str
             "Run the synthetic fixture command first; it proves the path without private audio.",
             "Run the preflight with your own non-sensitive MP3 and review transcription-review-checklist.md.",
             "Use --require-target-backend-ready so the real pilot fails before model execution if the backend is missing.",
+            "Use --timeout-seconds 30 when running the real pilot with --backend openai.",
             "Pass --confirm-audio-reviewed only after privacy review of the audio is complete.",
             "Pass --confirm-reference-reviewed only after the expected text or expected text file is public-safe.",
             "Pass --confirm-quality-reviewed only after local human review of quality metrics and redacted artifacts.",

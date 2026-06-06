@@ -59,6 +59,7 @@ def run_transcription_pilot(
     model: str | None = None,
     language: str = "es",
     prompt: str | None = None,
+    timeout_seconds: float | None = None,
     ffmpeg: str = "ffmpeg",
     normalize: bool = False,
     preflight_only: bool = False,
@@ -99,6 +100,7 @@ def run_transcription_pilot(
         audio_confirmed_non_sensitive=audio_confirmed_non_sensitive,
         audio_review_confirmed=audio_review_confirmed,
     )
+    _validate_timeout_seconds(timeout_seconds)
     target_backend = _transcription_backend_status(backend)
     _validate_target_backend_ready(
         target_backend=target_backend,
@@ -134,6 +136,7 @@ def run_transcription_pilot(
         transcription_backend=backend,
         transcription_model=model or "auto",
         transcription_prompt=prompt,
+        transcription_timeout_seconds=timeout_seconds,
         language=language,
         privacy_mode=True,
     )
@@ -246,6 +249,7 @@ def run_transcription_pilot(
         normalize=normalize,
         min_audio_seconds=min_audio_seconds,
         max_audio_seconds=max_audio_seconds,
+        timeout_seconds=timeout_seconds,
     )
     findings = _build_findings_markdown(
         timestamp=timestamp,
@@ -262,6 +266,7 @@ def run_transcription_pilot(
         audio_review_confirmed=audio_review_confirmed,
         reference_review_confirmed=reference_review_confirmed,
         quality_review_confirmed=quality_review_confirmed,
+        timeout_seconds=timeout_seconds,
         transcription_checklist=transcription_checklist,
         preflight_decision=preflight_decision,
         report_path=report_path,
@@ -281,6 +286,7 @@ def run_transcription_pilot(
         preflight_only=preflight_only,
         real_transcription=real_transcription,
         require_target_backend_ready=require_target_backend_ready,
+        timeout_seconds=timeout_seconds,
         audio=audio_payload,
         quality=quality_report,
         reference_privacy_scan=reference_privacy_scan,
@@ -298,6 +304,7 @@ def run_transcription_pilot(
         "target_backend": target_backend,
         "model": model or "auto",
         "language": language,
+        "transcription_timeout_seconds": timeout_seconds,
         "preflight_only": preflight_only,
         "real_transcription_requested": real_transcription,
         "target_backend_ready_required": require_target_backend_ready,
@@ -351,6 +358,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--model", help="transcription model")
     parser.add_argument("--language", default="es", help="audio language hint")
     parser.add_argument("--prompt", help="optional transcription prompt; not written to findings")
+    parser.add_argument(
+        "--timeout-seconds",
+        type=float,
+        help="optional transcription timeout passed to supported backends",
+    )
     parser.add_argument("--ffmpeg", default="ffmpeg", help="ffmpeg executable for compressed audio")
     parser.add_argument("--normalize", action="store_true", help="normalize audio before transcription")
     parser.add_argument(
@@ -430,6 +442,7 @@ def main(argv: list[str] | None = None) -> int:
             model=args.model,
             language=args.language,
             prompt=args.prompt,
+            timeout_seconds=args.timeout_seconds,
             ffmpeg=args.ffmpeg,
             normalize=args.normalize,
             preflight_only=args.preflight_only,
@@ -525,6 +538,11 @@ def _validate_quality_review_flags(
         raise ValueError("--confirm-quality-reviewed cannot be used with --preflight-only.")
     if quality_review_confirmed and not real_transcription:
         raise ValueError("--confirm-quality-reviewed requires --real-transcription.")
+
+
+def _validate_timeout_seconds(timeout_seconds: float | None) -> None:
+    if timeout_seconds is not None and timeout_seconds <= 0:
+        raise ValueError("transcription_timeout_seconds must be greater than zero")
 
 
 def _transcription_backend_status(backend: str) -> dict[str, Any]:
@@ -1096,6 +1114,7 @@ def _build_findings_markdown(
     audio_review_confirmed: bool,
     reference_review_confirmed: bool,
     quality_review_confirmed: bool,
+    timeout_seconds: float | None,
     transcription_checklist: dict[str, Any],
     preflight_decision: dict[str, Any],
     report_path: Path,
@@ -1115,6 +1134,7 @@ def _build_findings_markdown(
         f"- Target backend post-install check: {target_backend['install_plan']['post_install_check']}",
         f"- Preflight only: {preflight_only}",
         f"- Real transcription requested: {real_transcription}",
+        f"- Transcription timeout seconds: {_format_optional(timeout_seconds)}",
         f"- Passed: {passed}",
         f"- Audio file name: {audio['audio_file_name']}",
         f"- Audio file name redacted: {audio['audio_file_name_redacted']}",
@@ -1211,6 +1231,7 @@ def _real_transcription_command_template(
     normalize: bool,
     min_audio_seconds: float | None,
     max_audio_seconds: float | None,
+    timeout_seconds: float | None,
 ) -> str:
     real_backend = backend if backend != "null" else "whisper"
     if model:
@@ -1222,11 +1243,18 @@ def _real_transcription_command_template(
     min_seconds = 0.2 if min_audio_seconds is None else min_audio_seconds
     max_seconds = 60 if max_audio_seconds is None else max_audio_seconds
     normalize_flag = " --normalize" if normalize else ""
+    default_timeout_seconds = 30 if real_backend == "openai" else None
+    effective_timeout_seconds = timeout_seconds if timeout_seconds is not None else default_timeout_seconds
+    timeout_flag = (
+        f" --timeout-seconds {effective_timeout_seconds}"
+        if effective_timeout_seconds is not None
+        else ""
+    )
     return (
         "python tools/transcription_pilot.py --real-transcription "
         "--audio <audio-path> --audio-non-sensitive --confirm-audio-reviewed "
         "--confirm-reference-reviewed "
-        f"--backend {real_backend} --model {real_model}{normalize_flag} "
+        f"--backend {real_backend} --model {real_model}{normalize_flag}{timeout_flag} "
         "--expected-text-file <expected-text-path> --min-word-accuracy 0.75 "
         f"--min-audio-seconds {min_seconds} --max-audio-seconds {max_seconds} "
         "--confirm-quality-reviewed --require-target-backend-ready --json"
@@ -1242,6 +1270,7 @@ def _build_real_transcription_next_step_markdown(
     preflight_only: bool,
     real_transcription: bool,
     require_target_backend_ready: bool,
+    timeout_seconds: float | None,
     audio: dict[str, Any],
     quality: dict[str, Any],
     reference_privacy_scan: dict[str, Any],
@@ -1268,6 +1297,7 @@ def _build_real_transcription_next_step_markdown(
         f"- Preflight only: {preflight_only}",
         f"- Real transcription requested: {real_transcription}",
         f"- Target backend readiness required: {require_target_backend_ready}",
+        f"- Transcription timeout seconds: {_format_optional(timeout_seconds)}",
         f"- Audio file name redacted: {audio['audio_file_name_redacted']}",
         f"- Audio extension: {audio['audio_file_extension'] or 'none'}",
         f"- Source format: {_format_optional(audio['source_format'])}",
@@ -1394,6 +1424,7 @@ def _print_report(report: dict[str, Any]) -> None:
     print(f"Backend: {report['backend']}")
     print(f"Target backend available: {report['target_backend']['available']}")
     print(f"Target backend install command: {_format_optional(report['target_backend']['install_command'])}")
+    print(f"Transcription timeout seconds: {_format_optional(report['transcription_timeout_seconds'])}")
     print(f"Preflight only: {report['preflight_only']}")
     print(f"Real transcription requested: {report['real_transcription_requested']}")
     print(f"Generated synthetic audio: {report['generated_synthetic_audio']}")

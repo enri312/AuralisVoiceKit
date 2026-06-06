@@ -305,6 +305,7 @@ class PilotRunTests(unittest.TestCase):
         self.assertIn("--confirm-reference-reviewed", transcription_readiness)
         self.assertIn("--confirm-quality-reviewed", transcription_readiness)
         self.assertIn("--require-target-backend-ready", transcription_readiness)
+        self.assertIn("--timeout-seconds 30", transcription_readiness)
         self.assertIn("target_backend.available", transcription_readiness)
         self.assertIn("preflight_decision", transcription_readiness)
         self.assertIn("preflight_decision.decision", transcription_readiness)
@@ -613,6 +614,7 @@ class PilotRunTests(unittest.TestCase):
         self.assertIn("target_backend_ready_required=true", matrix["real-transcription-quality"]["notes"])
         self.assertIn("audio.generated_synthetic_audio=false", matrix["real-transcription-quality"]["notes"])
         self.assertIn("audio.decoded=true", matrix["real-transcription-quality"]["notes"])
+        self.assertIn("--timeout-seconds 30", matrix["real-transcription-quality"]["notes"])
         self.assertIn("transcript.text_redacted=true", matrix["real-transcription-quality"]["notes"])
         self.assertTrue(matrix["real-transcription-quality"]["strict_backend_guard_required"])
         self.assertEqual(

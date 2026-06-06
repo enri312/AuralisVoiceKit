@@ -591,6 +591,7 @@ python tools/transcription_pilot.py --preflight-only --audio sample.mp3 --audio-
 python -m pip install "auralisvoicekit[whisper]"
 python tools/transcription_pilot.py --preflight-only --audio sample.mp3 --audio-non-sensitive --backend whisper --require-target-backend-ready --json
 python tools/transcription_pilot.py --real-transcription --audio sample.mp3 --audio-non-sensitive --confirm-audio-reviewed --confirm-reference-reviewed --backend whisper --model base --normalize --expected-text "Hola desde AuralisVoiceKit" --min-word-accuracy 0.75 --min-audio-seconds 0.2 --max-audio-seconds 60 --confirm-quality-reviewed --require-target-backend-ready --json
+python tools/transcription_pilot.py --real-transcription --audio sample.mp3 --audio-non-sensitive --confirm-audio-reviewed --confirm-reference-reviewed --backend openai --model gpt-4o-mini-transcribe --timeout-seconds 30 --expected-text "Hola desde AuralisVoiceKit" --min-word-accuracy 0.75 --min-audio-seconds 0.2 --max-audio-seconds 60 --confirm-quality-reviewed --require-target-backend-ready --json
 python tools/beta_readiness.py --output BETA_CHECKLIST.md --json
 python tools/beta_readiness.py --requirements
 python tools/beta_readiness.py --requirements --output BETA_EVIDENCE_REQUIREMENTS.md

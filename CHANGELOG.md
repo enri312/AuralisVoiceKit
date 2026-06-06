@@ -6,6 +6,14 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.103.0] - 2026-06-06
+
+### Agregado
+
+- `tools/transcription_pilot.py` ahora acepta `--timeout-seconds` y lo conserva como `transcription_timeout_seconds` en el reporte sanitizado.
+- La plantilla `real-transcription-next-step.md` agrega `--timeout-seconds 30` automaticamente cuando el backend objetivo es `openai`.
+- Los artifacts de piloto seguro y checklist beta recomiendan timeout explicito para pilotos reales con OpenAI.
+
 ## [0.102.0] - 2026-06-06
 
 ### Agregado

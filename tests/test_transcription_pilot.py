@@ -119,6 +119,68 @@ class TranscriptionPilotTests(unittest.TestCase):
         self.assertIn("transcription_review_checklist", payload["artifacts"])
         self.assertFalse(payload["transcription_checklist"]["ready_for_beta_evidence"])
 
+    def test_transcription_pilot_records_timeout_without_private_content(self):
+        module = _load_transcription_pilot()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            report = module.run_transcription_pilot(
+                root=ROOT,
+                output_dir=tmpdir,
+                timeout_seconds=8.5,
+                duration_seconds=0.3,
+                sample_rate=8000,
+            )
+            report_path = Path(report["artifacts"]["transcription_pilot_report"])
+            findings_path = Path(report["artifacts"]["pilot_findings"])
+            next_step_path = Path(report["artifacts"]["real_transcription_next_step"])
+            payload = json.loads(report_path.read_text(encoding="utf-8"))
+            findings = findings_path.read_text(encoding="utf-8")
+            next_step = next_step_path.read_text(encoding="utf-8")
+
+        self.assertTrue(report["passed"])
+        self.assertEqual(payload["transcription_timeout_seconds"], 8.5)
+        self.assertIn("Transcription timeout seconds: 8.5", findings)
+        self.assertIn("Transcription timeout seconds: 8.5", next_step)
+        self.assertIn("--timeout-seconds 8.5", payload["next_real_transcription"]["command_template"])
+
+    def test_transcription_pilot_openai_template_defaults_to_timeout(self):
+        module = _load_transcription_pilot()
+
+        command = module._real_transcription_command_template(
+            backend="openai",
+            model=None,
+            normalize=True,
+            min_audio_seconds=None,
+            max_audio_seconds=None,
+            timeout_seconds=None,
+        )
+
+        self.assertIn("--backend openai", command)
+        self.assertIn("--model gpt-4o-mini-transcribe", command)
+        self.assertIn("--timeout-seconds 30", command)
+
+    def test_transcription_pilot_cli_rejects_invalid_timeout(self):
+        module = _load_transcription_pilot()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output = io.StringIO()
+            with contextlib.redirect_stdout(output):
+                exit_code = module.main(
+                    [
+                        "--root",
+                        str(ROOT),
+                        "--output-dir",
+                        tmpdir,
+                        "--timeout-seconds",
+                        "0",
+                        "--json",
+                    ]
+                )
+            payload = json.loads(output.getvalue())
+
+        self.assertEqual(exit_code, 1)
+        self.assertIn("transcription_timeout_seconds", payload["error"])
+
     def test_transcription_pilot_rejects_real_backend_without_guard(self):
         module = _load_transcription_pilot()
 
