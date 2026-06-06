@@ -360,6 +360,12 @@ def run_transcription_pilot(
         command_template=command_template,
         audit_command_template=audit_command_template,
     )
+    command_card_payload = _real_transcription_command_card(
+        beta_evidence_gap=beta_evidence_gap,
+        preflight_command_template=preflight_command_template,
+        command_template=command_template,
+        audit_command_template=audit_command_template,
+    )
 
     report: dict[str, Any] = {
         "project": "AuralisVoiceKit",
@@ -399,12 +405,17 @@ def run_transcription_pilot(
             "preflight_readiness": preflight_readiness,
             "beta_evidence_gap": beta_evidence_gap,
             "target_backend": target_backend,
+            "safe_to_share": True,
             "uses_placeholders": True,
+            "records_audio": False,
             "records_audio_path": False,
             "records_audio_file_name": False,
+            "records_transcript_text": False,
+            "records_expected_text": False,
             "records_expected_text_file_name": False,
             "records_local_paths": False,
         },
+        "real_transcription_command_card": command_card_payload,
         "notes": _pilot_notes(real_transcription, preflight_only),
         "artifacts": {
             "pilot_findings": str(findings_path),
@@ -1614,7 +1625,8 @@ def _real_transcription_command_template(
         "--expected-text-file <expected-text-path> --min-word-accuracy 0.75 "
         f"--min-audio-seconds {_format_cli_number(min_seconds)} "
         f"--max-audio-seconds {_format_cli_number(max_seconds)} "
-        f"--confirm-quality-reviewed --require-target-backend-ready{credential_flag} --json"
+        f"--confirm-quality-reviewed --require-target-backend-ready{credential_flag} "
+        "--output-dir <pilot-output-dir> --json"
     )
 
 
@@ -1649,7 +1661,7 @@ def _real_transcription_preflight_command_template(
         f"--backend {real_backend} --model {real_model}{timeout_flag} "
         f"--min-audio-seconds {_format_cli_number(min_seconds)} "
         f"--max-audio-seconds {_format_cli_number(max_seconds)} "
-        f"--require-target-backend-ready{credential_flag} --json"
+        f"--require-target-backend-ready{credential_flag} --output-dir <pilot-output-dir> --json"
     )
 
 
@@ -1658,6 +1670,37 @@ def _beta_evidence_audit_command_template() -> str:
         "python tools/beta_readiness.py --audit-evidence "
         "--evidence <pilot-output-dir> --output <pilot-output-dir>/beta-evidence-audit.md --json"
     )
+
+
+def _real_transcription_command_card(
+    *,
+    beta_evidence_gap: dict[str, Any],
+    preflight_command_template: str,
+    command_template: str,
+    audit_command_template: str,
+) -> dict[str, Any]:
+    return {
+        "artifact": "real-transcription-command.md",
+        "safe_to_share": True,
+        "uses_placeholders": True,
+        "blocker": "real_transcription_quality",
+        "ready_for_beta_evidence": beta_evidence_gap["ready_for_beta_evidence"],
+        "missing_count": beta_evidence_gap["missing_count"],
+        "missing_fields": beta_evidence_gap["missing_fields"],
+        "preflight_command_template": preflight_command_template,
+        "preflight_runs_model": False,
+        "real_transcription_command_template": command_template,
+        "real_transcription_requires_user_audio": True,
+        "real_transcription_requires_quality_review": True,
+        "audit_command_template": audit_command_template,
+        "records_audio": False,
+        "records_audio_path": False,
+        "records_audio_file_name": False,
+        "records_transcript_text": False,
+        "records_expected_text": False,
+        "records_expected_text_file_name": False,
+        "records_local_paths": False,
+    }
 
 
 def _format_cli_number(value: float | int) -> str:

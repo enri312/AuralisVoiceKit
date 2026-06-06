@@ -82,6 +82,28 @@ class TranscriptionPilotTests(unittest.TestCase):
         self.assertIn("real_transcription_requested", payload["beta_evidence_gap"]["missing_fields"])
         self.assertFalse(payload["beta_evidence_gap"]["records_audio_file_name"])
         self.assertFalse(payload["beta_evidence_gap"]["records_local_paths"])
+        command_card_payload = payload["real_transcription_command_card"]
+        self.assertEqual(command_card_payload["artifact"], "real-transcription-command.md")
+        self.assertEqual(command_card_payload["blocker"], "real_transcription_quality")
+        self.assertFalse(command_card_payload["ready_for_beta_evidence"])
+        self.assertTrue(command_card_payload["safe_to_share"])
+        self.assertTrue(command_card_payload["uses_placeholders"])
+        self.assertFalse(command_card_payload["preflight_runs_model"])
+        self.assertTrue(command_card_payload["real_transcription_requires_user_audio"])
+        self.assertTrue(command_card_payload["real_transcription_requires_quality_review"])
+        self.assertFalse(command_card_payload["records_audio"])
+        self.assertFalse(command_card_payload["records_audio_path"])
+        self.assertFalse(command_card_payload["records_audio_file_name"])
+        self.assertFalse(command_card_payload["records_transcript_text"])
+        self.assertFalse(command_card_payload["records_expected_text"])
+        self.assertFalse(command_card_payload["records_expected_text_file_name"])
+        self.assertFalse(command_card_payload["records_local_paths"])
+        self.assertIn("<pilot-output-dir>", command_card_payload["preflight_command_template"])
+        self.assertIn("<audio-path>", command_card_payload["preflight_command_template"])
+        self.assertIn("<pilot-output-dir>", command_card_payload["real_transcription_command_template"])
+        self.assertIn("<audio-path>", command_card_payload["real_transcription_command_template"])
+        self.assertIn("<expected-text-path>", command_card_payload["real_transcription_command_template"])
+        self.assertIn("<pilot-output-dir>", command_card_payload["audit_command_template"])
         self.assertFalse(payload["transcription_checklist"]["records_audio_path"])
         self.assertFalse(payload["transcription_checklist"]["records_audio_file_name"])
         self.assertFalse(payload["transcription_checklist"]["records_transcript_text"])
@@ -108,6 +130,7 @@ class TranscriptionPilotTests(unittest.TestCase):
         self.assertIn("Preflight MP3/WAV/FLAC", command_card)
         self.assertIn("--preflight-only", command_card)
         self.assertIn("--audio <audio-path>", command_card)
+        self.assertIn("--output-dir <pilot-output-dir>", command_card)
         self.assertIn("--evidence <pilot-output-dir>", command_card)
         self.assertNotIn(str(command_path.parent), command_card)
 
@@ -166,6 +189,10 @@ class TranscriptionPilotTests(unittest.TestCase):
         self.assertIn("Transcription timeout seconds: 8.5", findings)
         self.assertIn("Transcription timeout seconds: 8.5", next_step)
         self.assertIn("--timeout-seconds 8.5", payload["next_real_transcription"]["command_template"])
+        self.assertIn(
+            "--timeout-seconds 8.5",
+            payload["real_transcription_command_card"]["real_transcription_command_template"],
+        )
 
     def test_transcription_pilot_openai_template_defaults_to_timeout(self):
         module = _load_transcription_pilot()
@@ -183,6 +210,7 @@ class TranscriptionPilotTests(unittest.TestCase):
         self.assertIn("--model gpt-4o-mini-transcribe", command)
         self.assertIn("--timeout-seconds 30", command)
         self.assertIn("--require-openai-api-key", command)
+        self.assertIn("--output-dir <pilot-output-dir>", command)
 
     def test_transcription_pilot_template_formats_integer_float_values(self):
         module = _load_transcription_pilot()
@@ -220,6 +248,7 @@ class TranscriptionPilotTests(unittest.TestCase):
         self.assertIn("--max-audio-seconds 60", command)
         self.assertIn("--require-target-backend-ready", command)
         self.assertIn("--require-openai-api-key", command)
+        self.assertIn("--output-dir <pilot-output-dir>", command)
 
     def test_transcription_pilot_cli_rejects_invalid_timeout(self):
         module = _load_transcription_pilot()

@@ -447,6 +447,7 @@ class PilotRunTests(unittest.TestCase):
         self.assertIn("--require-target-backend-ready", plan)
         self.assertIn("transcription-review-checklist.md", plan)
         self.assertIn("real-transcription-next-step.md", plan)
+        self.assertIn("real-transcription-command.md", plan)
         self.assertIn("audio.audio_file_name_redacted", plan)
         self.assertIn("transcription_checklist.records_audio_file_name", plan)
         self.assertIn("transcription_checklist.records_expected_text_file_name", plan)
@@ -496,6 +497,14 @@ class PilotRunTests(unittest.TestCase):
         self.assertIn("transcript.text_redacted", manifest_rows["real_transcription_quality"]["required_fields"])
         self.assertIn(
             "transcription_checklist.redacts_transcript_text",
+            manifest_rows["real_transcription_quality"]["required_fields"],
+        )
+        self.assertIn(
+            "real_transcription_command_card.safe_to_share",
+            manifest_rows["real_transcription_quality"]["required_fields"],
+        )
+        self.assertIn(
+            "real_transcription_command_card.uses_placeholders",
             manifest_rows["real_transcription_quality"]["required_fields"],
         )
         self.assertEqual(
@@ -581,6 +590,7 @@ class PilotRunTests(unittest.TestCase):
         self.assertEqual(report["transcription_readiness_card"]["status"], "recommended")
         self.assertFalse(report["transcription_readiness_card"]["usable_as_beta_evidence"])
         self.assertIn("transcription-pilot-report.json", report["transcription_readiness_card"]["expected_artifacts"])
+        self.assertIn("real-transcription-command.md", report["transcription_readiness_card"]["expected_artifacts"])
         self.assertIn("--preflight-backend openai", report["transcription_readiness_card"]["openai_fixture_command"])
         self.assertIn("--backend openai", report["transcription_readiness_card"]["openai_preflight_command"])
         self.assertIn("--backend openai", report["transcription_readiness_card"]["openai_real_command"])
@@ -600,6 +610,14 @@ class PilotRunTests(unittest.TestCase):
         self.assertIn("transcript.text_redacted", report["transcription_readiness_card"]["real_required_fields"])
         self.assertIn(
             "transcription_checklist.redacts_transcript_text",
+            report["transcription_readiness_card"]["real_required_fields"],
+        )
+        self.assertIn(
+            "real_transcription_command_card.safe_to_share",
+            report["transcription_readiness_card"]["real_required_fields"],
+        )
+        self.assertIn(
+            "real_transcription_command_card.uses_placeholders",
             report["transcription_readiness_card"]["real_required_fields"],
         )
         self.assertIn(
@@ -702,6 +720,8 @@ class PilotRunTests(unittest.TestCase):
         self.assertIn("audio.audio_file_name_redacted", transcription_step["required_fields"])
         self.assertIn("transcription_checklist.records_audio_file_name", transcription_step["required_fields"])
         self.assertIn("transcription_checklist.records_expected_text_file_name", transcription_step["required_fields"])
+        self.assertIn("real_transcription_command_card.safe_to_share", transcription_step["required_fields"])
+        self.assertIn("real_transcription_command_card.uses_placeholders", transcription_step["required_fields"])
         self.assertIn("transcription_checklist.redacts_transcript_text", transcription_step["required_fields"])
         self.assertIn("transcription_checklist.redacts_expected_text", transcription_step["required_fields"])
         self.assertIn("transcription_checklist.reference_review_confirmed", transcription_step["required_fields"])

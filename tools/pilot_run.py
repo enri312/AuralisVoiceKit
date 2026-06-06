@@ -450,7 +450,8 @@ def _manual_pilot_steps() -> list[dict[str, str]]:
                 "--backend whisper --model base --normalize "
                 "--expected-text \"Hola desde AuralisVoiceKit\" --min-word-accuracy 0.75 "
                 "--min-audio-seconds 0.2 --max-audio-seconds 60 "
-                "--confirm-quality-reviewed --require-target-backend-ready --json"
+                "--confirm-quality-reviewed --require-target-backend-ready "
+                "--output-dir <pilot-output-dir> --json"
             ),
             "reason": (
                 "Uses a real non-sensitive audio file and requires audio review, reference review, "
@@ -797,7 +798,8 @@ def _real_openai_transcription_command() -> str:
         f"--timeout-seconds {OPENAI_TIMEOUT_SECONDS} "
         "--expected-text-file <expected-text-path> --min-word-accuracy 0.75 "
         "--min-audio-seconds 0.2 --max-audio-seconds 60 "
-        "--confirm-quality-reviewed --require-target-backend-ready --require-openai-api-key --json"
+        "--confirm-quality-reviewed --require-target-backend-ready --require-openai-api-key "
+        "--output-dir <pilot-output-dir> --json"
     )
 
 
@@ -999,7 +1001,8 @@ def _platform_pilot_matrix(blockers: list[str]) -> list[dict[str, Any]]:
                 "--backend whisper --model base --normalize "
                 "--expected-text \"Hola desde AuralisVoiceKit\" --min-word-accuracy 0.75 "
                 "--min-audio-seconds 0.2 --max-audio-seconds 60 "
-                "--confirm-quality-reviewed --require-target-backend-ready --json"
+                "--confirm-quality-reviewed --require-target-backend-ready "
+                "--output-dir <pilot-output-dir> --json"
             ),
             "artifact": "transcription-pilot-report.json",
             "requires_hardware": False,
@@ -1013,6 +1016,8 @@ def _platform_pilot_matrix(blockers: list[str]) -> list[dict[str, Any]]:
                 "audio.generated_synthetic_audio=false, audio.decoded=true, "
                 "audio.duration_gate.enabled=true, audio.duration_gate.passed=true, "
                 "transcript.text_redacted=true, reference_privacy_scan.passed=true "
+                "real_transcription_command_card.safe_to_share=true, "
+                "real_transcription_command_card.uses_placeholders=true "
                 "y confirmar revision humana de calidad."
             ),
         },
@@ -1385,7 +1390,8 @@ def _real_pilot_transcription_readiness_card(report: dict[str, Any]) -> dict[str
                 "--audio-non-sensitive --confirm-audio-reviewed --confirm-reference-reviewed "
                 "--backend whisper --model base --normalize --expected-text-file <expected-text-path> "
                 "--min-word-accuracy 0.75 --min-audio-seconds 0.2 --max-audio-seconds 60 "
-                "--confirm-quality-reviewed --require-target-backend-ready --json"
+                "--confirm-quality-reviewed --require-target-backend-ready "
+                "--output-dir <pilot-output-dir> --json"
             ),
             "artifact": "transcription-pilot-report.json",
             "required_fields": [
@@ -1406,6 +1412,10 @@ def _real_pilot_transcription_readiness_card(report: dict[str, Any]) -> dict[str
                 "transcription_checklist.redacts_transcript_text",
                 "transcription_checklist.redacts_expected_text",
                 "transcription_checklist.ready_for_beta_evidence",
+                "real_transcription_command_card.safe_to_share",
+                "real_transcription_command_card.uses_placeholders",
+                "real_transcription_command_card.records_transcript_text",
+                "real_transcription_command_card.records_expected_text",
             ],
         },
     )
@@ -1439,6 +1449,7 @@ def _real_pilot_transcription_readiness_card(report: dict[str, Any]) -> dict[str
             "transcription-pilot-findings.md",
             "transcription-review-checklist.md",
             "real-transcription-next-step.md",
+            "real-transcription-command.md",
         ],
         "fixture_required_fields": fixture_step["required_fields"],
         "openai_fixture_required_fields": openai_fixture_step["required_fields"],

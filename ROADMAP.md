@@ -92,6 +92,8 @@ Nota `v0.124.0`: la evidencia beta de captura requiere `manual_capture_command_c
 
 Nota `v0.125.0`: la evidencia beta de salida audible requiere `system_output_command_card` segura, con placeholders, preflight sin audio, operador obligatorio para salida real y flags que prueban que no guarda audio, texto hablado, identidad del operador ni rutas locales.
 
+Nota `v0.126.0`: la evidencia beta de transcripcion real requiere `real_transcription_command_card` segura, con placeholders, preflight sin modelo, audio real y revision humana de calidad obligatorios y flags que prueban que no guarda audio, rutas, transcripciones, texto esperado ni nombres de archivos.
+
 ## Fase 0 - Base del proyecto
 
 **Objetivo:** dejar una libreria instalable, importable y testeable.

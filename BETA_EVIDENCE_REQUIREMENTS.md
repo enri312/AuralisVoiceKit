@@ -41,7 +41,7 @@ Este documento describe los campos JSON que pueden cerrar blockers de beta. No r
 ### real_transcription_quality
 
 - Artifact: `transcription-pilot-report.json`
-- Comando sugerido: `python tools/transcription_pilot.py --real-transcription --audio sample.mp3 --audio-non-sensitive --confirm-audio-reviewed --confirm-reference-reviewed --backend whisper --model base --normalize --expected-text "Hola desde AuralisVoiceKit" --min-word-accuracy 0.75 --min-audio-seconds 0.2 --max-audio-seconds 60 --confirm-quality-reviewed --require-target-backend-ready --json`
+- Comando sugerido: `python tools/transcription_pilot.py --real-transcription --audio <audio-path> --audio-non-sensitive --confirm-audio-reviewed --confirm-reference-reviewed --backend whisper --model base --normalize --expected-text-file <expected-text-path> --min-word-accuracy 0.75 --min-audio-seconds 0.2 --max-audio-seconds 60 --confirm-quality-reviewed --require-target-backend-ready --output-dir <pilot-output-dir> --json`
 - Campos requeridos:
   - `project` = `AuralisVoiceKit`
   - `real_transcription_requested` = `True`
@@ -90,6 +90,21 @@ Este documento describe los campos JSON que pueden cerrar blockers de beta. No r
   - `transcription_checklist.reference_privacy_scan_passed` = `True`
   - `transcription_checklist.quality_review_confirmed` = `True`
   - `transcription_checklist.ready_for_beta_evidence` = `True`
+  - `real_transcription_command_card.artifact` = `real-transcription-command.md`
+  - `real_transcription_command_card.blocker` = `real_transcription_quality`
+  - `real_transcription_command_card.ready_for_beta_evidence` = `True`
+  - `real_transcription_command_card.safe_to_share` = `True`
+  - `real_transcription_command_card.uses_placeholders` = `True`
+  - `real_transcription_command_card.preflight_runs_model` = `False`
+  - `real_transcription_command_card.real_transcription_requires_user_audio` = `True`
+  - `real_transcription_command_card.real_transcription_requires_quality_review` = `True`
+  - `real_transcription_command_card.records_audio` = `False`
+  - `real_transcription_command_card.records_audio_path` = `False`
+  - `real_transcription_command_card.records_audio_file_name` = `False`
+  - `real_transcription_command_card.records_transcript_text` = `False`
+  - `real_transcription_command_card.records_expected_text` = `False`
+  - `real_transcription_command_card.records_expected_text_file_name` = `False`
+  - `real_transcription_command_card.records_local_paths` = `False`
 - Campos condicionales:
   - Si `target_backend.name` = `openai`:
     - `credentials.checked` = `True`
@@ -204,5 +219,6 @@ Este documento describe los campos JSON que pueden cerrar blockers de beta. No r
 - Reference privacy scans expose only pass/fail, risk counts and risk types.
 - Spoken text privacy scans expose only pass/fail, risk counts and risk types.
 - Manual capture command cards must use placeholders and must not record audio, device names or local paths.
+- Real transcription command cards must use placeholders and must not record audio, transcripts, expected text, file names or local paths.
 - System output command cards must use placeholders and must not record audio, spoken text, operator identity or local paths.
 - Only structured fields and sanitized artifact names are used.

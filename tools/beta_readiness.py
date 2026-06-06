@@ -65,12 +65,13 @@ def build_evidence_requirements_report() -> dict[str, Any]:
                 "title": "Real transcription quality pilot",
                 "artifact": "transcription-pilot-report.json",
                 "command": (
-                    "python tools/transcription_pilot.py --real-transcription --audio sample.mp3 "
+                    "python tools/transcription_pilot.py --real-transcription --audio <audio-path> "
                     "--audio-non-sensitive --confirm-audio-reviewed --confirm-reference-reviewed "
                     "--backend whisper --model base --normalize "
-                    "--expected-text \"Hola desde AuralisVoiceKit\" --min-word-accuracy 0.75 "
+                    "--expected-text-file <expected-text-path> --min-word-accuracy 0.75 "
                     "--min-audio-seconds 0.2 --max-audio-seconds 60 "
-                    "--confirm-quality-reviewed --require-target-backend-ready --json"
+                    "--confirm-quality-reviewed --require-target-backend-ready "
+                    "--output-dir <pilot-output-dir> --json"
                 ),
                 "fields": [
                     _required_field("project", "AuralisVoiceKit"),
@@ -120,6 +121,7 @@ def build_evidence_requirements_report() -> dict[str, Any]:
                     _required_field("transcription_checklist.reference_privacy_scan_passed", True),
                     _required_field("transcription_checklist.quality_review_confirmed", True),
                     _required_field("transcription_checklist.ready_for_beta_evidence", True),
+                    *_real_transcription_command_card_required_fields(),
                 ],
                 "conditional_fields": [
                     {
@@ -231,6 +233,7 @@ def build_evidence_requirements_report() -> dict[str, Any]:
             "Reference privacy scans expose only pass/fail, risk counts and risk types.",
             "Spoken text privacy scans expose only pass/fail, risk counts and risk types.",
             "Manual capture command cards must use placeholders and must not record audio, device names or local paths.",
+            "Real transcription command cards must use placeholders and must not record audio, transcripts, expected text, file names or local paths.",
             "System output command cards must use placeholders and must not record audio, spoken text, operator identity or local paths.",
             "Only structured fields and sanitized artifact names are used.",
         ],
@@ -364,6 +367,7 @@ def build_beta_readiness_report(
                 "Quality gate passed: `true`",
                 "Quality review confirmed: True",
                 "Transcription checklist ready for beta evidence: True",
+                "Real transcription command card ready for beta evidence: True",
             ),
             next_action=(
                 "Run tools/transcription_pilot.py with --real-transcription, non-sensitive audio, "
@@ -382,6 +386,12 @@ def build_beta_readiness_report(
                 "credentials.checked=true, credentials.openai_api_key_required=true, "
                 "credentials.openai_api_key_present=true and credentials.records_openai_api_key=false for OpenAI, "
                 "transcription-review-checklist.md and real-transcription-next-step.md."
+                " Also keep real-transcription-command.md and real_transcription_command_card "
+                "safe_to_share=true, uses_placeholders=true, preflight_runs_model=false, "
+                "real_transcription_requires_user_audio=true, real_transcription_requires_quality_review=true, "
+                "records_audio=false, records_audio_path=false, records_audio_file_name=false, "
+                "records_transcript_text=false, records_expected_text=false, "
+                "records_expected_text_file_name=false and records_local_paths=false."
             ),
         ),
         _evidence_or_terms_check(
@@ -996,6 +1006,26 @@ def _system_output_command_card_required_fields() -> list[dict[str, Any]]:
     ]
 
 
+def _real_transcription_command_card_required_fields() -> list[dict[str, Any]]:
+    return [
+        _required_field("real_transcription_command_card.artifact", "real-transcription-command.md"),
+        _required_field("real_transcription_command_card.blocker", "real_transcription_quality"),
+        _required_field("real_transcription_command_card.ready_for_beta_evidence", True),
+        _required_field("real_transcription_command_card.safe_to_share", True),
+        _required_field("real_transcription_command_card.uses_placeholders", True),
+        _required_field("real_transcription_command_card.preflight_runs_model", False),
+        _required_field("real_transcription_command_card.real_transcription_requires_user_audio", True),
+        _required_field("real_transcription_command_card.real_transcription_requires_quality_review", True),
+        _required_field("real_transcription_command_card.records_audio", False),
+        _required_field("real_transcription_command_card.records_audio_path", False),
+        _required_field("real_transcription_command_card.records_audio_file_name", False),
+        _required_field("real_transcription_command_card.records_transcript_text", False),
+        _required_field("real_transcription_command_card.records_expected_text", False),
+        _required_field("real_transcription_command_card.records_expected_text_file_name", False),
+        _required_field("real_transcription_command_card.records_local_paths", False),
+    ]
+
+
 def _audit_requirement(report: dict[str, Any], requirement: dict[str, Any]) -> dict[str, Any]:
     required_fields = list(requirement["fields"]) + _applicable_conditional_fields(report, requirement)
     fields = [_audit_field(report, field) for field in required_fields]
@@ -1357,6 +1387,39 @@ def _has_safe_system_output_command_card(report: dict[str, Any]) -> bool:
     )
 
 
+def _has_safe_real_transcription_command_card(report: dict[str, Any]) -> bool:
+    card = report.get("real_transcription_command_card", {})
+    if not isinstance(card, dict):
+        return False
+    preflight_command = card.get("preflight_command_template")
+    real_command = card.get("real_transcription_command_template")
+    audit_command = card.get("audit_command_template")
+    command_templates = (preflight_command, real_command, audit_command)
+    return (
+        card.get("artifact") == "real-transcription-command.md"
+        and card.get("blocker") == "real_transcription_quality"
+        and card.get("ready_for_beta_evidence") is True
+        and card.get("safe_to_share") is True
+        and card.get("uses_placeholders") is True
+        and card.get("preflight_runs_model") is False
+        and card.get("real_transcription_requires_user_audio") is True
+        and card.get("real_transcription_requires_quality_review") is True
+        and card.get("records_audio") is False
+        and card.get("records_audio_path") is False
+        and card.get("records_audio_file_name") is False
+        and card.get("records_transcript_text") is False
+        and card.get("records_expected_text") is False
+        and card.get("records_expected_text_file_name") is False
+        and card.get("records_local_paths") is False
+        and all(isinstance(command, str) and "<pilot-output-dir>" in command for command in command_templates)
+        and isinstance(preflight_command, str)
+        and "<audio-path>" in preflight_command
+        and isinstance(real_command, str)
+        and "<audio-path>" in real_command
+        and "<expected-text-path>" in real_command
+    )
+
+
 def _is_cross_platform_capture_backend(value: object) -> bool:
     return str(value).casefold() in CROSS_PLATFORM_CAPTURE_BACKENDS
 
@@ -1508,6 +1571,7 @@ def _is_real_transcription_quality_evidence(report: dict[str, Any]) -> bool:
         and transcription_checklist.get("reference_privacy_scan_passed") is True
         and transcription_checklist.get("quality_review_confirmed") is True
         and transcription_checklist.get("ready_for_beta_evidence") is True
+        and _has_safe_real_transcription_command_card(report)
         and _openai_credential_evidence_ok(report, target_backend)
     )
 
