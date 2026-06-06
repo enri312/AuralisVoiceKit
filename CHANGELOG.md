@@ -6,6 +6,14 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.119.0] - 2026-06-06
+
+### Agregado
+
+- `tools/transcription_pilot.py` agrega `beta_evidence_gap` al reporte real/preflight de transcripcion y a `next_real_transcription`.
+- `transcription-pilot-findings.md` y `real-transcription-next-step.md` muestran campos beta faltantes, conteo y siguiente accion segura para `real_transcription_quality`.
+- Nuevas pruebas cubren el gap en dry-run sintetico, preflight, OpenAI sin credencial y corrida real simulada con evidencia beta lista.
+
 ## [0.118.0] - 2026-06-06
 
 ### Corregido

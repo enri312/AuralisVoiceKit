@@ -34,6 +34,8 @@ Nota `v0.117.0`: el fixture sintetico con `--run-preflight` muestra `preflight_r
 
 Nota `v0.118.0`: la corrida real de transcripcion con `--require-target-backend-ready` mantiene `preflight_readiness.status=ready` si audio, backend, credenciales y guardas pasan antes del modelo. English: guarded real transcription reports can now satisfy the beta preflight-readiness contract.
 
+Nota `v0.119.0`: `transcription-pilot-report.json`, `transcription-pilot-findings.md` y `real-transcription-next-step.md` incluyen `beta_evidence_gap` para listar campos faltantes y siguiente accion segura antes de auditar beta. English: transcription pilots now expose public-safe beta evidence gaps.
+
 ```powershell
 py tools\pilot_run.py --output-dir pilot_runs\safe --json
 py tools\pilot_run.py --output-dir pilot_runs\safe --evidence pilot_runs\manual --evidence pilot_runs\output --evidence pilot_runs\transcription --json

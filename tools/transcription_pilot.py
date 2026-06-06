@@ -263,6 +263,23 @@ def run_transcription_pilot(
         audio=audio_payload,
         command_template=command_template,
     )
+    beta_evidence_gap = _transcription_beta_evidence_gap(
+        real_transcription=real_transcription,
+        require_target_backend_ready=require_target_backend_ready,
+        target_backend=target_backend,
+        credentials=credentials,
+        audio_confirmed_non_sensitive=audio_confirmed_non_sensitive,
+        audio_review_confirmed=audio_review_confirmed,
+        reference_review_confirmed=reference_review_confirmed,
+        quality_review_confirmed=quality_review_confirmed,
+        passed=passed,
+        audio=audio_payload,
+        transcript=result_payload,
+        quality=quality_report,
+        reference_privacy_scan=reference_privacy_scan,
+        transcription_checklist=transcription_checklist,
+        preflight_readiness=preflight_readiness,
+    )
 
     findings_path = output / "transcription-pilot-findings.md"
     checklist_path = output / "transcription-review-checklist.md"
@@ -287,6 +304,7 @@ def run_transcription_pilot(
         transcription_checklist=transcription_checklist,
         preflight_decision=preflight_decision,
         preflight_readiness=preflight_readiness,
+        beta_evidence_gap=beta_evidence_gap,
         credentials=credentials,
         report_path=report_path,
         checklist_path=checklist_path,
@@ -313,6 +331,7 @@ def run_transcription_pilot(
         transcription_checklist=transcription_checklist,
         preflight_decision=preflight_decision,
         preflight_readiness=preflight_readiness,
+        beta_evidence_gap=beta_evidence_gap,
         command_template=command_template,
         checklist_path=checklist_path,
     )
@@ -345,10 +364,12 @@ def run_transcription_pilot(
         "transcription_checklist": transcription_checklist,
         "preflight_decision": preflight_decision,
         "preflight_readiness": preflight_readiness,
+        "beta_evidence_gap": beta_evidence_gap,
         "next_real_transcription": {
             "artifact": str(next_step_path),
             "command_template": command_template,
             "preflight_readiness": preflight_readiness,
+            "beta_evidence_gap": beta_evidence_gap,
             "target_backend": target_backend,
             "uses_placeholders": True,
             "records_audio_path": False,
@@ -1245,6 +1266,138 @@ def _preflight_readiness(
     }
 
 
+def _transcription_beta_evidence_gap(
+    *,
+    real_transcription: bool,
+    require_target_backend_ready: bool,
+    target_backend: dict[str, Any],
+    credentials: dict[str, Any],
+    audio_confirmed_non_sensitive: bool,
+    audio_review_confirmed: bool,
+    reference_review_confirmed: bool,
+    quality_review_confirmed: bool,
+    passed: bool,
+    audio: dict[str, Any],
+    transcript: dict[str, Any] | None,
+    quality: dict[str, Any],
+    reference_privacy_scan: dict[str, Any],
+    transcription_checklist: dict[str, Any],
+    preflight_readiness: dict[str, Any],
+) -> dict[str, Any]:
+    """Summarize why this transcription report does or does not close beta evidence."""
+
+    quality_threshold_ready = quality["min_word_accuracy"] is not None and float(
+        quality["min_word_accuracy"]
+    ) >= BETA_MIN_WORD_ACCURACY
+    transcript_redacted = transcript is not None and transcript.get("text_redacted") is True
+    checks = [
+        _beta_gap_check("real_transcription_requested", True, real_transcription, real_transcription),
+        _beta_gap_check("target_backend.available", True, target_backend["available"], target_backend["available"]),
+        _beta_gap_check(
+            "target_backend_ready_required",
+            True,
+            require_target_backend_ready,
+            require_target_backend_ready,
+        ),
+        _beta_gap_check("preflight_readiness.status", "ready", preflight_readiness["status"], preflight_readiness["status"] == "ready"),
+        _beta_gap_check(
+            "preflight_readiness.decision",
+            "ready_for_real_transcription",
+            preflight_readiness["decision"],
+            preflight_readiness["decision"] == "ready_for_real_transcription",
+        ),
+        _beta_gap_check("preflight_readiness.ready_for_model_run", True, preflight_readiness["ready_for_model_run"], preflight_readiness["ready_for_model_run"]),
+        _beta_gap_check("preflight_readiness.must_rerun_preflight", False, preflight_readiness["must_rerun_preflight"], preflight_readiness["must_rerun_preflight"] is False),
+        _beta_gap_check("preflight_readiness.safe_to_share", True, preflight_readiness["safe_to_share"], preflight_readiness["safe_to_share"]),
+        _beta_gap_check("preflight_readiness.usable_as_beta_evidence", False, preflight_readiness["usable_as_beta_evidence"], preflight_readiness["usable_as_beta_evidence"] is False),
+        _beta_gap_check("preflight_readiness.records_audio", False, preflight_readiness["records_audio"], preflight_readiness["records_audio"] is False),
+        _beta_gap_check("preflight_readiness.records_transcripts", False, preflight_readiness["records_transcripts"], preflight_readiness["records_transcripts"] is False),
+        _beta_gap_check("preflight_readiness.records_expected_text", False, preflight_readiness["records_expected_text"], preflight_readiness["records_expected_text"] is False),
+        _beta_gap_check("preflight_readiness.records_audio_file_name", False, preflight_readiness["records_audio_file_name"], preflight_readiness["records_audio_file_name"] is False),
+        _beta_gap_check("preflight_readiness.records_local_paths", False, preflight_readiness["records_local_paths"], preflight_readiness["records_local_paths"] is False),
+        _beta_gap_check("preflight_readiness.backend_ready", True, preflight_readiness["backend_ready"], preflight_readiness["backend_ready"]),
+        _beta_gap_check("preflight_readiness.audio_decoded", True, preflight_readiness["audio_decoded"], preflight_readiness["audio_decoded"]),
+        _beta_gap_check("preflight_readiness.duration_gate_enabled", True, preflight_readiness["duration_gate_enabled"], preflight_readiness["duration_gate_enabled"]),
+        _beta_gap_check("preflight_readiness.duration_gate_passed", True, preflight_readiness["duration_gate_passed"], preflight_readiness["duration_gate_passed"] is True),
+        _beta_gap_check("audio_confirmed_non_sensitive", True, audio_confirmed_non_sensitive, audio_confirmed_non_sensitive),
+        _beta_gap_check("audio.generated_synthetic_audio", False, audio["generated_synthetic_audio"], audio["generated_synthetic_audio"] is False),
+        _beta_gap_check("audio.audio_confirmed_non_sensitive", True, audio["audio_confirmed_non_sensitive"], audio["audio_confirmed_non_sensitive"]),
+        _beta_gap_check("audio.decoded", True, audio["decoded"], audio["decoded"]),
+        _beta_gap_check("audio.audio_file_name_redacted", True, audio["audio_file_name_redacted"], audio["audio_file_name_redacted"]),
+        _beta_gap_check("audio.duration_gate.enabled", True, audio["duration_gate"]["enabled"], audio["duration_gate"]["enabled"]),
+        _beta_gap_check("audio.duration_gate.passed", True, audio["duration_gate"]["passed"], audio["duration_gate"]["passed"] is True),
+        _beta_gap_check("audio_review_confirmed", True, audio_review_confirmed, audio_review_confirmed),
+        _beta_gap_check("reference_review_confirmed", True, reference_review_confirmed, reference_review_confirmed),
+        _beta_gap_check("reference_privacy_scan.passed", True, reference_privacy_scan["passed"], reference_privacy_scan["passed"] is True),
+        _beta_gap_check("quality_review_confirmed", True, quality_review_confirmed, quality_review_confirmed),
+        _beta_gap_check("passed", True, passed, passed),
+        _beta_gap_check("transcript.text_redacted", True, transcript_redacted, transcript_redacted),
+        _beta_gap_check("quality.enabled", True, quality["enabled"], quality["enabled"]),
+        _beta_gap_check("quality.passed", True, quality["passed"], quality["passed"] is True),
+        _beta_gap_check("quality.min_word_accuracy", f">={BETA_MIN_WORD_ACCURACY}", quality["min_word_accuracy"], quality_threshold_ready),
+        _beta_gap_check("transcription_checklist.audio_review_confirmed", True, transcription_checklist["audio_review_confirmed"], transcription_checklist["audio_review_confirmed"]),
+        _beta_gap_check("transcription_checklist.records_audio_path", False, transcription_checklist["records_audio_path"], transcription_checklist["records_audio_path"] is False),
+        _beta_gap_check("transcription_checklist.records_audio_file_name", False, transcription_checklist["records_audio_file_name"], transcription_checklist["records_audio_file_name"] is False),
+        _beta_gap_check("transcription_checklist.records_transcript_text", False, transcription_checklist["records_transcript_text"], transcription_checklist["records_transcript_text"] is False),
+        _beta_gap_check("transcription_checklist.records_expected_text", False, transcription_checklist["records_expected_text"], transcription_checklist["records_expected_text"] is False),
+        _beta_gap_check("transcription_checklist.records_expected_text_file_name", False, transcription_checklist["records_expected_text_file_name"], transcription_checklist["records_expected_text_file_name"] is False),
+        _beta_gap_check("transcription_checklist.redacts_transcript_text", True, transcription_checklist["redacts_transcript_text"], transcription_checklist["redacts_transcript_text"]),
+        _beta_gap_check("transcription_checklist.redacts_expected_text", True, transcription_checklist["redacts_expected_text"], transcription_checklist["redacts_expected_text"]),
+        _beta_gap_check("transcription_checklist.reference_review_confirmed", True, transcription_checklist["reference_review_confirmed"], transcription_checklist["reference_review_confirmed"]),
+        _beta_gap_check("transcription_checklist.reference_privacy_scan_passed", True, transcription_checklist["reference_privacy_scan_passed"], transcription_checklist["reference_privacy_scan_passed"] is True),
+        _beta_gap_check("transcription_checklist.quality_review_confirmed", True, transcription_checklist["quality_review_confirmed"], transcription_checklist["quality_review_confirmed"]),
+        _beta_gap_check("transcription_checklist.ready_for_beta_evidence", True, transcription_checklist["ready_for_beta_evidence"], transcription_checklist["ready_for_beta_evidence"]),
+    ]
+    if target_backend["name"] == "openai":
+        checks.extend(
+            [
+                _beta_gap_check("credentials.checked", True, credentials["checked"], credentials["checked"]),
+                _beta_gap_check("credentials.openai_api_key_required", True, credentials["openai_api_key_required"], credentials["openai_api_key_required"]),
+                _beta_gap_check("credentials.openai_api_key_present", True, credentials["openai_api_key_present"], credentials["openai_api_key_present"] is True),
+                _beta_gap_check("credentials.records_openai_api_key", False, credentials["records_openai_api_key"], credentials["records_openai_api_key"] is False),
+            ]
+        )
+    missing_fields = [item["path"] for item in checks if item["ok"] is not True]
+    ready = not missing_fields
+    return {
+        "blocker": "real_transcription_quality",
+        "ready_for_beta_evidence": ready,
+        "missing_count": len(missing_fields),
+        "missing_fields": missing_fields,
+        "checks": checks,
+        "safe_to_share": True,
+        "records_audio": False,
+        "records_transcripts": False,
+        "records_expected_text": False,
+        "records_audio_file_name": False,
+        "records_local_paths": False,
+        "next_action": _beta_evidence_gap_next_action(missing_fields),
+    }
+
+
+def _beta_gap_check(path: str, expected: object, actual: object, ok: bool) -> dict[str, Any]:
+    return {
+        "path": path,
+        "expected": expected,
+        "actual": actual,
+        "ok": bool(ok),
+    }
+
+
+def _beta_evidence_gap_next_action(missing_fields: list[str]) -> str:
+    if not missing_fields:
+        return "Audit this report with tools/beta_readiness.py --audit-evidence before closing beta."
+    if any(field.startswith("preflight_readiness.") for field in missing_fields):
+        return "Rerun the guarded preflight or real transcription command until preflight_readiness is ready."
+    if any(field.startswith("credentials.") for field in missing_fields):
+        return "Set the required credential locally and rerun without writing secret values to artifacts."
+    if any(field.startswith("audio.") or field == "audio_confirmed_non_sensitive" for field in missing_fields):
+        return "Review the non-sensitive audio locally, keep duration guards enabled and rerun the pilot."
+    if any(field.startswith("reference_") or field.startswith("quality.") for field in missing_fields):
+        return "Review the expected text privacy and quality threshold locally, then rerun with quality review confirmed."
+    return "Complete the missing review confirmations and rerun the beta evidence audit."
+
+
 def _build_findings_markdown(
     *,
     timestamp: str,
@@ -1265,6 +1418,7 @@ def _build_findings_markdown(
     transcription_checklist: dict[str, Any],
     preflight_decision: dict[str, Any],
     preflight_readiness: dict[str, Any],
+    beta_evidence_gap: dict[str, Any],
     credentials: dict[str, Any],
     report_path: Path,
     checklist_path: Path,
@@ -1316,6 +1470,9 @@ def _build_findings_markdown(
         f"- Preflight ready for model run: {preflight_readiness['ready_for_model_run']}",
         f"- Preflight must rerun: {preflight_readiness['must_rerun_preflight']}",
         f"- Preflight next action: {preflight_decision['next_action']}",
+        f"- Beta evidence gap ready: {beta_evidence_gap['ready_for_beta_evidence']}",
+        f"- Beta evidence gap missing count: {beta_evidence_gap['missing_count']}",
+        f"- Beta evidence gap next action: {beta_evidence_gap['next_action']}",
         f"- Report: {report_path.name}",
         f"- Review checklist: {checklist_path.name}",
         f"- Real transcription next step: {next_step_path.name}",
@@ -1360,6 +1517,12 @@ def _build_findings_markdown(
         "## Result",
         "",
         f"- Error: {_format_optional(error)}",
+        "",
+        "## Beta Evidence Gap",
+        "",
+        f"- Blocker: `{beta_evidence_gap['blocker']}`",
+        f"- Ready for beta evidence: `{beta_evidence_gap['ready_for_beta_evidence']}`",
+        f"- Missing fields: {_format_list(beta_evidence_gap['missing_fields'])}",
         "",
         "## Follow-up",
         "",
@@ -1443,6 +1606,7 @@ def _build_real_transcription_next_step_markdown(
     transcription_checklist: dict[str, Any],
     preflight_decision: dict[str, Any],
     preflight_readiness: dict[str, Any],
+    beta_evidence_gap: dict[str, Any],
     command_template: str,
     checklist_path: Path,
 ) -> str:
@@ -1484,6 +1648,9 @@ def _build_real_transcription_next_step_markdown(
         f"- Preflight next action: {preflight_decision['next_action']}",
         f"- Ready for real transcription: {transcription_checklist['ready_for_real_transcription']}",
         f"- Ready for beta evidence: {transcription_checklist['ready_for_beta_evidence']}",
+        f"- Beta evidence gap ready: {beta_evidence_gap['ready_for_beta_evidence']}",
+        f"- Beta evidence gap missing count: {beta_evidence_gap['missing_count']}",
+        f"- Beta evidence gap next action: {beta_evidence_gap['next_action']}",
         f"- Review checklist: {checklist_path.name}",
         "",
         "## Command Template",
@@ -1501,6 +1668,12 @@ def _build_real_transcription_next_step_markdown(
         "```powershell",
         preflight_readiness["preflight_command"],
         "```",
+        "",
+        "## Beta Evidence Gap",
+        "",
+        f"- Blocker: `{beta_evidence_gap['blocker']}`",
+        f"- Ready for beta evidence: `{beta_evidence_gap['ready_for_beta_evidence']}`",
+        f"- Missing fields: {_format_list(beta_evidence_gap['missing_fields'])}",
         "",
         "## Required Review",
         "",

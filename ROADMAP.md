@@ -78,6 +78,8 @@ Nota `v0.117.0`: el fixture sintetico propaga `preflight_readiness` al reporte p
 
 Nota `v0.118.0`: el piloto real de transcripcion con guard estricto conserva `preflight_readiness.status=ready` cuando los checks previos al modelo pasan, cerrando la ruta tecnica para que `real_transcription_quality` pueda cumplir el contrato beta.
 
+Nota `v0.119.0`: el piloto de transcripcion ahora expone `beta_evidence_gap` con faltantes y siguiente accion segura, reduciendo el trabajo manual para cerrar `real_transcription_quality` con un MP3 propio.
+
 ## Fase 0 - Base del proyecto
 
 **Objetivo:** dejar una libreria instalable, importable y testeable.
