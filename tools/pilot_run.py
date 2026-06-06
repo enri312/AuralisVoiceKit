@@ -142,6 +142,7 @@ def run_safe_pilot(
     )
 
     manual_pilot_steps = _manual_pilot_steps()
+    environment_checklist = _real_pilot_environment_checklist(doctor)
     all_safe_steps_passed = all(step["status"] == "passed" for step in steps)
     safe_pilot_passed = bool(gate["ready_for_real_world_pilots"]) and all_safe_steps_passed
 
@@ -183,11 +184,13 @@ def run_safe_pilot(
         "next_beta_evidence_steps": next_beta_evidence_steps,
         "recommended_pilot_sequence": recommended_pilot_sequence,
         "platform_pilot_matrix": platform_pilot_matrix,
+        "environment_checklist": environment_checklist,
         "artifacts": artifacts,
     }
     findings_template_path = output / "real-pilot-findings-template.md"
     handoff_path = output / "real-pilot-handoff.md"
     command_pack_path = output / "real-pilot-command-pack.md"
+    environment_checklist_path = output / "real-pilot-environment-checklist.md"
     plan_path = output / "pilot-plan.md"
     report_path = output / "pilot-report.json"
     report["real_pilot_findings_template"] = {
@@ -232,14 +235,29 @@ def run_safe_pilot(
         "records_device_names": False,
         "records_operator_identity": False,
     }
+    report["real_pilot_environment_checklist"] = {
+        "artifact": str(environment_checklist_path),
+        "safe_to_share": True,
+        "source": "doctor:wav",
+        "usable_as_beta_evidence": False,
+        "records_audio": False,
+        "records_transcripts": False,
+        "records_spoken_text": False,
+        "records_expected_text": False,
+        "records_local_paths": False,
+        "records_device_names": False,
+        "records_operator_identity": False,
+    }
     artifacts["real_pilot_findings_template"] = str(findings_template_path)
     artifacts["real_pilot_handoff"] = str(handoff_path)
     artifacts["real_pilot_command_pack"] = str(command_pack_path)
+    artifacts["real_pilot_environment_checklist"] = str(environment_checklist_path)
     artifacts["pilot_plan"] = str(plan_path)
     artifacts["pilot_report"] = str(report_path)
     findings_template_path.write_text(_format_real_pilot_findings_template_markdown(report), encoding="utf-8")
     handoff_path.write_text(_format_real_pilot_handoff_markdown(report), encoding="utf-8")
     command_pack_path.write_text(_format_real_pilot_command_pack_markdown(report), encoding="utf-8")
+    environment_checklist_path.write_text(_format_real_pilot_environment_checklist_markdown(report), encoding="utf-8")
     plan_path.write_text(_format_pilot_plan_markdown(report), encoding="utf-8")
     report_path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return report
@@ -695,6 +713,182 @@ def _platform_pilot_matrix(blockers: list[str]) -> list[dict[str, Any]]:
     return rows
 
 
+def _real_pilot_environment_checklist(doctor: Any) -> list[dict[str, Any]]:
+    checks = {check.name: check for check in doctor.checks}
+    ffmpeg_ready = _doctor_check_ready(checks, "executable:ffmpeg")
+    whisper_ready = _doctor_check_ready(checks, "backend:transcription:whisper")
+    openai_ready = _doctor_check_ready(checks, "backend:transcription:openai")
+    output_ready = _doctor_check_ready(checks, "backend:output:system")
+    system = getattr(doctor, "system", "unknown")
+
+    rows = [
+        _environment_row(
+            checks,
+            name="python-runtime",
+            source="python",
+            required_for="todos los pilotos",
+            action_when_missing="Instalar una version de Python soportada por el paquete.",
+        ),
+        _environment_row(
+            checks,
+            name="ffmpeg-compressed-audio",
+            source="executable:ffmpeg",
+            required_for="preflight MP3/FLAC y transcripcion real con audio comprimido",
+            action_when_missing="Instalar ffmpeg o definir AURALIS_FFMPEG_PATH antes de usar MP3/FLAC.",
+        ),
+        _environment_row(
+            checks,
+            name="windows-wasapi-capture",
+            source="backend:capture:wasapi",
+            required_for="captura real Windows",
+            action_when_missing="Instalar el extra sounddevice y probar en Windows con --expected-system Windows.",
+            target_system="Windows",
+            current_system=system,
+        ),
+        _environment_row(
+            checks,
+            name="linux-sounddevice-capture",
+            source="backend:capture:sounddevice",
+            required_for="captura real Ubuntu/Linux",
+            action_when_missing="Instalar PortAudio/sounddevice o usar el fallback pyaudio en Ubuntu/Linux.",
+            target_system="Linux",
+            current_system=system,
+        ),
+        _environment_row(
+            checks,
+            name="linux-pyaudio-capture",
+            source="backend:capture:pyaudio",
+            required_for="captura real Ubuntu/Linux como alternativa",
+            action_when_missing="Instalar PortAudio y el extra pyaudio si sounddevice no es viable.",
+            target_system="Linux",
+            current_system=system,
+        ),
+        _environment_row(
+            checks,
+            name="macos-sounddevice-capture",
+            source="backend:capture:sounddevice",
+            required_for="captura real macOS",
+            action_when_missing="Instalar sounddevice y revisar permisos de microfono en macOS.",
+            target_system="Darwin",
+            current_system=system,
+        ),
+        _environment_row(
+            checks,
+            name="macos-pyaudio-capture",
+            source="backend:capture:pyaudio",
+            required_for="captura real macOS como alternativa",
+            action_when_missing="Instalar PortAudio/PyAudio y revisar permisos de microfono en macOS.",
+            target_system="Darwin",
+            current_system=system,
+        ),
+        _environment_row(
+            checks,
+            name="system-output-backend",
+            source="backend:output:system",
+            required_for="salida audible real",
+            action_when_missing="Instalar o habilitar el comando de voz del sistema antes del piloto audible.",
+        ),
+        _environment_row(
+            checks,
+            name="whisper-transcription-backend",
+            source="backend:transcription:whisper",
+            required_for="transcripcion real local",
+            action_when_missing="Instalar auralisvoicekit[whisper] antes de usar --backend whisper.",
+        ),
+        _environment_row(
+            checks,
+            name="openai-transcription-backend",
+            source="backend:transcription:openai",
+            required_for="transcripcion real por API",
+            action_when_missing="Instalar auralisvoicekit[openai] y configurar credenciales antes de usar --backend openai.",
+        ),
+    ]
+    rows.extend(
+        [
+            {
+                "name": "local-real-transcription-ready",
+                "source": "executable:ffmpeg + transcription backend",
+                "required_for": "piloto real de transcripcion en esta maquina",
+                "status": "ok" if ffmpeg_ready and (whisper_ready or openai_ready) else "warning",
+                "ready": ffmpeg_ready and (whisper_ready or openai_ready),
+                "target_system": None,
+                "current_system": system,
+                "action": (
+                    "Ejecutar preflight MP3 y luego transcripcion real con audio no sensible."
+                    if ffmpeg_ready and (whisper_ready or openai_ready)
+                    else "Instalar ffmpeg y al menos un backend real: auralisvoicekit[whisper] u [openai]."
+                ),
+            },
+            {
+                "name": "local-system-output-ready",
+                "source": "backend:output:system",
+                "required_for": "piloto audible en esta maquina",
+                "status": "ok" if output_ready else "warning",
+                "ready": output_ready,
+                "target_system": None,
+                "current_system": system,
+                "action": (
+                    "Ejecutar piloto audible solo con operador presente y texto publico."
+                    if output_ready
+                    else "Habilitar un comando de voz del sistema antes del piloto audible."
+                ),
+            },
+        ]
+    )
+    return rows
+
+
+def _environment_row(
+    checks: dict[str, Any],
+    *,
+    name: str,
+    source: str,
+    required_for: str,
+    action_when_missing: str,
+    target_system: str | None = None,
+    current_system: str | None = None,
+) -> dict[str, Any]:
+    check = checks.get(source)
+    if target_system is not None and current_system != target_system:
+        return {
+            "name": name,
+            "source": source,
+            "required_for": required_for,
+            "status": "target-system-required",
+            "ready": False,
+            "target_system": target_system,
+            "current_system": current_system,
+            "action": f"Ejecutar este check en {target_system}; este artifact local viene de {current_system}.",
+        }
+    if check is None:
+        return {
+            "name": name,
+            "source": source,
+            "required_for": required_for,
+            "status": "missing-check",
+            "ready": False,
+            "target_system": target_system,
+            "current_system": current_system,
+            "action": action_when_missing,
+        }
+    ready = check.status is DiagnosticStatus.OK
+    return {
+        "name": name,
+        "source": source,
+        "required_for": required_for,
+        "status": check.status.value,
+        "ready": ready,
+        "target_system": target_system,
+        "current_system": current_system,
+        "action": "Listo para este preflight local." if ready else check.hint or action_when_missing,
+    }
+
+
+def _doctor_check_ready(checks: dict[str, Any], name: str) -> bool:
+    check = checks.get(name)
+    return bool(check is not None and check.status is DiagnosticStatus.OK)
+
+
 def _pilot_plan_artifact_summary(artifacts: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return [
         {
@@ -715,6 +909,9 @@ def _format_pilot_plan_markdown(report: dict[str, Any]) -> str:
     command_pack_name = Path(
         report["artifacts"].get("real_pilot_command_pack", "real-pilot-command-pack.md")
     ).name
+    environment_checklist_name = Path(
+        report["artifacts"].get("real_pilot_environment_checklist", "real-pilot-environment-checklist.md")
+    ).name
     lines = [
         "# Plan de pilotos AuralisVoiceKit",
         "",
@@ -734,6 +931,7 @@ def _format_pilot_plan_markdown(report: dict[str, Any]) -> str:
         f"- Blockers JSON pendientes: {_format_inline_list(beta['missing_json_blockers'])}",
         f"- Handoff seguro: `{handoff_name}`",
         f"- Paquete de comandos: `{command_pack_name}`",
+        f"- Checklist de entorno: `{environment_checklist_name}`",
         f"- Plantilla de hallazgos: `{findings_template_name}`",
         "",
         "## Checks seguros",
@@ -822,6 +1020,7 @@ def _format_pilot_plan_markdown(report: dict[str, Any]) -> str:
             "## Auditoria estricta",
             "",
             f"- Comando: `{beta['strict_audit_command']}`",
+            f"- Checklist de entorno previo: `{environment_checklist_name}`",
             "",
             "## Matriz por plataforma",
             "",
@@ -949,6 +1148,9 @@ def _format_real_pilot_findings_template_markdown(report: dict[str, Any]) -> str
 def _format_real_pilot_command_pack_markdown(report: dict[str, Any]) -> str:
     beta = report["beta_readiness"]
     pack = report["real_pilot_command_pack"]
+    environment_checklist_name = Path(
+        report["artifacts"].get("real_pilot_environment_checklist", "real-pilot-environment-checklist.md")
+    ).name
     lines = [
         "# Paquete de comandos para pilotos reales AuralisVoiceKit",
         "",
@@ -979,6 +1181,7 @@ def _format_real_pilot_command_pack_markdown(report: dict[str, Any]) -> str:
         "- Ejecutar primero los comandos con estado `recommended` que preparan fixtures, checklists o preflights.",
         "- Ejecutar comandos `pending` solo con hardware/audio no sensible y revision humana completada.",
         "- Conservar los artifacts JSON/Markdown generados por las herramientas; no copiar contenido privado al reporte publico.",
+        f"- Revisar `{environment_checklist_name}` antes de usar audio real.",
         "- Cerrar con la auditoria estricta y luego refrescar `BETA_CHECKLIST.md`.",
         "",
         "## Comandos por plataforma",
@@ -1020,11 +1223,73 @@ def _format_real_pilot_command_pack_markdown(report: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
+def _format_real_pilot_environment_checklist_markdown(report: dict[str, Any]) -> str:
+    beta = report["beta_readiness"]
+    checklist = report["real_pilot_environment_checklist"]
+    lines = [
+        "# Checklist de entorno para pilotos reales AuralisVoiceKit",
+        "",
+        "Este artefacto prepara la maquina local antes de un piloto real. No ejecuta microfono, no reproduce audio, no usa red, no descarga modelos y no cuenta como evidencia beta.",
+        "",
+        "## Estado",
+        "",
+        f"- Version: `{report['version']}`",
+        f"- Stage: `{report['stage']}`",
+        f"- Listo para pilotos reales: `{_format_bool(report['gate']['ready_for_real_world_pilots'])}`",
+        f"- Listo para beta: `{_format_bool(beta['ready_for_beta'])}`",
+        f"- Usable como evidencia beta: `{_format_bool(checklist['usable_as_beta_evidence'])}`",
+        f"- Blockers pendientes: {_format_inline_list(beta['blockers'])}",
+        "",
+        "## Politica de contenido",
+        "",
+        f"- Seguro para compartir: `{_format_bool(checklist['safe_to_share'])}`",
+        f"- Registra audio: `{_format_bool(checklist['records_audio'])}`",
+        f"- Registra transcripciones: `{_format_bool(checklist['records_transcripts'])}`",
+        f"- Registra texto hablado: `{_format_bool(checklist['records_spoken_text'])}`",
+        f"- Registra texto esperado completo: `{_format_bool(checklist['records_expected_text'])}`",
+        f"- Registra rutas locales: `{_format_bool(checklist['records_local_paths'])}`",
+        f"- Registra nombres reales de dispositivos: `{_format_bool(checklist['records_device_names'])}`",
+        f"- Registra identidad del operador: `{_format_bool(checklist['records_operator_identity'])}`",
+        "",
+        "## Checks",
+        "",
+    ]
+    for item in report["environment_checklist"]:
+        lines.extend(
+            [
+                f"### {item['name']}",
+                "",
+                f"- Fuente: `{item['source']}`",
+                f"- Requerido para: {item['required_for']}",
+                f"- Estado: `{item['status']}`",
+                f"- Listo: `{_format_bool(item['ready'])}`",
+                f"- Sistema objetivo: `{item['target_system'] or 'local'}`",
+                f"- Sistema actual: `{item['current_system'] or 'local'}`",
+                f"- Accion: {item['action']}",
+                "",
+            ]
+        )
+    lines.extend(
+        [
+            "## Cierre",
+            "",
+            "- Si falta un backend real, instalar el extra opcional correspondiente antes del piloto.",
+            "- Si el sistema objetivo no coincide, ejecutar el mismo command pack en la maquina Windows, Ubuntu/Linux o macOS correcta.",
+            "- Despues del piloto real, auditar artifacts con `python tools/beta_readiness.py --audit-evidence --evidence pilot_runs/manual --evidence pilot_runs/output --evidence pilot_runs/transcription --fail-on-audit-gaps --json`.",
+            "",
+        ]
+    )
+    return "\n".join(lines)
+
+
 def _format_real_pilot_handoff_markdown(report: dict[str, Any]) -> str:
     beta = report["beta_readiness"]
     policy = report["real_pilot_handoff"]["content_policy"]
     command_pack_name = Path(
         report["artifacts"].get("real_pilot_command_pack", "real-pilot-command-pack.md")
+    ).name
+    environment_checklist_name = Path(
+        report["artifacts"].get("real_pilot_environment_checklist", "real-pilot-environment-checklist.md")
     ).name
     lines = [
         "# Handoff de pilotos reales AuralisVoiceKit",
@@ -1041,6 +1306,7 @@ def _format_real_pilot_handoff_markdown(report: dict[str, Any]) -> str:
         f"- Blockers pendientes: {_format_inline_list(beta['blockers'])}",
         f"- Blockers cerrados por JSON: {_format_inline_list(beta['satisfied_json_blockers'])}",
         f"- Paquete de comandos: `{command_pack_name}`",
+        f"- Checklist de entorno: `{environment_checklist_name}`",
         "",
         "## Politica de contenido",
         "",
@@ -1081,6 +1347,7 @@ def _format_real_pilot_handoff_markdown(report: dict[str, Any]) -> str:
             "",
             "## Antes de ejecutar",
             "",
+            f"- Revisar `{environment_checklist_name}` para confirmar Python, ffmpeg y backends opcionales disponibles.",
             "- Reemplazar `sample.mp3`, `<audio-path>`, `<expected-text-path>` y `<public-spoken-text>` solo localmente.",
             "- Usar audio propio no sensible y texto hablado publico/no sensible.",
             "- Revisar `manual-capture-checklist.md`, `transcription-review-checklist.md`, `real-transcription-next-step.md`, `output-operator-checklist.md` y `system-output-next-step.md` segun el piloto.",

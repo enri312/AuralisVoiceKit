@@ -6,6 +6,13 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.88.0] - 2026-06-06
+
+### Agregado
+
+- `tools/pilot_run.py` ahora genera `real-pilot-environment-checklist.md` para revisar Python, ffmpeg, salida `system` y backends opcionales antes de pilotos reales.
+- El reporte JSON del piloto seguro expone `environment_checklist` y `real_pilot_environment_checklist`, marcando este preflight como `usable_as_beta_evidence=false`.
+
 ## [0.87.0] - 2026-06-06
 
 ### Agregado
