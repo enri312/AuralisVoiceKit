@@ -6,6 +6,18 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.149.0] - 2026-06-06
+
+### Agregado
+
+- `tools/pilot_run.py` ahora genera `real-pilot-local-receipt.md`, una tarjeta publica para documentar resultado local, decision final, artifact sanitizado y auditoria posterior sin guardar identidad ni rutas.
+- `real_pilot_local_receipt_card` resume placeholders de decision/resultado, items de recibo, soporte de go/no-go final, paquete de evidencia, cierre de auditoria y plantilla de hallazgos.
+- `pilot-plan.md`, `real-pilot-handoff.md`, `real-pilot-audit-closure.md`, `real-pilot-evidence-package.md`, `real-pilot-operator-brief.md`, `real-pilot-run-sheet.md` y `real-pilot-final-go-no-go.md` enlazan el recibo local.
+
+### Pruebas
+
+- Nuevas pruebas validan el artifact de recibo local, sus placeholders, flags de privacidad, salida CLI y presencia en reportes Markdown.
+
 ## [0.148.0] - 2026-06-06
 
 ### Agregado

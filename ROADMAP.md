@@ -47,7 +47,7 @@ La meta no es competir con todos los motores de voz a la vez. La meta es constru
 | Asistente local con privacidad | Ejemplo offline inicial con logs sanitizados |
 | Backends de salida custom | Guia inicial y ejemplo en memoria |
 | Automatizacion de estabilidad | Gate inicial para pilotos reales |
-| Pilotos seguros | Runner automatizado, piloto manual guiado con checklist de captura, command card y operator gate de captura, piloto de salida system con checklist, command card y operator gate de operador, guard de plataforma, readiness por sistema operativo, scan de privacidad del texto hablado y revision de voz, piloto de transcripcion con checklist de revision, plan de instalacion de backend, comando dedicado de MP3/WAV/FLAC real, operator gate de transcripcion y confirmacion humana de calidad, consent card local, copy safety local, audit closure card, rehearsal card, evidence package card, operator brief card, run sheet card, final go/no-go card, command pack por plataforma, checklist de entorno local, runbook, bundle doctor, analisis de bundles y checklist de beta |
+| Pilotos seguros | Runner automatizado, piloto manual guiado con checklist de captura, command card y operator gate de captura, piloto de salida system con checklist, command card y operator gate de operador, guard de plataforma, readiness por sistema operativo, scan de privacidad del texto hablado y revision de voz, piloto de transcripcion con checklist de revision, plan de instalacion de backend, comando dedicado de MP3/WAV/FLAC real, operator gate de transcripcion y confirmacion humana de calidad, consent card local, copy safety local, audit closure card, rehearsal card, evidence package card, operator brief card, run sheet card, final go/no-go card, local receipt card, command pack por plataforma, checklist de entorno local, runbook, bundle doctor, analisis de bundles y checklist de beta |
 | Mensajes Windows audio | Helper inicial para errores comunes |
 
 Nota `v0.105.0`: el piloto seguro ya separa la ruta generica y la ruta OpenAI en tarjetas, matriz y command pack, con plantilla OpenAI segura (`--preflight-backend openai`, `gpt-4o-mini-transcribe`, timeout 30) sin red ni modelos durante preflight.
@@ -137,6 +137,8 @@ Nota `v0.146.0`: `tools/pilot_run.py` incorpora `real-pilot-operator-brief.md` y
 Nota `v0.147.0`: `tools/pilot_run.py` incorpora `real-pilot-run-sheet.md` y `real_pilot_run_sheet_card` como hoja publica por fases con prerequisitos, ensayo, consentimiento/copia, ejecucion real, paquete de evidencia, auditoria estricta y refresco beta.
 
 Nota `v0.148.0`: `tools/pilot_run.py` incorpora `real-pilot-final-go-no-go.md` y `real_pilot_final_go_no_go_card` como compuerta publica de decision final antes de tocar hardware o ejecutar el comando real.
+
+Nota `v0.149.0`: `tools/pilot_run.py` incorpora `real-pilot-local-receipt.md` y `real_pilot_local_receipt_card` como recibo operativo publico posterior al intento real, con placeholders para decision, resultado, auditoria y hallazgos sin identidad ni rutas locales.
 
 ## Fase 0 - Base del proyecto
 

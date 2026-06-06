@@ -88,6 +88,8 @@ Nota `v0.147.0`: el piloto seguro escribe `real-pilot-run-sheet.md` y `real_pilo
 
 Nota `v0.148.0`: el piloto seguro escribe `real-pilot-final-go-no-go.md` y `real_pilot_final_go_no_go_card` como compuerta publica de decision final antes de tocar hardware o ejecutar el comando real. English: safe pilots now include a public-safe final go/no-go card.
 
+Nota `v0.149.0`: el piloto seguro escribe `real-pilot-local-receipt.md` y `real_pilot_local_receipt_card` como recibo operativo publico posterior al intento real, con placeholders de decision, resultado, auditoria y hallazgos sin identidad ni rutas locales. English: safe pilots now include a public-safe local receipt card.
+
 ```powershell
 py tools\pilot_run.py --output-dir pilot_runs\safe --json
 py tools\pilot_run.py --output-dir pilot_runs\safe --evidence pilot_runs\manual --evidence pilot_runs\output --evidence pilot_runs\transcription --json

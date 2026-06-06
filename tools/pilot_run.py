@@ -225,6 +225,7 @@ def run_safe_pilot(
     operator_brief_path = output / "real-pilot-operator-brief.md"
     run_sheet_path = output / "real-pilot-run-sheet.md"
     final_go_no_go_path = output / "real-pilot-final-go-no-go.md"
+    local_receipt_path = output / "real-pilot-local-receipt.md"
     plan_path = output / "pilot-plan.md"
     report_path = output / "pilot-report.json"
     report["fixture_preflight_card"] = _real_pilot_fixture_preflight_card(report)
@@ -437,6 +438,7 @@ def run_safe_pilot(
     report["real_pilot_operator_brief_card"] = _real_pilot_operator_brief_card(report, operator_brief_path)
     report["real_pilot_run_sheet_card"] = _real_pilot_run_sheet_card(report, run_sheet_path)
     report["real_pilot_final_go_no_go_card"] = _real_pilot_final_go_no_go_card(report, final_go_no_go_path)
+    report["real_pilot_local_receipt_card"] = _real_pilot_local_receipt_card(report, local_receipt_path)
     artifacts["real_pilot_findings_template"] = str(findings_template_path)
     artifacts["real_pilot_handoff"] = str(handoff_path)
     artifacts["real_pilot_command_pack"] = str(command_pack_path)
@@ -457,6 +459,7 @@ def run_safe_pilot(
     artifacts["real_pilot_operator_brief_card"] = str(operator_brief_path)
     artifacts["real_pilot_run_sheet_card"] = str(run_sheet_path)
     artifacts["real_pilot_final_go_no_go_card"] = str(final_go_no_go_path)
+    artifacts["real_pilot_local_receipt_card"] = str(local_receipt_path)
     artifacts["pilot_plan"] = str(plan_path)
     artifacts["pilot_report"] = str(report_path)
     findings_template_path.write_text(_format_real_pilot_findings_template_markdown(report), encoding="utf-8")
@@ -482,6 +485,7 @@ def run_safe_pilot(
     operator_brief_path.write_text(_format_real_pilot_operator_brief_markdown(report), encoding="utf-8")
     run_sheet_path.write_text(_format_real_pilot_run_sheet_markdown(report), encoding="utf-8")
     final_go_no_go_path.write_text(_format_real_pilot_final_go_no_go_markdown(report), encoding="utf-8")
+    local_receipt_path.write_text(_format_real_pilot_local_receipt_markdown(report), encoding="utf-8")
     plan_path.write_text(_format_pilot_plan_markdown(report), encoding="utf-8")
     report_path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return report
@@ -2211,6 +2215,7 @@ def _real_pilot_evidence_package_card(report: dict[str, Any], artifact_path: Pat
         "real-pilot-execution-card.md",
         "real-pilot-consent-card.md",
         "real-pilot-evidence-intake-card.md",
+        "real-pilot-local-receipt.md",
         "real-pilot-audit-closure.md",
     ]
     package_items = [
@@ -2326,6 +2331,7 @@ def _real_pilot_operator_brief_card(report: dict[str, Any], artifact_path: Path)
     ]
     after_run_artifacts = [
         package["artifact"],
+        "real-pilot-local-receipt.md",
         closure["artifact"],
         closure["finding_template"],
         "BETA_CHECKLIST.md",
@@ -2486,6 +2492,20 @@ def _real_pilot_run_sheet_card(report: dict[str, Any], artifact_path: Path) -> d
             "source": "real-pilot-execution-card.md",
             "command": focus.get("command") or "ninguno",
             "human_confirmations": gate["human_confirmations"],
+        },
+        {
+            "id": "local_receipt",
+            "required": True,
+            "status": "waiting_for_local_receipt",
+            "requires_hardware": False,
+            "requires_local_operator": True,
+            "source": "real-pilot-local-receipt.md",
+            "expected_receipt_items": [
+                "final_decision_recorded",
+                "real_run_outcome_recorded",
+                "sanitized_json_saved",
+                "strict_audit_result_recorded",
+            ],
         },
         {
             "id": "sanitized_evidence_package",
@@ -2678,7 +2698,9 @@ def _real_pilot_final_go_no_go_card(report: dict[str, Any], artifact_path: Path)
             "real-pilot-execution-card.md",
             package["artifact"],
             closure["artifact"],
+            "real-pilot-local-receipt.md",
         ],
+        "local_receipt_artifact": "real-pilot-local-receipt.md",
         "human_confirmations": gate["human_confirmations"],
         "copy_pending_ids": brief["copy_pending_ids"],
         "missing_required_flags": command_audit["missing_required_flags"],
@@ -2708,6 +2730,120 @@ def _real_pilot_final_go_no_go_card(report: dict[str, Any], artifact_path: Path)
         "records_local_paths": False,
         "records_device_names": False,
         "records_operator_identity": False,
+    }
+
+
+def _real_pilot_local_receipt_card(report: dict[str, Any], artifact_path: Path) -> dict[str, Any]:
+    """Build a public-safe local receipt template after the real pilot attempt."""
+
+    final_gate = report["real_pilot_final_go_no_go_card"]
+    sheet = report["real_pilot_run_sheet_card"]
+    package = report["real_pilot_evidence_package_card"]
+    closure = report["real_pilot_audit_closure_card"]
+    receipt_items = [
+        {
+            "id": "final_decision_recorded",
+            "required": True,
+            "status": "waiting_for_local_receipt",
+            "source": final_gate["artifact"],
+        },
+        {
+            "id": "real_run_outcome_recorded",
+            "required": True,
+            "status": "waiting_for_local_receipt",
+            "source": "real_execution",
+        },
+        {
+            "id": "sanitized_json_saved",
+            "required": True,
+            "status": "waiting_for_real_evidence",
+            "source": package["focus_artifact"],
+        },
+        {
+            "id": "strict_audit_result_recorded",
+            "required": True,
+            "status": closure["closure_status"],
+            "source": closure["strict_audit_command"],
+        },
+        {
+            "id": "beta_refresh_result_recorded",
+            "required": True,
+            "status": "waiting_for_real_evidence",
+            "source": closure["refresh_checklist_command"],
+        },
+        {
+            "id": "sanitized_findings_ready",
+            "required": True,
+            "status": "waiting_for_real_evidence",
+            "source": closure["finding_template"],
+        },
+        {
+            "id": "no_private_values_written",
+            "required": True,
+            "status": "waiting_for_local_receipt",
+            "source": "content_policy",
+        },
+    ]
+    pending_receipt_ids = [item["id"] for item in receipt_items if item["required"]]
+    receipt_placeholders = {
+        "final_decision": "<go_after_local_checks|no_go_stop_and_fix>",
+        "run_outcome": "<completed|stopped|blocked>",
+        "sanitized_json_artifact": package["focus_artifact"],
+        "strict_audit_result": "<passed|failed|not-run>",
+        "beta_refresh_result": "<refreshed|not-refreshed>",
+        "findings_status": "<prepared|not-prepared>",
+    }
+    return {
+        "artifact": artifact_path.name,
+        "safe_to_share": True,
+        "source": "real_pilot_final_go_no_go_card + real_pilot_evidence_package_card + real_pilot_audit_closure_card",
+        "usable_as_beta_evidence": False,
+        "receipt_status": "waiting_for_local_receipt",
+        "focus": final_gate["focus"],
+        "focus_artifact": final_gate["focus_artifact"],
+        "local_run_allowed": final_gate["local_run_allowed"],
+        "requires_local_operator_review": True,
+        "requires_final_go_no_go": True,
+        "final_go_no_go_artifact": final_gate["artifact"],
+        "run_sheet_artifact": sheet["artifact"],
+        "evidence_package_artifact": package["artifact"],
+        "audit_closure_artifact": closure["artifact"],
+        "finding_template": closure["finding_template"],
+        "decision_options": final_gate["decision_options"],
+        "receipt_placeholders": receipt_placeholders,
+        "support_artifacts": [
+            final_gate["artifact"],
+            sheet["artifact"],
+            package["artifact"],
+            closure["artifact"],
+            closure["finding_template"],
+            "BETA_CHECKLIST.md",
+        ],
+        "receipt_items": receipt_items,
+        "receipt_item_count": len(receipt_items),
+        "pending_receipt_ids": pending_receipt_ids,
+        "pending_receipt_count": len(pending_receipt_ids),
+        "strict_audit_command": closure["strict_audit_command"],
+        "refresh_checklist_command": closure["refresh_checklist_command"],
+        "hard_stop_conditions": report["pilot_decision_gate"]["hard_stop_conditions"],
+        "content_policy": {
+            "records_audio": False,
+            "records_transcripts": False,
+            "records_spoken_text": False,
+            "records_expected_text": False,
+            "records_local_paths": False,
+            "records_device_names": False,
+            "records_operator_identity": False,
+            "records_signature": False,
+        },
+        "records_audio": False,
+        "records_transcripts": False,
+        "records_spoken_text": False,
+        "records_expected_text": False,
+        "records_local_paths": False,
+        "records_device_names": False,
+        "records_operator_identity": False,
+        "records_signature": False,
     }
 
 
@@ -3009,6 +3145,9 @@ def _format_pilot_plan_markdown(report: dict[str, Any]) -> str:
     final_go_no_go_name = Path(
         report["artifacts"].get("real_pilot_final_go_no_go_card", "real-pilot-final-go-no-go.md")
     ).name
+    local_receipt_name = Path(
+        report["artifacts"].get("real_pilot_local_receipt_card", "real-pilot-local-receipt.md")
+    ).name
     lines = [
         "# Plan de pilotos AuralisVoiceKit",
         "",
@@ -3047,6 +3186,7 @@ def _format_pilot_plan_markdown(report: dict[str, Any]) -> str:
         f"- Brief del operador: `{operator_brief_name}`",
         f"- Run sheet: `{run_sheet_name}`",
         f"- Go/no-go final: `{final_go_no_go_name}`",
+        f"- Recibo local: `{local_receipt_name}`",
         f"- Plantilla de hallazgos: `{findings_template_name}`",
         "",
         "## Checks seguros",
@@ -3199,6 +3339,14 @@ def _format_pilot_plan_markdown(report: dict[str, Any]) -> str:
             f"- Puede ejecutar sin decision final: `{_format_bool(report['real_pilot_final_go_no_go_card']['can_execute_without_final_decision'])}`",
             f"- Pendientes finales: `{report['real_pilot_final_go_no_go_card']['pending_review_count']}`",
             f"- Usable como evidencia beta: `{_format_bool(report['real_pilot_final_go_no_go_card']['usable_as_beta_evidence'])}`",
+            "",
+            "## Recibo local del piloto real",
+            "",
+            f"- Artifact: `{local_receipt_name}`",
+            f"- Estado del recibo: `{report['real_pilot_local_receipt_card']['receipt_status']}`",
+            f"- Pendientes del recibo: `{report['real_pilot_local_receipt_card']['pending_receipt_count']}`",
+            f"- Registra identidad del operador: `{_format_bool(report['real_pilot_local_receipt_card']['records_operator_identity'])}`",
+            f"- Usable como evidencia beta: `{_format_bool(report['real_pilot_local_receipt_card']['usable_as_beta_evidence'])}`",
             "",
             "## Preflight de fixture de transcripcion",
             "",
@@ -4729,6 +4877,9 @@ def _format_real_pilot_audit_closure_markdown(report: dict[str, Any]) -> str:
     final_go_no_go_name = Path(
         report["artifacts"].get("real_pilot_final_go_no_go_card", "real-pilot-final-go-no-go.md")
     ).name
+    local_receipt_name = Path(
+        report["artifacts"].get("real_pilot_local_receipt_card", "real-pilot-local-receipt.md")
+    ).name
     lines = [
         "# Cierre de auditoria para piloto real AuralisVoiceKit",
         "",
@@ -4766,6 +4917,7 @@ def _format_real_pilot_audit_closure_markdown(report: dict[str, Any]) -> str:
         f"- Brief del operador: `{operator_brief_name}`",
         f"- Run sheet: `{run_sheet_name}`",
         f"- Go/no-go final: `{final_go_no_go_name}`",
+        f"- Recibo local: `{local_receipt_name}`",
         f"- Ejecucion guiada: `{closure['execution_card']}`",
         f"- Consentimiento local: `{closure['consent_card']}`",
         f"- Ingesta de evidencia: `{closure['evidence_intake_card']}`",
@@ -5113,6 +5265,8 @@ def _format_real_pilot_run_sheet_markdown(report: dict[str, Any]) -> str:
             lines.append(f"- Comando: `{phase['command']}`")
         if phase.get("human_confirmations"):
             lines.append(f"- Confirmaciones humanas: {_format_inline_list(phase['human_confirmations'])}")
+        if phase.get("expected_receipt_items"):
+            lines.append(f"- Items de recibo: {_format_inline_list(phase['expected_receipt_items'])}")
         if phase.get("expected_artifacts"):
             lines.append(f"- Artifacts esperados: {_format_inline_list(phase['expected_artifacts'])}")
         if phase.get("required_json_fields"):
@@ -5258,6 +5412,85 @@ def _format_real_pilot_final_go_no_go_markdown(report: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
+def _format_real_pilot_local_receipt_markdown(report: dict[str, Any]) -> str:
+    receipt = report["real_pilot_local_receipt_card"]
+    gate = report["pilot_decision_gate"]
+    lines = [
+        "# Recibo local del piloto real AuralisVoiceKit",
+        "",
+        "Esta tarjeta documenta el resultado local con placeholders publicos. No guarda identidad, firma, audio, rutas, nombres de dispositivos, transcripciones ni texto hablado real.",
+        "",
+        "## Estado",
+        "",
+        f"- Version: `{report['version']}`",
+        f"- Stage: `{report['stage']}`",
+        f"- Pilotos reales: `{gate['real_world_pilot']['decision']}`",
+        f"- Beta: `{gate['beta']['decision']}`",
+        f"- Foco: `{receipt['focus']}`",
+        f"- Artifact esperado: `{receipt['focus_artifact']}`",
+        f"- Estado del recibo: `{receipt['receipt_status']}`",
+        f"- Permitido ejecutar localmente: `{_format_bool(receipt['local_run_allowed'])}`",
+        f"- Requiere go/no-go final: `{_format_bool(receipt['requires_final_go_no_go'])}`",
+        f"- Usable como evidencia beta: `{_format_bool(receipt['usable_as_beta_evidence'])}`",
+        "",
+        "## Politica de contenido",
+        "",
+        f"- Seguro para compartir: `{_format_bool(receipt['safe_to_share'])}`",
+        f"- Registra audio: `{_format_bool(receipt['records_audio'])}`",
+        f"- Registra transcripciones: `{_format_bool(receipt['records_transcripts'])}`",
+        f"- Registra texto hablado: `{_format_bool(receipt['records_spoken_text'])}`",
+        f"- Registra texto esperado completo: `{_format_bool(receipt['records_expected_text'])}`",
+        f"- Registra rutas locales: `{_format_bool(receipt['records_local_paths'])}`",
+        f"- Registra nombres reales de dispositivos: `{_format_bool(receipt['records_device_names'])}`",
+        f"- Registra identidad del operador: `{_format_bool(receipt['records_operator_identity'])}`",
+        f"- Registra firma: `{_format_bool(receipt['records_signature'])}`",
+        "",
+        "## Artifacts de apoyo",
+        "",
+    ]
+    for artifact in receipt["support_artifacts"]:
+        lines.append(f"- `{artifact}`")
+    lines.extend(["", "## Campos del recibo local", ""])
+    for key, value in receipt["receipt_placeholders"].items():
+        lines.append(f"- `{key}`: `{value}`")
+    lines.extend(["", "## Opciones de decision", ""])
+    for option in receipt["decision_options"]:
+        lines.append(f"- `{option}`")
+    lines.extend(["", "## Checklist del recibo", ""])
+    for item in receipt["receipt_items"]:
+        lines.append(
+            f"- `{item['id']}` required={str(item['required']).lower()} "
+            f"status={item['status']} source={item['source']}"
+        )
+    lines.extend(
+        [
+            "",
+            "## Auditoria posterior",
+            "",
+            f"- Auditoria estricta: `{receipt['strict_audit_command']}`",
+            f"- Refrescar checklist: `{receipt['refresh_checklist_command']}`",
+            "- Registrar solo si la auditoria y los hallazgos usan JSON/Markdown sanitizados.",
+            "",
+            "## Condiciones de alto",
+            "",
+        ]
+    )
+    for item in receipt["hard_stop_conditions"]:
+        lines.append(f"- {item}")
+    lines.extend(
+        [
+            "",
+            "## Reglas",
+            "",
+            "- Usar `no_go_stop_and_fix` si el resultado local requiere copiar audio, rutas, texto privado, nombres de dispositivos o identidad.",
+            "- Si la auditoria estricta falla, dejar `strict_audit_result` como `failed` y no refrescar beta.",
+            "- Esta tarjeta puede compartirse como recibo operativo, pero no como evidencia beta.",
+            "",
+        ]
+    )
+    return "\n".join(lines)
+
+
 def _format_real_pilot_handoff_markdown(report: dict[str, Any]) -> str:
     beta = report["beta_readiness"]
     policy = report["real_pilot_handoff"]["content_policy"]
@@ -5315,6 +5548,9 @@ def _format_real_pilot_handoff_markdown(report: dict[str, Any]) -> str:
     final_go_no_go_name = Path(
         report["artifacts"].get("real_pilot_final_go_no_go_card", "real-pilot-final-go-no-go.md")
     ).name
+    local_receipt_name = Path(
+        report["artifacts"].get("real_pilot_local_receipt_card", "real-pilot-local-receipt.md")
+    ).name
     lines = [
         "# Handoff de pilotos reales AuralisVoiceKit",
         "",
@@ -5346,6 +5582,7 @@ def _format_real_pilot_handoff_markdown(report: dict[str, Any]) -> str:
         f"- Brief del operador: `{operator_brief_name}`",
         f"- Run sheet: `{run_sheet_name}`",
         f"- Go/no-go final: `{final_go_no_go_name}`",
+        f"- Recibo local: `{local_receipt_name}`",
         "",
         "## Politica de contenido",
         "",
@@ -5403,6 +5640,7 @@ def _format_real_pilot_handoff_markdown(report: dict[str, Any]) -> str:
             f"- Revisar `{operator_brief_name}` como resumen de una pagina antes de ejecutar localmente.",
             f"- Seguir `{run_sheet_name}` como hoja local por fases durante la corrida real.",
             f"- Revisar `{final_go_no_go_name}` como ultima decision local antes de tocar hardware.",
+            f"- Completar `{local_receipt_name}` solo con placeholders y resultado sanitizado despues del intento real.",
             "- Reemplazar `sample.mp3`, `<audio-path>`, `<expected-text-path>` y `<public-spoken-text>` solo localmente.",
             "- Usar audio propio no sensible y texto hablado publico/no sensible.",
             "- Revisar `manual-capture-checklist.md`, `transcription-review-checklist.md`, `real-transcription-next-step.md`, `output-operator-checklist.md` y `system-output-next-step.md` segun el piloto.",
