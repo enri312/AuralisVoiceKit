@@ -93,7 +93,8 @@ def build_evidence_requirements_report() -> dict[str, Any]:
                 "artifact": "output-pilot-report.json",
                 "command": (
                     "python tools/output_pilot.py --speak --operator-present "
-                    "--confirm-audible --confirm-voice-reviewed --expected-system \"Windows|Linux|Darwin\" "
+                    "--confirm-audible --confirm-text-reviewed --confirm-voice-reviewed "
+                    "--expected-system \"Windows|Linux|Darwin\" "
                     "--output-dir pilot_runs/output/system-real "
                     "--text \"Hola desde AuralisVoiceKit\" --json"
                 ),
@@ -103,8 +104,12 @@ def build_evidence_requirements_report() -> dict[str, Any]:
                     _required_field("system_guard.expected_system_matched", True),
                     _required_field("real_audio_requested", True),
                     _required_field("operator_confirmation_status", "confirmed"),
+                    _required_field("text_review_confirmed", True),
+                    _required_field("spoken_text_privacy_scan.passed", True),
                     _required_field("voice_review_confirmed", True),
                     _required_field("operator_checklist.expected_system_matched", True),
+                    _required_field("operator_checklist.text_review_confirmed", True),
+                    _required_field("operator_checklist.spoken_text_privacy_scan_passed", True),
                     _required_field("operator_checklist.voice_review_confirmed", True),
                     _required_field("operator_checklist.ready_for_beta_evidence", True),
                     _required_field("passed", True),
@@ -153,6 +158,7 @@ def build_evidence_requirements_report() -> dict[str, Any]:
             "No audio bytes are required in beta evidence.",
             "No full transcript or expected text is required in beta readiness evidence.",
             "Reference privacy scans expose only pass/fail, risk counts and risk types.",
+            "Spoken text privacy scans expose only pass/fail, risk counts and risk types.",
             "Only structured fields and sanitized artifact names are used.",
         ],
     }
@@ -274,15 +280,18 @@ def build_beta_readiness_report(
             required_terms=(
                 "Real audio requested: True",
                 "Operator confirmation status: confirmed",
+                "Text review confirmed: True",
+                "Spoken text privacy scan passed: True",
                 "Voice review confirmed: True",
                 "Operator checklist ready for beta evidence: True",
             ),
             next_action=(
                 "Run tools/output_pilot.py --speak --operator-present --confirm-audible "
-                "--confirm-voice-reviewed --expected-system \"Windows|Linux|Darwin\" "
+                "--confirm-text-reviewed --confirm-voice-reviewed --expected-system \"Windows|Linux|Darwin\" "
                 "--output-dir pilot_runs/output/system-real with a human operator, then keep "
                 "output-operator-checklist.md, system_guard.expected_system_matched=true, "
-                "operator_checklist.expected_system_matched=true and only sanitized findings."
+                "operator_checklist.expected_system_matched=true, spoken_text_privacy_scan.passed=true "
+                "and only sanitized findings."
             ),
         ),
         _evidence_or_terms_check(
@@ -913,15 +922,21 @@ def _is_macos_capture_evidence(report: dict[str, Any]) -> bool:
 def _is_system_output_audible_evidence(report: dict[str, Any]) -> bool:
     operator_checklist = report.get("operator_checklist", {})
     system_guard = report.get("system_guard", {})
+    spoken_text_privacy_scan = report.get("spoken_text_privacy_scan", {})
     return (
         report.get("backend") == "system"
         and isinstance(system_guard, dict)
         and system_guard.get("expected_system_matched") is True
         and report.get("real_audio_requested") is True
         and report.get("operator_confirmation_status") == "confirmed"
+        and report.get("text_review_confirmed") is True
+        and isinstance(spoken_text_privacy_scan, dict)
+        and spoken_text_privacy_scan.get("passed") is True
         and report.get("voice_review_confirmed") is True
         and isinstance(operator_checklist, dict)
         and operator_checklist.get("expected_system_matched") is True
+        and operator_checklist.get("text_review_confirmed") is True
+        and operator_checklist.get("spoken_text_privacy_scan_passed") is True
         and operator_checklist.get("voice_review_confirmed") is True
         and operator_checklist.get("ready_for_beta_evidence") is True
         and report.get("passed") is True

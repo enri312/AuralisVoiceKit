@@ -240,10 +240,10 @@ def _manual_pilot_steps() -> list[dict[str, str]]:
             "name": "system-speech",
             "command": (
                 "python tools/output_pilot.py --speak --operator-present --confirm-audible "
-                "--confirm-voice-reviewed --expected-system \"Windows|Linux|Darwin\" "
+                "--confirm-text-reviewed --confirm-voice-reviewed --expected-system \"Windows|Linux|Darwin\" "
                 "--output-dir pilot_runs/output/system-real --text \"Hola desde AuralisVoiceKit\" --json"
             ),
-            "reason": "Plays real audio and requires the operator to review audibility and voice quality.",
+            "reason": "Plays real audio and requires the operator to review text privacy, audibility and voice quality.",
         },
         {
             "name": "real-transcription",
@@ -514,7 +514,8 @@ def _platform_pilot_matrix(blockers: list[str]) -> list[dict[str, Any]]:
             "blocker": "system_output_audible",
             "command": (
                 "python tools/output_pilot.py --speak --operator-present "
-                "--confirm-audible --confirm-voice-reviewed --expected-system \"Windows|Linux|Darwin\" "
+                "--confirm-audible --confirm-text-reviewed --confirm-voice-reviewed "
+                "--expected-system \"Windows|Linux|Darwin\" "
                 "--output-dir pilot_runs/output/system-real "
                 "--text \"Hola desde AuralisVoiceKit\" --json"
             ),
@@ -523,8 +524,8 @@ def _platform_pilot_matrix(blockers: list[str]) -> list[dict[str, Any]]:
             "requires_operator": True,
             "requires_non_sensitive_audio": False,
             "notes": (
-                "Ejecutar solo con operador presente; confirmar audibilidad, plataforma esperada y "
-                "revision de voz antes de beta."
+                "Ejecutar solo con operador presente; confirmar privacidad del texto, audibilidad, "
+                "plataforma esperada y revision de voz antes de beta."
             ),
         },
         {

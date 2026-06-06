@@ -12,11 +12,27 @@ import importlib.util
 import json
 from pathlib import Path
 import platform
+import re
 import sys
 from typing import Any
 
 
 DEFAULT_TEXT = "Hola desde AuralisVoiceKit"
+SPOKEN_TEXT_PRIVACY_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
+    ("email", re.compile(r"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b", re.IGNORECASE)),
+    ("url", re.compile(r"\b(?:https?://|www\.)\S+\b", re.IGNORECASE)),
+    ("ip_address", re.compile(r"\b(?:\d{1,3}\.){3}\d{1,3}\b")),
+    (
+        "credential_keyword",
+        re.compile(r"\b(?:api[_-]?key|bearer|password|passwd|secret|token)\b\s*[:=]", re.IGNORECASE),
+    ),
+    (
+        "secret_token",
+        re.compile(r"\b(?:sk|pk|rk|ghp|gho|ghu|github_pat|hf)[_-][A-Za-z0-9_-]{12,}\b"),
+    ),
+    ("long_number", re.compile(r"\b\d{8,}\b")),
+    ("phone_like_number", re.compile(r"(?<!\w)\+?\d[\d\s().-]{7,}\d(?!\w)")),
+)
 
 
 def run_output_pilot(
@@ -32,6 +48,7 @@ def run_output_pilot(
     speak: bool = False,
     operator_present: bool = False,
     operator_confirmed_audio: bool = False,
+    text_review_confirmed: bool = False,
     voice_review_confirmed: bool = False,
     include_voices: bool = True,
 ) -> dict[str, Any]:
@@ -41,9 +58,13 @@ def run_output_pilot(
         speak=speak,
         operator_present=operator_present,
         operator_confirmed_audio=operator_confirmed_audio,
+        text_review_confirmed=text_review_confirmed,
         voice_review_confirmed=voice_review_confirmed,
     )
     _validate_system_flags(system_override=system, speak=speak)
+    spoken_text_privacy_scan = _spoken_text_privacy_scan(text)
+    if speak and spoken_text_privacy_scan["passed"] is False:
+        raise ValueError("Real system output text privacy scan failed; use public non-sensitive text.")
     workspace = Path(root).resolve()
     timestamp = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
     actual_system = platform.system()
@@ -66,6 +87,8 @@ def run_output_pilot(
     sanitized_payload = _sanitize_payload(payload, text)
     passed = bool(payload.get("spoken")) and payload.get("error") is None
     passed = passed and system_guard["expected_system_matched"] is not False
+    if spoken_text_privacy_scan["passed"] is False:
+        passed = False
     confirmation_status = _operator_confirmation_status(
         speak=speak,
         operator_present=operator_present,
@@ -76,11 +99,13 @@ def run_output_pilot(
         speak=speak,
         operator_present=operator_present,
         operator_confirmed_audio=operator_confirmed_audio,
+        text_review_confirmed=text_review_confirmed,
         voice_review_confirmed=voice_review_confirmed,
         voice=voice,
         rate=rate,
         volume=volume,
         expected_system_matched=system_guard["expected_system_matched"],
+        spoken_text_privacy_scan=spoken_text_privacy_scan,
         payload=sanitized_payload,
     )
 
@@ -94,9 +119,11 @@ def run_output_pilot(
         speak=speak,
         operator_present=operator_present,
         operator_confirmed_audio=operator_confirmed_audio,
+        text_review_confirmed=text_review_confirmed,
         voice_review_confirmed=voice_review_confirmed,
         confirmation_status=confirmation_status,
         passed=passed,
+        spoken_text_privacy_scan=spoken_text_privacy_scan,
         payload=sanitized_payload,
         operator_checklist=operator_checklist,
         report_path=report_path,
@@ -119,8 +146,10 @@ def run_output_pilot(
         "hardware_output_tested": speak,
         "operator_present": operator_present,
         "operator_confirmed_audio": operator_confirmed_audio,
+        "text_review_confirmed": text_review_confirmed,
         "voice_review_confirmed": voice_review_confirmed,
         "operator_confirmation_status": confirmation_status,
+        "spoken_text_privacy_scan": spoken_text_privacy_scan,
         "text_characters": len(text),
         "voice": voice,
         "rate": rate,
@@ -175,6 +204,11 @@ def main(argv: list[str] | None = None) -> int:
         help="record that the operator confirmed audible output",
     )
     parser.add_argument(
+        "--confirm-text-reviewed",
+        action="store_true",
+        help="record that the spoken text was reviewed for privacy before playback",
+    )
+    parser.add_argument(
         "--confirm-voice-reviewed",
         action="store_true",
         help="record that the operator reviewed voice, volume and pronunciation quality",
@@ -196,6 +230,7 @@ def main(argv: list[str] | None = None) -> int:
             speak=args.speak,
             operator_present=args.operator_present,
             operator_confirmed_audio=args.confirm_audible,
+            text_review_confirmed=args.confirm_text_reviewed,
             voice_review_confirmed=args.confirm_voice_reviewed,
             include_voices=not args.no_voices,
         )
@@ -233,19 +268,44 @@ def _sanitize_payload(payload: dict[str, Any], text: str) -> dict[str, Any]:
     return sanitized
 
 
+def _spoken_text_privacy_scan(text: str) -> dict[str, Any]:
+    risk_types: list[str] = []
+    risk_count = 0
+    for risk_type, pattern in SPOKEN_TEXT_PRIVACY_PATTERNS:
+        matches = pattern.findall(text)
+        if matches:
+            risk_types.append(risk_type)
+            risk_count += len(matches)
+
+    passed = risk_count == 0
+    return {
+        "enabled": True,
+        "passed": passed,
+        "status": "passed" if passed else "blocked",
+        "text_redacted": True,
+        "risk_count": risk_count,
+        "risk_types": risk_types,
+    }
+
+
 def _validate_operator_flags(
     *,
     speak: bool,
     operator_present: bool,
     operator_confirmed_audio: bool,
+    text_review_confirmed: bool,
     voice_review_confirmed: bool,
 ) -> None:
     if speak and not operator_present:
         raise ValueError("Real system output requires --operator-present with --speak.")
+    if speak and not text_review_confirmed:
+        raise ValueError("Real system output requires --confirm-text-reviewed with --speak.")
     if operator_present and not speak:
         raise ValueError("--operator-present is only valid with --speak.")
     if operator_confirmed_audio and not speak:
         raise ValueError("--confirm-audible is only valid with --speak.")
+    if text_review_confirmed and not speak:
+        raise ValueError("--confirm-text-reviewed is only valid with --speak.")
     if operator_confirmed_audio and not operator_present:
         raise ValueError("--confirm-audible requires --operator-present.")
     if voice_review_confirmed and not speak:
@@ -280,11 +340,13 @@ def _operator_checklist(
     speak: bool,
     operator_present: bool,
     operator_confirmed_audio: bool,
+    text_review_confirmed: bool,
     voice_review_confirmed: bool,
     voice: str | None,
     rate: int | None,
     volume: int | None,
     expected_system_matched: bool | None,
+    spoken_text_privacy_scan: dict[str, Any],
     payload: dict[str, Any],
 ) -> dict[str, Any]:
     before = [
@@ -318,6 +380,18 @@ def _operator_checklist(
             ok=expected_system_matched,
             required=True,
         ),
+        _checklist_item(
+            "text_review_confirmed",
+            "Use --confirm-text-reviewed only after reviewing spoken text privacy locally.",
+            ok=text_review_confirmed if speak else None,
+            required=True,
+        ),
+        _checklist_item(
+            "spoken_text_privacy_scan_passed",
+            "Use only public/non-sensitive spoken text; review risk types locally if this scan blocks playback.",
+            ok=spoken_text_privacy_scan["passed"],
+            required=True,
+        ),
     ]
     after = [
         _checklist_item(
@@ -340,6 +414,10 @@ def _operator_checklist(
         "system": system,
         "records_operator_identity": False,
         "redacts_spoken_text": True,
+        "text_review_confirmed": text_review_confirmed,
+        "spoken_text_privacy_scan_passed": spoken_text_privacy_scan["passed"],
+        "spoken_text_privacy_risk_count": spoken_text_privacy_scan["risk_count"],
+        "spoken_text_privacy_risk_types": spoken_text_privacy_scan["risk_types"],
         "voice_review_confirmed": voice_review_confirmed,
         "expected_system_matched": expected_system_matched,
         "commands_available": commands_available,
@@ -348,6 +426,8 @@ def _operator_checklist(
             speak
             and operator_present
             and operator_confirmed_audio
+            and text_review_confirmed
+            and spoken_text_privacy_scan["passed"] is True
             and voice_review_confirmed
             and commands_available
             and expected_system_matched is True
@@ -380,9 +460,11 @@ def _build_findings_markdown(
     speak: bool,
     operator_present: bool,
     operator_confirmed_audio: bool,
+    text_review_confirmed: bool,
     voice_review_confirmed: bool,
     confirmation_status: str,
     passed: bool,
+    spoken_text_privacy_scan: dict[str, Any],
     payload: dict[str, Any],
     operator_checklist: dict[str, Any],
     report_path: Path,
@@ -400,6 +482,10 @@ def _build_findings_markdown(
         f"- Real audio requested: {speak}",
         f"- Operator present: {operator_present}",
         f"- Operator confirmed audio: {operator_confirmed_audio}",
+        f"- Text review confirmed: {text_review_confirmed}",
+        f"- Spoken text privacy scan passed: {_format_nullable(spoken_text_privacy_scan['passed'])}",
+        f"- Spoken text privacy risk count: {spoken_text_privacy_scan['risk_count']}",
+        f"- Spoken text privacy risk types: {_format_list(spoken_text_privacy_scan['risk_types'])}",
         f"- Voice review confirmed: {voice_review_confirmed}",
         f"- Operator confirmation status: {confirmation_status}",
         f"- Passed: {passed}",
@@ -413,6 +499,7 @@ def _build_findings_markdown(
         "",
         "- The full text is not written to this findings file.",
         "- Command arguments that match the requested text are written as <text-redacted>.",
+        "- Spoken text privacy scanning reports only risk types and counts, not matched text.",
         "",
         "## Result",
         "",
@@ -448,6 +535,10 @@ def _build_operator_checklist_markdown(
         f"- System: {system}",
         f"- Records operator identity: {operator_checklist['records_operator_identity']}",
         f"- Redacts spoken text: {operator_checklist['redacts_spoken_text']}",
+        f"- Text review confirmed: {operator_checklist['text_review_confirmed']}",
+        f"- Spoken text privacy scan passed: {_format_nullable(operator_checklist['spoken_text_privacy_scan_passed'])}",
+        f"- Spoken text privacy risk count: {operator_checklist['spoken_text_privacy_risk_count']}",
+        f"- Spoken text privacy risk types: {_format_list(operator_checklist['spoken_text_privacy_risk_types'])}",
         f"- Voice review confirmed: {operator_checklist['voice_review_confirmed']}",
         f"- Expected system matched: {_format_nullable(operator_checklist['expected_system_matched'])}",
         f"- Commands available: {operator_checklist['commands_available']}",
@@ -501,6 +592,10 @@ def _format_nullable(value: object | None) -> str:
     return "not-set" if value is None else str(value)
 
 
+def _format_list(values: list[str]) -> str:
+    return ", ".join(values) if values else "none"
+
+
 def _system_guard(expected_system: str | None, actual_system: str) -> dict[str, Any]:
     expected = expected_system.strip() if expected_system else None
     accepted_actual_systems = _accepted_actual_systems(expected)
@@ -547,6 +642,8 @@ def _print_report(report: dict[str, Any]) -> None:
     print(f"Real audio requested: {report['real_audio_requested']}")
     print(f"Operator present: {report['operator_present']}")
     print(f"Operator confirmation: {report['operator_confirmation_status']}")
+    print(f"Text review confirmed: {report['text_review_confirmed']}")
+    print(f"Spoken text privacy scan passed: {report['spoken_text_privacy_scan']['passed']}")
     print(f"Voice review confirmed: {report['voice_review_confirmed']}")
     print(f"Passed: {report['passed']}")
     print(f"Voices: {report['voices_count']}")

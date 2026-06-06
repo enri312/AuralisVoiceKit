@@ -274,23 +274,47 @@ class BetaReadinessTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as tmpdir:
             evidence_path = Path(tmpdir) / "output-pilot-report.json"
-            _write_json(
-                evidence_path,
-                {
-                    "project": "AuralisVoiceKit",
-                    "backend": "system",
-                    "system_guard": _system_guard(),
-                    "real_audio_requested": True,
-                    "operator_confirmation_status": "confirmed",
-                    "voice_review_confirmed": False,
-                    "operator_checklist": {
-                        "expected_system_matched": True,
-                        "voice_review_confirmed": False,
-                        "ready_for_beta_evidence": False,
-                    },
-                    "passed": True,
-                },
-            )
+            payload = _output_evidence()
+            payload["voice_review_confirmed"] = False
+            payload["operator_checklist"]["voice_review_confirmed"] = False
+            payload["operator_checklist"]["ready_for_beta_evidence"] = False
+            _write_json(evidence_path, payload)
+
+            report = module.build_beta_readiness_report(ROOT, evidence_paths=[evidence_path])
+            checks = {check["name"]: check for check in report["checks"]}
+
+        self.assertFalse(checks["system_output_audible"]["ok"])
+        self.assertIn("system_output_audible", report["blockers"])
+
+    def test_system_output_evidence_requires_text_review_confirmation(self):
+        module = _load_beta_readiness()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            evidence_path = Path(tmpdir) / "output-pilot-report.json"
+            payload = _output_evidence()
+            payload["text_review_confirmed"] = False
+            payload["operator_checklist"]["text_review_confirmed"] = False
+            payload["operator_checklist"]["ready_for_beta_evidence"] = False
+            _write_json(evidence_path, payload)
+
+            report = module.build_beta_readiness_report(ROOT, evidence_paths=[evidence_path])
+            checks = {check["name"]: check for check in report["checks"]}
+
+        self.assertFalse(checks["system_output_audible"]["ok"])
+        self.assertIn("system_output_audible", report["blockers"])
+
+    def test_system_output_evidence_requires_spoken_text_privacy_scan(self):
+        module = _load_beta_readiness()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            evidence_path = Path(tmpdir) / "output-pilot-report.json"
+            payload = _output_evidence()
+            payload["spoken_text_privacy_scan"]["passed"] = False
+            payload["spoken_text_privacy_scan"]["risk_count"] = 1
+            payload["spoken_text_privacy_scan"]["risk_types"] = ["email"]
+            payload["operator_checklist"]["spoken_text_privacy_scan_passed"] = False
+            payload["operator_checklist"]["ready_for_beta_evidence"] = False
+            _write_json(evidence_path, payload)
 
             report = module.build_beta_readiness_report(ROOT, evidence_paths=[evidence_path])
             checks = {check["name"]: check for check in report["checks"]}
@@ -549,8 +573,12 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertEqual(transcription_fields["transcription_checklist.quality_review_confirmed"], True)
         self.assertEqual(transcription_fields["transcription_checklist.ready_for_beta_evidence"], True)
         self.assertIn("system_guard.expected_system_matched", output_fields)
+        self.assertIn("text_review_confirmed", output_fields)
+        self.assertIn("spoken_text_privacy_scan.passed", output_fields)
         self.assertIn("voice_review_confirmed", output_fields)
         self.assertIn("operator_checklist.expected_system_matched", output_fields)
+        self.assertIn("operator_checklist.text_review_confirmed", output_fields)
+        self.assertIn("operator_checklist.spoken_text_privacy_scan_passed", output_fields)
         self.assertIn("operator_checklist.voice_review_confirmed", output_fields)
         self.assertIn("operator_checklist.ready_for_beta_evidence", output_fields)
         self.assertIn("system_guard.expected_system_matched", linux_fields)
@@ -581,8 +609,12 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertIn("transcription_checklist.reference_review_confirmed", content)
         self.assertIn("transcription_checklist.reference_privacy_scan_passed", content)
         self.assertIn("quality_review_confirmed", content)
+        self.assertIn("text_review_confirmed", content)
+        self.assertIn("spoken_text_privacy_scan.passed", content)
         self.assertIn("voice_review_confirmed", content)
         self.assertIn("operator_checklist.expected_system_matched", content)
+        self.assertIn("operator_checklist.text_review_confirmed", content)
+        self.assertIn("operator_checklist.spoken_text_privacy_scan_passed", content)
         self.assertIn("transcription_checklist.ready_for_beta_evidence", content)
         self.assertIn("No audio bytes", content)
         self.assertNotIn(str(ROOT), content)
@@ -856,9 +888,18 @@ def _output_evidence() -> dict:
         "system_guard": _system_guard(),
         "real_audio_requested": True,
         "operator_confirmation_status": "confirmed",
+        "text_review_confirmed": True,
+        "spoken_text_privacy_scan": {
+            "enabled": True,
+            "passed": True,
+            "risk_count": 0,
+            "risk_types": [],
+        },
         "voice_review_confirmed": True,
         "operator_checklist": {
             "expected_system_matched": True,
+            "text_review_confirmed": True,
+            "spoken_text_privacy_scan_passed": True,
             "voice_review_confirmed": True,
             "ready_for_beta_evidence": True,
         },

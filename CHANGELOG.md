@@ -6,6 +6,19 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.67.0] - 2026-06-05
+
+### Agregado
+
+- Flag `tools/output_pilot.py --confirm-text-reviewed` para confirmar revision humana de privacidad del texto antes de reproducir salida real del sistema.
+- Escaneo local y redactado `spoken_text_privacy_scan` en `tools/output_pilot.py` para bloquear patrones sensibles sin guardar coincidencias ni texto hablado.
+- Campos JSON `text_review_confirmed`, `spoken_text_privacy_scan.passed`, `spoken_text_privacy_scan.risk_count`, `spoken_text_privacy_scan.risk_types` y `operator_checklist.spoken_text_privacy_scan_passed`.
+
+### Cambiado
+
+- `operator_checklist.ready_for_beta_evidence` ahora exige texto revisado y scan de privacidad aprobado antes de cerrar `system_output_audible`.
+- `tools/beta_readiness.py --requirements`, auditoria de evidencias, `tools/pilot_run.py`, README, `PILOTS.md`, docs HTML, roadmap y gate de estabilidad documentan el nuevo requisito de salida audible.
+
 ## [0.66.0] - 2026-06-05
 
 ### Agregado
