@@ -25,7 +25,7 @@ La meta no es competir con todos los motores de voz a la vez. La meta es constru
 | Modelos de audio | Inicial |
 | Eventos | Inicial |
 | Sesiones de voz | Inicial funcional con cancelacion |
-| CLI `doctor` | Inicial con test de captura |
+| CLI `doctor` | Inicial con test de captura y reporte JSON de backends |
 | Backend `null` | Funcional |
 | Backend `wav` | Inicial funcional |
 | Backend `sounddevice` | Inicial funcional |
@@ -139,6 +139,8 @@ Nota `v0.147.0`: `tools/pilot_run.py` incorpora `real-pilot-run-sheet.md` y `rea
 Nota `v0.148.0`: `tools/pilot_run.py` incorpora `real-pilot-final-go-no-go.md` y `real_pilot_final_go_no_go_card` como compuerta publica de decision final antes de tocar hardware o ejecutar el comando real.
 
 Nota `v0.149.0`: `tools/pilot_run.py` incorpora `real-pilot-local-receipt.md` y `real_pilot_local_receipt_card` como recibo operativo publico posterior al intento real, con placeholders para decision, resultado, auditoria y hallazgos sin identidad ni rutas locales.
+
+Nota `v0.150.0`: `auralis backends --json` incorpora un inventario estructurado de backends registrados, disponibilidad, razones, dependencias publicas, politica de contenido y conteos por tipo para automatizar preflights de Windows, Ubuntu/Linux y macOS sin parsear salida humana ni publicar rutas locales.
 
 ## Fase 0 - Base del proyecto
 

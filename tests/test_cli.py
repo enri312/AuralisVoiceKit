@@ -100,6 +100,32 @@ class CliTests(unittest.TestCase):
         self.assertEqual(exit_code, 0)
         self.assertIn("capture:null", output.getvalue())
 
+    def test_backends_command_outputs_json_report(self):
+        output = io.StringIO()
+
+        with contextlib.redirect_stdout(output):
+            exit_code = main(["backends", "--json"])
+
+        payload = json.loads(output.getvalue())
+        backend_keys = {
+            f"{backend['kind']}:{backend['name']}" for backend in payload["backends"]
+        }
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(payload["version"], __version__)
+        self.assertIn("capture:null", backend_keys)
+        self.assertIn("transcription:null", backend_keys)
+        self.assertIn("output:system", backend_keys)
+        self.assertGreaterEqual(payload["counts"]["by_kind"]["capture"]["total"], 1)
+        self.assertGreaterEqual(payload["counts"]["by_kind"]["transcription"]["total"], 1)
+        self.assertGreaterEqual(payload["counts"]["by_kind"]["output"]["total"], 1)
+        self.assertEqual(payload["counts"]["total"], len(payload["backends"]))
+        self.assertFalse(payload["content_policy"]["records_local_paths"])
+        self.assertFalse(payload["content_policy"]["records_credentials"])
+        for backend in payload["backends"]:
+            for dependency in backend["dependencies"]:
+                self.assertNotIn("\\", dependency)
+                self.assertNotIn("/", dependency)
+
     def test_devices_command_can_use_null_backend(self):
         output = io.StringIO()
 

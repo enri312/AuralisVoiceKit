@@ -216,11 +216,57 @@ def _format_counts(counts: dict[str, int]) -> str:
     return ", ".join(f"{name}={count}" for name, count in counts.items())
 
 
-def _print_backends() -> int:
-    for info in create_default_registry().backend_info():
-        deps = ", ".join(info.dependencies) if info.dependencies else "none"
-        status = "available" if info.available else "unavailable"
-        print(f"{info.kind}:{info.name} - {status} - deps: {deps}")
+def _public_dependency_name(value: str) -> str:
+    normalized = value.replace("\\", "/").rstrip("/")
+    return normalized.rsplit("/", 1)[-1] if "/" in normalized else value
+
+
+def _backend_info_payload() -> dict:
+    infos = create_default_registry().backend_info()
+    backends = [
+        {
+            "name": info.name,
+            "kind": info.kind,
+            "available": info.available,
+            "reason": info.reason,
+            "dependencies": [_public_dependency_name(dependency) for dependency in info.dependencies],
+        }
+        for info in infos
+    ]
+    by_kind: dict[str, dict[str, int]] = {}
+    for info in infos:
+        counts = by_kind.setdefault(info.kind, {"total": 0, "available": 0, "unavailable": 0})
+        counts["total"] += 1
+        if info.available:
+            counts["available"] += 1
+        else:
+            counts["unavailable"] += 1
+    return {
+        "version": __version__,
+        "backends": backends,
+        "counts": {
+            "total": len(infos),
+            "available": sum(1 for info in infos if info.available),
+            "unavailable": sum(1 for info in infos if not info.available),
+            "by_kind": by_kind,
+        },
+        "content_policy": {
+            "records_local_paths": False,
+            "records_credentials": False,
+        },
+    }
+
+
+def _print_backends(*, json_output: bool = False) -> int:
+    payload = _backend_info_payload()
+    if json_output:
+        print(json.dumps(payload, indent=2, sort_keys=True))
+        return 0
+
+    for info in payload["backends"]:
+        deps = ", ".join(info["dependencies"]) if info["dependencies"] else "none"
+        status = "available" if info["available"] else "unavailable"
+        print(f"{info['kind']}:{info['name']} - {status} - deps: {deps}")
     return 0
 
 
@@ -747,7 +793,8 @@ def main(argv: list[str] | None = None) -> int:
     bundle_parser.add_argument("paths", nargs="+", help="doctor bundle JSON files to analyze")
     bundle_parser.add_argument("--json", action="store_true", help="print a JSON analysis report")
     bundle_parser.add_argument("--output", help="write the analysis JSON to a file")
-    subparsers.add_parser("backends", help="list registered backends")
+    backends_parser = subparsers.add_parser("backends", help="list registered backends")
+    backends_parser.add_argument("--json", action="store_true", help="print a JSON report")
     devices_parser = subparsers.add_parser("devices", help="list input devices")
     devices_parser.add_argument("--backend", default="sounddevice", help="capture backend to inspect")
     wav_info_parser = subparsers.add_parser("wav-info", help="show PCM16 WAV metadata")
@@ -980,7 +1027,7 @@ def main(argv: list[str] | None = None) -> int:
             output_path=args.output,
         )
     if args.command == "backends":
-        return _print_backends()
+        return _print_backends(json_output=args.json)
     if args.command == "devices":
         return _print_devices(args.backend)
     if args.command == "wav-info":

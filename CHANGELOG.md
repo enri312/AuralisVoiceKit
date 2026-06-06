@@ -6,6 +6,17 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.150.0] - 2026-06-06
+
+### Agregado
+
+- `auralis backends --json` ahora devuelve un reporte estructurado con version, backends registrados, disponibilidad, razones, dependencias publicas, politica de contenido y conteos por tipo sin exponer rutas locales.
+- La documentacion publica explica el uso del reporte JSON de backends para preflights automatizados en Windows, Ubuntu/Linux y macOS.
+
+### Pruebas
+
+- Nueva prueba CLI valida el payload JSON de `backends`, incluyendo version, backends principales y conteos por categoria.
+
 ## [0.149.0] - 2026-06-06
 
 ### Agregado

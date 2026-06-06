@@ -12,7 +12,7 @@ English: AuralisVoiceKit is a modern voice toolkit for Python assistants, local 
 
 El objetivo principal es evitar que la captura de microfono dependa obligatoriamente de PyAudio o de wheels que tardan en llegar a las versiones nuevas de Python. El paquete base debe poder instalarse de forma liviana, sin compiladores y sin dependencias nativas obligatorias. Para MP3, FLAC y formatos comprimidos, AuralisVoiceKit usa `ffmpeg` como herramienta externa opcional.
 
-> Estado actual: alpha tecnica con gate de pilotos reales y checklist de beta. El repositorio ya define el core, los contratos de backends, captura real inicial con `sounddevice`, `wasapi` y compatibilidad opcional `pyaudio`, diagnostico reforzado para WASAPI, bundles de diagnostico sanitizados y analizables, flujo WAV offline, transcripcion inicial por API y local opcional, sesiones de voz iniciales con activacion por frase/hook, una CLI de diagnostico, benchmarks offline y comparativos para Whisper exportables a JSON/CSV, errores accionables para `ffmpeg`, mensajes accionables para audio Windows, documentacion estatica, salida de voz del sistema con voces configurables, cola simple de salida y ejemplo seguro, salida custom en memoria, quickstart para PyPI sin extras, guia de privacidad/logs, ejemplo de asistente local con logs sanitizados, runner de piloto seguro, runner de piloto manual con checklist de captura, piloto de salida con checklist de operador y tarjeta de comando segura, piloto de transcripcion con checklist de revision y comando dedicado para MP3/WAV/FLAC real, preflight de fixture configurable por backend/modelo/timeout, scoring redactado, escaneo redactado de privacidad de referencia, redaccion de nombres de archivos de audio/referencia y confirmacion humana de calidad, checklist de beta automatizado, pruebas unitarias y pruebas reales de MP3/FLAC. Los backends reales se iran agregando por etapas.
+> Estado actual: alpha tecnica con gate de pilotos reales y checklist de beta. El repositorio ya define el core, los contratos de backends, captura real inicial con `sounddevice`, `wasapi` y compatibilidad opcional `pyaudio`, diagnostico reforzado para WASAPI, bundles de diagnostico sanitizados y analizables, flujo WAV offline, transcripcion inicial por API y local opcional, sesiones de voz iniciales con activacion por frase/hook, una CLI de diagnostico con inventario JSON de backends, benchmarks offline y comparativos para Whisper exportables a JSON/CSV, errores accionables para `ffmpeg`, mensajes accionables para audio Windows, documentacion estatica, salida de voz del sistema con voces configurables, cola simple de salida y ejemplo seguro, salida custom en memoria, quickstart para PyPI sin extras, guia de privacidad/logs, ejemplo de asistente local con logs sanitizados, runner de piloto seguro, runner de piloto manual con checklist de captura, piloto de salida con checklist de operador y tarjeta de comando segura, piloto de transcripcion con checklist de revision y comando dedicado para MP3/WAV/FLAC real, preflight de fixture configurable por backend/modelo/timeout, scoring redactado, escaneo redactado de privacidad de referencia, redaccion de nombres de archivos de audio/referencia y confirmacion humana de calidad, checklist de beta automatizado, pruebas unitarias y pruebas reales de MP3/FLAC. Los backends reales se iran agregando por etapas.
 
 ## Problema que resuelve
 
@@ -610,6 +610,17 @@ auralis_voicekit
   cli             Diagnostico y utilidades
   diagnostics     Reportes doctor estructurados
 ```
+
+## Inventario de backends
+
+La CLI puede listar backends en texto para uso humano o en JSON para scripts de preflight en Windows, Ubuntu/Linux y macOS:
+
+```powershell
+auralis backends
+auralis backends --json
+```
+
+`auralis backends --json` devuelve `version`, `backends[]`, `counts.total`, `counts.by_kind` y `content_policy`, con `available`, `reason` y dependencias publicas por backend sin rutas locales. English: backend inventory is machine-readable so pilots and CI can check optional extras without parsing text output or sharing local paths.
 
 ## Backends previstos
 
