@@ -30,6 +30,8 @@ Nota `v0.115.0`: `tools/transcription_pilot.py` agrega `preflight_readiness` a `
 
 Nota `v0.116.0`: el auditor beta ahora exige `preflight_readiness.status=ready`, `ready_for_model_run=true`, `must_rerun_preflight=false` y flags de privacidad seguros para cerrar `real_transcription_quality`. English: beta evidence requires a ready transcription preflight.
 
+Nota `v0.117.0`: el fixture sintetico con `--run-preflight` muestra `preflight_readiness` en `pilot-audio-fixture-report.json` y `pilot-audio-fixture-findings.md`, para decidir si instalar backend o repetir preflight antes del MP3 real. English: fixture preflights surface readiness without opening the nested report.
+
 ```powershell
 py tools\pilot_run.py --output-dir pilot_runs\safe --json
 py tools\pilot_run.py --output-dir pilot_runs\safe --evidence pilot_runs\manual --evidence pilot_runs\output --evidence pilot_runs\transcription --json

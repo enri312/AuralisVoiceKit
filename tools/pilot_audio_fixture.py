@@ -123,6 +123,7 @@ def generate_pilot_audio_fixture(
             "real_transcription_next_step": None,
             "audio_decoded": None,
             "duration_gate_passed": None,
+            "preflight_readiness": _empty_preflight_readiness(),
             "error": None,
         }
     )
@@ -389,6 +390,7 @@ def _run_fixture_preflight(
             "real_transcription_next_step": None,
             "audio_decoded": False,
             "duration_gate_passed": None,
+            "preflight_readiness": _empty_preflight_readiness(status="blocked"),
             "error": "MP3 fixture was not generated; install ffmpeg or review the fixture file report.",
         }
 
@@ -423,10 +425,12 @@ def _run_fixture_preflight(
             "real_transcription_next_step": None,
             "audio_decoded": False,
             "duration_gate_passed": None,
+            "preflight_readiness": _empty_preflight_readiness(status="blocked"),
             "error": str(exc),
         }
 
     duration_gate = report["audio"]["duration_gate"]
+    preflight_readiness = report.get("preflight_readiness") or _empty_preflight_readiness()
     return {
         "requested": True,
         "passed": report["passed"],
@@ -443,7 +447,52 @@ def _run_fixture_preflight(
         "source_format": report["audio"]["source_format"],
         "duration_seconds": report["audio"]["duration_seconds"],
         "duration_gate_passed": duration_gate["passed"],
+        "preflight_readiness": _fixture_preflight_readiness(preflight_readiness),
         "error": report["error"],
+    }
+
+
+def _empty_preflight_readiness(*, status: str = "not_requested") -> dict[str, Any]:
+    return {
+        "status": status,
+        "decision": None,
+        "ready_for_model_run": False,
+        "must_rerun_preflight": status != "ready",
+        "safe_to_share": True,
+        "usable_as_beta_evidence": False,
+        "records_audio": False,
+        "records_transcripts": False,
+        "records_expected_text": False,
+        "records_audio_file_name": False,
+        "records_local_paths": False,
+        "backend_ready": False,
+        "audio_decoded": False,
+        "duration_gate_enabled": False,
+        "duration_gate_passed": None,
+        "blocking_reasons": [],
+        "next_action": None,
+    }
+
+
+def _fixture_preflight_readiness(readiness: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "status": readiness.get("status"),
+        "decision": readiness.get("decision"),
+        "ready_for_model_run": readiness.get("ready_for_model_run", False),
+        "must_rerun_preflight": readiness.get("must_rerun_preflight", True),
+        "safe_to_share": readiness.get("safe_to_share", True),
+        "usable_as_beta_evidence": readiness.get("usable_as_beta_evidence", False),
+        "records_audio": readiness.get("records_audio", False),
+        "records_transcripts": readiness.get("records_transcripts", False),
+        "records_expected_text": readiness.get("records_expected_text", False),
+        "records_audio_file_name": readiness.get("records_audio_file_name", False),
+        "records_local_paths": readiness.get("records_local_paths", False),
+        "backend_ready": readiness.get("backend_ready"),
+        "audio_decoded": readiness.get("audio_decoded"),
+        "duration_gate_enabled": readiness.get("duration_gate_enabled"),
+        "duration_gate_passed": readiness.get("duration_gate_passed"),
+        "blocking_reasons": list(readiness.get("blocking_reasons") or []),
+        "next_action": readiness.get("next_action"),
     }
 
 
@@ -514,6 +563,9 @@ def _build_findings_markdown(report: dict[str, Any]) -> str:
         f"- Fixture preflight backend: `{report['preflight']['backend']}`",
         f"- Fixture preflight model: `{report['preflight']['model']}`",
         f"- Fixture preflight timeout seconds: `{report['preflight']['transcription_timeout_seconds']}`",
+        f"- Fixture preflight readiness status: `{report['preflight']['preflight_readiness']['status']}`",
+        f"- Fixture preflight ready for model run: `{report['preflight']['preflight_readiness']['ready_for_model_run']}`",
+        f"- Fixture preflight must rerun: `{report['preflight']['preflight_readiness']['must_rerun_preflight']}`",
         "",
         "## Files",
         "",
@@ -543,6 +595,9 @@ def _build_findings_markdown(report: dict[str, Any]) -> str:
             f"- Real transcription next step: `{report['preflight'].get('real_transcription_next_step') or 'none'}`",
             f"- Audio decoded: `{report['preflight']['audio_decoded']}`",
             f"- Duration gate passed: `{report['preflight']['duration_gate_passed']}`",
+            f"- Preflight readiness status: `{report['preflight']['preflight_readiness']['status']}`",
+            f"- Preflight ready for model run: `{report['preflight']['preflight_readiness']['ready_for_model_run']}`",
+            f"- Preflight must rerun: `{report['preflight']['preflight_readiness']['must_rerun_preflight']}`",
             "",
             "## Next step",
             "",

@@ -116,9 +116,47 @@ class PilotAudioFixtureTests(unittest.TestCase):
         self.assertIsNone(report["preflight"]["transcription_timeout_seconds"])
         self.assertIsNone(report["preflight"]["review_checklist"])
         self.assertIsNone(report["preflight"]["real_transcription_next_step"])
+        self.assertEqual(report["preflight"]["preflight_readiness"]["status"], "blocked")
+        self.assertFalse(report["preflight"]["preflight_readiness"]["ready_for_model_run"])
+        self.assertTrue(report["preflight"]["preflight_readiness"]["must_rerun_preflight"])
+        self.assertFalse(report["preflight"]["preflight_readiness"]["records_audio_file_name"])
         self.assertFalse(report["usable_as_beta_evidence"])
         self.assertIn("your own non-sensitive MP3", report["next_step"])
         self.assertIn("Fixture preflight passed: `False`", findings)
+        self.assertIn("Fixture preflight readiness status: `blocked`", findings)
+
+    def test_fixture_preflight_surfaces_readiness_summary(self):
+        module = _load_pilot_audio_fixture()
+        if module.resolve_ffmpeg_executable("ffmpeg") is None:
+            self.skipTest("ffmpeg is required for MP3 fixture preflight")
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            report = module.generate_pilot_audio_fixture(
+                root=ROOT,
+                output_dir=tmpdir,
+                formats=("mp3",),
+                duration_seconds=0.3,
+                sample_rate=8000,
+                run_preflight=True,
+                min_audio_seconds=0.05,
+                max_audio_seconds=1.0,
+            )
+            report_path = Path(report["artifacts"]["fixture_report"])
+            findings = Path(report["artifacts"]["fixture_findings"]).read_text(encoding="utf-8")
+            payload = json.loads(report_path.read_text(encoding="utf-8"))
+
+        self.assertTrue(report["preflight"]["requested"])
+        self.assertTrue(report["preflight"]["audio_decoded"])
+        self.assertIn(report["preflight"]["preflight_readiness"]["status"], {"ready", "needs_backend_install"})
+        self.assertEqual(
+            report["preflight"]["preflight_readiness"],
+            payload["preflight"]["preflight_readiness"],
+        )
+        self.assertFalse(report["preflight"]["preflight_readiness"]["usable_as_beta_evidence"])
+        self.assertFalse(report["preflight"]["preflight_readiness"]["records_audio_file_name"])
+        self.assertFalse(report["preflight"]["preflight_readiness"]["records_local_paths"])
+        self.assertIn("Fixture preflight readiness status:", findings)
+        self.assertIn("Preflight ready for model run:", findings)
 
     def test_rejects_invalid_audio_shape(self):
         module = _load_pilot_audio_fixture()

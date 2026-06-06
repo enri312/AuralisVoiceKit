@@ -6,6 +6,14 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.117.0] - 2026-06-06
+
+### Agregado
+
+- `tools/pilot_audio_fixture.py --run-preflight` ahora propaga `preflight_readiness` al reporte y findings del fixture.
+- El fixture resume si el preflight esta listo para modelo real, si debe repetirse y mantiene flags seguros contra audio, rutas, transcripciones y texto esperado.
+- Nuevas pruebas verifican el resumen de readiness en fixture con y sin preflight MP3 disponible.
+
 ## [0.116.0] - 2026-06-06
 
 ### Agregado
