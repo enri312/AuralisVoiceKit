@@ -76,6 +76,8 @@ def build_evidence_requirements_report() -> dict[str, Any]:
                     _required_field("target_backend_ready_required", True),
                     _required_field("audio_confirmed_non_sensitive", True),
                     _required_field("audio.audio_file_name_redacted", True),
+                    _required_field("audio.duration_gate.enabled", True),
+                    _required_field("audio.duration_gate.passed", True),
                     _required_field("audio_review_confirmed", True),
                     _required_field("reference_review_confirmed", True),
                     _required_field("reference_privacy_scan.passed", True),
@@ -278,6 +280,8 @@ def build_beta_readiness_report(
                 "Real transcription requested: True",
                 "Target backend available: True",
                 "Target backend readiness required: True",
+                "Audio duration gate enabled: True",
+                "Audio duration gate passed: True",
                 "Audio review confirmed: True",
                 "Reference review confirmed: True",
                 "Reference privacy scan passed: True",
@@ -1019,6 +1023,9 @@ def _is_real_transcription_quality_evidence(report: dict[str, Any]) -> bool:
         and report.get("audio_confirmed_non_sensitive") is True
         and isinstance(audio, dict)
         and audio.get("audio_file_name_redacted") is True
+        and isinstance(audio.get("duration_gate"), dict)
+        and audio["duration_gate"].get("enabled") is True
+        and audio["duration_gate"].get("passed") is True
         and report.get("audio_review_confirmed") is True
         and report.get("reference_review_confirmed") is True
         and isinstance(reference_privacy_scan, dict)

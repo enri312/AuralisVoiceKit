@@ -607,6 +607,7 @@ def _transcription_audio_preflight_step(order: int) -> dict[str, Any]:
             "project",
             "preflight_only",
             "audio.decoded",
+            "audio.duration_gate.enabled",
             "audio.duration_gate.passed",
             "target_backend.available",
             "audio.audio_file_name_redacted",
@@ -796,6 +797,7 @@ def _platform_pilot_matrix(blockers: list[str]) -> list[dict[str, Any]]:
             "notes": (
                 "Usar un MP3 propio no sensible, revisar privacidad del audio y referencia, "
                 "confirmar target_backend.available=true, target_backend_ready_required=true, "
+                "audio.duration_gate.enabled=true, audio.duration_gate.passed=true, "
                 "reference_privacy_scan.passed=true y confirmar revision humana de calidad."
             ),
         },
@@ -1160,6 +1162,8 @@ def _real_pilot_transcription_readiness_card(report: dict[str, Any]) -> dict[str
                 "target_backend.available",
                 "target_backend_ready_required",
                 "audio.audio_file_name_redacted",
+                "audio.duration_gate.enabled",
+                "audio.duration_gate.passed",
                 "audio_review_confirmed",
                 "reference_review_confirmed",
                 "reference_privacy_scan.passed",

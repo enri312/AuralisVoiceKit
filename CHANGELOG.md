@@ -6,6 +6,14 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.99.0] - 2026-06-06
+
+### Agregado
+
+- `tools/beta_readiness.py` ahora exige `audio.duration_gate.enabled=true` y `audio.duration_gate.passed=true` para cerrar el blocker de transcripcion real.
+- `BETA_EVIDENCE_REQUIREMENTS.md`, README, `PILOTS.md`, roadmap y documentacion HTML documentan que la evidencia beta de transcripcion debe usar guardas de duracion.
+- Nuevas pruebas cubren evidencias de transcripcion real sin guarda de duracion activa.
+
 ## [0.98.0] - 2026-06-06
 
 ### Agregado

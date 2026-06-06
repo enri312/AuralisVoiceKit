@@ -152,6 +152,26 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertFalse(checks["real_transcription_quality"]["ok"])
         self.assertIn("real_transcription_quality", report["blockers"])
 
+    def test_real_transcription_evidence_requires_duration_gate(self):
+        module = _load_beta_readiness()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            evidence_path = Path(tmpdir) / "transcription-pilot-report.json"
+            evidence = _transcription_evidence()
+            evidence["audio"]["duration_gate"] = {
+                "enabled": False,
+                "passed": None,
+                "min_seconds": None,
+                "max_seconds": None,
+            }
+            _write_json(evidence_path, evidence)
+
+            report = module.build_beta_readiness_report(ROOT, evidence_paths=[evidence_path])
+            checks = {check["name"]: check for check in report["checks"]}
+
+        self.assertFalse(checks["real_transcription_quality"]["ok"])
+        self.assertIn("real_transcription_quality", report["blockers"])
+
     def test_real_transcription_evidence_requires_review_checklist(self):
         module = _load_beta_readiness()
 
@@ -641,6 +661,8 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertEqual(transcription_fields["target_backend.available"], True)
         self.assertEqual(transcription_fields["target_backend_ready_required"], True)
         self.assertEqual(transcription_fields["audio.audio_file_name_redacted"], True)
+        self.assertEqual(transcription_fields["audio.duration_gate.enabled"], True)
+        self.assertEqual(transcription_fields["audio.duration_gate.passed"], True)
         self.assertEqual(transcription_fields["audio_review_confirmed"], True)
         self.assertEqual(transcription_fields["reference_review_confirmed"], True)
         self.assertEqual(transcription_fields["reference_privacy_scan.passed"], True)
@@ -699,6 +721,8 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertIn("target_backend.available", content)
         self.assertIn("target_backend_ready_required", content)
         self.assertIn("audio.audio_file_name_redacted", content)
+        self.assertIn("audio.duration_gate.enabled", content)
+        self.assertIn("audio.duration_gate.passed", content)
         self.assertIn("audio_review_confirmed", content)
         self.assertIn("transcription_checklist.audio_review_confirmed", content)
         self.assertIn("transcription_checklist.records_audio_file_name", content)
@@ -1017,6 +1041,13 @@ def _transcription_evidence(*, min_word_accuracy: float = 0.75, word_accuracy: f
             "audio_file_name": "<audio-file-redacted>",
             "audio_file_name_redacted": True,
             "audio_file_extension": ".mp3",
+            "duration_gate": {
+                "enabled": True,
+                "passed": True,
+                "min_seconds": 0.2,
+                "max_seconds": 60,
+                "duration_seconds": 1.0,
+            },
         },
         "audio_review_confirmed": True,
         "reference_review_confirmed": True,

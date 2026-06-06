@@ -4,7 +4,7 @@ Este documento se genera con `tools\beta_readiness.py`. No debe incluir audio, t
 
 ## Estado
 
-- Version: `0.98.0`
+- Version: `0.99.0`
 - Estado: `pilot`
 - Listo para beta: `false`
 - Gate de pilotos reales: `true`
@@ -24,7 +24,7 @@ Este documento se genera con `tools\beta_readiness.py`. No debe incluir audio, t
 - [x] `windows_wasapi_capture` (blocker) - Windows WASAPI capture pilot
 - [ ] `real_transcription_quality` (blocker) - Real transcription quality pilot
   - Accion: Run tools/transcription_pilot.py with --real-transcription, non-sensitive audio, --expected-text or --expected-text-file, a meaningful --min-word-accuracy, --min-audio-seconds/--max-audio-seconds duration guards and --confirm-audio-reviewed before model use plus --confirm-reference-reviewed before scoring with reference_privacy_scan.passed=true, --require-target-backend-ready before model execution, and --confirm-quality-reviewed after human review, then keep target_backend.available=true, target_backend_ready_required=true, transcription-review-checklist.md and real-transcription-next-step.md.
-  - Evidencia faltante: `Real transcription requested: True`, `Target backend available: True`, `Target backend readiness required: True`, `Audio review confirmed: True`, `Reference review confirmed: True`, `Reference privacy scan passed: True`, `Quality review confirmed: True`, `Transcription checklist ready for beta evidence: True`
+  - Evidencia faltante: `Real transcription requested: True`, `Target backend available: True`, `Target backend readiness required: True`, `Audio duration gate enabled: True`, `Audio duration gate passed: True`, `Audio review confirmed: True`, `Reference review confirmed: True`, `Reference privacy scan passed: True`, `Quality review confirmed: True`, `Transcription checklist ready for beta evidence: True`
 - [ ] `system_output_audible` (blocker) - Audible system output pilot
   - Accion: Run tools/output_pilot.py --speak --operator-present --confirm-audible --confirm-text-reviewed --confirm-voice-reviewed --require-output-backend-ready --expected-system "Windows|Linux|Darwin" --output-dir pilot_runs/output/system-real with a human operator, then keep output-operator-checklist.md, system-output-next-step.md, system_guard.expected_system_matched=true, target_output_backend.available=true, output_backend_ready_required=true, operator_checklist.expected_system_matched=true, spoken_text_privacy_scan.passed=true and only sanitized findings.
   - Evidencia faltante: `Real audio requested: True`, `Output backend readiness required: True`, `Operator confirmation status: confirmed`, `Text review confirmed: True`, `Spoken text privacy scan passed: True`, `Voice review confirmed: True`, `Operator checklist ready for beta evidence: True`

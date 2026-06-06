@@ -412,6 +412,8 @@ class PilotRunTests(unittest.TestCase):
         self.assertEqual(manifest_rows["real_transcription_quality"]["status"], "pending")
         self.assertEqual(manifest_rows["real_transcription_quality"]["artifact"], "transcription-pilot-report.json")
         self.assertIn("target_backend.available", manifest_rows["real_transcription_quality"]["required_fields"])
+        self.assertIn("audio.duration_gate.enabled", manifest_rows["real_transcription_quality"]["required_fields"])
+        self.assertIn("audio.duration_gate.passed", manifest_rows["real_transcription_quality"]["required_fields"])
         self.assertTrue(manifest_rows["real_transcription_quality"]["strict_backend_guard_required"])
         self.assertEqual(
             manifest_rows["real_transcription_quality"]["strict_backend_guard_flag"],
@@ -518,6 +520,8 @@ class PilotRunTests(unittest.TestCase):
         self.assertIn("--require-target-backend-ready", transcription_step["command"])
         self.assertIn("target_backend.available", transcription_step["required_fields"])
         self.assertIn("target_backend_ready_required", transcription_step["required_fields"])
+        self.assertIn("audio.duration_gate.enabled", transcription_step["required_fields"])
+        self.assertIn("audio.duration_gate.passed", transcription_step["required_fields"])
         self.assertIn("transcription_checklist.audio_review_confirmed", transcription_step["required_fields"])
         self.assertIn("audio.audio_file_name_redacted", transcription_step["required_fields"])
         self.assertIn("transcription_checklist.records_audio_file_name", transcription_step["required_fields"])

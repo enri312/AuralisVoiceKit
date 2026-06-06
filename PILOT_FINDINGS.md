@@ -2,6 +2,66 @@
 
 Este documento resume hallazgos de pilotos reales o semi-manuales. No debe incluir audio, transcripciones privadas, rutas locales completas ni nombres reales de dispositivos.
 
+## 2026-06-06 - Fixture sintetico MP3 con preflight de duracion
+
+Comando ejecutado:
+
+```powershell
+python tools\pilot_audio_fixture.py --output-dir pilot_runs\transcription\fixture-v0.99 --format wav --format mp3 --duration 1.0 --sample-rate 16000 --run-preflight --min-audio-seconds 0.2 --max-audio-seconds 60 --json
+```
+
+Alcance:
+
+- Sistema anfitrion: Windows.
+- Version AuralisVoiceKit: `0.99.0`.
+- Audio real usado: no.
+- Audio sintetico publico generado: si.
+- Transcripcion real ejecutada: no.
+
+Resultado:
+
+- Fixture WAV: `passed=true`, duracion `1.0s`.
+- Fixture MP3: `passed=true`, duracion `1.0s`.
+- `ffmpeg.available`: `true`.
+- Preflight MP3: `passed=true`.
+- `preflight.duration_gate_passed`: `true`.
+- Evidencia beta: `false`; el fixture y el preflight sintetico solo preparan el siguiente piloto con audio propio no sensible.
+
+Acciones siguientes:
+
+1. Reemplazar el MP3 sintetico por un MP3 propio no sensible.
+2. Ejecutar `tools/transcription_pilot.py --preflight-only --audio <audio-path> --audio-non-sensitive --backend whisper --normalize --min-audio-seconds 0.2 --max-audio-seconds 60 --json`.
+3. Ejecutar transcripcion real solo si el preflight mantiene `audio.duration_gate.enabled=true`, `audio.duration_gate.passed=true` y el backend objetivo esta disponible.
+
+## 2026-06-06 - Auditoria beta exige guardas de duracion para transcripcion real
+
+Comando ejecutado:
+
+```powershell
+python tools\beta_readiness.py --requirements
+```
+
+Alcance:
+
+- Sistema anfitrion: Windows.
+- Version AuralisVoiceKit: `0.99.0`.
+- Audio real usado: no.
+- Transcripcion real ejecutada: no.
+- Tipo de piloto: auditoria de contrato beta.
+
+Resultado:
+
+- El contrato de evidencias beta ahora exige `audio.duration_gate.enabled=true`.
+- El contrato de evidencias beta ahora exige `audio.duration_gate.passed=true`.
+- El blocker `real_transcription_quality` ya no se cierra con JSON que omita `--min-audio-seconds` y `--max-audio-seconds`.
+- Evidencia beta: `false`; este hallazgo valida el contrato, no reemplaza el piloto real con audio propio no sensible.
+
+Acciones siguientes:
+
+1. Ejecutar `tools/pilot_audio_fixture.py --run-preflight --min-audio-seconds 0.2 --max-audio-seconds 60 --json` para revisar ffmpeg sin audio privado.
+2. Ejecutar `tools/transcription_pilot.py --real-transcription --audio <audio-path> --audio-non-sensitive --confirm-audio-reviewed --confirm-reference-reviewed --min-audio-seconds 0.2 --max-audio-seconds 60 --confirm-quality-reviewed --require-target-backend-ready --json` solo con audio propio no sensible.
+3. Conservar un `transcription-pilot-report.json` sanitizado con `audio.duration_gate.enabled=true` y `audio.duration_gate.passed=true`.
+
 ## 2026-06-06 - Auditoria beta exige backend de captura real para Linux/macOS
 
 Comando ejecutado:

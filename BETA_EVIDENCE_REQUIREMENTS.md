@@ -36,6 +36,8 @@ Este documento describe los campos JSON que pueden cerrar blockers de beta. No r
   - `target_backend_ready_required` = `True`
   - `audio_confirmed_non_sensitive` = `True`
   - `audio.audio_file_name_redacted` = `True`
+  - `audio.duration_gate.enabled` = `True`
+  - `audio.duration_gate.passed` = `True`
   - `audio_review_confirmed` = `True`
   - `reference_review_confirmed` = `True`
   - `reference_privacy_scan.passed` = `True`
