@@ -152,6 +152,8 @@ Nota `v0.154.0`: `capture_readiness_plan` y `manual_capture_command_card` en pil
 
 Nota `v0.155.0`: el contrato beta de captura exige `manual_capture_command_card.uses_pip_extra=true` y `manual_capture_command_card.python_extra`, evitando que evidencias antiguas sin plan de extra opcional cierren beta.
 
+Nota `v0.156.0`: `real_transcription_command_card` ahora declara `uses_pip_extra`, `python_extra` y `pip_command`, y el auditor beta de transcripcion real exige que coincidan con `whisper` u `openai`.
+
 ## Fase 0 - Base del proyecto
 
 **Objetivo:** dejar una libreria instalable, importable y testeable.

@@ -122,6 +122,9 @@ class TranscriptionPilotTests(unittest.TestCase):
         self.assertFalse(command_card_payload["ready_for_beta_evidence"])
         self.assertTrue(command_card_payload["safe_to_share"])
         self.assertTrue(command_card_payload["uses_placeholders"])
+        self.assertTrue(command_card_payload["uses_pip_extra"])
+        self.assertEqual(command_card_payload["python_extra"], "whisper")
+        self.assertEqual(command_card_payload["pip_command"], 'python -m pip install "auralisvoicekit[whisper]"')
         self.assertFalse(command_card_payload["preflight_runs_model"])
         self.assertTrue(command_card_payload["real_transcription_requires_user_audio"])
         self.assertTrue(command_card_payload["real_transcription_requires_quality_review"])
@@ -195,6 +198,8 @@ class TranscriptionPilotTests(unittest.TestCase):
         self.assertIn("real_transcription_operator_gate.ready_for_beta_audit=true", next_step)
         self.assertIn("Real transcription command", command_card)
         self.assertIn("Preflight MP3/WAV/FLAC", command_card)
+        self.assertIn("Command card uses pip extra: True", command_card)
+        self.assertIn("Command card python extra: whisper", command_card)
         self.assertIn("--preflight-only", command_card)
         self.assertIn("--audio <audio-path>", command_card)
         self.assertIn("--output-dir <pilot-output-dir>", command_card)
@@ -757,6 +762,8 @@ class TranscriptionPilotTests(unittest.TestCase):
         self.assertIn("Operator gate ready for beta audit: True", next_step)
         self.assertIn("Ready for beta evidence: `True`", command_card)
         self.assertIn("Ready for beta audit: `True`", command_card)
+        self.assertIn("Command card uses pip extra: True", command_card)
+        self.assertIn("Command card python extra: whisper", command_card)
         self.assertIn("Missing fields: none", command_card)
 
     def test_transcription_pilot_openai_preflight_requires_sanitized_api_key(self):

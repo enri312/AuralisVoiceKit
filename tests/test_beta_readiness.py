@@ -449,6 +449,9 @@ class BetaReadinessTests(unittest.TestCase):
         unsafe_cases = [
             ("safe_to_share", False),
             ("uses_placeholders", False),
+            ("uses_pip_extra", False),
+            ("python_extra", "openai"),
+            ("pip_command", 'python -m pip install "auralisvoicekit[openai]"'),
             ("preflight_runs_model", True),
             ("real_transcription_requires_user_audio", False),
             ("real_transcription_requires_quality_review", False),
@@ -1198,6 +1201,13 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertEqual(transcription_fields["real_transcription_command_card.ready_for_beta_evidence"], True)
         self.assertEqual(transcription_fields["real_transcription_command_card.safe_to_share"], True)
         self.assertEqual(transcription_fields["real_transcription_command_card.uses_placeholders"], True)
+        self.assertEqual(transcription_fields["real_transcription_command_card.uses_pip_extra"], True)
+        self.assertEqual(transcription_fields["real_transcription_command_card.python_extra"], "whisper | openai")
+        self.assertEqual(
+            transcription_fields["real_transcription_command_card.pip_command"],
+            'python -m pip install "auralisvoicekit[whisper]" | '
+            'python -m pip install "auralisvoicekit[openai]"',
+        )
         self.assertEqual(transcription_fields["real_transcription_command_card.preflight_runs_model"], False)
         self.assertEqual(
             transcription_fields["real_transcription_command_card.real_transcription_requires_user_audio"],
@@ -1402,6 +1412,9 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertIn("transcription_checklist.redacts_expected_text", content)
         self.assertIn("real_transcription_command_card.safe_to_share", content)
         self.assertIn("real_transcription_command_card.uses_placeholders", content)
+        self.assertIn("real_transcription_command_card.uses_pip_extra", content)
+        self.assertIn("real_transcription_command_card.python_extra", content)
+        self.assertIn("real_transcription_command_card.pip_command", content)
         self.assertIn("real_transcription_command_card.records_audio_file_name", content)
         self.assertIn("real_transcription_command_card.records_transcript_text", content)
         self.assertIn("real_transcription_command_card.records_expected_text_file_name", content)
@@ -1999,11 +2012,15 @@ def _system_output_operator_gate() -> dict:
     }
 
 
-def _real_transcription_command_card() -> dict:
+def _real_transcription_command_card(backend: str = "whisper") -> dict:
+    python_extra = _transcription_python_extra(backend)
     return {
         "artifact": "real-transcription-command.md",
         "safe_to_share": True,
         "uses_placeholders": True,
+        "uses_pip_extra": python_extra is not None,
+        "python_extra": python_extra,
+        "pip_command": f'python -m pip install "auralisvoicekit[{python_extra}]"' if python_extra else None,
         "blocker": "real_transcription_quality",
         "ready_for_beta_evidence": True,
         "missing_count": 0,
@@ -2159,7 +2176,7 @@ def _transcription_evidence(
             "quality_review_confirmed": True,
             "ready_for_beta_evidence": True,
         },
-        "real_transcription_command_card": _real_transcription_command_card(),
+        "real_transcription_command_card": _real_transcription_command_card(backend),
         "real_transcription_operator_gate": _real_transcription_operator_gate(),
     }
     if backend == "openai":
@@ -2171,6 +2188,12 @@ def _transcription_evidence(
             "records_openai_api_key": False,
         }
     return evidence
+
+
+def _transcription_python_extra(backend: str) -> str | None:
+    if backend in {"whisper", "openai"}:
+        return backend
+    return None
 
 
 def _system_guard() -> dict[str, bool]:

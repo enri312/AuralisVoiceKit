@@ -18,6 +18,8 @@ Nota `v0.109.0`: `tools/beta_readiness.py` lista evidencias aceptadas con fuente
 
 Nota `v0.110.0`: `tools/beta_readiness.py --audit-evidence` agrega `blocker_summaries` y un `Resumen por blocker` en Markdown para mostrar candidato mas cercano y campos faltantes sin exponer contenido privado. English: evidence audits now summarize the closest candidate per beta blocker.
 
+Nota `v0.156.0`: la tarjeta `real_transcription_command_card` de `tools/transcription_pilot.py` declara `uses_pip_extra`, `python_extra` y `pip_command`; la auditoria beta rechaza evidencia de transcripcion real si el extra no coincide con `whisper` u `openai`. English: real transcription command cards now carry structured optional-extra evidence.
+
 Nota `v0.111.0`: `tools/pilot_run.py` conserva esos `blocker_summaries` en `pilot-report.json` y los muestra en `pilot-plan.md` y `real-pilot-evidence-manifest.md`. English: safe-pilot artifacts now show per-blocker evidence summaries for operators.
 
 Nota `v0.112.0`: `tools/beta_readiness.py --audit-evidence` y `tools/pilot_run.py` publican `next_evidence_focus` para mostrar el primer blocker beta activo, campos faltantes y candidato mas cercano sin rutas locales. English: operators now get a public-safe next evidence focus.

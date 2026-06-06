@@ -290,6 +290,7 @@ def run_transcription_pilot(
         preflight_readiness=preflight_readiness,
     )
     command_card_payload = _real_transcription_command_card(
+        backend=backend,
         beta_evidence_gap=beta_evidence_gap,
         preflight_command_template=preflight_command_template,
         command_template=command_template,
@@ -336,6 +337,7 @@ def run_transcription_pilot(
         preflight_decision=preflight_decision,
         preflight_readiness=preflight_readiness,
         beta_evidence_gap=beta_evidence_gap,
+        real_transcription_command_card=command_card_payload,
         real_transcription_operator_gate=operator_gate,
         credentials=credentials,
         report_path=report_path,
@@ -1486,6 +1488,7 @@ def _build_findings_markdown(
     preflight_decision: dict[str, Any],
     preflight_readiness: dict[str, Any],
     beta_evidence_gap: dict[str, Any],
+    real_transcription_command_card: dict[str, Any],
     real_transcription_operator_gate: dict[str, Any],
     credentials: dict[str, Any],
     report_path: Path,
@@ -1542,6 +1545,10 @@ def _build_findings_markdown(
         f"- Beta evidence gap ready: {beta_evidence_gap['ready_for_beta_evidence']}",
         f"- Beta evidence gap missing count: {beta_evidence_gap['missing_count']}",
         f"- Beta evidence gap next action: {beta_evidence_gap['next_action']}",
+        f"- Real transcription command card ready for beta evidence: {real_transcription_command_card['ready_for_beta_evidence']}",
+        f"- Real transcription command card uses pip extra: {real_transcription_command_card['uses_pip_extra']}",
+        f"- Real transcription command card python extra: {_format_optional(real_transcription_command_card['python_extra'])}",
+        f"- Real transcription command card pip command: {_format_optional(real_transcription_command_card['pip_command'])}",
         f"- Real transcription operator gate decision: {real_transcription_operator_gate['decision']}",
         f"- Real transcription operator gate ready for beta audit: {real_transcription_operator_gate['ready_for_beta_audit']}",
         f"- Real transcription operator gate command safe to copy: {real_transcription_operator_gate['command_safe_to_copy']}",
@@ -1711,15 +1718,21 @@ def _beta_evidence_audit_command_template() -> str:
 
 def _real_transcription_command_card(
     *,
+    backend: str,
     beta_evidence_gap: dict[str, Any],
     preflight_command_template: str,
     command_template: str,
     audit_command_template: str,
 ) -> dict[str, Any]:
+    python_extra = _real_transcription_python_extra(backend)
+    pip_command = f'python -m pip install "auralisvoicekit[{python_extra}]"' if python_extra else None
     return {
         "artifact": "real-transcription-command.md",
         "safe_to_share": True,
         "uses_placeholders": True,
+        "uses_pip_extra": python_extra is not None,
+        "python_extra": python_extra,
+        "pip_command": pip_command,
         "blocker": "real_transcription_quality",
         "ready_for_beta_evidence": beta_evidence_gap["ready_for_beta_evidence"],
         "missing_count": beta_evidence_gap["missing_count"],
@@ -1738,6 +1751,13 @@ def _real_transcription_command_card(
         "records_expected_text_file_name": False,
         "records_local_paths": False,
     }
+
+
+def _real_transcription_python_extra(backend: str) -> str | None:
+    real_backend = backend if backend != "null" else "whisper"
+    if real_backend in {"whisper", "openai"}:
+        return real_backend
+    return None
 
 
 def _real_transcription_operator_gate(
@@ -1838,6 +1858,9 @@ def _real_transcription_operator_gate(
     command_safe_to_copy = bool(
         real_transcription_command_card["safe_to_share"]
         and real_transcription_command_card["uses_placeholders"]
+        and real_transcription_command_card["uses_pip_extra"] is True
+        and real_transcription_command_card["python_extra"] in {"whisper", "openai"}
+        and isinstance(real_transcription_command_card["pip_command"], str)
         and real_transcription_command_card["preflight_runs_model"] is False
         and real_transcription_command_card["real_transcription_requires_user_audio"] is True
         and real_transcription_command_card["real_transcription_requires_quality_review"] is True
@@ -1927,6 +1950,7 @@ def _build_real_transcription_command_markdown(
     command_template: str,
     audit_command_template: str,
 ) -> str:
+    python_extra = _real_transcription_python_extra(backend)
     lines = [
         "# Real transcription command",
         "",
@@ -1941,6 +1965,8 @@ def _build_real_transcription_command_markdown(
         f"- Target backend dependencies: {_format_list(target_backend['dependencies'])}",
         f"- Target backend install command: {_format_optional(target_backend['install_command'])}",
         f"- Backend post-install check: {target_backend['install_plan']['post_install_check']}",
+        f"- Command card uses pip extra: {python_extra is not None}",
+        f"- Command card python extra: {_format_optional(python_extra)}",
         f"- Preflight readiness status: {preflight_readiness['status']}",
         f"- Preflight ready for model run: {preflight_readiness['ready_for_model_run']}",
         f"- OpenAI API key check: {credentials['status']}",

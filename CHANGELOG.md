@@ -6,6 +6,17 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.156.0] - 2026-06-06
+
+### Agregado
+
+- `tools/transcription_pilot.py` ahora agrega `uses_pip_extra`, `python_extra` y `pip_command` a `real_transcription_command_card` para declarar el extra opcional de Whisper u OpenAI antes del piloto real.
+- `tools/beta_readiness.py` exige esos campos para cerrar evidencia beta de transcripcion real y rechaza tarjetas con extra equivocado.
+
+### Pruebas
+
+- Nuevas aserciones cubren el contrato beta, el piloto seguro y el command card de transcripcion con extras opcionales estructurados.
+
 ## [0.155.0] - 2026-06-06
 
 ### Agregado

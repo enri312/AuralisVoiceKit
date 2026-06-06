@@ -396,6 +396,8 @@ def build_beta_readiness_report(
                 "Quality review confirmed: True",
                 "Transcription checklist ready for beta evidence: True",
                 "Real transcription command card ready for beta evidence: True",
+                "Real transcription command card uses pip extra: True",
+                "Real transcription command card pip command:",
                 "Real transcription operator gate ready for beta audit: True",
             ),
             next_action=(
@@ -416,7 +418,8 @@ def build_beta_readiness_report(
                 "credentials.openai_api_key_present=true and credentials.records_openai_api_key=false for OpenAI, "
                 "transcription-review-checklist.md and real-transcription-next-step.md."
                 " Also keep real-transcription-command.md and real_transcription_command_card "
-                "safe_to_share=true, uses_placeholders=true, preflight_runs_model=false, "
+                "safe_to_share=true, uses_placeholders=true, uses_pip_extra=true, "
+                "python_extra=whisper|openai, pip_command for the selected extra, preflight_runs_model=false, "
                 "real_transcription_requires_user_audio=true, real_transcription_requires_quality_review=true, "
                 "records_audio=false, records_audio_path=false, records_audio_file_name=false, "
                 "records_transcript_text=false, records_expected_text=false, "
@@ -1129,6 +1132,12 @@ def _real_transcription_command_card_required_fields() -> list[dict[str, Any]]:
         _required_field("real_transcription_command_card.ready_for_beta_evidence", True),
         _required_field("real_transcription_command_card.safe_to_share", True),
         _required_field("real_transcription_command_card.uses_placeholders", True),
+        _required_field("real_transcription_command_card.uses_pip_extra", True),
+        _required_field("real_transcription_command_card.python_extra", "whisper | openai"),
+        _required_field(
+            "real_transcription_command_card.pip_command",
+            'python -m pip install "auralisvoicekit[whisper]" | python -m pip install "auralisvoicekit[openai]"',
+        ),
         _required_field("real_transcription_command_card.preflight_runs_model", False),
         _required_field("real_transcription_command_card.real_transcription_requires_user_audio", True),
         _required_field("real_transcription_command_card.real_transcription_requires_quality_review", True),
@@ -1727,6 +1736,13 @@ def _capture_python_extra(backend: object) -> str | None:
     return None
 
 
+def _transcription_python_extra(backend: object) -> str | None:
+    normalized = str(backend).casefold()
+    if normalized in {"whisper", "openai"}:
+        return normalized
+    return None
+
+
 def _has_ready_capture_operator_gate(report: dict[str, Any], blocker: str) -> bool:
     gate = report.get("capture_operator_gate", {})
     if not isinstance(gate, dict):
@@ -1818,6 +1834,9 @@ def _has_safe_real_transcription_command_card(report: dict[str, Any]) -> bool:
     card = report.get("real_transcription_command_card", {})
     if not isinstance(card, dict):
         return False
+    target_backend = report.get("target_backend", {})
+    backend = target_backend.get("name") if isinstance(target_backend, dict) else report.get("backend")
+    expected_python_extra = _transcription_python_extra(backend)
     preflight_command = card.get("preflight_command_template")
     real_command = card.get("real_transcription_command_template")
     audit_command = card.get("audit_command_template")
@@ -1828,6 +1847,10 @@ def _has_safe_real_transcription_command_card(report: dict[str, Any]) -> bool:
         and card.get("ready_for_beta_evidence") is True
         and card.get("safe_to_share") is True
         and card.get("uses_placeholders") is True
+        and expected_python_extra is not None
+        and card.get("uses_pip_extra") is True
+        and card.get("python_extra") == expected_python_extra
+        and card.get("pip_command") == f'python -m pip install "auralisvoicekit[{expected_python_extra}]"'
         and card.get("preflight_runs_model") is False
         and card.get("real_transcription_requires_user_audio") is True
         and card.get("real_transcription_requires_quality_review") is True

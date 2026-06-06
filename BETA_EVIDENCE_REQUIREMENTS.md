@@ -113,6 +113,9 @@ Este documento describe los campos JSON que pueden cerrar blockers de beta. No r
   - `real_transcription_command_card.ready_for_beta_evidence` = `True`
   - `real_transcription_command_card.safe_to_share` = `True`
   - `real_transcription_command_card.uses_placeholders` = `True`
+  - `real_transcription_command_card.uses_pip_extra` = `True`
+  - `real_transcription_command_card.python_extra` = `whisper | openai`
+  - `real_transcription_command_card.pip_command` = `python -m pip install "auralisvoicekit[whisper]" | python -m pip install "auralisvoicekit[openai]"`
   - `real_transcription_command_card.preflight_runs_model` = `False`
   - `real_transcription_command_card.real_transcription_requires_user_audio` = `True`
   - `real_transcription_command_card.real_transcription_requires_quality_review` = `True`

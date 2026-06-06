@@ -1362,6 +1362,18 @@ class PilotRunTests(unittest.TestCase):
             "real_transcription_command_card.uses_placeholders",
             manifest_rows["real_transcription_quality"]["required_fields"],
         )
+        self.assertIn(
+            "real_transcription_command_card.uses_pip_extra",
+            manifest_rows["real_transcription_quality"]["required_fields"],
+        )
+        self.assertIn(
+            "real_transcription_command_card.python_extra",
+            manifest_rows["real_transcription_quality"]["required_fields"],
+        )
+        self.assertIn(
+            "real_transcription_command_card.pip_command",
+            manifest_rows["real_transcription_quality"]["required_fields"],
+        )
         self.assertEqual(
             manifest_rows["real_transcription_quality"]["conditional_required_fields"][0]["when"]["path"],
             "target_backend.name",
@@ -1476,6 +1488,18 @@ class PilotRunTests(unittest.TestCase):
             report["transcription_readiness_card"]["real_required_fields"],
         )
         self.assertIn(
+            "real_transcription_command_card.uses_pip_extra",
+            report["transcription_readiness_card"]["real_required_fields"],
+        )
+        self.assertIn(
+            "real_transcription_command_card.python_extra",
+            report["transcription_readiness_card"]["real_required_fields"],
+        )
+        self.assertIn(
+            "real_transcription_command_card.pip_command",
+            report["transcription_readiness_card"]["real_required_fields"],
+        )
+        self.assertIn(
             "reference_privacy_scan.passed",
             report["transcription_readiness_card"]["real_required_fields"],
         )
@@ -1577,6 +1601,9 @@ class PilotRunTests(unittest.TestCase):
         self.assertIn("transcription_checklist.records_expected_text_file_name", transcription_step["required_fields"])
         self.assertIn("real_transcription_command_card.safe_to_share", transcription_step["required_fields"])
         self.assertIn("real_transcription_command_card.uses_placeholders", transcription_step["required_fields"])
+        self.assertIn("real_transcription_command_card.uses_pip_extra", transcription_step["required_fields"])
+        self.assertIn("real_transcription_command_card.python_extra", transcription_step["required_fields"])
+        self.assertIn("real_transcription_command_card.pip_command", transcription_step["required_fields"])
         self.assertIn("real_transcription_operator_gate.ready_for_beta_audit", transcription_step["required_fields"])
         self.assertIn("real_transcription_operator_gate.command_safe_to_copy", transcription_step["required_fields"])
         self.assertIn("real_transcription_operator_gate.missing_confirmation_count", transcription_step["required_fields"])
