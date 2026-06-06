@@ -26,6 +26,8 @@ Nota `v0.113.0`: `tools/pilot_run.py` genera `real-pilot-next-evidence-focus.md`
 
 Nota `v0.114.0`: la tarjeta `real-pilot-next-evidence-focus.md` incluye `Secuencia de preparacion` con los pasos seguros previos al piloto real enfocado. English: the focus card now shows the safe preparation sequence.
 
+Nota `v0.115.0`: `tools/transcription_pilot.py` agrega `preflight_readiness` a `transcription-pilot-report.json`, `transcription-pilot-findings.md` y `real-transcription-next-step.md`, con estado listo/bloqueado/instalar backend/repetir preflight y un comando de repeticion sanitizado. English: transcription preflights now include a share-safe readiness summary.
+
 ```powershell
 py tools\pilot_run.py --output-dir pilot_runs\safe --json
 py tools\pilot_run.py --output-dir pilot_runs\safe --evidence pilot_runs\manual --evidence pilot_runs\output --evidence pilot_runs\transcription --json

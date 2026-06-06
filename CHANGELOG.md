@@ -6,6 +6,14 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.115.0] - 2026-06-06
+
+### Agregado
+
+- `tools/transcription_pilot.py` ahora publica `preflight_readiness`, un resumen seguro con estado `ready`, `needs_backend_install`, `blocked` o `needs_preflight`.
+- `transcription-pilot-findings.md` y `real-transcription-next-step.md` muestran si el preflight esta listo para modelo real, si debe repetirse y el comando sanitizado para repetirlo.
+- Nuevas pruebas verifican que `preflight_readiness` no guarde rutas, nombres de audio, transcripciones ni texto esperado.
+
 ## [0.114.0] - 2026-06-06
 
 ### Agregado

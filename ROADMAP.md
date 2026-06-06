@@ -70,6 +70,8 @@ Nota `v0.113.0`: el piloto seguro genera `real-pilot-next-evidence-focus.md`, un
 
 Nota `v0.114.0`: `real-pilot-next-evidence-focus.md` ahora incluye una secuencia de preparacion derivada de `recommended_pilot_sequence`, para ejecutar primero los pasos seguros previos al piloto real enfocado.
 
+Nota `v0.115.0`: el piloto de transcripcion agrega `preflight_readiness` para resumir si el preflight esta listo para modelo real, bloqueado, pendiente de instalacion de backend o pendiente de repeticion, con comando sanitizado para repetirlo.
+
 ## Fase 0 - Base del proyecto
 
 **Objetivo:** dejar una libreria instalable, importable y testeable.

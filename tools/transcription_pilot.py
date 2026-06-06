@@ -246,11 +246,6 @@ def run_transcription_pilot(
         credentials=credentials,
         audio=audio_payload,
     )
-
-    findings_path = output / "transcription-pilot-findings.md"
-    checklist_path = output / "transcription-review-checklist.md"
-    next_step_path = output / "real-transcription-next-step.md"
-    report_path = output / "transcription-pilot-report.json"
     command_template = _real_transcription_command_template(
         backend=backend,
         model=model,
@@ -259,6 +254,18 @@ def run_transcription_pilot(
         max_audio_seconds=max_audio_seconds,
         timeout_seconds=timeout_seconds,
     )
+    preflight_readiness = _preflight_readiness(
+        preflight_decision=preflight_decision,
+        target_backend=target_backend,
+        credentials=credentials,
+        audio=audio_payload,
+        command_template=command_template,
+    )
+
+    findings_path = output / "transcription-pilot-findings.md"
+    checklist_path = output / "transcription-review-checklist.md"
+    next_step_path = output / "real-transcription-next-step.md"
+    report_path = output / "transcription-pilot-report.json"
     findings = _build_findings_markdown(
         timestamp=timestamp,
         backend=backend,
@@ -277,6 +284,7 @@ def run_transcription_pilot(
         timeout_seconds=timeout_seconds,
         transcription_checklist=transcription_checklist,
         preflight_decision=preflight_decision,
+        preflight_readiness=preflight_readiness,
         credentials=credentials,
         report_path=report_path,
         checklist_path=checklist_path,
@@ -302,6 +310,7 @@ def run_transcription_pilot(
         reference_privacy_scan=reference_privacy_scan,
         transcription_checklist=transcription_checklist,
         preflight_decision=preflight_decision,
+        preflight_readiness=preflight_readiness,
         command_template=command_template,
         checklist_path=checklist_path,
     )
@@ -333,9 +342,11 @@ def run_transcription_pilot(
         "reference_privacy_scan": reference_privacy_scan,
         "transcription_checklist": transcription_checklist,
         "preflight_decision": preflight_decision,
+        "preflight_readiness": preflight_readiness,
         "next_real_transcription": {
             "artifact": str(next_step_path),
             "command_template": command_template,
+            "preflight_readiness": preflight_readiness,
             "target_backend": target_backend,
             "uses_placeholders": True,
             "records_audio_path": False,
@@ -1183,6 +1194,47 @@ def _preflight_decision(
     }
 
 
+def _preflight_readiness(
+    *,
+    preflight_decision: dict[str, Any],
+    target_backend: dict[str, Any],
+    credentials: dict[str, Any],
+    audio: dict[str, Any],
+    command_template: str,
+) -> dict[str, Any]:
+    decision = preflight_decision["decision"]
+    status_by_decision = {
+        "ready_for_real_transcription": "ready",
+        "install_backend_then_retry_preflight": "needs_backend_install",
+        "blocked": "blocked",
+        "not_applicable": "needs_preflight",
+    }
+    status = status_by_decision.get(decision, "blocked")
+    ready_for_model_run = status == "ready"
+    return {
+        "status": status,
+        "decision": decision,
+        "ready_for_model_run": ready_for_model_run,
+        "must_rerun_preflight": not ready_for_model_run,
+        "safe_to_share": True,
+        "usable_as_beta_evidence": False,
+        "records_audio": False,
+        "records_transcripts": False,
+        "records_expected_text": False,
+        "records_audio_file_name": False,
+        "records_local_paths": False,
+        "blocking_reasons": list(preflight_decision["blocking_reasons"]),
+        "backend_ready": preflight_decision["backend_ready"],
+        "audio_decoded": audio["decoded"],
+        "duration_gate_enabled": audio["duration_gate"]["enabled"],
+        "duration_gate_passed": audio["duration_gate"]["passed"],
+        "credentials_status": credentials["status"],
+        "preflight_command": target_backend["install_plan"]["post_install_check"],
+        "real_transcription_command_template": command_template,
+        "next_action": preflight_decision["next_action"],
+    }
+
+
 def _build_findings_markdown(
     *,
     timestamp: str,
@@ -1202,6 +1254,7 @@ def _build_findings_markdown(
     timeout_seconds: float | None,
     transcription_checklist: dict[str, Any],
     preflight_decision: dict[str, Any],
+    preflight_readiness: dict[str, Any],
     credentials: dict[str, Any],
     report_path: Path,
     checklist_path: Path,
@@ -1249,6 +1302,9 @@ def _build_findings_markdown(
         f"- Quality review confirmed: {quality_review_confirmed}",
         f"- Transcription checklist ready for beta evidence: {transcription_checklist['ready_for_beta_evidence']}",
         f"- Preflight decision: {preflight_decision['decision']}",
+        f"- Preflight readiness status: {preflight_readiness['status']}",
+        f"- Preflight ready for model run: {preflight_readiness['ready_for_model_run']}",
+        f"- Preflight must rerun: {preflight_readiness['must_rerun_preflight']}",
         f"- Preflight next action: {preflight_decision['next_action']}",
         f"- Report: {report_path.name}",
         f"- Review checklist: {checklist_path.name}",
@@ -1376,6 +1432,7 @@ def _build_real_transcription_next_step_markdown(
     reference_privacy_scan: dict[str, Any],
     transcription_checklist: dict[str, Any],
     preflight_decision: dict[str, Any],
+    preflight_readiness: dict[str, Any],
     command_template: str,
     checklist_path: Path,
 ) -> str:
@@ -1411,6 +1468,9 @@ def _build_real_transcription_next_step_markdown(
         f"- Reference provided: {quality['enabled']}",
         f"- Reference privacy scan passed: {_format_optional(reference_privacy_scan['passed'])}",
         f"- Preflight decision: {preflight_decision['decision']}",
+        f"- Preflight readiness status: {preflight_readiness['status']}",
+        f"- Preflight ready for model run: {preflight_readiness['ready_for_model_run']}",
+        f"- Preflight must rerun: {preflight_readiness['must_rerun_preflight']}",
         f"- Preflight next action: {preflight_decision['next_action']}",
         f"- Ready for real transcription: {transcription_checklist['ready_for_real_transcription']}",
         f"- Ready for beta evidence: {transcription_checklist['ready_for_beta_evidence']}",
@@ -1422,6 +1482,14 @@ def _build_real_transcription_next_step_markdown(
         "",
         "```powershell",
         command_template,
+        "```",
+        "",
+        "## Preflight Rerun Command",
+        "",
+        "Run this sanitized check until `preflight_readiness.status=ready`:",
+        "",
+        "```powershell",
+        preflight_readiness["preflight_command"],
         "```",
         "",
         "## Required Review",
