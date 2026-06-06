@@ -1795,6 +1795,7 @@ def _real_pilot_execution_operator_gate(report: dict[str, Any]) -> dict[str, Any
     )
     human_confirmations = _operator_gate_human_confirmations(focus_command, focus, sequence)
     command_audit = _operator_gate_command_audit(focus_command, human_confirmations, sequence)
+    evidence_contract = _operator_gate_evidence_contract(focus, report)
     blocking_reasons: list[str] = []
     if gate["real_world_pilot"]["decision"] != "go":
         blocking_reasons.append("real_world_pilot_gate_blocked")
@@ -1829,6 +1830,7 @@ def _real_pilot_execution_operator_gate(report: dict[str, Any]) -> dict[str, Any
         "human_confirmations": human_confirmations,
         "strict_backend_guard_required": strict_guard_required,
         "command_audit": command_audit,
+        "evidence_contract": evidence_contract,
         "audit_closure": {
             "required": True,
             "strict_audit_command": report["evidence_manifest"]["strict_audit_command"],
@@ -1846,6 +1848,34 @@ def _real_pilot_execution_operator_gate(report: dict[str, Any]) -> dict[str, Any
             "records_device_names": False,
             "records_operator_identity": False,
         },
+    }
+
+
+def _operator_gate_evidence_contract(focus: dict[str, Any], report: dict[str, Any]) -> dict[str, Any]:
+    required_fields = list(focus.get("required_fields", []))
+    missing_fields = list(focus.get("missing_fields", []))
+    conditional_required_fields = list(focus.get("conditional_required_fields", []))
+    return {
+        "safe_to_share": True,
+        "blocker": focus.get("name") or "ninguno",
+        "title": focus.get("title") or "ninguno",
+        "expected_artifact": focus.get("artifact") or "ninguno",
+        "required_fields": required_fields,
+        "required_field_count": len(required_fields),
+        "missing_fields": missing_fields,
+        "missing_field_count": len(missing_fields),
+        "conditional_required_fields": conditional_required_fields,
+        "conditional_required_field_count": len(conditional_required_fields),
+        "suggested_roots": report["real_pilot_evidence_intake_card"]["suggested_roots"],
+        "strict_audit_command": report["evidence_manifest"]["strict_audit_command"],
+        "refresh_checklist_command": report["evidence_manifest"]["refresh_checklist_command"],
+        "records_audio": False,
+        "records_transcripts": False,
+        "records_spoken_text": False,
+        "records_expected_text": False,
+        "records_local_paths": False,
+        "records_device_names": False,
+        "records_operator_identity": False,
     }
 
 
@@ -3394,6 +3424,22 @@ def _format_real_pilot_execution_card_markdown(report: dict[str, Any]) -> str:
         lines.extend(["- No hay foco pendiente; no ejecutar pilotos reales adicionales sin refrescar la compuerta.", ""])
     lines.extend(
         [
+            "## Contrato de evidencia beta",
+            "",
+            f"- Seguro para compartir: `{_format_bool(operator_gate['evidence_contract']['safe_to_share'])}`",
+            f"- Blocker: `{operator_gate['evidence_contract']['blocker']}`",
+            f"- Artifact esperado: `{operator_gate['evidence_contract']['expected_artifact']}`",
+            f"- Campos requeridos: `{operator_gate['evidence_contract']['required_field_count']}`",
+            f"- Campos faltantes actuales: `{operator_gate['evidence_contract']['missing_field_count']}`",
+            f"- Campos requeridos actuales: {_format_inline_list(operator_gate['evidence_contract']['required_fields'])}",
+            f"- Campos condicionales: `{operator_gate['evidence_contract']['conditional_required_field_count']}`",
+            f"- Directorios sugeridos: {_format_inline_list(operator_gate['evidence_contract']['suggested_roots'])}",
+            f"- Auditoria estricta: `{operator_gate['evidence_contract']['strict_audit_command']}`",
+            f"- Refrescar checklist: `{operator_gate['evidence_contract']['refresh_checklist_command']}`",
+            f"- Registra audio: `{_format_bool(operator_gate['evidence_contract']['records_audio'])}`",
+            f"- Registra transcripciones: `{_format_bool(operator_gate['evidence_contract']['records_transcripts'])}`",
+            f"- Registra rutas locales: `{_format_bool(operator_gate['evidence_contract']['records_local_paths'])}`",
+            "",
             "## Comando del foco",
             "",
             f"- Comando: `{focus_command}`",

@@ -62,6 +62,8 @@ Nota `v0.134.0`: `real_pilot_execution_card.operator_gate` declara `allowed_to_r
 
 Nota `v0.135.0`: `operator_gate.command_audit` revisa que el comando local incluya plataforma esperada, confirmaciones humanas y guard backend estricto antes de marcarlo seguro para copiar. English: operator gates now audit required command flags before real-pilot execution.
 
+Nota `v0.136.0`: `operator_gate.evidence_contract` muestra el contrato beta del foco activo en la tarjeta de ejecucion, con campos requeridos/faltantes y comandos de auditoria sin copiar contenido sensible. English: operator gates now include a public-safe beta evidence contract.
+
 ```powershell
 py tools\pilot_run.py --output-dir pilot_runs\safe --json
 py tools\pilot_run.py --output-dir pilot_runs\safe --evidence pilot_runs\manual --evidence pilot_runs\output --evidence pilot_runs\transcription --json

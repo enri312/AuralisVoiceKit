@@ -112,6 +112,8 @@ Nota `v0.134.0`: `real_pilot_execution_card.operator_gate` agrega decision `read
 
 Nota `v0.135.0`: `operator_gate.command_audit` valida flags obligatorios del comando local (`--expected-system`, confirmaciones humanas y guards estrictos) antes de permitir copiarlo para el siguiente piloto real.
 
+Nota `v0.136.0`: `operator_gate.evidence_contract` agrega el contrato publico de evidencia beta del foco activo, con artifact esperado, campos requeridos/faltantes, condicionales, directorios de ingesta y auditoria/refresco.
+
 ## Fase 0 - Base del proyecto
 
 **Objetivo:** dejar una libreria instalable, importable y testeable.

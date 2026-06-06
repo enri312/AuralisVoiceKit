@@ -6,6 +6,18 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.136.0] - 2026-06-06
+
+### Agregado
+
+- `real_pilot_execution_card.operator_gate` ahora incluye `evidence_contract`, una ficha publica con blocker, artifact esperado, campos requeridos/faltantes, condicionales, directorios sugeridos y comandos de auditoria/refresco.
+- `real-pilot-execution-card.md` muestra el contrato de evidencia beta junto al comando local para que el operador pueda cerrar el piloto real sin buscar requisitos en varios archivos.
+- El contrato conserva flags publicos de privacidad y declara que no registra audio, transcripciones, texto hablado, texto esperado, rutas locales, dispositivos ni identidad del operador.
+
+### Pruebas
+
+- Nuevas pruebas validan que el contrato de evidencia del foco Windows/WASAPI queda serializado, renderizado y libre de datos sensibles.
+
 ## [0.135.0] - 2026-06-06
 
 ### Agregado
