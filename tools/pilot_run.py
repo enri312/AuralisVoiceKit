@@ -2054,6 +2054,7 @@ def _operator_gate_command_audit(
     present_flags = [flag for flag in required_flags if flag in command]
     missing_flags = [flag for flag in required_flags if flag not in command]
     status = "passed" if command and not missing_flags else "failed"
+    records_private_values = False
     return {
         "status": status,
         "safe_to_copy_for_local_operator": status == "passed",
@@ -2061,7 +2062,101 @@ def _operator_gate_command_audit(
         "required_flags": required_flags,
         "present_required_flags": present_flags,
         "missing_required_flags": missing_flags,
-        "records_private_values": False,
+        "records_private_values": records_private_values,
+        "copy_safety": _operator_gate_copy_safety(
+            status=status,
+            missing_flags=missing_flags,
+            records_private_values=records_private_values,
+            human_confirmations=human_confirmations,
+            sequence=sequence,
+        ),
+    }
+
+
+def _operator_gate_copy_safety(
+    *,
+    status: str,
+    missing_flags: list[str],
+    records_private_values: bool,
+    human_confirmations: list[str],
+    sequence: list[dict[str, Any]],
+) -> dict[str, Any]:
+    strict_guard_required = any(bool(step.get("strict_backend_guard_required")) for step in sequence)
+    blocking_reasons: list[str] = []
+    if status != "passed":
+        blocking_reasons.append("command_audit_failed")
+    if missing_flags:
+        blocking_reasons.append("missing_required_flags")
+    if records_private_values:
+        blocking_reasons.append("records_private_values")
+
+    review_items: list[dict[str, Any]] = [
+        {
+            "id": "command_audit_passed",
+            "required": True,
+            "status": "passed" if status == "passed" else "blocked",
+            "source": "operator_gate.command_audit.status",
+        },
+        {
+            "id": "required_flags_present",
+            "required": True,
+            "status": "passed" if not missing_flags else "blocked",
+            "source": "operator_gate.command_audit.missing_required_flags",
+        },
+        {
+            "id": "no_private_values_recorded",
+            "required": True,
+            "status": "passed" if not records_private_values else "blocked",
+            "source": "operator_gate.command_audit.records_private_values",
+        },
+        {
+            "id": "local_placeholders_reviewed",
+            "required": True,
+            "status": "pending_local_operator",
+            "source": "real-pilot-consent-card.md",
+        },
+    ]
+    if human_confirmations:
+        review_items.append(
+            {
+                "id": "human_confirmations_reviewed",
+                "required": True,
+                "status": "pending_local_operator",
+                "source": "operator_gate.human_confirmations",
+            }
+        )
+    if strict_guard_required:
+        review_items.append(
+            {
+                "id": "strict_backend_guard_reviewed",
+                "required": True,
+                "status": "pending_local_operator",
+                "source": "operator_gate.strict_backend_guard_required",
+            }
+        )
+    pending_local_review_ids = [
+        item["id"] for item in review_items if item["status"] == "pending_local_operator"
+    ]
+    return {
+        "status": "blocked" if blocking_reasons else "ready_for_local_review",
+        "safe_template": not blocking_reasons,
+        "safe_to_copy_for_local_operator": not blocking_reasons,
+        "copy_requires_local_operator_review": True,
+        "copy_requires_consent_card": True,
+        "copy_requires_human_confirmations": bool(human_confirmations),
+        "copy_requires_strict_backend_guard_review": strict_guard_required,
+        "blocking_reasons": blocking_reasons,
+        "review_items": review_items,
+        "review_item_count": len(review_items),
+        "pending_local_review_ids": pending_local_review_ids,
+        "records_private_values": records_private_values,
+        "records_audio": False,
+        "records_transcripts": False,
+        "records_spoken_text": False,
+        "records_expected_text": False,
+        "records_local_paths": False,
+        "records_device_names": False,
+        "records_operator_identity": False,
     }
 
 
@@ -3523,6 +3618,29 @@ def _format_real_pilot_execution_card_markdown(report: dict[str, Any]) -> str:
             f"- Flags presentes: {_format_inline_list(operator_gate['command_audit']['present_required_flags'])}",
             f"- Flags faltantes: {_format_inline_list(operator_gate['command_audit']['missing_required_flags'])}",
             f"- Registra valores privados: `{_format_bool(operator_gate['command_audit']['records_private_values'])}`",
+            "",
+            "## Seguridad de copia del comando",
+            "",
+            f"- Estado: `{operator_gate['command_audit']['copy_safety']['status']}`",
+            f"- Plantilla segura: `{_format_bool(operator_gate['command_audit']['copy_safety']['safe_template'])}`",
+            f"- Requiere revision local: `{_format_bool(operator_gate['command_audit']['copy_safety']['copy_requires_local_operator_review'])}`",
+            f"- Requiere tarjeta de consentimiento: `{_format_bool(operator_gate['command_audit']['copy_safety']['copy_requires_consent_card'])}`",
+            f"- Requiere confirmaciones humanas: `{_format_bool(operator_gate['command_audit']['copy_safety']['copy_requires_human_confirmations'])}`",
+            f"- Requiere revisar guard backend estricto: `{_format_bool(operator_gate['command_audit']['copy_safety']['copy_requires_strict_backend_guard_review'])}`",
+            f"- Razones de bloqueo: {_format_inline_list(operator_gate['command_audit']['copy_safety']['blocking_reasons'])}",
+            f"- Items pendientes locales: {_format_inline_list(operator_gate['command_audit']['copy_safety']['pending_local_review_ids'])}",
+            "",
+            "### Checklist de copia",
+            "",
+        ]
+    )
+    for item in operator_gate["command_audit"]["copy_safety"]["review_items"]:
+        lines.append(
+            f"- `{item['id']}` required={str(item['required']).lower()} "
+            f"status={item['status']} source={item['source']}"
+        )
+    lines.extend(
+        [
             "",
             "## Artifacts de apoyo",
             "",

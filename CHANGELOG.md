@@ -6,6 +6,17 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.142.0] - 2026-06-06
+
+### Agregado
+
+- `operator_gate.command_audit` ahora incluye `copy_safety`, separando plantilla segura de copia y revisiones locales pendientes antes de ejecutar el siguiente piloto real.
+- `copy_safety` reporta estado `ready_for_local_review|blocked`, razones de bloqueo, items de revision, requisitos de consentimiento, confirmaciones humanas y guard backend estricto sin registrar audio, rutas ni identidad del operador.
+
+### Pruebas
+
+- Nuevas pruebas validan el bloque `copy_safety`, sus flags de privacidad y su presencia en `real-pilot-execution-card.md`.
+
 ## [0.141.0] - 2026-06-06
 
 ### Agregado
