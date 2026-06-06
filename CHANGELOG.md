@@ -6,6 +6,18 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.146.0] - 2026-06-06
+
+### Agregado
+
+- `tools/pilot_run.py` ahora genera `real-pilot-operator-brief.md`, una tarjeta publica de una pagina para el operador local antes de ejecutar el siguiente piloto real.
+- `real_pilot_operator_brief_card` resume foco activo, comando plantilla, artefactos antes/despues del piloto, confirmaciones humanas, pendientes de copia local, auditoria estricta y reglas de privacidad.
+- `pilot-plan.md`, `real-pilot-handoff.md`, `real-pilot-rehearsal-card.md`, `real-pilot-audit-closure.md` y `real-pilot-evidence-package.md` enlazan el brief del operador.
+
+### Pruebas
+
+- Nuevas pruebas validan el artifact del brief, su estado `ready_for_local_operator_review`, sus flags de privacidad, su salida CLI y su presencia en reportes Markdown.
+
 ## [0.145.0] - 2026-06-06
 
 ### Agregado

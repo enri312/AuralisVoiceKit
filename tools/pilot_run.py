@@ -222,6 +222,7 @@ def run_safe_pilot(
     audit_closure_path = output / "real-pilot-audit-closure.md"
     rehearsal_card_path = output / "real-pilot-rehearsal-card.md"
     evidence_package_path = output / "real-pilot-evidence-package.md"
+    operator_brief_path = output / "real-pilot-operator-brief.md"
     plan_path = output / "pilot-plan.md"
     report_path = output / "pilot-report.json"
     report["fixture_preflight_card"] = _real_pilot_fixture_preflight_card(report)
@@ -431,6 +432,7 @@ def run_safe_pilot(
         report,
         evidence_package_path,
     )
+    report["real_pilot_operator_brief_card"] = _real_pilot_operator_brief_card(report, operator_brief_path)
     artifacts["real_pilot_findings_template"] = str(findings_template_path)
     artifacts["real_pilot_handoff"] = str(handoff_path)
     artifacts["real_pilot_command_pack"] = str(command_pack_path)
@@ -448,6 +450,7 @@ def run_safe_pilot(
     artifacts["real_pilot_audit_closure_card"] = str(audit_closure_path)
     artifacts["real_pilot_rehearsal_card"] = str(rehearsal_card_path)
     artifacts["real_pilot_evidence_package_card"] = str(evidence_package_path)
+    artifacts["real_pilot_operator_brief_card"] = str(operator_brief_path)
     artifacts["pilot_plan"] = str(plan_path)
     artifacts["pilot_report"] = str(report_path)
     findings_template_path.write_text(_format_real_pilot_findings_template_markdown(report), encoding="utf-8")
@@ -470,6 +473,7 @@ def run_safe_pilot(
     audit_closure_path.write_text(_format_real_pilot_audit_closure_markdown(report), encoding="utf-8")
     rehearsal_card_path.write_text(_format_real_pilot_rehearsal_markdown(report), encoding="utf-8")
     evidence_package_path.write_text(_format_real_pilot_evidence_package_markdown(report), encoding="utf-8")
+    operator_brief_path.write_text(_format_real_pilot_operator_brief_markdown(report), encoding="utf-8")
     plan_path.write_text(_format_pilot_plan_markdown(report), encoding="utf-8")
     report_path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return report
@@ -2127,6 +2131,7 @@ def _real_pilot_rehearsal_card(report: dict[str, Any], artifact_path: Path) -> d
         "real-pilot-consent-card.md",
         "real-pilot-audit-closure.md",
         "real-pilot-evidence-package.md",
+        "real-pilot-operator-brief.md",
     ]
     pending_rehearsal_ids = [item["id"] for item in rehearsal_items if item["required"]]
     return {
@@ -2190,6 +2195,7 @@ def _real_pilot_evidence_package_card(report: dict[str, Any], artifact_path: Pat
         "BETA_CHECKLIST.md",
     ]
     support_artifacts = [
+        "real-pilot-operator-brief.md",
         "real-pilot-rehearsal-card.md",
         "real-pilot-execution-card.md",
         "real-pilot-consent-card.md",
@@ -2267,6 +2273,130 @@ def _real_pilot_evidence_package_card(report: dict[str, Any], artifact_path: Pat
         "pending_package_count": len(pending_package_ids),
         "strict_audit_command": closure["strict_audit_command"],
         "refresh_checklist_command": closure["refresh_checklist_command"],
+        "content_policy": {
+            "records_audio": False,
+            "records_transcripts": False,
+            "records_spoken_text": False,
+            "records_expected_text": False,
+            "records_local_paths": False,
+            "records_device_names": False,
+            "records_operator_identity": False,
+        },
+        "records_audio": False,
+        "records_transcripts": False,
+        "records_spoken_text": False,
+        "records_expected_text": False,
+        "records_local_paths": False,
+        "records_device_names": False,
+        "records_operator_identity": False,
+    }
+
+
+def _real_pilot_operator_brief_card(report: dict[str, Any], artifact_path: Path) -> dict[str, Any]:
+    """Build a public-safe one-page brief for the local real-pilot operator."""
+
+    focus = report["beta_readiness"].get("next_evidence_focus", {})
+    execution = report["real_pilot_execution_card"]
+    gate = execution["operator_gate"]
+    consent = report["real_pilot_consent_card"]
+    rehearsal = report["real_pilot_rehearsal_card"]
+    package = report["real_pilot_evidence_package_card"]
+    closure = report["real_pilot_audit_closure_card"]
+    before_run_artifacts = [
+        "real-pilot-decision-gate.md",
+        "real-pilot-hard-stop-card.md",
+        "real-pilot-command-pack.md",
+        "real-pilot-environment-checklist.md",
+        "real-pilot-rehearsal-card.md",
+        "real-pilot-consent-card.md",
+        "real-pilot-execution-card.md",
+    ]
+    after_run_artifacts = [
+        package["artifact"],
+        closure["artifact"],
+        closure["finding_template"],
+        "BETA_CHECKLIST.md",
+    ]
+    brief_items = [
+        {
+            "id": "hard_stop_reviewed",
+            "required": True,
+            "status": "pending_local_operator_review",
+            "source": "real-pilot-hard-stop-card.md",
+        },
+        {
+            "id": "rehearsal_completed",
+            "required": True,
+            "status": rehearsal["rehearsal_status"],
+            "source": rehearsal["artifact"],
+        },
+        {
+            "id": "consent_scope_confirmed",
+            "required": True,
+            "status": consent["decision"],
+            "source": consent["artifact"],
+        },
+        {
+            "id": "command_placeholders_replaced_locally",
+            "required": True,
+            "status": "pending_local_operator_review",
+            "source": gate["command_audit"]["command"],
+        },
+        {
+            "id": "human_confirmations_completed",
+            "required": True,
+            "status": "pending_local_operator_review",
+            "source": gate["human_confirmations"] or ["ninguno"],
+        },
+        {
+            "id": "sanitized_json_target_chosen",
+            "required": True,
+            "status": "pending_real_pilot",
+            "source": gate["focus_artifact"],
+        },
+        {
+            "id": "post_run_audit_planned",
+            "required": True,
+            "status": "pending_real_pilot",
+            "source": closure["strict_audit_command"],
+        },
+        {
+            "id": "evidence_package_prepared",
+            "required": True,
+            "status": package["package_status"],
+            "source": package["artifact"],
+        },
+    ]
+    pending_brief_ids = [item["id"] for item in brief_items if item["required"]]
+    return {
+        "artifact": artifact_path.name,
+        "safe_to_share": True,
+        "source": "real_pilot_execution_card + real_pilot_consent_card + real_pilot_evidence_package_card",
+        "usable_as_beta_evidence": False,
+        "brief_status": "ready_for_local_operator_review" if gate["allowed_to_run"] else "blocked",
+        "focus": gate["focus"],
+        "focus_title": focus.get("title") or "ninguno",
+        "focus_artifact": gate["focus_artifact"],
+        "local_run_allowed": gate["allowed_to_run"],
+        "command_safe_to_copy_for_local_operator": gate["command_audit"]["safe_to_copy_for_local_operator"],
+        "copy_safety_status": gate["command_audit"]["copy_safety"]["status"],
+        "requires_local_operator_review": gate["requires_local_operator_review"],
+        "requires_consent_card": True,
+        "requires_rehearsal_card": True,
+        "requires_evidence_package": True,
+        "local_command_template": focus.get("command") or "ninguno",
+        "pre_run_reviews": gate["pre_run_reviews"],
+        "human_confirmations": gate["human_confirmations"],
+        "copy_pending_ids": gate["command_audit"]["copy_safety"]["pending_local_review_ids"],
+        "before_run_artifacts": before_run_artifacts,
+        "after_run_artifacts": after_run_artifacts,
+        "strict_audit_command": closure["strict_audit_command"],
+        "refresh_checklist_command": closure["refresh_checklist_command"],
+        "brief_items": brief_items,
+        "brief_item_count": len(brief_items),
+        "pending_brief_ids": pending_brief_ids,
+        "pending_brief_count": len(pending_brief_ids),
+        "hard_stop_conditions": report["pilot_decision_gate"]["hard_stop_conditions"],
         "content_policy": {
             "records_audio": False,
             "records_transcripts": False,
@@ -2575,6 +2705,9 @@ def _format_pilot_plan_markdown(report: dict[str, Any]) -> str:
     evidence_package_name = Path(
         report["artifacts"].get("real_pilot_evidence_package_card", "real-pilot-evidence-package.md")
     ).name
+    operator_brief_name = Path(
+        report["artifacts"].get("real_pilot_operator_brief_card", "real-pilot-operator-brief.md")
+    ).name
     lines = [
         "# Plan de pilotos AuralisVoiceKit",
         "",
@@ -2610,6 +2743,7 @@ def _format_pilot_plan_markdown(report: dict[str, Any]) -> str:
         f"- Cierre de auditoria: `{audit_closure_name}`",
         f"- Ensayo local: `{rehearsal_card_name}`",
         f"- Paquete de evidencia: `{evidence_package_name}`",
+        f"- Brief del operador: `{operator_brief_name}`",
         f"- Plantilla de hallazgos: `{findings_template_name}`",
         "",
         "## Checks seguros",
@@ -2736,6 +2870,15 @@ def _format_pilot_plan_markdown(report: dict[str, Any]) -> str:
             f"- Requiere auditoria estricta: `{_format_bool(report['real_pilot_evidence_package_card']['package_requires_strict_audit'])}`",
             f"- Puede cerrar beta desde esta tarjeta: `{_format_bool(report['real_pilot_evidence_package_card']['can_close_beta_from_package_card'])}`",
             f"- Usable como evidencia beta: `{_format_bool(report['real_pilot_evidence_package_card']['usable_as_beta_evidence'])}`",
+            "",
+            "## Brief del operador local",
+            "",
+            f"- Artifact: `{operator_brief_name}`",
+            f"- Estado del brief: `{report['real_pilot_operator_brief_card']['brief_status']}`",
+            f"- Permitido ejecutar localmente: `{_format_bool(report['real_pilot_operator_brief_card']['local_run_allowed'])}`",
+            f"- Comando seguro para copia local: `{_format_bool(report['real_pilot_operator_brief_card']['command_safe_to_copy_for_local_operator'])}`",
+            f"- Pendientes locales: `{report['real_pilot_operator_brief_card']['pending_brief_count']}`",
+            f"- Usable como evidencia beta: `{_format_bool(report['real_pilot_operator_brief_card']['usable_as_beta_evidence'])}`",
             "",
             "## Preflight de fixture de transcripcion",
             "",
@@ -4257,6 +4400,9 @@ def _format_real_pilot_audit_closure_markdown(report: dict[str, Any]) -> str:
     evidence_package_name = Path(
         report["artifacts"].get("real_pilot_evidence_package_card", "real-pilot-evidence-package.md")
     ).name
+    operator_brief_name = Path(
+        report["artifacts"].get("real_pilot_operator_brief_card", "real-pilot-operator-brief.md")
+    ).name
     lines = [
         "# Cierre de auditoria para piloto real AuralisVoiceKit",
         "",
@@ -4291,6 +4437,7 @@ def _format_real_pilot_audit_closure_markdown(report: dict[str, Any]) -> str:
         "",
         f"- Ensayo local: `{rehearsal_card_name}`",
         f"- Paquete de evidencia: `{evidence_package_name}`",
+        f"- Brief del operador: `{operator_brief_name}`",
         f"- Ejecucion guiada: `{closure['execution_card']}`",
         f"- Consentimiento local: `{closure['consent_card']}`",
         f"- Ingesta de evidencia: `{closure['evidence_intake_card']}`",
@@ -4475,6 +4622,106 @@ def _format_real_pilot_evidence_package_markdown(report: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
+def _format_real_pilot_operator_brief_markdown(report: dict[str, Any]) -> str:
+    brief = report["real_pilot_operator_brief_card"]
+    gate = report["pilot_decision_gate"]
+    lines = [
+        "# Brief del operador local para piloto real AuralisVoiceKit",
+        "",
+        "Esta tarjeta resume la ejecucion local permitida por la compuerta. No ejecuta hardware, no copia valores privados y no cuenta como evidencia beta.",
+        "",
+        "## Estado",
+        "",
+        f"- Version: `{report['version']}`",
+        f"- Stage: `{report['stage']}`",
+        f"- Pilotos reales: `{gate['real_world_pilot']['decision']}`",
+        f"- Beta: `{gate['beta']['decision']}`",
+        f"- Foco: `{brief['focus']}`",
+        f"- Artifact esperado: `{brief['focus_artifact']}`",
+        f"- Estado del brief: `{brief['brief_status']}`",
+        f"- Permitido ejecutar localmente: `{_format_bool(brief['local_run_allowed'])}`",
+        f"- Comando seguro para copia local: `{_format_bool(brief['command_safe_to_copy_for_local_operator'])}`",
+        f"- Estado de seguridad de copia: `{brief['copy_safety_status']}`",
+        f"- Requiere revision local: `{_format_bool(brief['requires_local_operator_review'])}`",
+        f"- Usable como evidencia beta: `{_format_bool(brief['usable_as_beta_evidence'])}`",
+        "",
+        "## Politica de contenido",
+        "",
+        f"- Seguro para compartir: `{_format_bool(brief['safe_to_share'])}`",
+        f"- Registra audio: `{_format_bool(brief['records_audio'])}`",
+        f"- Registra transcripciones: `{_format_bool(brief['records_transcripts'])}`",
+        f"- Registra texto hablado: `{_format_bool(brief['records_spoken_text'])}`",
+        f"- Registra texto esperado completo: `{_format_bool(brief['records_expected_text'])}`",
+        f"- Registra rutas locales: `{_format_bool(brief['records_local_paths'])}`",
+        f"- Registra nombres reales de dispositivos: `{_format_bool(brief['records_device_names'])}`",
+        f"- Registra identidad del operador: `{_format_bool(brief['records_operator_identity'])}`",
+        "",
+        "## Lectura previa",
+        "",
+    ]
+    for artifact in brief["before_run_artifacts"]:
+        lines.append(f"- `{artifact}`")
+    lines.extend(
+        [
+            "",
+            "## Comando plantilla",
+            "",
+            f"- `{brief['local_command_template']}`",
+            "- Reemplazar placeholders solo en la maquina local del operador.",
+            "- No ejecutar si algun item de alto operativo aplica.",
+            "- No pasar flags `--confirm-*` hasta completar la revision humana correspondiente.",
+            "",
+            "## Confirmaciones humanas",
+            "",
+        ]
+    )
+    if brief["human_confirmations"]:
+        for item in brief["human_confirmations"]:
+            lines.append(f"- `{item}`")
+    else:
+        lines.append("- `ninguno`")
+    lines.extend(["", "## Pendientes de copia local", ""])
+    if brief["copy_pending_ids"]:
+        for item in brief["copy_pending_ids"]:
+            lines.append(f"- `{item}`")
+    else:
+        lines.append("- `ninguno`")
+    lines.extend(["", "## Checklist del brief", ""])
+    for item in brief["brief_items"]:
+        lines.append(
+            f"- `{item['id']}` required={str(item['required']).lower()} "
+            f"status={item['status']} source={item['source']}"
+        )
+    lines.extend(["", "## Despues del piloto", ""])
+    for artifact in brief["after_run_artifacts"]:
+        lines.append(f"- `{artifact}`")
+    lines.extend(
+        [
+            "",
+            f"- Auditoria estricta: `{brief['strict_audit_command']}`",
+            f"- Refrescar checklist: `{brief['refresh_checklist_command']}`",
+            "- Guardar solo JSON/Markdown sanitizados antes de auditar beta.",
+            "",
+            "## Condiciones de alto",
+            "",
+        ]
+    )
+    for item in brief["hard_stop_conditions"]:
+        lines.append(f"- {item}")
+    lines.extend(
+        [
+            "",
+            "## Reglas",
+            "",
+            "- Mantener fuera del repositorio audio, transcripciones, texto esperado completo, texto hablado real, rutas locales, dispositivos e identidad.",
+            "- Si la auditoria estricta falla, corregir artifacts sanitizados antes de refrescar beta.",
+            "- Esta tarjeta puede compartirse como guia operativa, pero no como evidencia beta.",
+            "",
+        ]
+    )
+    return "\n".join(lines)
+
+
 def _format_real_pilot_handoff_markdown(report: dict[str, Any]) -> str:
     beta = report["beta_readiness"]
     policy = report["real_pilot_handoff"]["content_policy"]
@@ -4523,6 +4770,9 @@ def _format_real_pilot_handoff_markdown(report: dict[str, Any]) -> str:
     evidence_package_name = Path(
         report["artifacts"].get("real_pilot_evidence_package_card", "real-pilot-evidence-package.md")
     ).name
+    operator_brief_name = Path(
+        report["artifacts"].get("real_pilot_operator_brief_card", "real-pilot-operator-brief.md")
+    ).name
     lines = [
         "# Handoff de pilotos reales AuralisVoiceKit",
         "",
@@ -4551,6 +4801,7 @@ def _format_real_pilot_handoff_markdown(report: dict[str, Any]) -> str:
         f"- Consentimiento local: `{consent_card_name}`",
         f"- Cierre de auditoria: `{audit_closure_name}`",
         f"- Ensayo local: `{rehearsal_card_name}`",
+        f"- Brief del operador: `{operator_brief_name}`",
         "",
         "## Politica de contenido",
         "",
@@ -4605,6 +4856,7 @@ def _format_real_pilot_handoff_markdown(report: dict[str, Any]) -> str:
             f"- Revisar `{consent_card_name}` antes de usar hardware, audio real o flags `--confirm-*`.",
             f"- Revisar `{audit_closure_name}` despues de generar el JSON real sanitizado.",
             f"- Revisar `{evidence_package_name}` para reunir solo JSON/Markdown sanitizados antes de auditar beta.",
+            f"- Revisar `{operator_brief_name}` como resumen de una pagina antes de ejecutar localmente.",
             "- Reemplazar `sample.mp3`, `<audio-path>`, `<expected-text-path>` y `<public-spoken-text>` solo localmente.",
             "- Usar audio propio no sensible y texto hablado publico/no sensible.",
             "- Revisar `manual-capture-checklist.md`, `transcription-review-checklist.md`, `real-transcription-next-step.md`, `output-operator-checklist.md` y `system-output-next-step.md` segun el piloto.",
