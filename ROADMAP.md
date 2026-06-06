@@ -47,7 +47,7 @@ La meta no es competir con todos los motores de voz a la vez. La meta es constru
 | Asistente local con privacidad | Ejemplo offline inicial con logs sanitizados |
 | Backends de salida custom | Guia inicial y ejemplo en memoria |
 | Automatizacion de estabilidad | Gate inicial para pilotos reales |
-| Pilotos seguros | Runner automatizado, piloto manual guiado con checklist de captura, command card y operator gate de captura, piloto de salida system con checklist, command card y operator gate de operador, guard de plataforma, readiness por sistema operativo, scan de privacidad del texto hablado y revision de voz, piloto de transcripcion con checklist de revision, plan de instalacion de backend, comando dedicado de MP3/WAV/FLAC real, operator gate de transcripcion y confirmacion humana de calidad, command pack por plataforma, checklist de entorno local, runbook, bundle doctor, analisis de bundles y checklist de beta |
+| Pilotos seguros | Runner automatizado, piloto manual guiado con checklist de captura, command card y operator gate de captura, piloto de salida system con checklist, command card y operator gate de operador, guard de plataforma, readiness por sistema operativo, scan de privacidad del texto hablado y revision de voz, piloto de transcripcion con checklist de revision, plan de instalacion de backend, comando dedicado de MP3/WAV/FLAC real, operator gate de transcripcion y confirmacion humana de calidad, consent card local, command pack por plataforma, checklist de entorno local, runbook, bundle doctor, analisis de bundles y checklist de beta |
 | Mensajes Windows audio | Helper inicial para errores comunes |
 
 Nota `v0.105.0`: el piloto seguro ya separa la ruta generica y la ruta OpenAI en tarjetas, matriz y command pack, con plantilla OpenAI segura (`--preflight-backend openai`, `gpt-4o-mini-transcribe`, timeout 30) sin red ni modelos durante preflight.
@@ -121,6 +121,8 @@ Nota `v0.138.0`: `tools/beta_readiness.py` incorpora `capture_operator_gate` al 
 Nota `v0.139.0`: `tools/output_pilot.py` y `tools/beta_readiness.py` incorporan `system_output_operator_gate`, exigiendo decision `ready_for_beta_audit`, comando seguro con placeholders y cero confirmaciones/campos faltantes antes de aceptar evidencia beta de salida audible.
 
 Nota `v0.140.0`: `tools/transcription_pilot.py` y `tools/beta_readiness.py` incorporan `real_transcription_operator_gate`, exigiendo decision `ready_for_beta_audit`, comando seguro con placeholders y cero confirmaciones/campos faltantes antes de aceptar evidencia beta de transcripcion real.
+
+Nota `v0.141.0`: `tools/pilot_run.py` incorpora `real-pilot-consent-card.md`, una plantilla publica de consentimiento local enlazada desde las tarjetas de ejecucion, alto operativo, ingesta, handoff y go/no-go antes de usar hardware, audio real o flags `--confirm-*`.
 
 ## Fase 0 - Base del proyecto
 

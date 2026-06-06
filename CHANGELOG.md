@@ -6,6 +6,18 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.141.0] - 2026-06-06
+
+### Agregado
+
+- `tools/pilot_run.py` ahora genera `real-pilot-consent-card.md`, una plantilla publica de consentimiento local antes de ejecutar hardware, audio real o flags `--confirm-*`.
+- La tarjeta conserva el foco beta activo, revisiones previas, confirmaciones humanas, auditoria estricta y politica de contenido sin registrar identidad, firma, audio, rutas ni texto privado.
+- `pilot-plan.md`, `real-pilot-handoff.md`, `real-pilot-decision-gate.md`, `real-pilot-hard-stop-card.md`, `real-pilot-evidence-intake-card.md` y `real-pilot-execution-card.md` enlazan la tarjeta de consentimiento.
+
+### Pruebas
+
+- Nuevas pruebas validan el artifact de consentimiento, sus flags de privacidad, el checklist local y su presencia en CLI/reportes Markdown.
+
 ## [0.140.0] - 2026-06-06
 
 ### Agregado
