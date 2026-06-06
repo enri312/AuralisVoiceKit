@@ -6,6 +6,14 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.93.0] - 2026-06-06
+
+### Agregado
+
+- `tools/pilot_run.py` ahora genera `real-pilot-transcription-readiness.md`, una tarjeta segura para preparar transcripcion real antes de ejecutar Whisper/OpenAI u otro backend real.
+- El reporte `pilot-report.json` expone `transcription_readiness_card` y `real_pilot_transcription_readiness` con comandos de fixture/preflight/transcripcion real, estado de ffmpeg, disponibilidad de backend objetivo, campos requeridos y condiciones de alto sin registrar audio, transcripciones, texto esperado, rutas locales, nombres de dispositivos ni identidad del operador.
+- README, `PILOTS.md`, roadmap, documentacion HTML y referencia API documentan la tarjeta de readiness de transcripcion real como preparacion publica que no cuenta como evidencia beta.
+
 ## [0.92.0] - 2026-06-06
 
 ### Agregado

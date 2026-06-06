@@ -198,12 +198,14 @@ def run_safe_pilot(
     command_pack_path = output / "real-pilot-command-pack.md"
     environment_checklist_path = output / "real-pilot-environment-checklist.md"
     fixture_preflight_path = output / "real-pilot-fixture-preflight.md"
+    transcription_readiness_path = output / "real-pilot-transcription-readiness.md"
     system_output_readiness_path = output / "real-pilot-system-output-readiness.md"
     evidence_manifest_path = output / "real-pilot-evidence-manifest.md"
     decision_gate_path = output / "real-pilot-decision-gate.md"
     plan_path = output / "pilot-plan.md"
     report_path = output / "pilot-report.json"
     report["fixture_preflight_card"] = _real_pilot_fixture_preflight_card(report)
+    report["transcription_readiness_card"] = _real_pilot_transcription_readiness_card(report)
     report["system_output_readiness_card"] = _real_pilot_system_output_readiness_card(report)
     report["real_pilot_findings_template"] = {
         "artifact": str(findings_template_path),
@@ -274,6 +276,20 @@ def run_safe_pilot(
         "records_device_names": False,
         "records_operator_identity": False,
     }
+    report["real_pilot_transcription_readiness"] = {
+        "artifact": str(transcription_readiness_path),
+        "safe_to_share": True,
+        "source": "recommended_pilot_sequence + environment_checklist",
+        "usable_as_beta_evidence": False,
+        "prepares_real_transcription": True,
+        "records_audio": False,
+        "records_transcripts": False,
+        "records_spoken_text": False,
+        "records_expected_text": False,
+        "records_local_paths": False,
+        "records_device_names": False,
+        "records_operator_identity": False,
+    }
     report["real_pilot_system_output_readiness"] = {
         "artifact": str(system_output_readiness_path),
         "safe_to_share": True,
@@ -322,6 +338,7 @@ def run_safe_pilot(
     artifacts["real_pilot_command_pack"] = str(command_pack_path)
     artifacts["real_pilot_environment_checklist"] = str(environment_checklist_path)
     artifacts["real_pilot_fixture_preflight"] = str(fixture_preflight_path)
+    artifacts["real_pilot_transcription_readiness"] = str(transcription_readiness_path)
     artifacts["real_pilot_system_output_readiness"] = str(system_output_readiness_path)
     artifacts["real_pilot_evidence_manifest"] = str(evidence_manifest_path)
     artifacts["real_pilot_decision_gate"] = str(decision_gate_path)
@@ -332,6 +349,7 @@ def run_safe_pilot(
     command_pack_path.write_text(_format_real_pilot_command_pack_markdown(report), encoding="utf-8")
     environment_checklist_path.write_text(_format_real_pilot_environment_checklist_markdown(report), encoding="utf-8")
     fixture_preflight_path.write_text(_format_real_pilot_fixture_preflight_markdown(report), encoding="utf-8")
+    transcription_readiness_path.write_text(_format_real_pilot_transcription_readiness_markdown(report), encoding="utf-8")
     system_output_readiness_path.write_text(
         _format_real_pilot_system_output_readiness_markdown(report),
         encoding="utf-8",
@@ -1120,6 +1138,114 @@ def _real_pilot_fixture_preflight_card(report: dict[str, Any]) -> dict[str, Any]
     }
 
 
+def _real_pilot_transcription_readiness_card(report: dict[str, Any]) -> dict[str, Any]:
+    """Build a public-safe card for the real transcription pilot."""
+
+    sequence = {step["name"]: step for step in report["recommended_pilot_sequence"]}
+    fixture_step = sequence.get("transcription-audio-fixture", _transcription_audio_fixture_step(1))
+    preflight_step = sequence.get("transcription-audio-preflight", _transcription_audio_preflight_step(2))
+    real_step = sequence.get(
+        "real_transcription_quality",
+        {
+            "command": (
+                "python tools/transcription_pilot.py --real-transcription --audio <audio-path> "
+                "--audio-non-sensitive --confirm-audio-reviewed --confirm-reference-reviewed "
+                "--backend whisper --model base --normalize --expected-text-file <expected-text-path> "
+                "--min-word-accuracy 0.75 --min-audio-seconds 0.2 --max-audio-seconds 60 "
+                "--confirm-quality-reviewed --require-target-backend-ready --json"
+            ),
+            "artifact": "transcription-pilot-report.json",
+            "required_fields": [
+                "real_transcription_requested",
+                "target_backend.available",
+                "target_backend_ready_required",
+                "audio.audio_file_name_redacted",
+                "audio_review_confirmed",
+                "reference_review_confirmed",
+                "reference_privacy_scan.passed",
+                "quality_review_confirmed",
+                "transcription_checklist.ready_for_beta_evidence",
+            ],
+        },
+    )
+    environment = {row["name"]: row for row in report["environment_checklist"]}
+    ffmpeg_check = environment.get("ffmpeg-compressed-audio")
+    local_transcription = environment.get("local-real-transcription-ready")
+    backend_checks = [
+        row
+        for row in report["environment_checklist"]
+        if row["name"] in {"whisper-transcription-backend", "openai-transcription-backend"}
+    ]
+
+    return {
+        "status": "recommended" if "real_transcription_quality" in report["beta_readiness"]["blockers"] else "complete",
+        "usable_as_beta_evidence": False,
+        "fixture_command": fixture_step["command"],
+        "fixture_artifact": fixture_step["artifact"],
+        "preflight_command": preflight_step["command"],
+        "preflight_artifact": preflight_step["artifact"],
+        "real_command": real_step["command"],
+        "real_artifact": real_step["artifact"],
+        "expected_artifacts": [
+            "pilot-audio-fixture-report.json",
+            "transcription-pilot-report.json",
+            "transcription-pilot-findings.md",
+            "transcription-review-checklist.md",
+            "real-transcription-next-step.md",
+        ],
+        "fixture_required_fields": fixture_step["required_fields"],
+        "preflight_required_fields": preflight_step["required_fields"],
+        "real_required_fields": real_step["required_fields"],
+        "ffmpeg": {
+            "status": ffmpeg_check["status"] if ffmpeg_check else "unknown",
+            "ready": bool(ffmpeg_check["ready"]) if ffmpeg_check else False,
+            "action": ffmpeg_check["action"] if ffmpeg_check else "Run auralis doctor before real transcription.",
+        },
+        "local_transcription": {
+            "status": local_transcription["status"] if local_transcription else "unknown",
+            "ready": bool(local_transcription["ready"]) if local_transcription else False,
+            "action": (
+                local_transcription["action"]
+                if local_transcription
+                else "Run auralis doctor before real transcription."
+            ),
+        },
+        "target_backend_checks": [
+            {
+                "name": row["name"],
+                "status": row["status"],
+                "ready": row["ready"],
+                "action": row["action"],
+            }
+            for row in backend_checks
+        ],
+        "operator_actions": [
+            "Run the synthetic fixture command first; it proves the path without private audio.",
+            "Run the preflight with your own non-sensitive MP3 and review transcription-review-checklist.md.",
+            "Use --require-target-backend-ready so the real pilot fails before model execution if the backend is missing.",
+            "Pass --confirm-audio-reviewed only after privacy review of the audio is complete.",
+            "Pass --confirm-reference-reviewed only after the expected text or expected text file is public-safe.",
+            "Pass --confirm-quality-reviewed only after local human review of quality metrics and redacted artifacts.",
+        ],
+        "hard_stop_conditions": [
+            "Do not run a real transcription model with private or unreviewed audio.",
+            "Do not run real transcription if ffmpeg fails, the duration gate fails or no target backend is available.",
+            "Do not use --confirm-audio-reviewed, --confirm-reference-reviewed or --confirm-quality-reviewed before local review.",
+            "Do not publish transcript text, expected text, audio file names, reference file names or local paths.",
+            "Do not count this readiness artifact as beta evidence; only sanitized JSON from the real pilot can close the blocker.",
+        ],
+        "content_policy": {
+            "records_audio": False,
+            "records_transcripts": False,
+            "records_spoken_text": False,
+            "records_expected_text": False,
+            "records_local_paths": False,
+            "records_device_names": False,
+            "records_operator_identity": False,
+        },
+    }
+
+
 def _real_pilot_system_output_readiness_card(report: dict[str, Any]) -> dict[str, Any]:
     """Build a public-safe card for the audible system output pilot."""
 
@@ -1269,6 +1395,7 @@ def _real_pilot_decision_gate(report: dict[str, Any]) -> dict[str, Any]:
         "operator_actions": [
             "Review real-pilot-environment-checklist.md before touching hardware or real audio.",
             "Review real-pilot-fixture-preflight.md before replacing the synthetic fixture with your own MP3.",
+            "Review real-pilot-transcription-readiness.md before running a real transcription backend.",
             "Review real-pilot-system-output-readiness.md before audible system output.",
             "Review real-pilot-evidence-manifest.md to know which JSON artifact closes each blocker.",
             "Run the strict audit after collecting real artifacts.",
@@ -1319,6 +1446,9 @@ def _format_pilot_plan_markdown(report: dict[str, Any]) -> str:
     fixture_preflight_name = Path(
         report["artifacts"].get("real_pilot_fixture_preflight", "real-pilot-fixture-preflight.md")
     ).name
+    transcription_readiness_name = Path(
+        report["artifacts"].get("real_pilot_transcription_readiness", "real-pilot-transcription-readiness.md")
+    ).name
     system_output_readiness_name = Path(
         report["artifacts"].get("real_pilot_system_output_readiness", "real-pilot-system-output-readiness.md")
     ).name
@@ -1349,6 +1479,7 @@ def _format_pilot_plan_markdown(report: dict[str, Any]) -> str:
         f"- Paquete de comandos: `{command_pack_name}`",
         f"- Checklist de entorno: `{environment_checklist_name}`",
         f"- Preflight de fixture: `{fixture_preflight_name}`",
+        f"- Readiness de transcripcion real: `{transcription_readiness_name}`",
         f"- Readiness de salida system: `{system_output_readiness_name}`",
         f"- Manifiesto de evidencias: `{evidence_manifest_name}`",
         f"- Compuerta go/no-go: `{decision_gate_name}`",
@@ -1417,6 +1548,17 @@ def _format_pilot_plan_markdown(report: dict[str, Any]) -> str:
             f"- Comando fixture: `{report['fixture_preflight_card']['fixture_command']}`",
             f"- Comando MP3 propio: `{report['fixture_preflight_card']['own_audio_preflight_command']}`",
             f"- Artifacts esperados: {_format_inline_list(report['fixture_preflight_card']['expected_artifacts'])}",
+            "",
+            "## Readiness de transcripcion real",
+            "",
+            f"- Artifact: `{transcription_readiness_name}`",
+            f"- Estado: `{report['transcription_readiness_card']['status']}`",
+            f"- Usable como evidencia beta: `{_format_bool(report['transcription_readiness_card']['usable_as_beta_evidence'])}`",
+            f"- ffmpeg: `{report['transcription_readiness_card']['ffmpeg']['status']}`",
+            f"- Transcripcion local: `{report['transcription_readiness_card']['local_transcription']['status']}`",
+            f"- Comando preflight: `{report['transcription_readiness_card']['preflight_command']}`",
+            f"- Comando real: `{report['transcription_readiness_card']['real_command']}`",
+            f"- Artifacts esperados: {_format_inline_list(report['transcription_readiness_card']['expected_artifacts'])}",
             "",
             "## Readiness de salida system",
             "",
@@ -1614,6 +1756,9 @@ def _format_real_pilot_command_pack_markdown(report: dict[str, Any]) -> str:
     fixture_preflight_name = Path(
         report["artifacts"].get("real_pilot_fixture_preflight", "real-pilot-fixture-preflight.md")
     ).name
+    transcription_readiness_name = Path(
+        report["artifacts"].get("real_pilot_transcription_readiness", "real-pilot-transcription-readiness.md")
+    ).name
     system_output_readiness_name = Path(
         report["artifacts"].get("real_pilot_system_output_readiness", "real-pilot-system-output-readiness.md")
     ).name
@@ -1655,6 +1800,7 @@ def _format_real_pilot_command_pack_markdown(report: dict[str, Any]) -> str:
         "- Conservar los artifacts JSON/Markdown generados por las herramientas; no copiar contenido privado al reporte publico.",
         f"- Revisar `{environment_checklist_name}` antes de usar audio real.",
         f"- Revisar `{fixture_preflight_name}` antes de reemplazar el fixture por un MP3 propio.",
+        f"- Revisar `{transcription_readiness_name}` antes de ejecutar transcripcion real con Whisper/OpenAI.",
         f"- Revisar `{system_output_readiness_name}` antes de salida audible real.",
         f"- Revisar `{evidence_manifest_name}` para saber que artifact JSON cierra cada blocker.",
         f"- Revisar `{decision_gate_name}` para confirmar si el siguiente paso esta permitido.",
@@ -1687,6 +1833,7 @@ def _format_real_pilot_command_pack_markdown(report: dict[str, Any]) -> str:
             "",
             f"- Auditoria estricta: `{beta['strict_audit_command']}`",
             f"- Preflight de fixture: `{fixture_preflight_name}`",
+            f"- Readiness de transcripcion real: `{transcription_readiness_name}`",
             f"- Readiness de salida system: `{system_output_readiness_name}`",
             f"- Manifiesto de evidencias: `{evidence_manifest_name}`",
             f"- Compuerta go/no-go: `{decision_gate_name}`",
@@ -1775,6 +1922,100 @@ def _format_real_pilot_fixture_preflight_markdown(report: dict[str, Any]) -> str
             "- The fixture is public-safe preparation only; it does not close beta evidence.",
             "- Replace `sample.mp3` with your own non-sensitive MP3 only after reviewing the generated checklist.",
             "- Do not publish audio names, transcripts, expected text or local paths.",
+            "",
+        ]
+    )
+    return "\n".join(lines)
+
+
+def _format_real_pilot_transcription_readiness_markdown(report: dict[str, Any]) -> str:
+    card = report["transcription_readiness_card"]
+    policy = report["real_pilot_transcription_readiness"]
+    lines = [
+        "# Tarjeta de readiness de transcripcion real AuralisVoiceKit",
+        "",
+        "Este artefacto prepara el piloto de transcripcion real con audio propio no sensible. No ejecuta modelos, no usa red, no guarda audio, transcripciones, texto esperado ni rutas locales y no cuenta como evidencia beta.",
+        "",
+        "## Estado",
+        "",
+        f"- Version: `{report['version']}`",
+        f"- Stage: `{report['stage']}`",
+        f"- Estado: `{card['status']}`",
+        f"- Listo para pilotos reales: `{_format_bool(report['gate']['ready_for_real_world_pilots'])}`",
+        f"- Listo para beta: `{_format_bool(report['beta_readiness']['ready_for_beta'])}`",
+        f"- Usable como evidencia beta: `{_format_bool(policy['usable_as_beta_evidence'])}`",
+        f"- Prepara transcripcion real: `{_format_bool(policy['prepares_real_transcription'])}`",
+        "",
+        "## Politica de contenido",
+        "",
+        f"- Seguro para compartir: `{_format_bool(policy['safe_to_share'])}`",
+        f"- Registra audio: `{_format_bool(policy['records_audio'])}`",
+        f"- Registra transcripciones: `{_format_bool(policy['records_transcripts'])}`",
+        f"- Registra texto hablado: `{_format_bool(policy['records_spoken_text'])}`",
+        f"- Registra texto esperado completo: `{_format_bool(policy['records_expected_text'])}`",
+        f"- Registra rutas locales: `{_format_bool(policy['records_local_paths'])}`",
+        f"- Registra nombres reales de dispositivos: `{_format_bool(policy['records_device_names'])}`",
+        f"- Registra identidad del operador: `{_format_bool(policy['records_operator_identity'])}`",
+        "",
+        "## Comandos",
+        "",
+        f"- Fixture sintetico: `{card['fixture_command']}`",
+        f"- Artifact fixture: `{card['fixture_artifact']}`",
+        f"- Preflight MP3 propio: `{card['preflight_command']}`",
+        f"- Artifact preflight: `{card['preflight_artifact']}`",
+        f"- Transcripcion real: `{card['real_command']}`",
+        f"- Artifact real: `{card['real_artifact']}`",
+        f"- Artifacts esperados: {_format_inline_list(card['expected_artifacts'])}",
+        "",
+        "## Checks locales",
+        "",
+        f"- ffmpeg estado: `{card['ffmpeg']['status']}`",
+        f"- ffmpeg listo: `{_format_bool(card['ffmpeg']['ready'])}`",
+        f"- ffmpeg accion: {card['ffmpeg']['action']}",
+        f"- Transcripcion local estado: `{card['local_transcription']['status']}`",
+        f"- Transcripcion local lista: `{_format_bool(card['local_transcription']['ready'])}`",
+        f"- Transcripcion local accion: {card['local_transcription']['action']}",
+        "",
+    ]
+    if card["target_backend_checks"]:
+        lines.extend(["## Backends objetivo", ""])
+        for row in card["target_backend_checks"]:
+            lines.extend(
+                [
+                    f"### {row['name']}",
+                    "",
+                    f"- Estado: `{row['status']}`",
+                    f"- Listo: `{_format_bool(row['ready'])}`",
+                    f"- Accion: {row['action']}",
+                    "",
+                ]
+            )
+    lines.extend(
+        [
+            "## Campos requeridos",
+            "",
+            f"- Fixture: {_format_inline_list(card['fixture_required_fields'])}",
+            f"- Preflight: {_format_inline_list(card['preflight_required_fields'])}",
+            f"- Real: {_format_inline_list(card['real_required_fields'])}",
+            "",
+            "## Acciones del operador",
+            "",
+        ]
+    )
+    for item in card["operator_actions"]:
+        lines.append(f"- {item}")
+    lines.extend(["", "## Condiciones de alto", ""])
+    for item in card["hard_stop_conditions"]:
+        lines.append(f"- {item}")
+    lines.extend(
+        [
+            "",
+            "## English",
+            "",
+            "- This readiness card prepares real transcription with your own non-sensitive audio; it does not execute a model.",
+            "- Run the synthetic fixture and MP3 preflight before using Whisper/OpenAI or any other real backend.",
+            "- Keep `--require-target-backend-ready` so missing backends fail before model execution.",
+            "- Do not publish transcripts, expected text, audio file names, reference file names or local paths.",
             "",
         ]
     )
@@ -2093,6 +2334,9 @@ def _format_real_pilot_handoff_markdown(report: dict[str, Any]) -> str:
     fixture_preflight_name = Path(
         report["artifacts"].get("real_pilot_fixture_preflight", "real-pilot-fixture-preflight.md")
     ).name
+    transcription_readiness_name = Path(
+        report["artifacts"].get("real_pilot_transcription_readiness", "real-pilot-transcription-readiness.md")
+    ).name
     system_output_readiness_name = Path(
         report["artifacts"].get("real_pilot_system_output_readiness", "real-pilot-system-output-readiness.md")
     ).name
@@ -2119,6 +2363,7 @@ def _format_real_pilot_handoff_markdown(report: dict[str, Any]) -> str:
         f"- Paquete de comandos: `{command_pack_name}`",
         f"- Checklist de entorno: `{environment_checklist_name}`",
         f"- Preflight de fixture: `{fixture_preflight_name}`",
+        f"- Readiness de transcripcion real: `{transcription_readiness_name}`",
         f"- Readiness de salida system: `{system_output_readiness_name}`",
         f"- Manifiesto de evidencias: `{evidence_manifest_name}`",
         f"- Compuerta go/no-go: `{decision_gate_name}`",
@@ -2166,6 +2411,7 @@ def _format_real_pilot_handoff_markdown(report: dict[str, Any]) -> str:
             "",
             f"- Revisar `{environment_checklist_name}` para confirmar Python, ffmpeg y backends opcionales disponibles.",
             f"- Revisar `{fixture_preflight_name}` para confirmar el fixture sintetico y el siguiente preflight con MP3 propio no sensible.",
+            f"- Revisar `{transcription_readiness_name}` para confirmar backend objetivo, guard estricto, privacidad de audio/referencia y calidad.",
             f"- Revisar `{system_output_readiness_name}` para confirmar backend de salida, texto publico y operador presente.",
             "- Reemplazar `sample.mp3`, `<audio-path>`, `<expected-text-path>` y `<public-spoken-text>` solo localmente.",
             "- Usar audio propio no sensible y texto hablado publico/no sensible.",

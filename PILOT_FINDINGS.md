@@ -2,6 +2,37 @@
 
 Este documento resume hallazgos de pilotos reales o semi-manuales. No debe incluir audio, transcripciones privadas, rutas locales completas ni nombres reales de dispositivos.
 
+## 2026-06-06 - Windows readiness de transcripcion real sin modelo
+
+Comando ejecutado:
+
+```powershell
+python tools\pilot_run.py --output-dir pilot_runs\safe --json
+```
+
+Alcance:
+
+- Sistema: Windows.
+- Version AuralisVoiceKit: `0.93.0`.
+- Audio real: no.
+- Red/modelos reales: no.
+- Artifact de preparacion: `real-pilot-transcription-readiness.md`.
+- Texto esperado, transcripcion, nombres de archivos y rutas locales guardadas: no.
+
+Resultado:
+
+- Piloto seguro: `passed=true`.
+- ffmpeg para audio comprimido: `ok`.
+- `transcription_readiness_card.status`: `recommended`.
+- `transcription_readiness_card.usable_as_beta_evidence`: `false`.
+- `local-real-transcription-ready`: `warning`, esperado porque falta instalar un backend real (`auralisvoicekit[whisper]` u `auralisvoicekit[openai]`).
+
+Acciones siguientes:
+
+1. Instalar o confirmar un backend real de transcripcion antes de usar `--real-transcription`.
+2. Reemplazar `sample.mp3` solo localmente por un MP3 propio no sensible y ejecutar primero `--preflight-only`.
+3. Mantener la beta bloqueada hasta tener evidencia real con `target_backend.available=true`, `target_backend_ready_required=true`, `reference_privacy_scan.passed=true` y `--confirm-quality-reviewed`.
+
 ## 2026-06-06 - Windows salida system dry-run con tarjeta de readiness
 
 Comando ejecutado:
