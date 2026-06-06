@@ -68,8 +68,10 @@ class TranscriptionPilotTests(unittest.TestCase):
         self.assertFalse(payload["quality_review_confirmed"])
         self.assertFalse(payload["transcription_checklist"]["quality_review_confirmed"])
         self.assertFalse(payload["transcription_checklist"]["records_audio_path"])
+        self.assertFalse(payload["transcription_checklist"]["records_audio_file_name"])
         self.assertFalse(payload["transcription_checklist"]["records_transcript_text"])
         self.assertFalse(payload["transcription_checklist"]["records_expected_text"])
+        self.assertFalse(payload["transcription_checklist"]["records_expected_text_file_name"])
         self.assertIn("transcription_review_checklist", report["artifacts"])
         self.assertNotIn("text\": \"", report_text)
         self.assertIn("Transcription pilot findings", findings)
@@ -257,11 +259,11 @@ class TranscriptionPilotTests(unittest.TestCase):
                     expected_text_file=reference,
                 )
 
-    def test_transcription_pilot_expected_text_file_reports_only_file_name(self):
+    def test_transcription_pilot_expected_text_file_redacts_file_name(self):
         module = _load_transcription_pilot()
 
         with tempfile.TemporaryDirectory() as tmpdir:
-            reference = Path(tmpdir) / "reference.txt"
+            reference = Path(tmpdir) / "secret-reference.txt"
             reference.write_text("Hola desde archivo", encoding="utf-8")
             report = module.run_transcription_pilot(
                 root=ROOT,
@@ -273,17 +275,26 @@ class TranscriptionPilotTests(unittest.TestCase):
             )
             report_path = Path(report["artifacts"]["transcription_pilot_report"])
             report_text = report_path.read_text(encoding="utf-8")
+            findings = Path(report["artifacts"]["pilot_findings"]).read_text(encoding="utf-8")
+            checklist = Path(report["artifacts"]["transcription_review_checklist"]).read_text(encoding="utf-8")
 
         self.assertTrue(report["passed"])
         self.assertEqual(report["quality"]["expected_text_source"], "file")
-        self.assertEqual(report["quality"]["expected_text_file_name"], "reference.txt")
+        self.assertEqual(report["quality"]["expected_text_file_name"], "<expected-text-file-redacted>")
+        self.assertTrue(report["quality"]["expected_text_file_name_redacted"])
+        self.assertEqual(report["quality"]["expected_text_file_extension"], ".txt")
         self.assertNotIn("Hola desde archivo", report_text)
+        self.assertNotIn("secret-reference.txt", report_text)
+        self.assertNotIn("secret-reference.txt", findings)
+        self.assertNotIn("secret-reference.txt", checklist)
+        self.assertIn("Expected text file name redacted: True", findings)
+        self.assertIn("Records expected text file name: False", checklist)
 
     def test_transcription_pilot_preflight_decodes_audio_without_backend(self):
         module = _load_transcription_pilot()
 
         with tempfile.TemporaryDirectory() as tmpdir:
-            audio_path = Path(tmpdir) / "sample.wav"
+            audio_path = Path(tmpdir) / "private-meeting.wav"
             write_wav(
                 str(audio_path),
                 [AudioChunk(data=b"\x00\x00" * 800, format=AudioFormat(sample_rate=8000, channels=1))],
@@ -311,12 +322,17 @@ class TranscriptionPilotTests(unittest.TestCase):
         self.assertFalse(report["real_transcription_requested"])
         self.assertIsNone(report["transcript"])
         self.assertTrue(report["audio"]["decoded"])
-        self.assertEqual(report["audio"]["audio_file_name"], "sample.wav")
+        self.assertEqual(report["audio"]["audio_file_name"], "<audio-file-redacted>")
+        self.assertTrue(report["audio"]["audio_file_name_redacted"])
         self.assertEqual(report["audio"]["source_format"], "wav")
         self.assertTrue(report["audio"]["duration_gate"]["enabled"])
         self.assertTrue(report["audio"]["duration_gate"]["passed"])
         self.assertNotIn(str(audio_path), report_text)
+        self.assertNotIn("private-meeting.wav", report_text)
+        self.assertNotIn("private-meeting.wav", findings)
+        self.assertNotIn("private-meeting.wav", checklist)
         self.assertIn("Preflight only: True", findings)
+        self.assertIn("Audio file name redacted: True", findings)
         self.assertIn("Audio decode passed: True", findings)
         self.assertIn("Duration gate passed: True", findings)
         self.assertIn("Review checklist: transcription-review-checklist.md", findings)
@@ -401,10 +417,14 @@ class TranscriptionPilotTests(unittest.TestCase):
         self.assertTrue(checklist["reference_review_confirmed"])
         self.assertTrue(checklist["reference_privacy_scan_passed"])
         self.assertTrue(checklist["quality_review_confirmed"])
+        self.assertFalse(checklist["records_audio_file_name"])
         self.assertFalse(checklist["records_transcript_text"])
         self.assertFalse(checklist["records_expected_text"])
+        self.assertFalse(checklist["records_expected_text_file_name"])
         self.assertIn("Quality review confirmed: True", markdown)
         self.assertIn("Audio review confirmed: True", markdown)
+        self.assertIn("Records audio file name: False", markdown)
+        self.assertIn("Records expected text file name: False", markdown)
         self.assertIn("Reference review confirmed: True", markdown)
         self.assertIn("Reference privacy scan passed: True", markdown)
         self.assertIn("Ready for beta evidence: True", markdown)

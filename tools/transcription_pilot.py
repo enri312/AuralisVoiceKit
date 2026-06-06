@@ -30,6 +30,8 @@ from auralis_voicekit.exceptions import AudioSourceError, BackendNotAvailable, T
 
 
 BETA_MIN_WORD_ACCURACY = 0.75
+REDACTED_AUDIO_FILE_NAME = "<audio-file-redacted>"
+REDACTED_REFERENCE_FILE_NAME = "<expected-text-file-redacted>"
 REFERENCE_PRIVACY_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("email", re.compile(r"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b", re.IGNORECASE)),
     ("url", re.compile(r"\b(?:https?://|www\.)\S+\b", re.IGNORECASE)),
@@ -189,9 +191,11 @@ def run_transcription_pilot(
         if result is not None
         else None
     )
+    audio_file_name_redacted = not generated_synthetic_audio
     audio_payload = {
         "generated_synthetic_audio": generated_synthetic_audio,
-        "audio_file_name": source_audio_path.name,
+        "audio_file_name": source_audio_path.name if generated_synthetic_audio else REDACTED_AUDIO_FILE_NAME,
+        "audio_file_name_redacted": audio_file_name_redacted,
         "audio_file_extension": source_audio_path.suffix.lower(),
         "audio_confirmed_non_sensitive": audio_confirmed_non_sensitive,
         "audio_review_confirmed": audio_review_confirmed,
@@ -337,7 +341,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument(
         "--expected-text-file",
-        help="optional file containing reference text; only the file name is reported",
+        help="optional file containing reference text; file name is redacted and only the extension is reported",
     )
     parser.add_argument(
         "--min-word-accuracy",
@@ -495,9 +499,14 @@ def _load_expected_reference(
             raise ValueError("--expected-text-file was not found.")
         text = path.read_text(encoding="utf-8")
         source = "file"
-        file_name = path.name
+        file_name = REDACTED_REFERENCE_FILE_NAME
+        file_name_redacted = True
+        file_extension = path.suffix.lower()
     else:
         return None
+    if expected_text is not None:
+        file_name_redacted = False
+        file_extension = None
 
     if not text.strip():
         raise ValueError("Expected text must not be empty.")
@@ -505,6 +514,8 @@ def _load_expected_reference(
         "text": text,
         "source": source,
         "file_name": file_name,
+        "file_name_redacted": file_name_redacted,
+        "file_extension": file_extension,
     }
 
 
@@ -646,6 +657,8 @@ def _quality_report(
         "expected_text_redacted": True,
         "expected_text_source": expected_reference["source"],
         "expected_text_file_name": expected_reference["file_name"],
+        "expected_text_file_name_redacted": expected_reference["file_name_redacted"],
+        "expected_text_file_extension": expected_reference["file_extension"],
         "expected_text_characters": len(expected_text),
         "expected_text_words_estimate": len(expected_text.split()),
         "reference_words": len(reference_words),
@@ -832,8 +845,10 @@ def _transcription_checklist(
     ]
     return {
         "records_audio_path": False,
+        "records_audio_file_name": False,
         "records_transcript_text": False,
         "records_expected_text": False,
+        "records_expected_text_file_name": False,
         "redacts_transcript_text": True,
         "redacts_expected_text": True,
         "audio_review_confirmed": audio_review_confirmed,
@@ -893,6 +908,7 @@ def _build_findings_markdown(
         f"- Real transcription requested: {real_transcription}",
         f"- Passed: {passed}",
         f"- Audio file name: {audio['audio_file_name']}",
+        f"- Audio file name redacted: {audio['audio_file_name_redacted']}",
         f"- Audio extension: {audio['audio_file_extension'] or 'none'}",
         f"- Generated synthetic audio: {audio['generated_synthetic_audio']}",
         f"- Audio confirmed non-sensitive: {audio['audio_confirmed_non_sensitive']}",
@@ -931,6 +947,8 @@ def _build_findings_markdown(
             [
                 f"- Expected text source: {quality['expected_text_source']}",
                 f"- Expected text file name: {_format_optional(quality['expected_text_file_name'])}",
+                f"- Expected text file name redacted: {quality['expected_text_file_name_redacted']}",
+                f"- Expected text file extension: {_format_optional(quality['expected_text_file_extension'])}",
                 f"- Expected text characters: {quality['expected_text_characters']}",
                 f"- Word accuracy: {quality['word_accuracy']}",
                 f"- Word error rate: {quality['word_error_rate']}",
@@ -985,8 +1003,10 @@ def _build_transcription_checklist_markdown(
         f"- Created at: {timestamp}",
         f"- Backend: {backend}",
         f"- Records audio path: {transcription_checklist['records_audio_path']}",
+        f"- Records audio file name: {transcription_checklist['records_audio_file_name']}",
         f"- Records transcript text: {transcription_checklist['records_transcript_text']}",
         f"- Records expected text: {transcription_checklist['records_expected_text']}",
+        f"- Records expected text file name: {transcription_checklist['records_expected_text_file_name']}",
         f"- Redacts transcript text: {transcription_checklist['redacts_transcript_text']}",
         f"- Redacts expected text: {transcription_checklist['redacts_expected_text']}",
         f"- Audio review confirmed: {transcription_checklist['audio_review_confirmed']}",

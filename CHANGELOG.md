@@ -6,6 +6,19 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.68.0] - 2026-06-05
+
+### Agregado
+
+- Redaccion de nombres de archivos de audio de usuario y archivos de referencia en `tools/transcription_pilot.py`.
+- Campos JSON `audio.audio_file_name_redacted`, `quality.expected_text_file_name_redacted`, `quality.expected_text_file_extension`, `transcription_checklist.records_audio_file_name` y `transcription_checklist.records_expected_text_file_name`.
+- Requisitos beta para bloquear evidencias de transcripcion real que expongan nombres de archivos privados.
+
+### Cambiado
+
+- `tools/transcription_pilot.py` conserva extension/formato de audio y referencia, pero no nombres reales de archivos de usuario.
+- `tools/beta_readiness.py`, `tools/pilot_run.py`, README, `PILOTS.md`, docs HTML, roadmap y gate de estabilidad documentan la nueva redaccion de nombres de archivos.
+
 ## [0.67.0] - 2026-06-05
 
 ### Agregado

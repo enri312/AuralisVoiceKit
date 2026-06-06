@@ -72,6 +72,7 @@ def build_evidence_requirements_report() -> dict[str, Any]:
                     _required_field("project", "AuralisVoiceKit"),
                     _required_field("real_transcription_requested", True),
                     _required_field("audio_confirmed_non_sensitive", True),
+                    _required_field("audio.audio_file_name_redacted", True),
                     _required_field("audio_review_confirmed", True),
                     _required_field("reference_review_confirmed", True),
                     _required_field("reference_privacy_scan.passed", True),
@@ -81,6 +82,11 @@ def build_evidence_requirements_report() -> dict[str, Any]:
                     _required_field("quality.passed", True),
                     _required_field("quality.min_word_accuracy", f">= {BETA_MIN_WORD_ACCURACY}"),
                     _required_field("transcription_checklist.audio_review_confirmed", True),
+                    _required_field("transcription_checklist.records_audio_path", False),
+                    _required_field("transcription_checklist.records_audio_file_name", False),
+                    _required_field("transcription_checklist.records_transcript_text", False),
+                    _required_field("transcription_checklist.records_expected_text", False),
+                    _required_field("transcription_checklist.records_expected_text_file_name", False),
                     _required_field("transcription_checklist.reference_review_confirmed", True),
                     _required_field("transcription_checklist.reference_privacy_scan_passed", True),
                     _required_field("transcription_checklist.quality_review_confirmed", True),
@@ -157,6 +163,7 @@ def build_evidence_requirements_report() -> dict[str, Any]:
         "privacy": [
             "No audio bytes are required in beta evidence.",
             "No full transcript or expected text is required in beta readiness evidence.",
+            "User audio file names and expected-text file names must be redacted.",
             "Reference privacy scans expose only pass/fail, risk counts and risk types.",
             "Spoken text privacy scans expose only pass/fail, risk counts and risk types.",
             "Only structured fields and sanitized artifact names are used.",
@@ -944,12 +951,15 @@ def _is_system_output_audible_evidence(report: dict[str, Any]) -> bool:
 
 
 def _is_real_transcription_quality_evidence(report: dict[str, Any]) -> bool:
+    audio = report.get("audio", {})
     quality = report.get("quality", {})
     reference_privacy_scan = report.get("reference_privacy_scan", {})
     transcription_checklist = report.get("transcription_checklist", {})
     return (
         report.get("real_transcription_requested") is True
         and report.get("audio_confirmed_non_sensitive") is True
+        and isinstance(audio, dict)
+        and audio.get("audio_file_name_redacted") is True
         and report.get("audio_review_confirmed") is True
         and report.get("reference_review_confirmed") is True
         and isinstance(reference_privacy_scan, dict)
@@ -962,6 +972,11 @@ def _is_real_transcription_quality_evidence(report: dict[str, Any]) -> bool:
         and float(quality.get("min_word_accuracy") or 0.0) >= BETA_MIN_WORD_ACCURACY
         and isinstance(transcription_checklist, dict)
         and transcription_checklist.get("audio_review_confirmed") is True
+        and transcription_checklist.get("records_audio_path") is False
+        and transcription_checklist.get("records_audio_file_name") is False
+        and transcription_checklist.get("records_transcript_text") is False
+        and transcription_checklist.get("records_expected_text") is False
+        and transcription_checklist.get("records_expected_text_file_name") is False
         and transcription_checklist.get("reference_review_confirmed") is True
         and transcription_checklist.get("reference_privacy_scan_passed") is True
         and transcription_checklist.get("quality_review_confirmed") is True

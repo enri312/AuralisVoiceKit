@@ -247,6 +247,24 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertFalse(checks["real_transcription_quality"]["ok"])
         self.assertIn("real_transcription_quality", report["blockers"])
 
+    def test_real_transcription_evidence_requires_file_name_redaction(self):
+        module = _load_beta_readiness()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            evidence_path = Path(tmpdir) / "transcription-pilot-report.json"
+            evidence = _transcription_evidence()
+            evidence["audio"]["audio_file_name_redacted"] = False
+            evidence["transcription_checklist"]["records_audio_file_name"] = True
+            evidence["transcription_checklist"]["records_expected_text_file_name"] = True
+            evidence["transcription_checklist"]["ready_for_beta_evidence"] = False
+            _write_json(evidence_path, evidence)
+
+            report = module.build_beta_readiness_report(ROOT, evidence_paths=[evidence_path])
+            checks = {check["name"]: check for check in report["checks"]}
+
+        self.assertFalse(checks["real_transcription_quality"]["ok"])
+        self.assertIn("real_transcription_quality", report["blockers"])
+
     def test_system_output_evidence_requires_operator_checklist(self):
         module = _load_beta_readiness()
 
@@ -562,12 +580,18 @@ class BetaReadinessTests(unittest.TestCase):
         output_fields = {field["path"] for field in requirements["system_output_audible"]["fields"]}
         linux_fields = {field["path"] for field in requirements["ubuntu_linux_capture"]["fields"]}
         self.assertEqual(transcription_fields["audio_confirmed_non_sensitive"], True)
+        self.assertEqual(transcription_fields["audio.audio_file_name_redacted"], True)
         self.assertEqual(transcription_fields["audio_review_confirmed"], True)
         self.assertEqual(transcription_fields["reference_review_confirmed"], True)
         self.assertEqual(transcription_fields["reference_privacy_scan.passed"], True)
         self.assertEqual(transcription_fields["quality.min_word_accuracy"], ">= 0.75")
         self.assertEqual(transcription_fields["quality_review_confirmed"], True)
         self.assertEqual(transcription_fields["transcription_checklist.audio_review_confirmed"], True)
+        self.assertEqual(transcription_fields["transcription_checklist.records_audio_path"], False)
+        self.assertEqual(transcription_fields["transcription_checklist.records_audio_file_name"], False)
+        self.assertEqual(transcription_fields["transcription_checklist.records_transcript_text"], False)
+        self.assertEqual(transcription_fields["transcription_checklist.records_expected_text"], False)
+        self.assertEqual(transcription_fields["transcription_checklist.records_expected_text_file_name"], False)
         self.assertEqual(transcription_fields["transcription_checklist.reference_review_confirmed"], True)
         self.assertEqual(transcription_fields["transcription_checklist.reference_privacy_scan_passed"], True)
         self.assertEqual(transcription_fields["transcription_checklist.quality_review_confirmed"], True)
@@ -602,8 +626,11 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertIn("capture_checklist.input_review_confirmed", content)
         self.assertIn("capture_checklist.ready_for_beta_evidence", content)
         self.assertIn("quality.min_word_accuracy", content)
+        self.assertIn("audio.audio_file_name_redacted", content)
         self.assertIn("audio_review_confirmed", content)
         self.assertIn("transcription_checklist.audio_review_confirmed", content)
+        self.assertIn("transcription_checklist.records_audio_file_name", content)
+        self.assertIn("transcription_checklist.records_expected_text_file_name", content)
         self.assertIn("reference_review_confirmed", content)
         self.assertIn("reference_privacy_scan.passed", content)
         self.assertIn("transcription_checklist.reference_review_confirmed", content)
@@ -912,6 +939,11 @@ def _transcription_evidence(*, min_word_accuracy: float = 0.75, word_accuracy: f
         "project": "AuralisVoiceKit",
         "real_transcription_requested": True,
         "audio_confirmed_non_sensitive": True,
+        "audio": {
+            "audio_file_name": "<audio-file-redacted>",
+            "audio_file_name_redacted": True,
+            "audio_file_extension": ".mp3",
+        },
         "audio_review_confirmed": True,
         "reference_review_confirmed": True,
         "reference_privacy_scan": {
@@ -930,6 +962,11 @@ def _transcription_evidence(*, min_word_accuracy: float = 0.75, word_accuracy: f
         },
         "transcription_checklist": {
             "audio_review_confirmed": True,
+            "records_audio_path": False,
+            "records_audio_file_name": False,
+            "records_transcript_text": False,
+            "records_expected_text": False,
+            "records_expected_text_file_name": False,
             "reference_review_confirmed": True,
             "reference_privacy_scan_passed": True,
             "quality_review_confirmed": True,

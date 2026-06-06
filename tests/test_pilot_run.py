@@ -57,6 +57,9 @@ class PilotRunTests(unittest.TestCase):
         self.assertIn("--confirm-reference-reviewed", plan)
         self.assertIn("--confirm-quality-reviewed", plan)
         self.assertIn("transcription-review-checklist.md", plan)
+        self.assertIn("audio.audio_file_name_redacted", plan)
+        self.assertIn("transcription_checklist.records_audio_file_name", plan)
+        self.assertIn("transcription_checklist.records_expected_text_file_name", plan)
         self.assertIn("transcription_checklist.audio_review_confirmed", plan)
         self.assertIn("transcription_checklist.reference_review_confirmed", plan)
         self.assertIn("transcription_checklist.reference_privacy_scan_passed", plan)
@@ -102,6 +105,10 @@ class PilotRunTests(unittest.TestCase):
             "artifacts.transcription_review_checklist",
             report["recommended_pilot_sequence"][1]["required_fields"],
         )
+        self.assertIn(
+            "audio.audio_file_name_redacted",
+            report["recommended_pilot_sequence"][1]["required_fields"],
+        )
         checklist_step = {
             step["name"]: step for step in report["recommended_pilot_sequence"]
         }["system-output-operator-checklist"]
@@ -115,6 +122,9 @@ class PilotRunTests(unittest.TestCase):
         self.assertIn("--confirm-audio-reviewed", transcription_step["command"])
         self.assertIn("--confirm-reference-reviewed", transcription_step["command"])
         self.assertIn("transcription_checklist.audio_review_confirmed", transcription_step["required_fields"])
+        self.assertIn("audio.audio_file_name_redacted", transcription_step["required_fields"])
+        self.assertIn("transcription_checklist.records_audio_file_name", transcription_step["required_fields"])
+        self.assertIn("transcription_checklist.records_expected_text_file_name", transcription_step["required_fields"])
         self.assertIn("transcription_checklist.reference_review_confirmed", transcription_step["required_fields"])
         self.assertIn("transcription_checklist.reference_privacy_scan_passed", transcription_step["required_fields"])
         self.assertIn("transcription_checklist.quality_review_confirmed", transcription_step["required_fields"])
