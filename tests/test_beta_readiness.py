@@ -105,6 +105,40 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertTrue(checks["macos_capture"]["ok"])
         self.assertIn("transcription/transcription-pilot-report.json", checks["real_transcription_quality"]["evidence_sources"])
 
+    def test_evidence_sources_are_relative_to_the_evidence_directory(self):
+        module = _load_beta_readiness()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmpdir_path = Path(tmpdir)
+            evidence_root = tmpdir_path / "pilot-batch"
+            _write_json(
+                evidence_root / "linux" / "manual-pilot-report.json",
+                _capture_evidence("Linux", "sounddevice"),
+            )
+            _write_json(
+                evidence_root / "macos" / "manual-pilot-report.json",
+                _capture_evidence("Darwin", "pyaudio"),
+            )
+
+            report = module.build_beta_readiness_report(ROOT, evidence_paths=[evidence_root])
+            audit = module.build_evidence_audit_report(ROOT, evidence_paths=[evidence_root])
+
+        checks = {check["name"]: check for check in report["checks"]}
+
+        self.assertIn("linux/manual-pilot-report.json", report["evidence"]["files"])
+        self.assertIn("macos/manual-pilot-report.json", report["evidence"]["files"])
+        self.assertIn(
+            "linux/manual-pilot-report.json",
+            checks["ubuntu_linux_capture"]["evidence_sources"],
+        )
+        self.assertIn(
+            "macos/manual-pilot-report.json",
+            checks["macos_capture"]["evidence_sources"],
+        )
+        self.assertIn("linux/manual-pilot-report.json", {item["file"] for item in audit["accepted_details"]})
+        self.assertNotIn(str(tmpdir_path), json.dumps(report))
+        self.assertNotIn(str(tmpdir_path), json.dumps(audit))
+
     def test_evidence_requires_meaningful_transcription_threshold(self):
         module = _load_beta_readiness()
 
@@ -755,6 +789,29 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertIn("declara otro proyecto", content)
         self.assertIn("declares a different project", content)
         self.assertIn("output-pilot-report.json", content)
+        self.assertNotIn(str(tmpdir_path), content)
+
+    def test_markdown_lists_accepted_evidence_without_local_paths(self):
+        module = _load_beta_readiness()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmpdir_path = Path(tmpdir)
+            evidence_root = tmpdir_path / "batch"
+            output_path = tmpdir_path / "BETA_CHECKLIST.md"
+            _write_json(
+                evidence_root / "linux" / "manual-pilot-report.json",
+                _capture_evidence("Linux", "sounddevice"),
+            )
+
+            exit_code = module.main(
+                ["--root", str(ROOT), "--evidence", str(evidence_root), "--output", str(output_path)]
+            )
+            content = output_path.read_text(encoding="utf-8")
+
+        self.assertEqual(exit_code, 0)
+        self.assertIn("## Evidencias aceptadas", content)
+        self.assertIn("linux/manual-pilot-report.json", content)
+        self.assertIn("manual-pilot-report.json", content)
         self.assertNotIn(str(tmpdir_path), content)
 
     def test_non_object_evidence_is_ignored_with_reason(self):

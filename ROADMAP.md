@@ -58,6 +58,8 @@ Nota `v0.107.0`: el auditor beta ahora exige esos campos sanitizados de credenci
 
 Nota `v0.108.0`: el piloto seguro propaga los `conditional_required_fields` del contrato beta a la secuencia recomendada, manifiesto de evidencias, handoff y command pack, incluyendo `credentials.checked` para la ruta OpenAI.
 
+Nota `v0.109.0`: el auditor beta reporta evidencias aceptadas/ignoradas con rutas relativas seguras al lote `--evidence`, evitando rutas absolutas y distinguiendo artifacts repetidos por plataforma.
+
 ## Fase 0 - Base del proyecto
 
 **Objetivo:** dejar una libreria instalable, importable y testeable.

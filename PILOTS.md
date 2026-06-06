@@ -14,6 +14,8 @@ Nota `v0.107.0`: la evidencia beta de transcripcion con backend `openai` debe co
 
 Nota `v0.108.0`: `tools/pilot_run.py` conserva esos campos como `conditional_required_fields` en el JSON y los muestra en `pilot-plan.md`, `real-pilot-command-pack.md`, `real-pilot-handoff.md` y `real-pilot-evidence-manifest.md` para que la ruta OpenAI no se ejecute sin evidencia sanitizada de credencial.
 
+Nota `v0.109.0`: `tools/beta_readiness.py` lista evidencias aceptadas con fuentes relativas al directorio `--evidence`, por ejemplo `linux/manual-pilot-report.json`, sin rutas absolutas. English: accepted and ignored evidence sources are relative, public-safe paths so duplicated artifact names can be traced by platform.
+
 ```powershell
 py tools\pilot_run.py --output-dir pilot_runs\safe --json
 py tools\pilot_run.py --output-dir pilot_runs\safe --evidence pilot_runs\manual --evidence pilot_runs\output --evidence pilot_runs\transcription --json

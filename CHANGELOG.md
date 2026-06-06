@@ -6,6 +6,14 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.109.0] - 2026-06-06
+
+### Agregado
+
+- `tools/beta_readiness.py` ahora conserva fuentes publicas relativas al directorio `--evidence` para evidencias aceptadas e ignoradas.
+- El checklist Markdown muestra una seccion de evidencias aceptadas con artifact y ruta relativa segura, util cuando hay varios `manual-pilot-report.json` por plataforma.
+- La auditoria JSON expone `accepted_details` sin rutas absolutas para rastrear lotes de pilotos reales sin publicar carpetas locales.
+
 ## [0.108.0] - 2026-06-06
 
 ### Agregado

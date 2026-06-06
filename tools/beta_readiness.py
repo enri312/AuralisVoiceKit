@@ -231,7 +231,7 @@ def build_evidence_audit_report(
         candidates = [_audit_requirement(report, requirement) for requirement in candidate_requirements]
         artifacts.append(
             {
-                "file": _safe_evidence_source(report["_evidence_path"]),
+                "file": _public_evidence_source(report),
                 "artifact": evidence_path.name,
                 "satisfied_blockers": [candidate["name"] for candidate in candidates if candidate["ok"]],
                 "candidate_count": len(candidates),
@@ -248,6 +248,13 @@ def build_evidence_audit_report(
         "project": "AuralisVoiceKit",
         "created_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
         "accepted_count": len(accepted_reports),
+        "accepted_details": [
+            {
+                "file": _public_evidence_source(report),
+                "artifact": Path(report["_evidence_path"]).name,
+            }
+            for report in accepted_reports
+        ],
         "ignored_count": len(evidence["ignored"]),
         "ignored_details": evidence["ignored"],
         "required_blockers": required_blockers,
@@ -438,7 +445,14 @@ def build_beta_readiness_report(
         "checks": checks,
         "blockers": [check["name"] for check in blockers],
         "evidence": {
-            "files": [_safe_evidence_source(report["_evidence_path"]) for report in evidence_reports],
+            "files": [_public_evidence_source(report) for report in evidence_reports],
+            "accepted_details": [
+                {
+                    "file": _public_evidence_source(report),
+                    "artifact": Path(report["_evidence_path"]).name,
+                }
+                for report in evidence_reports
+            ],
             "count": len(evidence_reports),
             "ignored_files": [item["file"] for item in evidence["ignored"]],
             "ignored_details": evidence["ignored"],
@@ -607,17 +621,31 @@ def format_markdown(report: dict[str, Any]) -> str:
         "## Bloqueadores para beta",
         "",
     ]
+    accepted_details = report["evidence"].get("accepted_details", [])
     ignored_details = report["evidence"].get("ignored_details", [])
-    if ignored_details:
+    if accepted_details or ignored_details:
         lines = lines[:-2]
+        if accepted_details:
+            lines.extend(
+                [
+                    "## Evidencias aceptadas",
+                    "",
+                ]
+            )
+            for item in accepted_details:
+                lines.append(f"- `{item['file']}` (`{item['artifact']}`)")
+            lines.append("")
         lines.extend(
             [
                 "## Evidencias ignoradas",
                 "",
             ]
         )
-        for item in ignored_details:
-            lines.append(f"- `{item['file']}`: {item['message_es']} / {item['message_en']}.")
+        if ignored_details:
+            for item in ignored_details:
+                lines.append(f"- `{item['file']}`: {item['message_es']} / {item['message_en']}.")
+        else:
+            lines.append("- Ninguna.")
         lines.extend(
             [
                 "",
@@ -808,7 +836,7 @@ def _evidence_or_terms_check(
     next_action: str,
 ) -> dict[str, Any]:
     evidence_sources = [
-        _safe_evidence_source(report["_evidence_path"]) for report in evidence_reports if evidence_predicate(report)
+        _public_evidence_source(report) for report in evidence_reports if evidence_predicate(report)
     ]
     if evidence_sources:
         return {
@@ -838,22 +866,24 @@ def _load_evidence_reports(workspace: Path, evidence_paths: list[str | Path]) ->
         if not path.is_absolute():
             path = workspace / path
         for report_path in _expand_evidence_path(path):
+            public_source = _public_evidence_source_for_input(report_path, path)
             try:
                 payload = json.loads(report_path.read_text(encoding="utf-8"))
             except (OSError, json.JSONDecodeError) as exc:
                 raise ValueError(f"Invalid evidence JSON: {report_path.name}") from exc
             if not isinstance(payload, dict):
-                ignored.append(_ignored_evidence(report_path, "not_json_object"))
+                ignored.append(_ignored_evidence(public_source, "not_json_object"))
                 continue
             payload = dict(payload)
             payload["_evidence_path"] = str(report_path)
+            payload["_evidence_source"] = public_source
             project = payload.get("project")
             if project == "AuralisVoiceKit":
                 accepted.append(payload)
             elif project is None:
-                ignored.append(_ignored_evidence(report_path, "missing_project"))
+                ignored.append(_ignored_evidence(public_source, "missing_project"))
             else:
-                ignored.append(_ignored_evidence(report_path, "wrong_project"))
+                ignored.append(_ignored_evidence(public_source, "wrong_project"))
     return {"accepted": accepted, "ignored": ignored}
 
 
@@ -936,7 +966,7 @@ def _format_name_list(names: list[str]) -> str:
     return ", ".join(f"`{name}`" for name in names)
 
 
-def _ignored_evidence(path: Path, reason: str) -> dict[str, str]:
+def _ignored_evidence(public_source: str, reason: str) -> dict[str, str]:
     messages = {
         "missing_project": {
             "message_es": "falta `project: AuralisVoiceKit`",
@@ -953,7 +983,7 @@ def _ignored_evidence(path: Path, reason: str) -> dict[str, str]:
     }
     detail = messages[reason]
     return {
-        "file": path.name,
+        "file": public_source,
         "reason": reason,
         "message_es": detail["message_es"],
         "message_en": detail["message_en"],
@@ -974,6 +1004,22 @@ def _looks_like_pilot_report(path: Path) -> bool:
         "output-pilot-report.json",
         "transcription-pilot-report.json",
     }
+
+
+def _public_evidence_source(report: dict[str, Any]) -> str:
+    source = report.get("_evidence_source")
+    if isinstance(source, str) and source:
+        return source
+    return _safe_evidence_source(str(report.get("_evidence_path", "")))
+
+
+def _public_evidence_source_for_input(report_path: Path, requested_path: Path) -> str:
+    if requested_path.is_dir():
+        try:
+            return report_path.relative_to(requested_path).as_posix()
+        except ValueError:
+            return _safe_evidence_source(str(report_path))
+    return report_path.name
 
 
 def _is_windows_wasapi_capture_evidence(report: dict[str, Any]) -> bool:
