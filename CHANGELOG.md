@@ -6,6 +6,13 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.86.0] - 2026-06-06
+
+### Cambiado
+
+- `tools/pilot_run.py` ahora expone `strict_backend_guard_required`, `strict_backend_guard_flag` y `strict_backend_guard_field` en la secuencia recomendada y la matriz de pilotos reales.
+- `pilot-plan.md` y `real-pilot-handoff.md` muestran explicitamente el flag y el campo JSON que debe conservar cada guard estricto de backend.
+
 ## [0.85.0] - 2026-06-06
 
 ### Cambiado

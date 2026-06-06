@@ -18,9 +18,9 @@ El reporte generado incluye:
 - demo de asistente local con logs sanitizados;
 - demo de salida `system` en dry-run;
 - benchmark offline exportado a JSON y CSV;
-- resumen `beta_readiness` y pasos `next_beta_evidence_steps` para cerrar blockers beta;
-- campo `recommended_pilot_sequence` con el orden recomendado para pilotos reales, checklist de captura, checklist de operador para salida audible, fixture sintetico, preflight MP3 de transcripcion, checklist de revision de transcripcion, auditoria estricta y refresco del checklist beta;
-- campo `platform_pilot_matrix` y seccion `Matriz por plataforma` para separar comandos Windows, Ubuntu/Linux, macOS, salida audible y transcripcion MP3;
+- resumen `beta_readiness` y pasos `next_beta_evidence_steps` para cerrar blockers beta con metadatos de guard backend estricto cuando aplica;
+- campo `recommended_pilot_sequence` con el orden recomendado para pilotos reales, checklist de captura, checklist de operador para salida audible, fixture sintetico, preflight MP3 de transcripcion, checklist de revision de transcripcion, auditoria estricta, refresco del checklist beta y metadatos `strict_backend_guard_required`, `strict_backend_guard_flag` y `strict_backend_guard_field`;
+- campo `platform_pilot_matrix` y seccion `Matriz por plataforma` para separar comandos Windows, Ubuntu/Linux, macOS, salida audible, transcripcion MP3 y guards estrictos de backend;
 - artifacts `pilot-plan.md`, `real-pilot-handoff.md` y `real-pilot-findings-template.md` con evidencias JSON aceptadas/ignoradas, secuencia recomendada, comandos pendientes, campos JSON requeridos, una tarjeta de traspaso segura para el operador y una plantilla sanitizada para `PILOT_FINDINGS.md`;
 - lista de pasos manuales pendientes.
 

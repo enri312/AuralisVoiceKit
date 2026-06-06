@@ -329,9 +329,30 @@ def _next_beta_evidence_steps(beta_module: Any, blockers: list[str]) -> list[dic
                 "command": requirement["command"],
                 "required_fields": [field["path"] for field in requirement["fields"]],
                 "reason": "Evidencia real requerida antes de beta publica.",
+                **_strict_backend_guard_metadata(blocker),
             }
         )
     return steps
+
+
+def _strict_backend_guard_metadata(step_name: str) -> dict[str, Any]:
+    if step_name in {"real_transcription_quality", "real-transcription-quality"}:
+        return {
+            "strict_backend_guard_required": True,
+            "strict_backend_guard_flag": "--require-target-backend-ready",
+            "strict_backend_guard_field": "target_backend_ready_required",
+        }
+    if step_name in {"system_output_audible", "system-output-audible"}:
+        return {
+            "strict_backend_guard_required": True,
+            "strict_backend_guard_flag": "--require-output-backend-ready",
+            "strict_backend_guard_field": "output_backend_ready_required",
+        }
+    return {
+        "strict_backend_guard_required": False,
+        "strict_backend_guard_flag": None,
+        "strict_backend_guard_field": None,
+    }
 
 
 def _recommended_pilot_sequence(
@@ -360,6 +381,7 @@ def _recommended_pilot_sequence(
                 "requires_non_sensitive_audio": step["name"] == "real_transcription_quality",
                 "review_required": True,
                 "reason": step["reason"],
+                **_strict_backend_guard_metadata(step["name"]),
             }
         )
 
@@ -382,6 +404,7 @@ def _recommended_pilot_sequence(
                 "requires_non_sensitive_audio": False,
                 "review_required": True,
                 "reason": "Verifica que los artifacts reales cierren blockers sin exponer contenido privado.",
+                **_strict_backend_guard_metadata("audit-evidence"),
             },
             {
                 "order": next_order + 1,
@@ -399,6 +422,7 @@ def _recommended_pilot_sequence(
                 "requires_non_sensitive_audio": False,
                 "review_required": not ready_for_beta,
                 "reason": "Mantiene visible si beta sigue bloqueada o si ya puede evaluarse publicamente.",
+                **_strict_backend_guard_metadata("refresh-beta-checklist"),
             },
         ]
     )
@@ -430,6 +454,7 @@ def _transcription_audio_fixture_step(order: int) -> dict[str, Any]:
         "requires_non_sensitive_audio": False,
         "review_required": False,
         "reason": "Genera un MP3 sintetico publico para ensayar ffmpeg antes de usar audio propio no sensible.",
+        **_strict_backend_guard_metadata("transcription-audio-fixture"),
     }
 
 
@@ -468,6 +493,7 @@ def _transcription_audio_preflight_step(order: int) -> dict[str, Any]:
             "Confirma que el MP3 propio se decodifica con ffmpeg y genera "
             "transcription-review-checklist.md y real-transcription-next-step.md antes de ejecutar un modelo real."
         ),
+        **_strict_backend_guard_metadata("transcription-audio-preflight"),
     }
 
 
@@ -494,6 +520,7 @@ def _system_output_operator_checklist_step(order: int) -> dict[str, Any]:
             "Prepara el checklist redactado y system-output-next-step.md antes de ejecutar "
             "salida audible real con operador presente."
         ),
+        **_strict_backend_guard_metadata("system-output-operator-checklist"),
     }
 
 
@@ -513,6 +540,7 @@ def _platform_pilot_matrix(blockers: list[str]) -> list[dict[str, Any]]:
             "requires_hardware": True,
             "requires_operator": False,
             "requires_non_sensitive_audio": False,
+            **_strict_backend_guard_metadata("windows-wasapi-capture"),
             "notes": (
                 "Captura Windows ya esta documentada; repetir si cambia hardware o driver, revisar "
                 "permisos/dispositivo de entrada y conservar manual-capture-checklist.md."
@@ -530,6 +558,7 @@ def _platform_pilot_matrix(blockers: list[str]) -> list[dict[str, Any]]:
             "requires_hardware": True,
             "requires_operator": False,
             "requires_non_sensitive_audio": False,
+            **_strict_backend_guard_metadata("ubuntu-linux-capture"),
             "notes": (
                 "Requiere microfono, permisos de audio, dispositivo de entrada revisado, "
                 "PortAudio con sounddevice o PyAudio y manual-capture-checklist.md. "
@@ -548,6 +577,7 @@ def _platform_pilot_matrix(blockers: list[str]) -> list[dict[str, Any]]:
             "requires_hardware": True,
             "requires_operator": False,
             "requires_non_sensitive_audio": False,
+            **_strict_backend_guard_metadata("macos-capture"),
             "notes": (
                 "Requiere permiso de microfono en macOS, revisar el dispositivo default, confirmar "
                 "entorno no sensible y conservar manual-capture-checklist.md. Usar --backend sounddevice "
@@ -570,6 +600,7 @@ def _platform_pilot_matrix(blockers: list[str]) -> list[dict[str, Any]]:
             "requires_hardware": True,
             "requires_operator": True,
             "requires_non_sensitive_audio": False,
+            **_strict_backend_guard_metadata("system-output-audible"),
             "notes": (
                 "Ejecutar solo con operador presente; confirmar privacidad del texto, audibilidad, "
                 "plataforma esperada, output_backend_ready_required=true, revision de voz "
@@ -589,6 +620,7 @@ def _platform_pilot_matrix(blockers: list[str]) -> list[dict[str, Any]]:
             "requires_hardware": False,
             "requires_operator": False,
             "requires_non_sensitive_audio": False,
+            **_strict_backend_guard_metadata("transcription-audio-fixture"),
             "notes": "Fixture sintetico y publico para validar ffmpeg; no cuenta como evidencia beta.",
         },
         {
@@ -604,6 +636,7 @@ def _platform_pilot_matrix(blockers: list[str]) -> list[dict[str, Any]]:
             "requires_hardware": False,
             "requires_operator": False,
             "requires_non_sensitive_audio": True,
+            **_strict_backend_guard_metadata("transcription-mp3-preflight"),
             "notes": (
                 "Paso previo: valida ffmpeg y metadata, luego revisa "
                 "real-transcription-next-step.md antes de transcribir con un modelo."
@@ -625,6 +658,7 @@ def _platform_pilot_matrix(blockers: list[str]) -> list[dict[str, Any]]:
             "requires_hardware": False,
             "requires_operator": False,
             "requires_non_sensitive_audio": True,
+            **_strict_backend_guard_metadata("real-transcription-quality"),
             "notes": (
                 "Usar un MP3 propio no sensible, revisar privacidad del audio y referencia, "
                 "confirmar target_backend.available=true, target_backend_ready_required=true, "
@@ -735,10 +769,10 @@ def _format_pilot_plan_markdown(report: dict[str, Any]) -> str:
                 f"- Requiere operador: `{_format_bool(step['requires_operator'])}`",
                 f"- Requiere audio no sensible: `{_format_bool(step['requires_non_sensitive_audio'])}`",
                 f"- Revision requerida: `{_format_bool(step['review_required'])}`",
-                f"- Motivo: {step['reason']}",
-                "",
             ]
         )
+        _append_strict_backend_guard_lines(lines, step)
+        lines.extend([f"- Motivo: {step['reason']}", ""])
     lines.extend(
         [
             "## Proximas evidencias beta",
@@ -755,10 +789,10 @@ def _format_pilot_plan_markdown(report: dict[str, Any]) -> str:
                     f"- Artifact esperado: `{step['artifact']}`",
                     f"- Comando: `{step['command']}`",
                     f"- Campos requeridos: {_format_inline_list(step['required_fields'])}",
-                    f"- Motivo: {step['reason']}",
-                    "",
                 ]
             )
+            _append_strict_backend_guard_lines(lines, step)
+            lines.extend([f"- Motivo: {step['reason']}", ""])
     else:
         lines.extend(["- No quedan evidencias beta pendientes segun los artifacts JSON actuales.", ""])
     lines.extend(
@@ -783,10 +817,10 @@ def _format_pilot_plan_markdown(report: dict[str, Any]) -> str:
                 f"- Requiere hardware: `{_format_bool(row['requires_hardware'])}`",
                 f"- Requiere operador: `{_format_bool(row['requires_operator'])}`",
                 f"- Requiere audio no sensible: `{_format_bool(row['requires_non_sensitive_audio'])}`",
-                f"- Nota: {row['notes']}",
-                "",
             ]
         )
+        _append_strict_backend_guard_lines(lines, row)
+        lines.extend([f"- Nota: {row['notes']}", ""])
     lines.extend(
         [
             "## Pasos manuales",
@@ -933,9 +967,10 @@ def _format_real_pilot_handoff_markdown(report: dict[str, Any]) -> str:
                 f"- Requiere operador: `{_format_bool(step['requires_operator'])}`",
                 f"- Requiere audio no sensible: `{_format_bool(step['requires_non_sensitive_audio'])}`",
                 f"- Revision requerida: `{_format_bool(step['review_required'])}`",
-                "",
             ]
         )
+        _append_strict_backend_guard_lines(lines, step)
+        lines.append("")
     lines.extend(
         [
             "## Auditoria",
@@ -964,6 +999,18 @@ def _format_inline_list(values: list[str]) -> str:
 
 def _format_bool(value: bool) -> str:
     return str(value).lower()
+
+
+def _append_strict_backend_guard_lines(lines: list[str], item: dict[str, Any]) -> None:
+    if not item.get("strict_backend_guard_required"):
+        return
+    lines.extend(
+        [
+            "- Guard backend estricto: `true`",
+            f"- Flag de guard backend: `{item['strict_backend_guard_flag']}`",
+            f"- Campo JSON del guard: `{item['strict_backend_guard_field']}`",
+        ]
+    )
 
 
 def _add_step(

@@ -89,6 +89,9 @@ class PilotRunTests(unittest.TestCase):
         self.assertIn("--fail-on-audit-gaps", handoff)
         self.assertIn("<public-spoken-text>", handoff)
         self.assertIn("<audio-path>", handoff)
+        self.assertIn("Guard backend estricto", handoff)
+        self.assertIn("Flag de guard backend", handoff)
+        self.assertIn("Campo JSON del guard", handoff)
         self.assertNotIn(str(tmpdir), handoff)
         self.assertIn("Secuencia recomendada", plan)
         self.assertIn("Matriz por plataforma", plan)
@@ -96,6 +99,9 @@ class PilotRunTests(unittest.TestCase):
         self.assertIn("--confirm-audible", plan)
         self.assertIn("--confirm-voice-reviewed", plan)
         self.assertIn("--require-output-backend-ready", plan)
+        self.assertIn("Guard backend estricto", plan)
+        self.assertIn("Flag de guard backend", plan)
+        self.assertIn("Campo JSON del guard", plan)
         self.assertIn("audit-evidence", plan)
         self.assertIn("refresh-beta-checklist", plan)
         self.assertIn("--fail-on-audit-gaps", plan)
@@ -179,6 +185,9 @@ class PilotRunTests(unittest.TestCase):
         output_step = {
             step["name"]: step for step in report["recommended_pilot_sequence"]
         }["system_output_audible"]
+        self.assertTrue(transcription_step["strict_backend_guard_required"])
+        self.assertEqual(transcription_step["strict_backend_guard_flag"], "--require-target-backend-ready")
+        self.assertEqual(transcription_step["strict_backend_guard_field"], "target_backend_ready_required")
         self.assertIn("--confirm-quality-reviewed", transcription_step["command"])
         self.assertIn("--confirm-audio-reviewed", transcription_step["command"])
         self.assertIn("--confirm-reference-reviewed", transcription_step["command"])
@@ -195,6 +204,9 @@ class PilotRunTests(unittest.TestCase):
         self.assertIn("--confirm-voice-reviewed", output_step["command"])
         self.assertIn("--confirm-text-reviewed", output_step["command"])
         self.assertIn("--require-output-backend-ready", output_step["command"])
+        self.assertTrue(output_step["strict_backend_guard_required"])
+        self.assertEqual(output_step["strict_backend_guard_flag"], "--require-output-backend-ready")
+        self.assertEqual(output_step["strict_backend_guard_field"], "output_backend_ready_required")
         self.assertIn('--expected-system "Windows|Linux|Darwin"', output_step["command"])
         self.assertIn("system_guard.expected_system_matched", output_step["required_fields"])
         self.assertIn("target_output_backend.available", output_step["required_fields"])
@@ -207,6 +219,7 @@ class PilotRunTests(unittest.TestCase):
         self.assertIn("operator_checklist.voice_review_confirmed", output_step["required_fields"])
         self.assertFalse(checklist_step["requires_hardware"])
         self.assertFalse(checklist_step["requires_operator"])
+        self.assertFalse(checklist_step["strict_backend_guard_required"])
         self.assertIn("operator_checklist.ready_for_beta_evidence", checklist_step["required_fields"])
         self.assertIn("artifacts.system_output_next_step", checklist_step["required_fields"])
         matrix = {row["name"]: row for row in report["platform_pilot_matrix"]}
@@ -219,7 +232,13 @@ class PilotRunTests(unittest.TestCase):
         self.assertEqual(matrix["transcription-mp3-preflight"]["status"], "recommended")
         self.assertIn("target_backend.available=true", matrix["real-transcription-quality"]["notes"])
         self.assertIn("target_backend_ready_required=true", matrix["real-transcription-quality"]["notes"])
+        self.assertTrue(matrix["real-transcription-quality"]["strict_backend_guard_required"])
+        self.assertEqual(
+            matrix["real-transcription-quality"]["strict_backend_guard_flag"],
+            "--require-target-backend-ready",
+        )
         self.assertTrue(matrix["system-output-audible"]["requires_operator"])
+        self.assertTrue(matrix["system-output-audible"]["strict_backend_guard_required"])
         self.assertIn("--confirm-voice-reviewed", matrix["system-output-audible"]["command"])
         self.assertIn("--confirm-text-reviewed", matrix["system-output-audible"]["command"])
         self.assertIn('--expected-system "Windows|Linux|Darwin"', matrix["system-output-audible"]["command"])
