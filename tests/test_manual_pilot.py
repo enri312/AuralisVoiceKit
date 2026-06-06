@@ -398,6 +398,38 @@ class ManualPilotTests(unittest.TestCase):
         self.assertEqual(gap["missing_fields"], [])
         self.assertTrue(gap["safe_to_share"])
 
+    def test_capture_beta_evidence_gap_accepts_guarded_windows_wasapi(self):
+        module = _load_manual_pilot()
+
+        checklist = module._capture_checklist(
+            system="Windows",
+            backend="wasapi",
+            capture_test=True,
+            sample_rate=48000,
+            passed=True,
+            hardware_capture_tested=True,
+            input_review_confirmed=True,
+            device_redacted=True,
+            expected_system_matched=True,
+        )
+        gap = module._capture_beta_evidence_gap(
+            system="Windows",
+            evidence_system="Windows",
+            backend="wasapi",
+            system_guard={"expected_system_matched": True},
+            target_capture_backend={"available": True},
+            require_capture_backend_ready=True,
+            capture_test=True,
+            input_review_confirmed=True,
+            passed=True,
+            capture_checklist=checklist,
+        )
+
+        self.assertEqual(gap["blocker"], "windows_wasapi_capture")
+        self.assertTrue(gap["ready_for_beta_evidence"])
+        self.assertEqual(gap["missing_fields"], [])
+        self.assertTrue(gap["safe_to_share"])
+
     def test_capture_readiness_plan_supports_linux_and_macos_backends(self):
         module = _load_manual_pilot()
 

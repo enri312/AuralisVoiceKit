@@ -19,10 +19,23 @@ Este documento describe los campos JSON que pueden cerrar blockers de beta. No r
   - `system` = `Windows`
   - `system_guard.expected_system_matched` = `True`
   - `capture_backend` = `wasapi`
+  - `target_capture_backend.available` = `True`
+  - `capture_backend_ready_required` = `True`
   - `hardware_capture_tested` = `True`
   - `input_review_confirmed` = `True`
   - `capture_checklist.input_review_confirmed` = `True`
   - `capture_checklist.ready_for_beta_evidence` = `True`
+  - `manual_capture_command_card.artifact` = `manual-capture-command.md`
+  - `manual_capture_command_card.blocker` = `windows_wasapi_capture`
+  - `manual_capture_command_card.ready_for_beta_evidence` = `True`
+  - `manual_capture_command_card.safe_to_share` = `True`
+  - `manual_capture_command_card.uses_placeholders` = `True`
+  - `manual_capture_command_card.preflight_uses_microphone` = `False`
+  - `manual_capture_command_card.real_capture_requires_microphone` = `True`
+  - `manual_capture_command_card.records_audio` = `False`
+  - `manual_capture_command_card.records_audio_bytes` = `False`
+  - `manual_capture_command_card.records_device_name` = `False`
+  - `manual_capture_command_card.records_local_paths` = `False`
   - `passed` = `True`
 
 ### real_transcription_quality
@@ -129,6 +142,17 @@ Este documento describe los campos JSON que pueden cerrar blockers de beta. No r
   - `input_review_confirmed` = `True`
   - `capture_checklist.input_review_confirmed` = `True`
   - `capture_checklist.ready_for_beta_evidence` = `True`
+  - `manual_capture_command_card.artifact` = `manual-capture-command.md`
+  - `manual_capture_command_card.blocker` = `ubuntu_linux_capture`
+  - `manual_capture_command_card.ready_for_beta_evidence` = `True`
+  - `manual_capture_command_card.safe_to_share` = `True`
+  - `manual_capture_command_card.uses_placeholders` = `True`
+  - `manual_capture_command_card.preflight_uses_microphone` = `False`
+  - `manual_capture_command_card.real_capture_requires_microphone` = `True`
+  - `manual_capture_command_card.records_audio` = `False`
+  - `manual_capture_command_card.records_audio_bytes` = `False`
+  - `manual_capture_command_card.records_device_name` = `False`
+  - `manual_capture_command_card.records_local_paths` = `False`
   - `passed` = `True`
 
 ### macos_capture
@@ -147,6 +171,17 @@ Este documento describe los campos JSON que pueden cerrar blockers de beta. No r
   - `input_review_confirmed` = `True`
   - `capture_checklist.input_review_confirmed` = `True`
   - `capture_checklist.ready_for_beta_evidence` = `True`
+  - `manual_capture_command_card.artifact` = `manual-capture-command.md`
+  - `manual_capture_command_card.blocker` = `macos_capture`
+  - `manual_capture_command_card.ready_for_beta_evidence` = `True`
+  - `manual_capture_command_card.safe_to_share` = `True`
+  - `manual_capture_command_card.uses_placeholders` = `True`
+  - `manual_capture_command_card.preflight_uses_microphone` = `False`
+  - `manual_capture_command_card.real_capture_requires_microphone` = `True`
+  - `manual_capture_command_card.records_audio` = `False`
+  - `manual_capture_command_card.records_audio_bytes` = `False`
+  - `manual_capture_command_card.records_device_name` = `False`
+  - `manual_capture_command_card.records_local_paths` = `False`
   - `passed` = `True`
 
 ## Privacidad
@@ -157,4 +192,5 @@ Este documento describe los campos JSON que pueden cerrar blockers de beta. No r
 - OpenAI evidence records credential presence only, never the API key value.
 - Reference privacy scans expose only pass/fail, risk counts and risk types.
 - Spoken text privacy scans expose only pass/fail, risk counts and risk types.
+- Manual capture command cards must use placeholders and must not record audio, device names or local paths.
 - Only structured fields and sanitized artifact names are used.

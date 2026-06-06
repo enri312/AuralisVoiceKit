@@ -528,6 +528,19 @@ def _strict_backend_guard_metadata(step_name: str) -> dict[str, Any]:
             "strict_backend_guard_flag": "--require-output-backend-ready",
             "strict_backend_guard_field": "output_backend_ready_required",
         }
+    if step_name in {
+        "windows_wasapi_capture",
+        "windows-wasapi-capture",
+        "ubuntu_linux_capture",
+        "ubuntu-linux-capture",
+        "macos_capture",
+        "macos-capture",
+    }:
+        return {
+            "strict_backend_guard_required": True,
+            "strict_backend_guard_flag": "--require-capture-backend-ready",
+            "strict_backend_guard_field": "capture_backend_ready_required",
+        }
     return {
         "strict_backend_guard_required": False,
         "strict_backend_guard_flag": None,
@@ -540,7 +553,12 @@ def _recommended_pilot_sequence(
     *,
     ready_for_beta: bool,
 ) -> list[dict[str, Any]]:
-    hardware_required_blockers = {"system_output_audible", "ubuntu_linux_capture", "macos_capture"}
+    hardware_required_blockers = {
+        "windows_wasapi_capture",
+        "system_output_audible",
+        "ubuntu_linux_capture",
+        "macos_capture",
+    }
     sequence = []
     for step in next_beta_evidence_steps:
         if step["name"] == "real_transcription_quality":
@@ -820,7 +838,7 @@ def _platform_pilot_matrix(blockers: list[str]) -> list[dict[str, Any]]:
             "command": (
                 "python tools/manual_pilot.py --capture-test --backend wasapi "
                 "--device default --sample-rate 48000 --expected-system Windows "
-                "--confirm-input-reviewed --json"
+                "--confirm-input-reviewed --require-capture-backend-ready --json"
             ),
             "artifact": "manual-pilot-report.json",
             "requires_hardware": True,
@@ -828,8 +846,8 @@ def _platform_pilot_matrix(blockers: list[str]) -> list[dict[str, Any]]:
             "requires_non_sensitive_audio": False,
             **_strict_backend_guard_metadata("windows-wasapi-capture"),
             "notes": (
-                "Captura Windows ya esta documentada; repetir si cambia hardware o driver, revisar "
-                "permisos/dispositivo de entrada y conservar manual-capture-checklist.md."
+                "Repetir con el guard actual, revisar permisos/dispositivo de entrada y conservar "
+                "manual-capture-checklist.md y manual-capture-command.md."
             ),
         },
         {
@@ -838,7 +856,8 @@ def _platform_pilot_matrix(blockers: list[str]) -> list[dict[str, Any]]:
             "blocker": "ubuntu_linux_capture",
             "command": (
                 "python tools/manual_pilot.py --capture-test --backend sounddevice "
-                "--device default --expected-system Linux --confirm-input-reviewed --json"
+                "--device default --expected-system Linux --confirm-input-reviewed "
+                "--require-capture-backend-ready --json"
             ),
             "artifact": "manual-pilot-report.json",
             "requires_hardware": True,
@@ -847,7 +866,8 @@ def _platform_pilot_matrix(blockers: list[str]) -> list[dict[str, Any]]:
             **_strict_backend_guard_metadata("ubuntu-linux-capture"),
             "notes": (
                 "Requiere microfono, permisos de audio, dispositivo de entrada revisado, "
-                "PortAudio con sounddevice o PyAudio y manual-capture-checklist.md. "
+                "PortAudio con sounddevice o PyAudio, manual-capture-checklist.md y "
+                "manual-capture-command.md. "
                 "Si el stack disponible es PyAudio, repetir el comando con --backend pyaudio."
             ),
         },
@@ -857,7 +877,8 @@ def _platform_pilot_matrix(blockers: list[str]) -> list[dict[str, Any]]:
             "blocker": "macos_capture",
             "command": (
                 "python tools/manual_pilot.py --capture-test --backend sounddevice "
-                "--device default --expected-system Darwin --confirm-input-reviewed --json"
+                "--device default --expected-system Darwin --confirm-input-reviewed "
+                "--require-capture-backend-ready --json"
             ),
             "artifact": "manual-pilot-report.json",
             "requires_hardware": True,
@@ -866,8 +887,8 @@ def _platform_pilot_matrix(blockers: list[str]) -> list[dict[str, Any]]:
             **_strict_backend_guard_metadata("macos-capture"),
             "notes": (
                 "Requiere permiso de microfono en macOS, revisar el dispositivo default, confirmar "
-                "entorno no sensible y conservar manual-capture-checklist.md. Usar --backend sounddevice "
-                "o --backend pyaudio segun el stack instalado."
+                "entorno no sensible y conservar manual-capture-checklist.md y manual-capture-command.md. "
+                "Usar --backend sounddevice o --backend pyaudio segun el stack instalado."
             ),
         },
         {
@@ -1624,6 +1645,9 @@ def _real_pilot_decision_gate(report: dict[str, Any]) -> dict[str, Any]:
             "requires_hardware": recommended["requires_hardware"] if recommended else False,
             "requires_operator": recommended["requires_operator"] if recommended else False,
             "requires_non_sensitive_audio": recommended["requires_non_sensitive_audio"] if recommended else False,
+            "strict_backend_guard_required": recommended["strict_backend_guard_required"] if recommended else False,
+            "strict_backend_guard_flag": recommended["strict_backend_guard_flag"] if recommended else None,
+            "strict_backend_guard_field": recommended["strict_backend_guard_field"] if recommended else None,
         },
         "next_evidence_focus": report["beta_readiness"].get("next_evidence_focus", {}),
         "local_environment_warnings": local_warnings,

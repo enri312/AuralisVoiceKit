@@ -630,7 +630,7 @@ def _capture_beta_evidence_gap(
             normalized_backend in accepted_backends,
         ),
     ]
-    if blocker in {"ubuntu_linux_capture", "macos_capture"}:
+    if blocker in {"windows_wasapi_capture", "ubuntu_linux_capture", "macos_capture"}:
         checks.extend(
             [
                 _beta_gap_check(

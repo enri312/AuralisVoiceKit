@@ -6,6 +6,19 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.124.0] - 2026-06-06
+
+### Cambiado
+
+- `tools/beta_readiness.py` ahora exige que la evidencia beta de captura incluya `manual_capture_command_card` segura y compartible.
+- La evidencia Windows/WASAPI vuelve a requerir captura real actualizada con `target_capture_backend.available=true`, `capture_backend_ready_required=true`, `--expected-system` y revision de entrada confirmada.
+- El contrato `BETA_EVIDENCE_REQUIREMENTS.md` documenta `manual_capture_command_card.safe_to_share`, placeholders y flags que prueban que no se guardan audio, bytes, nombres de dispositivos ni rutas locales.
+- Las acciones siguientes de captura Ubuntu/Linux y macOS mencionan `manual-capture-command.md` junto con el checklist manual.
+
+### Pruebas
+
+- Nuevas pruebas rechazan evidencia de captura si la tarjeta de comandos no es segura, usa microfono en preflight o registra contenido privado.
+
 ## [0.123.0] - 2026-06-06
 
 ### Agregado

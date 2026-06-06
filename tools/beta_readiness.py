@@ -50,10 +50,13 @@ def build_evidence_requirements_report() -> dict[str, Any]:
                     _required_field("system", "Windows"),
                     _required_field("system_guard.expected_system_matched", True),
                     _required_field("capture_backend", "wasapi"),
+                    _required_field("target_capture_backend.available", True),
+                    _required_field("capture_backend_ready_required", True),
                     _required_field("hardware_capture_tested", True),
                     _required_field("input_review_confirmed", True),
                     _required_field("capture_checklist.input_review_confirmed", True),
                     _required_field("capture_checklist.ready_for_beta_evidence", True),
+                    *_manual_capture_command_card_required_fields("windows_wasapi_capture"),
                     _required_field("passed", True),
                 ],
             },
@@ -189,6 +192,7 @@ def build_evidence_requirements_report() -> dict[str, Any]:
                     _required_field("input_review_confirmed", True),
                     _required_field("capture_checklist.input_review_confirmed", True),
                     _required_field("capture_checklist.ready_for_beta_evidence", True),
+                    *_manual_capture_command_card_required_fields("ubuntu_linux_capture"),
                     _required_field("passed", True),
                 ],
             },
@@ -213,6 +217,7 @@ def build_evidence_requirements_report() -> dict[str, Any]:
                     _required_field("input_review_confirmed", True),
                     _required_field("capture_checklist.input_review_confirmed", True),
                     _required_field("capture_checklist.ready_for_beta_evidence", True),
+                    *_manual_capture_command_card_required_fields("macos_capture"),
                     _required_field("passed", True),
                 ],
             },
@@ -224,6 +229,7 @@ def build_evidence_requirements_report() -> dict[str, Any]:
             "OpenAI evidence records credential presence only, never the API key value.",
             "Reference privacy scans expose only pass/fail, risk counts and risk types.",
             "Spoken text privacy scans expose only pass/fail, risk counts and risk types.",
+            "Manual capture command cards must use placeholders and must not record audio, device names or local paths.",
             "Only structured fields and sanitized artifact names are used.",
         ],
     }
@@ -321,11 +327,17 @@ def build_beta_readiness_report(
                 "Windows WASAPI captura real a 48000 Hz",
                 "Piloto manual: `passed=true`",
                 "Check `capture-test:wasapi`: `ok`",
+                "Expected system matched: True",
+                "Target capture backend available: True",
+                "Capture backend readiness required: True",
+                "Input review confirmed: True",
+                "Manual capture command: manual-capture-command.md",
             ),
             next_action=(
-                "Keep the passing Windows WASAPI pilot documented with sample rate and no stored audio; "
-                "future reruns should include --confirm-input-reviewed and --require-capture-backend-ready "
-                "after checking permissions, input device and room privacy."
+                "Repeat the Windows WASAPI pilot with --sample-rate 48000, --expected-system Windows, "
+                "--confirm-input-reviewed and --require-capture-backend-ready after checking permissions, "
+                "input device and room privacy, then keep manual-capture-checklist.md, "
+                "manual-capture-command.md and only sanitized findings."
             ),
         ),
         _evidence_or_terms_check(
@@ -424,11 +436,13 @@ def build_beta_readiness_report(
             next_action=(
                 "Run the manual capture pilot on Ubuntu/Linux with real hardware and "
                 "--backend sounddevice or --backend pyaudio, --expected-system Linux "
-                "--confirm-input-reviewed and --require-capture-backend-ready, then keep manual-capture-checklist.md, "
+                "--confirm-input-reviewed and --require-capture-backend-ready, then keep "
+                "manual-capture-checklist.md, manual-capture-command.md, "
                 "system_guard.expected_system_matched=true, capture_backend=sounddevice|pyaudio, "
                 "target_capture_backend.available=true, capture_backend_ready_required=true, "
                 "input_review_confirmed=true, "
-                "capture_checklist.input_review_confirmed=true and capture_checklist.ready_for_beta_evidence=true."
+                "capture_checklist.input_review_confirmed=true, capture_checklist.ready_for_beta_evidence=true "
+                "and manual_capture_command_card safe-to-share redaction flags."
             ),
         ),
         _evidence_or_terms_check(
@@ -448,10 +462,12 @@ def build_beta_readiness_report(
                 "Run the manual capture pilot on macOS with real hardware and --backend sounddevice "
                 "or --backend pyaudio, --expected-system Darwin --confirm-input-reviewed and "
                 "--require-capture-backend-ready, then keep "
-                "manual-capture-checklist.md, system_guard.expected_system_matched=true, "
+                "manual-capture-checklist.md, manual-capture-command.md, "
+                "system_guard.expected_system_matched=true, "
                 "capture_backend=sounddevice|pyaudio, target_capture_backend.available=true, "
                 "capture_backend_ready_required=true, input_review_confirmed=true, "
-                "capture_checklist.input_review_confirmed=true and capture_checklist.ready_for_beta_evidence=true."
+                "capture_checklist.input_review_confirmed=true, capture_checklist.ready_for_beta_evidence=true "
+                "and manual_capture_command_card safe-to-share redaction flags."
             ),
         ),
     ]
@@ -941,6 +957,22 @@ def _required_field(path: str, expected: Any) -> dict[str, Any]:
     return {"path": path, "expected": expected}
 
 
+def _manual_capture_command_card_required_fields(blocker: str) -> list[dict[str, Any]]:
+    return [
+        _required_field("manual_capture_command_card.artifact", "manual-capture-command.md"),
+        _required_field("manual_capture_command_card.blocker", blocker),
+        _required_field("manual_capture_command_card.ready_for_beta_evidence", True),
+        _required_field("manual_capture_command_card.safe_to_share", True),
+        _required_field("manual_capture_command_card.uses_placeholders", True),
+        _required_field("manual_capture_command_card.preflight_uses_microphone", False),
+        _required_field("manual_capture_command_card.real_capture_requires_microphone", True),
+        _required_field("manual_capture_command_card.records_audio", False),
+        _required_field("manual_capture_command_card.records_audio_bytes", False),
+        _required_field("manual_capture_command_card.records_device_name", False),
+        _required_field("manual_capture_command_card.records_local_paths", False),
+    ]
+
+
 def _audit_requirement(report: dict[str, Any], requirement: dict[str, Any]) -> dict[str, Any]:
     required_fields = list(requirement["fields"]) + _applicable_conditional_fields(report, requirement)
     fields = [_audit_field(report, field) for field in required_fields]
@@ -1231,17 +1263,47 @@ def _public_evidence_source_for_input(report_path: Path, requested_path: Path) -
 def _is_windows_wasapi_capture_evidence(report: dict[str, Any]) -> bool:
     capture_checklist = report.get("capture_checklist", {})
     system_guard = report.get("system_guard", {})
+    target_capture_backend = report.get("target_capture_backend", {})
     return (
         report.get("system") == "Windows"
         and isinstance(system_guard, dict)
         and system_guard.get("expected_system_matched") is True
         and report.get("capture_backend") == "wasapi"
+        and isinstance(target_capture_backend, dict)
+        and target_capture_backend.get("available") is True
+        and report.get("capture_backend_ready_required") is True
         and report.get("hardware_capture_tested") is True
         and report.get("input_review_confirmed") is True
         and isinstance(capture_checklist, dict)
         and capture_checklist.get("input_review_confirmed") is True
         and capture_checklist.get("ready_for_beta_evidence") is True
+        and _has_safe_manual_capture_command_card(report, "windows_wasapi_capture")
         and report.get("passed") is True
+    )
+
+
+def _has_safe_manual_capture_command_card(report: dict[str, Any], blocker: str) -> bool:
+    card = report.get("manual_capture_command_card", {})
+    if not isinstance(card, dict):
+        return False
+    command_templates = (
+        card.get("preflight_command_template"),
+        card.get("real_capture_command_template"),
+        card.get("audit_command_template"),
+    )
+    return (
+        card.get("artifact") == "manual-capture-command.md"
+        and card.get("blocker") == blocker
+        and card.get("ready_for_beta_evidence") is True
+        and card.get("safe_to_share") is True
+        and card.get("uses_placeholders") is True
+        and card.get("preflight_uses_microphone") is False
+        and card.get("real_capture_requires_microphone") is True
+        and card.get("records_audio") is False
+        and card.get("records_audio_bytes") is False
+        and card.get("records_device_name") is False
+        and card.get("records_local_paths") is False
+        and all(isinstance(command, str) and "<pilot-output-dir>" in command for command in command_templates)
     )
 
 
@@ -1267,6 +1329,7 @@ def _is_ubuntu_linux_capture_evidence(report: dict[str, Any]) -> bool:
         and isinstance(capture_checklist, dict)
         and capture_checklist.get("input_review_confirmed") is True
         and capture_checklist.get("ready_for_beta_evidence") is True
+        and _has_safe_manual_capture_command_card(report, "ubuntu_linux_capture")
         and report.get("passed") is True
     )
 
@@ -1289,6 +1352,7 @@ def _is_macos_capture_evidence(report: dict[str, Any]) -> bool:
         and isinstance(capture_checklist, dict)
         and capture_checklist.get("input_review_confirmed") is True
         and capture_checklist.get("ready_for_beta_evidence") is True
+        and _has_safe_manual_capture_command_card(report, "macos_capture")
         and report.get("passed") is True
     )
 

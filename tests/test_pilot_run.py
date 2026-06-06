@@ -130,7 +130,7 @@ class PilotRunTests(unittest.TestCase):
         preparation_names = [step["name"] for step in persisted["next_evidence_focus_preparation_sequence"]]
         self.assertEqual(
             preparation_names,
-            ["transcription-audio-fixture", "transcription-audio-preflight", "real_transcription_quality"],
+            ["windows_wasapi_capture"],
         )
         self.assertTrue(persisted["real_pilot_command_pack"]["includes_platform_commands"])
         self.assertTrue(persisted["real_pilot_command_pack"]["includes_required_fields"])
@@ -271,11 +271,11 @@ class PilotRunTests(unittest.TestCase):
         self.assertIn("Siguiente foco de evidencia AuralisVoiceKit", next_focus)
         self.assertIn("Foco", next_focus)
         self.assertIn("Secuencia de preparacion", next_focus)
-        self.assertIn("transcription-audio-fixture", next_focus)
-        self.assertIn("transcription-audio-preflight", next_focus)
-        self.assertIn("Blocker: `real_transcription_quality`", next_focus)
-        self.assertIn("--preflight-only", next_focus)
-        self.assertIn("--require-target-backend-ready", next_focus)
+        self.assertIn("windows_wasapi_capture", next_focus)
+        self.assertIn("Blocker: `windows_wasapi_capture`", next_focus)
+        self.assertIn("--sample-rate 48000", next_focus)
+        self.assertIn("--require-capture-backend-ready", next_focus)
+        self.assertIn("manual_capture_command_card.safe_to_share", next_focus)
         self.assertIn("real-pilot-command-pack.md", next_focus)
         self.assertIn("real-pilot-evidence-manifest.md", next_focus)
         self.assertIn("real-pilot-decision-gate.md", next_focus)
@@ -413,7 +413,9 @@ class PilotRunTests(unittest.TestCase):
         self.assertIn("Beta: `blocked`", decision_gate)
         self.assertIn("Estable: `blocked`", decision_gate)
         self.assertIn("Siguiente paso recomendado", decision_gate)
-        self.assertIn("transcription-audio-fixture", decision_gate)
+        self.assertIn("windows_wasapi_capture", decision_gate)
+        self.assertIn("--sample-rate 48000", decision_gate)
+        self.assertIn("--require-capture-backend-ready", decision_gate)
         self.assertIn("Condiciones de alto", decision_gate)
         self.assertIn("real-pilot-environment-checklist.md", decision_gate)
         self.assertIn("real-pilot-fixture-preflight.md", decision_gate)
@@ -535,8 +537,12 @@ class PilotRunTests(unittest.TestCase):
         self.assertIn("real_transcription_quality", report["pilot_decision_gate"]["beta"]["blockers"])
         self.assertEqual(report["pilot_decision_gate"]["stable"]["decision"], "blocked")
         self.assertIn("version_is_pre_1_0", report["pilot_decision_gate"]["stable"]["blockers"])
-        self.assertEqual(report["pilot_decision_gate"]["next_recommended_step"]["name"], "transcription-audio-fixture")
-        self.assertFalse(report["pilot_decision_gate"]["next_recommended_step"]["requires_hardware"])
+        self.assertEqual(report["pilot_decision_gate"]["next_recommended_step"]["name"], "windows_wasapi_capture")
+        self.assertTrue(report["pilot_decision_gate"]["next_recommended_step"]["requires_hardware"])
+        self.assertEqual(
+            report["pilot_decision_gate"]["next_recommended_step"]["strict_backend_guard_flag"],
+            "--require-capture-backend-ready",
+        )
         self.assertIn("local-real-transcription-ready", report["pilot_decision_gate"]["local_environment_warnings"])
         self.assertEqual(report["fixture_preflight_card"]["status"], "recommended")
         self.assertFalse(report["fixture_preflight_card"]["usable_as_beta_evidence"])
@@ -632,41 +638,43 @@ class PilotRunTests(unittest.TestCase):
         self.assertEqual(set(report["pilot_decision_gate"]["target_system_checks"]), expected_target_system_checks)
         self.assertTrue(report["pilot_decision_gate"]["target_system_checks"])
         sequence_names = [step["name"] for step in report["recommended_pilot_sequence"]]
-        self.assertEqual(sequence_names[0], "transcription-audio-fixture")
-        self.assertEqual(sequence_names[1], "transcription-audio-preflight")
-        self.assertEqual(sequence_names[2], "real_transcription_quality")
+        self.assertEqual(sequence_names[0], "windows_wasapi_capture")
+        self.assertEqual(sequence_names[1], "transcription-audio-fixture")
+        self.assertEqual(sequence_names[2], "transcription-audio-preflight")
+        self.assertEqual(sequence_names[3], "real_transcription_quality")
         self.assertIn("system-output-operator-checklist", sequence_names)
         self.assertIn("audit-evidence", sequence_names)
         self.assertIn("refresh-beta-checklist", sequence_names)
-        self.assertFalse(report["recommended_pilot_sequence"][0]["requires_hardware"])
-        self.assertFalse(report["recommended_pilot_sequence"][0]["requires_non_sensitive_audio"])
-        self.assertIn("preflight.passed", report["recommended_pilot_sequence"][0]["required_fields"])
-        self.assertTrue(report["recommended_pilot_sequence"][1]["requires_non_sensitive_audio"])
+        sequence_by_name = {step["name"]: step for step in report["recommended_pilot_sequence"]}
+        windows_step = sequence_by_name["windows_wasapi_capture"]
+        fixture_step = sequence_by_name["transcription-audio-fixture"]
+        preflight_step = sequence_by_name["transcription-audio-preflight"]
+        self.assertTrue(windows_step["requires_hardware"])
+        self.assertEqual(windows_step["strict_backend_guard_flag"], "--require-capture-backend-ready")
+        self.assertIn("manual_capture_command_card.safe_to_share", windows_step["required_fields"])
+        self.assertFalse(fixture_step["requires_hardware"])
+        self.assertFalse(fixture_step["requires_non_sensitive_audio"])
+        self.assertIn("preflight.passed", fixture_step["required_fields"])
+        self.assertTrue(preflight_step["requires_non_sensitive_audio"])
         self.assertIn(
             "artifacts.transcription_review_checklist",
-            report["recommended_pilot_sequence"][1]["required_fields"],
+            preflight_step["required_fields"],
         )
         self.assertIn(
             "artifacts.real_transcription_next_step",
-            report["recommended_pilot_sequence"][1]["required_fields"],
+            preflight_step["required_fields"],
         )
         self.assertIn(
             "audio.audio_file_name_redacted",
-            report["recommended_pilot_sequence"][1]["required_fields"],
+            preflight_step["required_fields"],
         )
         self.assertIn(
             "target_backend.available",
-            report["recommended_pilot_sequence"][1]["required_fields"],
+            preflight_step["required_fields"],
         )
-        checklist_step = {
-            step["name"]: step for step in report["recommended_pilot_sequence"]
-        }["system-output-operator-checklist"]
-        transcription_step = {
-            step["name"]: step for step in report["recommended_pilot_sequence"]
-        }["real_transcription_quality"]
-        output_step = {
-            step["name"]: step for step in report["recommended_pilot_sequence"]
-        }["system_output_audible"]
+        checklist_step = sequence_by_name["system-output-operator-checklist"]
+        transcription_step = sequence_by_name["real_transcription_quality"]
+        output_step = sequence_by_name["system_output_audible"]
         self.assertTrue(transcription_step["strict_backend_guard_required"])
         self.assertEqual(transcription_step["strict_backend_guard_flag"], "--require-target-backend-ready")
         self.assertEqual(transcription_step["strict_backend_guard_field"], "target_backend_ready_required")
@@ -723,9 +731,10 @@ class PilotRunTests(unittest.TestCase):
         self.assertIn("operator_checklist.ready_for_beta_evidence", checklist_step["required_fields"])
         self.assertIn("artifacts.system_output_next_step", checklist_step["required_fields"])
         matrix = {row["name"]: row for row in report["platform_pilot_matrix"]}
+        self.assertIn("--require-capture-backend-ready", matrix["windows-wasapi-capture"]["command"])
         self.assertIn("--confirm-input-reviewed", matrix["ubuntu-linux-capture"]["command"])
         self.assertIn("--confirm-input-reviewed", matrix["macos-capture"]["command"])
-        self.assertEqual(matrix["windows-wasapi-capture"]["status"], "closed")
+        self.assertEqual(matrix["windows-wasapi-capture"]["status"], "pending")
         self.assertEqual(matrix["ubuntu-linux-capture"]["status"], "pending")
         self.assertEqual(matrix["macos-capture"]["status"], "pending")
         self.assertEqual(matrix["transcription-audio-fixture"]["status"], "recommended")
@@ -873,6 +882,11 @@ class PilotRunTests(unittest.TestCase):
                         "input_review_confirmed": True,
                         "ready_for_beta_evidence": True,
                     },
+                    "manual_capture_command_card": _manual_capture_command_card(
+                        "ubuntu_linux_capture",
+                        "Linux | Ubuntu/Linux | Ubuntu",
+                        "pyaudio",
+                    ),
                     "passed": True,
                 },
             )
@@ -900,7 +914,7 @@ class PilotRunTests(unittest.TestCase):
         self.assertEqual(report["evidence_manifest"]["blocker_summaries"], report["beta_readiness"]["blocker_summaries"])
         focus = report["beta_readiness"]["next_evidence_focus"]
         self.assertEqual(focus["status"], "pending")
-        self.assertEqual(focus["name"], "real_transcription_quality")
+        self.assertEqual(focus["name"], "windows_wasapi_capture")
         self.assertEqual(report["evidence_manifest"]["next_evidence_focus"], focus)
         self.assertEqual(report["pilot_decision_gate"]["next_evidence_focus"], focus)
         self.assertNotIn("ubuntu_linux_capture", report["beta_readiness"]["blockers"])
@@ -912,7 +926,7 @@ class PilotRunTests(unittest.TestCase):
         self.assertIn("Evidencias JSON", plan)
         self.assertIn("Resumen por blocker", plan)
         self.assertIn("Siguiente foco de evidencia", plan)
-        self.assertIn("Blocker: `real_transcription_quality`", plan)
+        self.assertIn("Blocker: `windows_wasapi_capture`", plan)
         self.assertIn("Fuentes que cierran: `linux/manual-pilot-report.json`", plan)
         self.assertIn("Secuencia recomendada", plan)
         self.assertIn("Matriz por plataforma", plan)
@@ -946,6 +960,39 @@ class PilotRunTests(unittest.TestCase):
 def _write_json(path: Path, payload: dict):
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def _manual_capture_command_card(blocker: str, evidence_system: str, backend: str) -> dict:
+    base_command = (
+        f"python tools/manual_pilot.py --backend {backend} --device default "
+        "--expected-system Linux --require-capture-backend-ready --json"
+    )
+    return {
+        "artifact": "manual-capture-command.md",
+        "safe_to_share": True,
+        "uses_placeholders": True,
+        "blocker": blocker,
+        "evidence_system": evidence_system,
+        "ready_for_beta_evidence": True,
+        "missing_count": 0,
+        "missing_fields": [],
+        "setup_commands": [],
+        "pip_command": f"python -m pip install .[{backend}]",
+        "preflight_command_template": f"{base_command} --output-dir <pilot-output-dir>",
+        "preflight_uses_microphone": False,
+        "real_capture_command_template": (
+            f"{base_command} --capture-test --confirm-input-reviewed --output-dir <pilot-output-dir>"
+        ),
+        "real_capture_requires_microphone": True,
+        "audit_command_template": (
+            "python tools/beta_readiness.py --audit-evidence --evidence <pilot-output-dir> --json"
+        ),
+        "records_audio": False,
+        "records_audio_bytes": False,
+        "records_device_name": False,
+        "records_local_paths": False,
+        "next_action": "Audit this report with tools/beta_readiness.py --audit-evidence before closing beta.",
+    }
 
 
 if __name__ == "__main__":

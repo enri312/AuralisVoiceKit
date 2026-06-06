@@ -29,11 +29,12 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertEqual(report["status"], "pilot")
         self.assertFalse(report["ready_for_beta"])
         self.assertTrue(checks["stability_gate_pilot"]["ok"])
-        self.assertTrue(checks["windows_wasapi_capture"]["ok"])
+        self.assertFalse(checks["windows_wasapi_capture"]["ok"])
         self.assertFalse(checks["real_transcription_quality"]["ok"])
         self.assertFalse(checks["system_output_audible"]["ok"])
         self.assertFalse(checks["ubuntu_linux_capture"]["ok"])
         self.assertFalse(checks["macos_capture"]["ok"])
+        self.assertIn("windows_wasapi_capture", report["blockers"])
         self.assertIn("real_transcription_quality", report["blockers"])
         self.assertIn("windows-wasapi-sample-rate", {issue["id"] for issue in report["known_issues"]})
 
@@ -77,6 +78,10 @@ class BetaReadinessTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             evidence_root = Path(tmpdir)
             _write_json(
+                evidence_root / "windows" / "manual-pilot-report.json",
+                _capture_evidence("Windows", "wasapi"),
+            )
+            _write_json(
                 evidence_root / "linux" / "manual-pilot-report.json",
                 _capture_evidence("Linux", "sounddevice"),
             )
@@ -98,7 +103,8 @@ class BetaReadinessTests(unittest.TestCase):
 
         self.assertTrue(report["ready_for_beta"])
         self.assertEqual(report["blockers"], [])
-        self.assertEqual(report["evidence"]["count"], 4)
+        self.assertEqual(report["evidence"]["count"], 5)
+        self.assertTrue(checks["windows_wasapi_capture"]["ok"])
         self.assertTrue(checks["real_transcription_quality"]["ok"])
         self.assertTrue(checks["system_output_audible"]["ok"])
         self.assertTrue(checks["ubuntu_linux_capture"]["ok"])
@@ -719,11 +725,43 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertFalse(checks["macos_capture"]["ok"])
         self.assertIn("macos_capture", report["blockers"])
 
+    def test_capture_evidence_requires_safe_manual_command_card(self):
+        module = _load_beta_readiness()
+
+        unsafe_cases = [
+            ("safe_to_share", False),
+            ("uses_placeholders", False),
+            ("preflight_uses_microphone", True),
+            ("real_capture_requires_microphone", False),
+            ("records_audio", True),
+            ("records_audio_bytes", True),
+            ("records_device_name", True),
+            ("records_local_paths", True),
+            ("preflight_command_template", "python tools/manual_pilot.py --json"),
+        ]
+        for field, value in unsafe_cases:
+            with self.subTest(field=field):
+                with tempfile.TemporaryDirectory() as tmpdir:
+                    evidence_path = Path(tmpdir) / "manual-pilot-report.json"
+                    evidence = _capture_evidence("Linux", "sounddevice")
+                    evidence["manual_capture_command_card"][field] = value
+                    _write_json(evidence_path, evidence)
+
+                    report = module.build_beta_readiness_report(ROOT, evidence_paths=[evidence_path])
+                    checks = {check["name"]: check for check in report["checks"]}
+
+                self.assertFalse(checks["ubuntu_linux_capture"]["ok"])
+                self.assertIn("ubuntu_linux_capture", report["blockers"])
+
     def test_cli_evidence_allows_strict_beta_pass(self):
         module = _load_beta_readiness()
 
         with tempfile.TemporaryDirectory() as tmpdir:
             evidence_root = Path(tmpdir)
+            _write_json(
+                evidence_root / "windows" / "manual-pilot-report.json",
+                _capture_evidence("Windows", "wasapi"),
+            )
             _write_json(
                 evidence_root / "linux" / "manual-pilot-report.json",
                 _capture_evidence("Linux", "sounddevice"),
@@ -885,6 +923,9 @@ class BetaReadinessTests(unittest.TestCase):
         output_fields = {
             field["path"]: field["expected"] for field in requirements["system_output_audible"]["fields"]
         }
+        windows_fields = {
+            field["path"]: field["expected"] for field in requirements["windows_wasapi_capture"]["fields"]
+        }
         linux_fields = {
             field["path"]: field["expected"] for field in requirements["ubuntu_linux_capture"]["fields"]
         }
@@ -946,6 +987,8 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertEqual(output_fields["next_system_output.uses_placeholders"], True)
         self.assertEqual(output_fields["next_system_output.records_spoken_text"], False)
         self.assertEqual(output_fields["next_system_output.records_operator_identity"], False)
+        self.assertEqual(windows_fields["target_capture_backend.available"], True)
+        self.assertEqual(windows_fields["capture_backend_ready_required"], True)
         self.assertIn("system_guard.expected_system_matched", linux_fields)
         self.assertEqual(linux_fields["capture_backend"], "sounddevice | pyaudio")
         self.assertEqual(linux_fields["target_capture_backend.available"], True)
@@ -956,6 +999,22 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertEqual(macos_fields["capture_backend"], "sounddevice | pyaudio")
         self.assertEqual(macos_fields["target_capture_backend.available"], True)
         self.assertEqual(macos_fields["capture_backend_ready_required"], True)
+        for blocker, capture_fields in (
+            ("windows_wasapi_capture", windows_fields),
+            ("ubuntu_linux_capture", linux_fields),
+            ("macos_capture", macos_fields),
+        ):
+            self.assertEqual(capture_fields["manual_capture_command_card.artifact"], "manual-capture-command.md")
+            self.assertEqual(capture_fields["manual_capture_command_card.blocker"], blocker)
+            self.assertEqual(capture_fields["manual_capture_command_card.ready_for_beta_evidence"], True)
+            self.assertEqual(capture_fields["manual_capture_command_card.safe_to_share"], True)
+            self.assertEqual(capture_fields["manual_capture_command_card.uses_placeholders"], True)
+            self.assertEqual(capture_fields["manual_capture_command_card.preflight_uses_microphone"], False)
+            self.assertEqual(capture_fields["manual_capture_command_card.real_capture_requires_microphone"], True)
+            self.assertEqual(capture_fields["manual_capture_command_card.records_audio"], False)
+            self.assertEqual(capture_fields["manual_capture_command_card.records_audio_bytes"], False)
+            self.assertEqual(capture_fields["manual_capture_command_card.records_device_name"], False)
+            self.assertEqual(capture_fields["manual_capture_command_card.records_local_paths"], False)
 
     def test_cli_requirements_markdown_is_public_safe(self):
         module = _load_beta_readiness()
@@ -976,6 +1035,11 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertIn("capture_backend_ready_required", content)
         self.assertIn("capture_checklist.input_review_confirmed", content)
         self.assertIn("capture_checklist.ready_for_beta_evidence", content)
+        self.assertIn("manual_capture_command_card.safe_to_share", content)
+        self.assertIn("manual_capture_command_card.uses_placeholders", content)
+        self.assertIn("manual_capture_command_card.records_audio_bytes", content)
+        self.assertIn("manual_capture_command_card.records_device_name", content)
+        self.assertIn("manual_capture_command_card.records_local_paths", content)
         self.assertIn("quality.min_word_accuracy", content)
         self.assertIn("target_backend.available", content)
         self.assertIn("target_backend_ready_required", content)
@@ -1089,11 +1153,11 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertEqual(output_summary["accepted_sources"], ["output/output-pilot-report.json"])
         focus = report["next_evidence_focus"]
         self.assertEqual(focus["status"], "pending")
-        self.assertEqual(focus["name"], "real_transcription_quality")
-        self.assertEqual(focus["artifact"], "transcription-pilot-report.json")
-        self.assertEqual(focus["closest_candidate"]["file"], "transcription/transcription-pilot-report.json")
-        self.assertEqual(focus["missing_fields"], ["quality.min_word_accuracy"])
-        self.assertIn("quality.min_word_accuracy", focus["required_fields"])
+        self.assertEqual(focus["name"], "windows_wasapi_capture")
+        self.assertEqual(focus["artifact"], "manual-pilot-report.json")
+        self.assertIsNone(focus["closest_candidate"])
+        self.assertIn("target_capture_backend.available", focus["missing_fields"])
+        self.assertIn("manual_capture_command_card.safe_to_share", focus["required_fields"])
 
     def test_cli_audit_evidence_markdown_is_public_safe(self):
         module = _load_beta_readiness()
@@ -1139,8 +1203,8 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertIn("blocker_summaries", payload)
         self.assertEqual(payload["blocker_summaries"][0]["candidate_count"], 0)
         self.assertEqual(payload["next_evidence_focus"]["status"], "pending")
-        self.assertEqual(payload["next_evidence_focus"]["name"], "real_transcription_quality")
-        self.assertIn("real_transcription_requested", payload["next_evidence_focus"]["missing_fields"])
+        self.assertEqual(payload["next_evidence_focus"]["name"], "windows_wasapi_capture")
+        self.assertIn("target_capture_backend.available", payload["next_evidence_focus"]["missing_fields"])
 
     def test_cli_audit_evidence_can_fail_on_missing_blockers(self):
         module = _load_beta_readiness()
@@ -1182,16 +1246,7 @@ class BetaReadinessTests(unittest.TestCase):
             evidence_root = Path(tmpdir)
             _write_json(
                 evidence_root / "windows" / "manual-pilot-report.json",
-                {
-                    "project": "AuralisVoiceKit",
-                    "system": "Windows",
-                    "system_guard": _system_guard(),
-                    "capture_backend": "wasapi",
-                    "hardware_capture_tested": True,
-                    "input_review_confirmed": True,
-                    "capture_checklist": _capture_checklist(),
-                    "passed": True,
-                },
+                _capture_evidence("Windows", "wasapi"),
             )
             _write_json(
                 evidence_root / "linux" / "manual-pilot-report.json",
@@ -1223,16 +1278,7 @@ class BetaReadinessTests(unittest.TestCase):
             evidence_root = Path(tmpdir)
             _write_json(
                 evidence_root / "windows" / "manual-pilot-report.json",
-                {
-                    "project": "AuralisVoiceKit",
-                    "system": "Windows",
-                    "system_guard": _system_guard(),
-                    "capture_backend": "wasapi",
-                    "hardware_capture_tested": True,
-                    "input_review_confirmed": True,
-                    "capture_checklist": _capture_checklist(),
-                    "passed": True,
-                },
+                _capture_evidence("Windows", "wasapi"),
             )
             _write_json(
                 evidence_root / "linux" / "manual-pilot-report.json",
@@ -1283,6 +1329,48 @@ def _capture_backend_status(backend: str) -> dict:
     }
 
 
+def _manual_capture_command_card(system: str, backend: str) -> dict:
+    if system == "Windows":
+        blocker = "windows_wasapi_capture"
+        expected_system = "Windows"
+    elif system in {"Linux", "Ubuntu/Linux", "Ubuntu"}:
+        blocker = "ubuntu_linux_capture"
+        expected_system = "Linux | Ubuntu/Linux | Ubuntu"
+    else:
+        blocker = "macos_capture"
+        expected_system = "Darwin | macOS | Mac"
+    base_command = (
+        f"python tools/manual_pilot.py --backend {backend} --device default "
+        f"--expected-system {system} --require-capture-backend-ready --json"
+    )
+    return {
+        "artifact": "manual-capture-command.md",
+        "safe_to_share": True,
+        "uses_placeholders": True,
+        "blocker": blocker,
+        "evidence_system": expected_system,
+        "ready_for_beta_evidence": True,
+        "missing_count": 0,
+        "missing_fields": [],
+        "setup_commands": [],
+        "pip_command": f"python -m pip install .[{backend}]",
+        "preflight_command_template": f"{base_command} --output-dir <pilot-output-dir>",
+        "preflight_uses_microphone": False,
+        "real_capture_command_template": (
+            f"{base_command} --capture-test --confirm-input-reviewed --output-dir <pilot-output-dir>"
+        ),
+        "real_capture_requires_microphone": True,
+        "audit_command_template": (
+            "python tools/beta_readiness.py --audit-evidence --evidence <pilot-output-dir> --json"
+        ),
+        "records_audio": False,
+        "records_audio_bytes": False,
+        "records_device_name": False,
+        "records_local_paths": False,
+        "next_action": "Audit this report with tools/beta_readiness.py --audit-evidence before closing beta.",
+    }
+
+
 def _capture_evidence(system: str, backend: str) -> dict:
     return {
         "project": "AuralisVoiceKit",
@@ -1294,6 +1382,7 @@ def _capture_evidence(system: str, backend: str) -> dict:
         "hardware_capture_tested": True,
         "input_review_confirmed": True,
         "capture_checklist": _capture_checklist(),
+        "manual_capture_command_card": _manual_capture_command_card(system, backend),
         "passed": True,
     }
 
