@@ -6,6 +6,14 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.90.0] - 2026-06-06
+
+### Agregado
+
+- `tools/pilot_run.py` ahora genera `real-pilot-decision-gate.md` con go/no-go separado para pilotos reales, beta y version estable.
+- El reporte `pilot-report.json` expone `pilot_decision_gate` y `real_pilot_decision_gate`, incluyendo siguiente paso recomendado, condiciones de alto y advertencias de entorno sin registrar audio, transcripciones, texto hablado, rutas locales ni identidad del operador.
+- README, `PILOTS.md`, roadmap, documentacion HTML y referencia API documentan la compuerta de decision para operadores.
+
 ## [0.89.0] - 2026-06-06
 
 ### Agregado
