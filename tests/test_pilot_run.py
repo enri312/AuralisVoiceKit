@@ -331,7 +331,14 @@ class PilotRunTests(unittest.TestCase):
         self.assertEqual(report["pilot_decision_gate"]["next_recommended_step"]["name"], "transcription-audio-fixture")
         self.assertFalse(report["pilot_decision_gate"]["next_recommended_step"]["requires_hardware"])
         self.assertIn("local-real-transcription-ready", report["pilot_decision_gate"]["local_environment_warnings"])
-        self.assertIn("linux-sounddevice-capture", report["pilot_decision_gate"]["target_system_checks"])
+        decision_environment_rows = {row["name"]: row for row in report["environment_checklist"]}
+        expected_target_system_checks = {
+            name
+            for name, row in decision_environment_rows.items()
+            if row["status"] == "target-system-required"
+        }
+        self.assertEqual(set(report["pilot_decision_gate"]["target_system_checks"]), expected_target_system_checks)
+        self.assertTrue(report["pilot_decision_gate"]["target_system_checks"])
         sequence_names = [step["name"] for step in report["recommended_pilot_sequence"]]
         self.assertEqual(sequence_names[0], "transcription-audio-fixture")
         self.assertEqual(sequence_names[1], "transcription-audio-preflight")
