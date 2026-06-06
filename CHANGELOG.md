@@ -6,6 +6,18 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.145.0] - 2026-06-06
+
+### Agregado
+
+- `tools/pilot_run.py` ahora genera `real-pilot-evidence-package.md`, una tarjeta publica para reunir el JSON real sanitizado, hallazgos, checklist beta y auditoria estricta despues del ensayo/ejecucion local.
+- `real_pilot_evidence_package_card` lista artifacts esperados, campos JSON requeridos/faltantes, directorios sugeridos, checklist del paquete y reglas para no copiar audio, transcripciones, rutas, dispositivos ni identidad del operador.
+- `pilot-plan.md`, `real-pilot-handoff.md`, `real-pilot-rehearsal-card.md` y `real-pilot-audit-closure.md` enlazan el paquete de evidencia sanitizada.
+
+### Pruebas
+
+- Nuevas pruebas validan el artifact del paquete, su estado `waiting_for_real_evidence`, sus flags de privacidad, su salida CLI y su presencia en reportes Markdown.
+
 ## [0.144.0] - 2026-06-06
 
 ### Agregado
