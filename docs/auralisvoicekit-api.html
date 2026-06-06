@@ -315,6 +315,7 @@
         <pre><code>python examples/pypi_quickstart.py --json</code></pre>
         <p>Extras opcionales:</p>
         <pre><code>python -m pip install "auralisvoicekit[sounddevice]"
+python -m pip install "auralisvoicekit[pyaudio]"
 python -m pip install "auralisvoicekit[openai]"
 python -m pip install "auralisvoicekit[whisper]"</code></pre>
         <p>Durante desarrollo local:</p>
@@ -592,6 +593,7 @@ hint: WindowsAudioErrorHint = windows_audio_error_hint(
 print(hint.format_hint())</code></pre>
         <pre><code>auralis doctor --devices --backend wasapi --bundle reports/doctor-windows.json
 auralis doctor --capture-test --backend sounddevice --device default --bundle reports/doctor-capture.json --json
+auralis doctor --capture-test --backend pyaudio --device default --json
 auralis doctor --capture-test --backend wasapi --device default --sample-rate 48000 --json
 auralis doctor-bundles reports/doctor-windows.json reports/doctor-capture.json --output reports/doctor-analysis.json --json</code></pre>
         <pre><code>python tools/pilot_run.py --output-dir pilot_runs/safe --json
@@ -703,6 +705,18 @@ snapshot: WasapiDiagnosticSnapshot = inspect_wasapi_environment()
 print(snapshot.to_dict())</code></pre>
         <pre><code>auralis doctor --devices --backend wasapi --json
 auralis doctor --capture-test --backend wasapi --device default --sample-rate 48000 --json</code></pre>
+        <h3>Captura PyAudio</h3>
+        <p><code>PyAudioCaptureBackend</code> es un backend opcional de compatibilidad. Se registra como <code>pyaudio</code>, captura PCM16 por callback y conserva el import principal libre de PyAudio cuando el extra no esta instalado. English: PyAudio remains opt-in for legacy compatibility.</p>
+        <pre><code>from auralis_voicekit import AuralisVoiceKit, VoiceKitConfig
+from auralis_voicekit.backends import PyAudioCaptureBackend
+
+backend = PyAudioCaptureBackend()
+print(backend.info())
+
+kit = AuralisVoiceKit(VoiceKitConfig(capture_backend="pyaudio", input_device="default"))</code></pre>
+        <pre><code>python -m pip install "auralisvoicekit[pyaudio]"
+auralis devices --backend pyaudio
+auralis doctor --capture-test --backend pyaudio --device default --json</code></pre>
         <h3>Salida system</h3>
         <p>El backend <code>system</code> vive en <code>auralis_voicekit.backends</code>. Puede listar voces del sistema como <code>SystemVoice</code> y aplicar parametros de salida segun plataforma.</p>
         <pre><code>from auralis_voicekit import AuralisVoiceKit, VoiceKitConfig

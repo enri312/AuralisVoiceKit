@@ -30,6 +30,17 @@ PILOT_CHECKS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
     ("pypi_quickstart", "examples/pypi_quickstart.py", ("run_demo", "transcription_backend")),
     ("custom_output_example", "examples/custom_output_backend.py", ("MemorySpeechOutputBackend", "run_demo")),
     ("system_output_example", "examples/system_output_demo.py", ("DryRunSystemRunner", "--speak")),
+    (
+        "pyaudio_capture_backend",
+        "src/auralis_voicekit/backends/pyaudio_capture.py",
+        (
+            "PyAudioCaptureBackend",
+            "auralisvoicekit[pyaudio]",
+            "resolve_input_device",
+            "stream_callback",
+            "stop_stream",
+        ),
+    ),
     ("local_assistant_privacy_example", "examples/local_assistant_privacy_demo.py", ("PrivacyEventLogger", "privacy_checks")),
     (
         "safe_pilot_runner",
@@ -204,6 +215,7 @@ PILOT_CHECKS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
     ("doctor_bundle_api", "src/auralis_voicekit/diagnostics.py", ("create_doctor_bundle", "write_doctor_bundle")),
     ("doctor_bundle_analysis", "src/auralis_voicekit/diagnostics.py", ("analyze_doctor_bundles", "DoctorBundleAnalysis")),
     ("ci", ".github/workflows/ci.yml", ("stability_gate.py", "unittest discover", "windows-2025-vs2026", "PIP_NO_CACHE_DIR")),
+    ("pyproject_pyaudio_extra", "pyproject.toml", ("pyaudio", "PyAudio>=0.2.14")),
     ("release_workflow", ".github/workflows/release.yml", ("python -m build", "actions/upload-artifact@v7.0.1", "gh release create")),
 )
 

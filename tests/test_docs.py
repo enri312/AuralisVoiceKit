@@ -45,6 +45,18 @@ class DocumentationTests(unittest.TestCase):
         self.assertIn("ffmpeg_search_locations", content)
         self.assertIn("run_offline_benchmarks", content)
 
+    def test_pyaudio_optional_backend_is_documented(self):
+        readme = README.read_text(encoding="utf-8")
+        main_doc = MAIN_DOC.read_text(encoding="utf-8")
+        api_doc = API_DOC.read_text(encoding="utf-8")
+
+        self.assertIn("auralisvoicekit[pyaudio]", readme)
+        self.assertIn("--backend pyaudio", readme)
+        self.assertIn("pyaudio_capture.py", main_doc)
+        self.assertIn("--backend pyaudio", main_doc)
+        self.assertIn("PyAudioCaptureBackend", api_doc)
+        self.assertIn("auralisvoicekit[pyaudio]", api_doc)
+
     def test_privacy_guide_is_linked_from_public_docs(self):
         privacy_name = "PRIVACY.md"
 

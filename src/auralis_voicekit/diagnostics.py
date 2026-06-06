@@ -734,6 +734,10 @@ def run_doctor(
             "Install with: pip install auralisvoicekit[sounddevice]",
         ),
         _check_optional_dependency(
+            "pyaudio",
+            "Install with: pip install auralisvoicekit[pyaudio]",
+        ),
+        _check_optional_dependency(
             "openai",
             "Install with: pip install auralisvoicekit[openai]",
         ),

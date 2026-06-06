@@ -79,9 +79,16 @@ def _create_wasapi_capture() -> CaptureBackend:
     return WasapiCaptureBackend()
 
 
+def _create_pyaudio_capture() -> CaptureBackend:
+    from .pyaudio_capture import PyAudioCaptureBackend
+
+    return PyAudioCaptureBackend()
+
+
 def create_default_registry() -> BackendRegistry:
     registry = BackendRegistry()
     registry.register_capture("null", NullCaptureBackend)
+    registry.register_capture("pyaudio", _create_pyaudio_capture)
     registry.register_capture("wav", WavFileCaptureBackend)
     registry.register_capture("sounddevice", _create_sounddevice_capture)
     registry.register_capture("wasapi", _create_wasapi_capture)

@@ -326,6 +326,7 @@
 py -m pip install -e .</code></pre>
         <p>El core no trae dependencias externas. Los backends reales se instalan como extras opcionales.</p>
         <pre><code>py -m pip install -e ".[sounddevice]"</code></pre>
+        <pre><code>py -m pip install -e ".[pyaudio]"</code></pre>
         <pre><code>py -m pip install -e ".[openai]"</code></pre>
         <pre><code>py -m pip install -e ".[whisper]"</code></pre>
         <p>Desde un repositorio clonado, el ejemplo pequeno de integracion para usuarios de PyPI funciona sin microfono, modelos ni credenciales.</p>
@@ -350,10 +351,13 @@ print(result.text)</code></pre>
         <p>El archivo <code>examples/pypi_quickstart.py</code> genera audio sintetico, escribe un WAV, segmenta voz y transcribe con el backend <code>null</code>. Es la prueba recomendada para validar el paquete base desde un repositorio clonado.</p>
         <pre><code>python examples/pypi_quickstart.py --json</code></pre>
         <h3>Captura real</h3>
-        <p>Con el extra <code>sounddevice</code>, se puede listar dispositivos y grabar a WAV desde el ejemplo incluido.</p>
+        <p>Con el extra <code>sounddevice</code>, se puede listar dispositivos y grabar a WAV desde el ejemplo incluido. <code>pyaudio</code> queda disponible como backend opcional de compatibilidad para proyectos existentes sin hacerlo dependencia del core.</p>
         <pre><code>py -m pip install -e ".[sounddevice]"
+py -m pip install -e ".[pyaudio]"
 py -m auralis_voicekit.cli devices --backend sounddevice
+py -m auralis_voicekit.cli devices --backend pyaudio
 py -m auralis_voicekit.cli devices --backend wasapi
+py -m auralis_voicekit.cli doctor --capture-test --backend pyaudio --device default --json
 py -m auralis_voicekit.cli doctor --devices --backend wasapi --json
 py examples\capture_microphone.py --seconds 3 --output capture.wav</code></pre>
         <p>En Windows, <code>wasapi</code> filtra dispositivos por la host API WASAPI usando el extra opcional <code>sounddevice</code>. El diagnostico WASAPI muestra host APIs, ids WASAPI, dispositivo default y el dispositivo que se usaria al pedir <code>default</code>.</p>
@@ -519,15 +523,17 @@ python tools/output_pilot.py --speak --operator-present --confirm-audible --conf
         <pre><code>auralis doctor
 auralis doctor --devices --backend wav
 auralis doctor --devices --backend sounddevice
+auralis doctor --devices --backend pyaudio
 auralis doctor --devices --backend wasapi --json
 auralis doctor --capture-test --backend sounddevice --capture-seconds 0.25
+auralis doctor --capture-test --backend pyaudio --device default --json
 auralis doctor --capture-test --backend wasapi --device default --sample-rate 48000 --json
 auralis doctor --capture-test --backend sounddevice --device default --json
 auralis doctor --wav sample.wav
 auralis doctor --json
 auralis doctor --devices --backend wasapi --bundle reports/doctor-windows.json
 auralis doctor-bundles reports/doctor-windows.json --output reports/doctor-analysis.json --json</code></pre>
-        <p>Los warnings no bloquean el core. Por ejemplo, <code>sounddevice</code> puede faltar y aun asi funcionar el backend <code>wav</code>. El flag <code>--capture-test</code> intenta abrir brevemente el backend seleccionado para diagnosticar permisos o errores de dispositivo.</p>
+        <p>Los warnings no bloquean el core. Por ejemplo, <code>sounddevice</code> o <code>pyaudio</code> pueden faltar y aun asi funcionar el backend <code>wav</code>. El flag <code>--capture-test</code> intenta abrir brevemente el backend seleccionado para diagnosticar permisos o errores de dispositivo.</p>
         <p>El flag <code>--bundle</code> escribe un JSON seguro para soporte: no recoge audio ni transcripciones y marca que rutas locales y nombres de dispositivos fueron redactados. <code>doctor-bundles</code> ayuda a comparar varios reportes y ordenar los hallazgos.</p>
         <p>En Windows, los fallos de captura incluyen <code>windows_audio_hint</code> con acciones para permisos de microfono, dispositivo invalido, sample rate, canales y errores de host API.</p>
         <pre><code>from auralis_voicekit import windows_audio_error_hint
@@ -622,6 +628,7 @@ write_benchmark_report(comparison, "reports/whisper.json")</code></pre>
     null.py          Backend seguro para pruebas
     wav_file.py      Backend offline WAV PCM16
     sounddevice.py   Backend opcional funcional
+    pyaudio_capture.py Backend opcional de compatibilidad PyAudio
     wasapi.py         Backend inicial Windows WASAPI con diagnostico
     whisper_transcription.py  Backend opcional de transcripcion local
     openai_transcription.py  Backend opcional de transcripcion por API
@@ -708,6 +715,11 @@ python examples/pypi_quickstart.py --json</code></pre>
               <td>Captura Windows filtrada por host API WASAPI y snapshot de host APIs/dispositivos.</td>
             </tr>
             <tr>
+              <td><code>pyaudio</code></td>
+              <td>Inicial funcional</td>
+              <td>Compatibilidad opcional con proyectos existentes basados en PyAudio/PortAudio.</td>
+            </tr>
+            <tr>
               <td><code>whisper</code></td>
               <td>Inicial funcional</td>
               <td>Transcripcion local opcional con faster-whisper.</td>
@@ -769,8 +781,8 @@ gh workflow run publish-pypi.yml -f index=pypi -f tag=v0.14.0</code></pre>
             </tr>
             <tr>
               <td>1</td>
-              <td>Captura real de microfono con <code>sounddevice</code>.</td>
-              <td>Inicial con sounddevice y wasapi diagnosticable</td>
+              <td>Captura real de microfono con <code>sounddevice</code>, <code>wasapi</code> o <code>pyaudio</code>.</td>
+              <td>Inicial con sounddevice, pyaudio y wasapi diagnosticable</td>
             </tr>
             <tr>
               <td>2</td>

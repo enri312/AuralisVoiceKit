@@ -30,6 +30,7 @@ La meta no es competir con todos los motores de voz a la vez. La meta es constru
 | Backend `wav` | Inicial funcional |
 | Backend `sounddevice` | Inicial funcional |
 | Backend `wasapi` | Inicial con diagnostico reforzado |
+| Backend `pyaudio` | Inicial funcional como compatibilidad opcional |
 | Utilidades de audio | Normalizacion, calibracion y segmentacion inicial |
 | Versionado | Politica inicial |
 | Compatibilidad Windows/Linux/macOS | Documentacion inicial |
@@ -83,6 +84,7 @@ Entregables:
 
 - Backend `sounddevice` funcional para captura PCM16. Estado: inicial.
 - Backend `wasapi` funcional para captura Windows con host API WASAPI. Estado: inicial con diagnostico reforzado.
+- Backend `pyaudio` funcional para compatibilidad con proyectos existentes. Estado: inicial como extra opcional sin import obligatorio.
 - Enumeracion de dispositivos de entrada. Estado: inicial.
 - Seleccion de dispositivo por id, nombre o default. Estado: inicial.
 - Start/stop robusto sin dejar streams abiertos. Estado: inicial.
@@ -264,7 +266,7 @@ Criterio de salida:
 ## Backlog tecnico
 
 - Backend WASAPI dedicado. Estado: inicial sobre `sounddevice` con diagnostico reforzado.
-- Backend PyAudio solo como compatibilidad opcional.
+- Backend PyAudio solo como compatibilidad opcional. Estado: inicial funcional con carga perezosa y tests sin hardware.
 - Backend de salida `system`. Estado: inicial con listado de voces, seleccion de voz, velocidad, volumen y ejemplo seguro.
 - Soporte para archivos WAV/FLAC como entrada. WAV PCM16 completado; FLAC inicial validado via `ffmpeg`.
 - Adaptadores para modelos locales. Whisper inicial completado.

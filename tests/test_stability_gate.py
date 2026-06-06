@@ -31,6 +31,8 @@ class StabilityGateTests(unittest.TestCase):
         self.assertIn("pilot_runbook", check_names)
         self.assertIn("safe_pilot_runner", check_names)
         self.assertIn("manual_pilot_runner", check_names)
+        self.assertIn("pyaudio_capture_backend", check_names)
+        self.assertIn("pyproject_pyaudio_extra", check_names)
         self.assertIn("beta_readiness_runner", check_names)
         self.assertIn("beta_checklist", check_names)
         self.assertIn("beta_evidence_requirements", check_names)

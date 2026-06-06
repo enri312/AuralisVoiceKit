@@ -12,7 +12,7 @@ English: AuralisVoiceKit is a modern voice toolkit for Python assistants, local 
 
 El objetivo principal es evitar que la captura de microfono dependa obligatoriamente de PyAudio o de wheels que tardan en llegar a las versiones nuevas de Python. El paquete base debe poder instalarse de forma liviana, sin compiladores y sin dependencias nativas obligatorias. Para MP3, FLAC y formatos comprimidos, AuralisVoiceKit usa `ffmpeg` como herramienta externa opcional.
 
-> Estado actual: alpha tecnica con gate de pilotos reales y checklist de beta. El repositorio ya define el core, los contratos de backends, captura real inicial, diagnostico reforzado para WASAPI, bundles de diagnostico sanitizados y analizables, flujo WAV offline, transcripcion inicial por API y local opcional, sesiones de voz iniciales, una CLI de diagnostico, benchmarks offline y comparativos para Whisper exportables a JSON/CSV, errores accionables para `ffmpeg`, mensajes accionables para audio Windows, documentacion estatica, salida de voz del sistema con voces configurables y ejemplo seguro, salida custom en memoria, quickstart para PyPI sin extras, guia de privacidad/logs, ejemplo de asistente local con logs sanitizados, runner de piloto seguro, runner de piloto manual con checklist de captura, piloto de salida con checklist de operador, piloto de transcripcion con checklist de revision, scoring redactado, escaneo redactado de privacidad de referencia, redaccion de nombres de archivos de audio/referencia y confirmacion humana de calidad, checklist de beta automatizado, pruebas unitarias y pruebas reales de MP3/FLAC. Los backends reales se iran agregando por etapas.
+> Estado actual: alpha tecnica con gate de pilotos reales y checklist de beta. El repositorio ya define el core, los contratos de backends, captura real inicial con `sounddevice`, `wasapi` y compatibilidad opcional `pyaudio`, diagnostico reforzado para WASAPI, bundles de diagnostico sanitizados y analizables, flujo WAV offline, transcripcion inicial por API y local opcional, sesiones de voz iniciales, una CLI de diagnostico, benchmarks offline y comparativos para Whisper exportables a JSON/CSV, errores accionables para `ffmpeg`, mensajes accionables para audio Windows, documentacion estatica, salida de voz del sistema con voces configurables y ejemplo seguro, salida custom en memoria, quickstart para PyPI sin extras, guia de privacidad/logs, ejemplo de asistente local con logs sanitizados, runner de piloto seguro, runner de piloto manual con checklist de captura, piloto de salida con checklist de operador, piloto de transcripcion con checklist de revision, scoring redactado, escaneo redactado de privacidad de referencia, redaccion de nombres de archivos de audio/referencia y confirmacion humana de calidad, checklist de beta automatizado, pruebas unitarias y pruebas reales de MP3/FLAC. Los backends reales se iran agregando por etapas.
 
 ## Problema que resuelve
 
@@ -66,6 +66,7 @@ Cuando se agreguen backends opcionales:
 
 ```powershell
 py -m pip install -e ".[sounddevice]"
+py -m pip install -e ".[pyaudio]"
 py -m pip install -e ".[openai]"
 py -m pip install -e ".[whisper]"
 ```
@@ -100,7 +101,7 @@ Para ver el flujo base completo desde archivo WAV sintetico, segmentacion y tran
 py examples\pypi_quickstart.py --json
 ```
 
-## Captura real con sounddevice
+## Captura real con sounddevice, WASAPI o PyAudio
 
 El backend `sounddevice` es opcional y permite capturar audio PCM16 desde microfono sin depender de PyAudio:
 
@@ -109,6 +110,15 @@ py -m pip install -e ".[sounddevice]"
 py -m auralis_voicekit.cli devices --backend sounddevice
 py -m auralis_voicekit.cli devices --backend wasapi
 py examples\capture_microphone.py --seconds 3 --output capture.wav
+```
+
+El backend `pyaudio` tambien es opcional. Sirve como capa de compatibilidad para proyectos existentes que ya usan PortAudio/PyAudio; no se instala con el paquete base y no bloquea imports si falta el wheel:
+
+```powershell
+py -m pip install "auralisvoicekit[pyaudio]"
+py -m pip install -e ".[pyaudio]"
+py -m auralis_voicekit.cli devices --backend pyaudio
+py -m auralis_voicekit.cli doctor --capture-test --backend pyaudio --device default --json
 ```
 
 Tambien se puede seleccionar dispositivo por id, nombre o `default`:
@@ -501,7 +511,9 @@ py examples\local_assistant_privacy_demo.py --json
 auralis doctor
 auralis doctor --devices --backend wav
 auralis doctor --devices --backend sounddevice
+auralis doctor --devices --backend pyaudio
 auralis doctor --capture-test --backend sounddevice --capture-seconds 0.25
+auralis doctor --capture-test --backend pyaudio --device default --json
 auralis doctor --capture-test --backend sounddevice --device default --json
 auralis doctor --capture-test --backend wasapi --device 15 --sample-rate 48000 --json
 auralis doctor --wav sample.wav
@@ -510,7 +522,7 @@ auralis doctor --devices --backend wasapi --bundle reports/doctor-windows.json
 auralis doctor-bundles reports/doctor-windows.json --output reports/doctor-analysis.json --json
 ```
 
-La salida distingue entre `ok`, `warning` y `error`. Los warnings no bloquean el uso del core; por ejemplo, `sounddevice` puede faltar y aun asi funcionar `null`, `wav`, lectura WAV y utilidades de audio. El flag `--capture-test` intenta abrir brevemente el backend de captura seleccionado y es util para diagnosticar permisos de microfono o errores de dispositivo.
+La salida distingue entre `ok`, `warning` y `error`. Los warnings no bloquean el uso del core; por ejemplo, `sounddevice` o `pyaudio` pueden faltar y aun asi funcionar `null`, `wav`, lectura WAV y utilidades de audio. El flag `--capture-test` intenta abrir brevemente el backend de captura seleccionado y es util para diagnosticar permisos de microfono o errores de dispositivo.
 
 Para pilotos o reportes de bugs, `--bundle` escribe un JSON sanitizado que redacta rutas locales y nombres de dispositivos, y no recoge audio ni transcripciones. `auralis doctor-bundles` agrupa bundles y resume sistemas, versiones Python, checks con warning/error, categorias y prioridades. English: doctor bundles are safe support artifacts for Windows, Ubuntu/Linux and macOS pilot reports.
 
@@ -592,7 +604,7 @@ auralis_voicekit
 | `wav` | inicial funcional | pruebas offline con WAV PCM16 |
 | `sounddevice` | inicial funcional | captura moderna multiplataforma |
 | `wasapi` | inicial con diagnostico reforzado | captura Windows filtrada por host API WASAPI |
-| `pyaudio` | pendiente | compatibilidad con proyectos existentes |
+| `pyaudio` | inicial funcional | compatibilidad opcional con proyectos existentes basados en PyAudio |
 | `whisper` | inicial funcional | transcripcion local opcional con faster-whisper |
 | `openai` | inicial funcional | transcripcion por API |
 | `system` | inicial con voces configurables | salida de voz con herramientas del sistema operativo |

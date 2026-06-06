@@ -6,6 +6,17 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.78.0] - 2026-06-06
+
+### Agregado
+
+- Backend opcional `pyaudio` para captura PCM16, con listado de dispositivos, seleccion por id/nombre/default y cierre robusto de streams.
+- Extra `auralisvoicekit[pyaudio]` y diagnostico `doctor` para reportar la dependencia opcional sin romper el paquete base.
+
+### Cambiado
+
+- README, roadmap, docs HTML y stability gate ahora documentan y verifican la compatibilidad opcional con PyAudio.
+
 ## [0.77.0] - 2026-06-06
 
 ### Agregado

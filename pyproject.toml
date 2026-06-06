@@ -22,6 +22,7 @@ keywords = [
   "windows",
   "linux",
   "ubuntu",
+  "pyaudio",
   "wasapi",
   "benchmark",
   "latency",
@@ -65,6 +66,9 @@ openai = [
 ]
 sounddevice = [
   "sounddevice>=0.5.0"
+]
+pyaudio = [
+  "PyAudio>=0.2.14"
 ]
 whisper = [
   "faster-whisper>=1.1.0"

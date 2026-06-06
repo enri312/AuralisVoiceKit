@@ -3,6 +3,7 @@
 from .base import BackendInfo, CaptureBackend, SpeechOutputBackend, TranscriptionBackend
 from .null import NullCaptureBackend, NullSpeechOutputBackend, NullTranscriptionBackend
 from .openai_transcription import OpenAITranscriptionBackend
+from .pyaudio_capture import PyAudioCaptureBackend
 from .registry import BackendRegistry, create_default_registry
 from .system_output import SystemSpeechOutputBackend, SystemVoice
 from .wasapi import WasapiCaptureBackend, WasapiDiagnosticSnapshot, inspect_wasapi_environment
@@ -17,6 +18,7 @@ __all__ = [
     "NullSpeechOutputBackend",
     "NullTranscriptionBackend",
     "OpenAITranscriptionBackend",
+    "PyAudioCaptureBackend",
     "SpeechOutputBackend",
     "SystemSpeechOutputBackend",
     "SystemVoice",
