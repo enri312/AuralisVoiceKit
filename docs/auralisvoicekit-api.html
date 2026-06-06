@@ -439,6 +439,18 @@ AURALIS_OUTPUT_VOLUME=80</code></pre>
               <td>Envia texto al backend de salida. Con <code>output_backend="system"</code> puede usar voz, velocidad y volumen.</td>
             </tr>
             <tr>
+              <td><code>queue_speech(text)</code> / <code>queue_speech_many(texts)</code></td>
+              <td>Encola una o varias frases para salida secuencial sin exponer texto en eventos.</td>
+            </tr>
+            <tr>
+              <td><code>drain_output_queue(limit=None)</code></td>
+              <td>Drena la cola en orden usando el backend actual; si el backend falla, conserva el item actual para reintento.</td>
+            </tr>
+            <tr>
+              <td><code>clear_output_queue()</code> / <code>output_queue_size</code></td>
+              <td>Limpia pendientes o consulta cuantos textos siguen esperando salida.</td>
+            </tr>
+            <tr>
               <td><code>backend_report()</code></td>
               <td>Devuelve informacion de backends registrados.</td>
             </tr>
@@ -744,6 +756,13 @@ kit = AuralisVoiceKit(
     )
 )
 kit.speak("Hola desde AuralisVoiceKit")</code></pre>
+        <p><code>AuralisVoiceKit</code> tambien incluye una cola simple de salida para respuestas encadenadas. <code>queue_speech()</code> y <code>queue_speech_many()</code> encolan textos, <code>drain_output_queue()</code> los habla en orden y <code>clear_output_queue()</code> descarta pendientes. English: queued output is synchronous, ordered, retry-friendly on backend failure and keeps spoken text out of event payloads.</p>
+        <pre><code>kit.queue_speech_many([
+    "Hola desde AuralisVoiceKit",
+    "Preparando el siguiente paso",
+])
+kit.drain_output_queue(limit=1)
+kit.drain_output_queue()</code></pre>
         <pre><code>auralis voices --backend system --json
 auralis speak "Hola" --backend system --voice es --rate 160 --volume 80
 python examples/system_output_demo.py --json

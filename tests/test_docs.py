@@ -45,6 +45,18 @@ class DocumentationTests(unittest.TestCase):
         self.assertIn("ffmpeg_search_locations", content)
         self.assertIn("run_offline_benchmarks", content)
 
+    def test_output_queue_is_documented(self):
+        readme = README.read_text(encoding="utf-8")
+        main_doc = MAIN_DOC.read_text(encoding="utf-8")
+        api_doc = API_DOC.read_text(encoding="utf-8")
+
+        for content in (readme, main_doc, api_doc):
+            self.assertIn("queue_speech", content)
+            self.assertIn("queue_speech_many", content)
+            self.assertIn("drain_output_queue", content)
+            self.assertIn("clear_output_queue", content)
+            self.assertIn("output_queue_size", content)
+
     def test_pyaudio_optional_backend_is_documented(self):
         readme = README.read_text(encoding="utf-8")
         main_doc = MAIN_DOC.read_text(encoding="utf-8")

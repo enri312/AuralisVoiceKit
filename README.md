@@ -12,7 +12,7 @@ English: AuralisVoiceKit is a modern voice toolkit for Python assistants, local 
 
 El objetivo principal es evitar que la captura de microfono dependa obligatoriamente de PyAudio o de wheels que tardan en llegar a las versiones nuevas de Python. El paquete base debe poder instalarse de forma liviana, sin compiladores y sin dependencias nativas obligatorias. Para MP3, FLAC y formatos comprimidos, AuralisVoiceKit usa `ffmpeg` como herramienta externa opcional.
 
-> Estado actual: alpha tecnica con gate de pilotos reales y checklist de beta. El repositorio ya define el core, los contratos de backends, captura real inicial con `sounddevice`, `wasapi` y compatibilidad opcional `pyaudio`, diagnostico reforzado para WASAPI, bundles de diagnostico sanitizados y analizables, flujo WAV offline, transcripcion inicial por API y local opcional, sesiones de voz iniciales, una CLI de diagnostico, benchmarks offline y comparativos para Whisper exportables a JSON/CSV, errores accionables para `ffmpeg`, mensajes accionables para audio Windows, documentacion estatica, salida de voz del sistema con voces configurables y ejemplo seguro, salida custom en memoria, quickstart para PyPI sin extras, guia de privacidad/logs, ejemplo de asistente local con logs sanitizados, runner de piloto seguro, runner de piloto manual con checklist de captura, piloto de salida con checklist de operador, piloto de transcripcion con checklist de revision, scoring redactado, escaneo redactado de privacidad de referencia, redaccion de nombres de archivos de audio/referencia y confirmacion humana de calidad, checklist de beta automatizado, pruebas unitarias y pruebas reales de MP3/FLAC. Los backends reales se iran agregando por etapas.
+> Estado actual: alpha tecnica con gate de pilotos reales y checklist de beta. El repositorio ya define el core, los contratos de backends, captura real inicial con `sounddevice`, `wasapi` y compatibilidad opcional `pyaudio`, diagnostico reforzado para WASAPI, bundles de diagnostico sanitizados y analizables, flujo WAV offline, transcripcion inicial por API y local opcional, sesiones de voz iniciales, una CLI de diagnostico, benchmarks offline y comparativos para Whisper exportables a JSON/CSV, errores accionables para `ffmpeg`, mensajes accionables para audio Windows, documentacion estatica, salida de voz del sistema con voces configurables, cola simple de salida y ejemplo seguro, salida custom en memoria, quickstart para PyPI sin extras, guia de privacidad/logs, ejemplo de asistente local con logs sanitizados, runner de piloto seguro, runner de piloto manual con checklist de captura, piloto de salida con checklist de operador, piloto de transcripcion con checklist de revision, scoring redactado, escaneo redactado de privacidad de referencia, redaccion de nombres de archivos de audio/referencia y confirmacion humana de calidad, checklist de beta automatizado, pruebas unitarias y pruebas reales de MP3/FLAC. Los backends reales se iran agregando por etapas.
 
 ## Problema que resuelve
 
@@ -200,6 +200,17 @@ kit = AuralisVoiceKit(
     )
 )
 kit.speak("Hola desde AuralisVoiceKit")
+```
+
+Para respuestas encadenadas, `AuralisVoiceKit` incluye una cola simple de salida. `queue_speech()` y `queue_speech_many()` encolan textos en orden, `drain_output_queue()` los envia secuencialmente al backend actual, `clear_output_queue()` descarta pendientes y `output_queue_size` informa cuantos items siguen esperando. Los eventos `output.started` / `output.completed` siguen saliendo por cada item drenado y no incluyen el texto hablado.
+
+```python
+kit.queue_speech_many([
+    "Hola desde AuralisVoiceKit",
+    "Preparando el siguiente paso",
+])
+kit.drain_output_queue(limit=1)
+kit.drain_output_queue()
 ```
 
 Rutas usadas por plataforma:
@@ -608,7 +619,7 @@ auralis_voicekit
 | `pyaudio` | inicial funcional | compatibilidad opcional con proyectos existentes basados en PyAudio |
 | `whisper` | inicial funcional | transcripcion local opcional con faster-whisper |
 | `openai` | inicial funcional | transcripcion por API |
-| `system` | inicial con voces configurables | salida de voz con herramientas del sistema operativo |
+| `system` | inicial con voces configurables | salida de voz con herramientas del sistema operativo y cola secuencial desde `AuralisVoiceKit` |
 
 ## Uso con asistentes
 

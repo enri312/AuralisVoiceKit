@@ -6,6 +6,14 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.100.0] - 2026-06-06
+
+### Agregado
+
+- `AuralisVoiceKit` ahora incluye una cola simple de salida con `queue_speech()`, `queue_speech_many()`, `drain_output_queue()`, `clear_output_queue()` y `output_queue_size`.
+- La cola drena textos en orden usando el backend de salida actual, emite los eventos `output.started` / `output.completed` existentes por cada item y no publica el texto hablado en payloads de eventos.
+- Nuevas pruebas cubren drenado en orden, limite de drenado, limpieza de cola, rechazo de limite negativo y retencion del item actual si el backend falla.
+
 ## [0.99.3] - 2026-06-06
 
 ### Agregado

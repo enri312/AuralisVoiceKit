@@ -1,6 +1,21 @@
 import unittest
 
-from auralis_voicekit import AuralisVoiceKit, AudioChunk, AudioFormat, VoiceEventType
+from auralis_voicekit import AuralisVoiceKit, AudioChunk, AudioFormat, VoiceEventType, VoiceKitConfig
+from auralis_voicekit.backends import BackendInfo, create_default_registry
+
+
+class FailingOutputBackend:
+    name = "failing"
+
+    def __init__(self) -> None:
+        self.utterances: list[str] = []
+
+    def info(self) -> BackendInfo:
+        return BackendInfo(name=self.name, kind="output")
+
+    def speak(self, text: str, config: VoiceKitConfig) -> None:
+        self.utterances.append(text)
+        raise RuntimeError("output failed")
 
 
 class AuralisVoiceKitTests(unittest.TestCase):
@@ -39,6 +54,64 @@ class AuralisVoiceKitTests(unittest.TestCase):
 
         self.assertEqual(seen, [{"backend": "null"}, {"backend": "null"}])
         self.assertEqual(kit.output.utterances, ["Hola"])
+
+    def test_output_queue_drains_speech_in_order(self):
+        kit = AuralisVoiceKit()
+        seen = []
+        kit.events.subscribe(VoiceEventType.OUTPUT_STARTED, lambda event: seen.append(event.payload))
+        kit.events.subscribe(VoiceEventType.OUTPUT_COMPLETED, lambda event: seen.append(event.payload))
+
+        size = kit.queue_speech_many(["Uno", "   ", "Dos"])
+        spoken = kit.drain_output_queue()
+
+        self.assertEqual(size, 2)
+        self.assertEqual(spoken, 2)
+        self.assertEqual(kit.output_queue_size, 0)
+        self.assertEqual(kit.output.utterances, ["Uno", "Dos"])
+        self.assertEqual(
+            seen,
+            [
+                {"backend": "null"},
+                {"backend": "null"},
+                {"backend": "null"},
+                {"backend": "null"},
+            ],
+        )
+        self.assertTrue(all("text" not in payload for payload in seen))
+
+    def test_output_queue_can_drain_with_limit_and_clear_remaining_items(self):
+        kit = AuralisVoiceKit()
+        kit.queue_speech_many(["Uno", "Dos", "Tres"])
+
+        spoken = kit.drain_output_queue(limit=2)
+        cleared = kit.clear_output_queue()
+
+        self.assertEqual(spoken, 2)
+        self.assertEqual(cleared, 1)
+        self.assertEqual(kit.output_queue_size, 0)
+        self.assertEqual(kit.output.utterances, ["Uno", "Dos"])
+
+    def test_output_queue_rejects_negative_limit(self):
+        kit = AuralisVoiceKit()
+        kit.queue_speech("Uno")
+
+        with self.assertRaises(ValueError):
+            kit.drain_output_queue(limit=-1)
+
+        self.assertEqual(kit.output_queue_size, 1)
+        self.assertEqual(kit.output.utterances, [])
+
+    def test_output_queue_keeps_current_item_when_backend_fails(self):
+        registry = create_default_registry()
+        registry.register_output("failing", FailingOutputBackend)
+        kit = AuralisVoiceKit(VoiceKitConfig(output_backend="failing"), registry=registry)
+        kit.queue_speech_many(["Uno", "Dos"])
+
+        with self.assertRaisesRegex(RuntimeError, "output failed"):
+            kit.drain_output_queue()
+
+        self.assertEqual(kit.output_queue_size, 2)
+        self.assertEqual(kit.output.utterances, ["Uno"])
 
 
 if __name__ == "__main__":

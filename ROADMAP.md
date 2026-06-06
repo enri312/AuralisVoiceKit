@@ -36,7 +36,7 @@ La meta no es competir con todos los motores de voz a la vez. La meta es constru
 | Compatibilidad Windows/Linux/macOS | Documentacion inicial |
 | Diagnostico doctor | Inicial estructurado con test de apertura, bundle sanitizado y analisis de bundles |
 | Transcripcion real | Inicial por API y local opcional |
-| Salida de voz real | Inicial con backend `system`, listado de voces, parametros de voz y ejemplo seguro |
+| Salida de voz real | Inicial con backend `system`, listado de voces, parametros de voz, cola simple de salida y ejemplo seguro |
 | CI multiplataforma | Inicial con pruebas reales de MP3/FLAC, runner Windows 2025 VS2026 explicito y pip sin cache |
 | Publicacion en PyPI | Preparada con workflow manual |
 | Benchmarks de latencia | Inicial offline, comparativo para Whisper y exportacion JSON/CSV |
@@ -154,7 +154,7 @@ Entregables:
 - Ejemplo seguro de salida `system` con dry-run y piloto real opt-in. Estado: inicial con `examples/system_output_demo.py`.
 - Backend Windows inicial para TTS local si es viable. Estado: inicial via PowerShell/SAPI.
 - Backend por API como extra opcional.
-- Cola simple de reproduccion.
+- Cola simple de reproduccion. Estado: inicial con `queue_speech()`, `queue_speech_many()`, `drain_output_queue()`, `clear_output_queue()` y `output_queue_size`.
 - Eventos `output.started` y `output.completed`. Estado: inicial.
 
 Criterio de salida:
