@@ -334,6 +334,9 @@ class TranscriptionPilotTests(unittest.TestCase):
         self.assertEqual(report["target_backend"]["kind"], "transcription")
         self.assertIsInstance(report["target_backend"]["available"], bool)
         self.assertIn("faster-whisper", report["target_backend"]["dependencies"])
+        self.assertEqual(report["target_backend"]["install_command"], 'python -m pip install "auralisvoicekit[whisper]"')
+        self.assertEqual(report["target_backend"]["install_plan"]["extra"], "whisper")
+        self.assertIn("--require-target-backend-ready", report["target_backend"]["install_plan"]["post_install_check"])
         self.assertTrue(report["audio"]["decoded"])
         self.assertEqual(report["audio"]["audio_file_name"], "<audio-file-redacted>")
         self.assertTrue(report["audio"]["audio_file_name_redacted"])
@@ -349,6 +352,7 @@ class TranscriptionPilotTests(unittest.TestCase):
         self.assertIn("Preflight only: True", findings)
         self.assertIn("Target backend available:", findings)
         self.assertIn("Target backend dependencies: faster-whisper", findings)
+        self.assertIn('Target backend install command: python -m pip install "auralisvoicekit[whisper]"', findings)
         self.assertIn("Audio file name redacted: True", findings)
         self.assertIn("Audio decode passed: True", findings)
         self.assertIn("Duration gate passed: True", findings)
@@ -359,6 +363,8 @@ class TranscriptionPilotTests(unittest.TestCase):
         self.assertIn("--expected-text-file <expected-text-path>", next_step)
         self.assertIn("--require-target-backend-ready", next_step)
         self.assertIn("Target backend dependencies: faster-whisper", next_step)
+        self.assertIn("target_backend.install_plan.pip_command", next_step)
+        self.assertIn("target_backend.install_plan.post_install_check", next_step)
         self.assertIn("audio.audio_file_name_redacted=true", next_step)
         self.assertIn("target_backend.available=true", next_step)
         self.assertIn("transcription_checklist.records_audio_file_name=false", next_step)
@@ -410,7 +416,10 @@ class TranscriptionPilotTests(unittest.TestCase):
         self.assertEqual(payload["target_backend"]["kind"], "transcription")
         self.assertIsInstance(payload["target_backend"]["available"], bool)
         self.assertIn("faster-whisper", payload["target_backend"]["dependencies"])
+        self.assertEqual(payload["target_backend"]["install_command"], 'python -m pip install "auralisvoicekit[whisper]"')
+        self.assertEqual(payload["target_backend"]["install_plan"]["extra"], "whisper")
         self.assertEqual(payload["next_real_transcription"]["target_backend"]["name"], "whisper")
+        self.assertIn("post_install_check", payload["next_real_transcription"]["target_backend"]["install_plan"])
         self.assertTrue(payload["audio"]["decoded"])
         self.assertTrue(payload["audio"]["duration_gate"]["passed"])
         self.assertIsNone(payload["transcript"])
@@ -425,6 +434,11 @@ class TranscriptionPilotTests(unittest.TestCase):
                 "available": False,
                 "dependencies": ["faster-whisper"],
                 "reason": "missing test dependency",
+                "install_command": 'python -m pip install "auralisvoicekit[whisper]"',
+                "install_plan": {
+                    "pip_command": 'python -m pip install "auralisvoicekit[whisper]"',
+                    "post_install_check": "python tools/transcription_pilot.py --preflight-only --audio <audio-path> --audio-non-sensitive --backend whisper --require-target-backend-ready --json",
+                },
             }
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -464,8 +478,23 @@ class TranscriptionPilotTests(unittest.TestCase):
         self.assertIn("Transcription backend 'whisper' is not available", payload["error"])
         self.assertIn("faster-whisper", payload["error"])
         self.assertIn("missing test dependency", payload["error"])
+        self.assertIn('python -m pip install "auralisvoicekit[whisper]"', payload["error"])
         self.assertNotIn(str(audio_path), payload["error"])
         self.assertNotIn("private-sample.wav", payload["error"])
+
+    def test_transcription_backend_install_plan_supports_real_backends(self):
+        module = _load_transcription_pilot()
+
+        whisper = module._target_backend_install_plan("whisper", ["faster-whisper"])
+        openai = module._target_backend_install_plan("openai", ["openai"])
+        null_backend = module._target_backend_install_plan("null", [])
+
+        self.assertEqual(whisper["pip_command"], 'python -m pip install "auralisvoicekit[whisper]"')
+        self.assertEqual(openai["pip_command"], 'python -m pip install "auralisvoicekit[openai]"')
+        self.assertIsNone(null_backend["pip_command"])
+        self.assertTrue(whisper["keeps_base_package_light"])
+        self.assertIn("Ubuntu/Linux", " ".join(whisper["platform_notes"]))
+        self.assertIn("macOS", " ".join(openai["platform_notes"]))
 
     def test_transcription_pilot_cli_preflight_rejects_unknown_target_backend(self):
         module = _load_transcription_pilot()

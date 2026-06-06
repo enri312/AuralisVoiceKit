@@ -6,6 +6,14 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.94.0] - 2026-06-06
+
+### Agregado
+
+- `tools/transcription_pilot.py` ahora expone `target_backend.install_plan` con comando pip del extra opcional, notas Windows/Ubuntu/macOS y `post_install_check` para verificar `--require-target-backend-ready` antes de usar audio/modelos reales.
+- Los artifacts `transcription-pilot-findings.md` y `real-transcription-next-step.md` muestran el comando de instalacion y el chequeo posterior sin registrar rutas ni nombres privados.
+- README, `PILOTS.md`, roadmap, documentacion HTML y referencia API documentan el plan de instalacion para backends `whisper` y `openai`.
+
 ## [0.93.0] - 2026-06-06
 
 ### Agregado

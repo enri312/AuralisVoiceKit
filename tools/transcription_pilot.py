@@ -524,12 +524,43 @@ def _transcription_backend_status(backend: str) -> dict[str, Any]:
         info = create_default_registry().create_transcription(backend).info()
     except BackendNotAvailable as exc:
         raise ValueError(str(exc)) from exc
+    dependencies = list(info.dependencies)
+    install_plan = _target_backend_install_plan(info.name, dependencies)
     return {
         "name": info.name,
         "kind": info.kind,
         "available": info.available,
-        "dependencies": list(info.dependencies),
+        "dependencies": dependencies,
         "reason": info.reason,
+        "install_command": install_plan["pip_command"],
+        "install_plan": install_plan,
+    }
+
+
+def _target_backend_install_plan(backend: str, dependencies: list[str]) -> dict[str, Any]:
+    extra = {
+        "whisper": "whisper",
+        "openai": "openai",
+    }.get(backend)
+    pip_command = f'python -m pip install "auralisvoicekit[{extra}]"' if extra else None
+    post_install_check = (
+        "python tools/transcription_pilot.py --preflight-only "
+        "--audio <audio-path> --audio-non-sensitive "
+        f"--backend {backend} --require-target-backend-ready --json"
+    )
+    return {
+        "backend": backend,
+        "extra": extra,
+        "pip_command": pip_command,
+        "dependencies": dependencies,
+        "requires_network": extra is not None,
+        "keeps_base_package_light": True,
+        "platform_notes": [
+            "Windows: run the command in the same virtual environment used for the pilot.",
+            "Ubuntu/Linux: install ffmpeg and system audio packages separately when needed.",
+            "macOS: use Homebrew for ffmpeg or PortAudio packages when needed.",
+        ],
+        "post_install_check": post_install_check,
     }
 
 
@@ -538,9 +569,11 @@ def _validate_target_backend_ready(*, target_backend: dict[str, Any], required: 
         return
     dependencies = _format_list(target_backend["dependencies"])
     reason = target_backend["reason"] or "backend dependency check failed"
+    install_command = target_backend.get("install_command")
+    install_hint = f" Install with: {install_command}." if install_command else ""
     raise ValueError(
         f"Transcription backend {target_backend['name']!r} is not available. "
-        f"Dependencies: {dependencies}. Reason: {reason}"
+        f"Dependencies: {dependencies}. Reason: {reason}.{install_hint}"
     )
 
 
@@ -985,6 +1018,8 @@ def _build_findings_markdown(
         f"- Target backend available: {target_backend['available']}",
         f"- Target backend dependencies: {_format_list(target_backend['dependencies'])}",
         f"- Target backend reason: {_format_optional(target_backend['reason'])}",
+        f"- Target backend install command: {_format_optional(target_backend['install_command'])}",
+        f"- Target backend post-install check: {target_backend['install_plan']['post_install_check']}",
         f"- Preflight only: {preflight_only}",
         f"- Real transcription requested: {real_transcription}",
         f"- Passed: {passed}",
@@ -1131,6 +1166,8 @@ def _build_real_transcription_next_step_markdown(
         f"- Target backend available: {target_backend['available']}",
         f"- Target backend dependencies: {_format_list(target_backend['dependencies'])}",
         f"- Target backend reason: {_format_optional(target_backend['reason'])}",
+        f"- Target backend install command: {_format_optional(target_backend['install_command'])}",
+        f"- Target backend post-install check: {target_backend['install_plan']['post_install_check']}",
         f"- Model from current run: {_format_optional(model)}",
         f"- Preflight only: {preflight_only}",
         f"- Real transcription requested: {real_transcription}",
@@ -1159,6 +1196,8 @@ def _build_real_transcription_next_step_markdown(
         "",
         "- Replace `<audio-path>` locally; do not paste the real path into public findings.",
         "- Replace `<expected-text-path>` locally or use `--expected-text` only with public/non-sensitive text.",
+        "- If the backend is unavailable, install only the optional extra shown in `target_backend.install_plan.pip_command`.",
+        "- Run the `target_backend.install_plan.post_install_check` command before removing `--preflight-only`.",
         "- Confirm `audio.audio_file_name_redacted=true` in `transcription-pilot-report.json`.",
         "- Confirm `target_backend.available=true` before running without `--preflight-only`.",
         "- Confirm `transcription_checklist.records_audio_file_name=false`.",
@@ -1255,6 +1294,7 @@ def _print_report(report: dict[str, Any]) -> None:
     print("AuralisVoiceKit transcription pilot")
     print(f"Backend: {report['backend']}")
     print(f"Target backend available: {report['target_backend']['available']}")
+    print(f"Target backend install command: {_format_optional(report['target_backend']['install_command'])}")
     print(f"Preflight only: {report['preflight_only']}")
     print(f"Real transcription requested: {report['real_transcription_requested']}")
     print(f"Generated synthetic audio: {report['generated_synthetic_audio']}")

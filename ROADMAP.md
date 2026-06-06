@@ -47,7 +47,7 @@ La meta no es competir con todos los motores de voz a la vez. La meta es constru
 | Asistente local con privacidad | Ejemplo offline inicial con logs sanitizados |
 | Backends de salida custom | Guia inicial y ejemplo en memoria |
 | Automatizacion de estabilidad | Gate inicial para pilotos reales |
-| Pilotos seguros | Runner automatizado, piloto manual guiado con checklist de captura y revision confirmada de entrada, piloto de salida system con checklist de operador, guard de plataforma, scan de privacidad del texto hablado y revision de voz, piloto de transcripcion con checklist de revision y confirmacion humana de calidad, command pack por plataforma, checklist de entorno local, runbook, bundle doctor, analisis de bundles y checklist de beta |
+| Pilotos seguros | Runner automatizado, piloto manual guiado con checklist de captura y revision confirmada de entrada, piloto de salida system con checklist de operador, guard de plataforma, scan de privacidad del texto hablado y revision de voz, piloto de transcripcion con checklist de revision, plan de instalacion de backend y confirmacion humana de calidad, command pack por plataforma, checklist de entorno local, runbook, bundle doctor, analisis de bundles y checklist de beta |
 | Mensajes Windows audio | Helper inicial para errores comunes |
 
 ## Fase 0 - Base del proyecto

@@ -2,6 +2,40 @@
 
 Este documento resume hallazgos de pilotos reales o semi-manuales. No debe incluir audio, transcripciones privadas, rutas locales completas ni nombres reales de dispositivos.
 
+## 2026-06-06 - Windows preflight MP3 con plan de instalacion de backend
+
+Comandos ejecutados:
+
+```powershell
+python tools\pilot_audio_fixture.py --output-dir pilot_runs\transcription\install-plan-fixture --format wav --format mp3 --json
+python tools\transcription_pilot.py --output-dir pilot_runs\transcription\install-plan-preflight --preflight-only --audio pilot_runs\transcription\install-plan-fixture\pilot-sample.mp3 --audio-non-sensitive --backend whisper --normalize --min-audio-seconds 0.2 --max-audio-seconds 60 --json
+```
+
+Alcance:
+
+- Sistema: Windows.
+- Version AuralisVoiceKit: `0.94.0`.
+- Audio real: no; fixture sintetico publico.
+- Red/modelos reales: no.
+- Artifact de preparacion: `real-transcription-next-step.md`.
+- Texto esperado, transcripcion, nombres de archivos privados y rutas locales guardadas: no.
+
+Resultado:
+
+- Preflight: `passed=true`.
+- Audio MP3 decodificado con ffmpeg: `audio.decoded=true`.
+- Redaccion del nombre de audio: `audio.audio_file_name_redacted=true`.
+- `target_backend.available`: `false`, esperado porque falta instalar `faster-whisper`.
+- `target_backend.install_plan.pip_command`: `python -m pip install "auralisvoicekit[whisper]"`.
+- `target_backend.install_plan.post_install_check`: usa `--require-target-backend-ready` antes de quitar `--preflight-only`.
+- Evidencia beta: `false`; no hubo audio real, referencia revisada ni calidad humana.
+
+Acciones siguientes:
+
+1. Instalar el extra opcional del backend real en el mismo entorno virtual.
+2. Repetir el preflight con `--require-target-backend-ready` y un MP3 propio no sensible.
+3. Ejecutar `--real-transcription` solo despues de revisar privacidad del audio, referencia esperada y calidad local.
+
 ## 2026-06-06 - Windows readiness de transcripcion real sin modelo
 
 Comando ejecutado:
