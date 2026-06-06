@@ -31,6 +31,7 @@ def run_output_pilot(
     speak: bool = False,
     operator_present: bool = False,
     operator_confirmed_audio: bool = False,
+    voice_review_confirmed: bool = False,
     include_voices: bool = True,
 ) -> dict[str, Any]:
     """Run a safe system-output pilot and write shareable artifacts."""
@@ -39,6 +40,7 @@ def run_output_pilot(
         speak=speak,
         operator_present=operator_present,
         operator_confirmed_audio=operator_confirmed_audio,
+        voice_review_confirmed=voice_review_confirmed,
     )
     workspace = Path(root).resolve()
     timestamp = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
@@ -69,6 +71,7 @@ def run_output_pilot(
         speak=speak,
         operator_present=operator_present,
         operator_confirmed_audio=operator_confirmed_audio,
+        voice_review_confirmed=voice_review_confirmed,
         voice=voice,
         rate=rate,
         volume=volume,
@@ -84,6 +87,7 @@ def run_output_pilot(
         speak=speak,
         operator_present=operator_present,
         operator_confirmed_audio=operator_confirmed_audio,
+        voice_review_confirmed=voice_review_confirmed,
         confirmation_status=confirmation_status,
         passed=passed,
         payload=sanitized_payload,
@@ -107,6 +111,7 @@ def run_output_pilot(
         "hardware_output_tested": speak,
         "operator_present": operator_present,
         "operator_confirmed_audio": operator_confirmed_audio,
+        "voice_review_confirmed": voice_review_confirmed,
         "operator_confirmation_status": confirmation_status,
         "text_characters": len(text),
         "voice": voice,
@@ -157,6 +162,11 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="record that the operator confirmed audible output",
     )
+    parser.add_argument(
+        "--confirm-voice-reviewed",
+        action="store_true",
+        help="record that the operator reviewed voice, volume and pronunciation quality",
+    )
     parser.add_argument("--no-voices", action="store_true", help="skip voice listing")
     parser.add_argument("--json", action="store_true", help="print JSON report")
     args = parser.parse_args(argv)
@@ -173,6 +183,7 @@ def main(argv: list[str] | None = None) -> int:
             speak=args.speak,
             operator_present=args.operator_present,
             operator_confirmed_audio=args.confirm_audible,
+            voice_review_confirmed=args.confirm_voice_reviewed,
             include_voices=not args.no_voices,
         )
     except ValueError as exc:
@@ -214,6 +225,7 @@ def _validate_operator_flags(
     speak: bool,
     operator_present: bool,
     operator_confirmed_audio: bool,
+    voice_review_confirmed: bool,
 ) -> None:
     if speak and not operator_present:
         raise ValueError("Real system output requires --operator-present with --speak.")
@@ -223,6 +235,10 @@ def _validate_operator_flags(
         raise ValueError("--confirm-audible is only valid with --speak.")
     if operator_confirmed_audio and not operator_present:
         raise ValueError("--confirm-audible requires --operator-present.")
+    if voice_review_confirmed and not speak:
+        raise ValueError("--confirm-voice-reviewed is only valid with --speak.")
+    if voice_review_confirmed and not operator_confirmed_audio:
+        raise ValueError("--confirm-voice-reviewed requires --confirm-audible.")
 
 
 def _operator_confirmation_status(
@@ -246,6 +262,7 @@ def _operator_checklist(
     speak: bool,
     operator_present: bool,
     operator_confirmed_audio: bool,
+    voice_review_confirmed: bool,
     voice: str | None,
     rate: int | None,
     volume: int | None,
@@ -286,9 +303,9 @@ def _operator_checklist(
         ),
         _checklist_item(
             "voice_quality_reviewed",
-            "Record voice, volume or pronunciation issues in PILOT_FINDINGS.md without private text.",
-            ok=None,
-            required=False,
+            "Use --confirm-voice-reviewed only after reviewing voice, volume and pronunciation quality.",
+            ok=voice_review_confirmed if speak else None,
+            required=True,
         ),
     ]
     commands_available = len(payload.get("commands", [])) > 0 or bool(
@@ -298,9 +315,12 @@ def _operator_checklist(
         "system": system,
         "records_operator_identity": False,
         "redacts_spoken_text": True,
+        "voice_review_confirmed": voice_review_confirmed,
         "commands_available": commands_available,
         "ready_for_real_audio": bool(speak and operator_present and commands_available),
-        "ready_for_beta_evidence": bool(speak and operator_present and operator_confirmed_audio and commands_available),
+        "ready_for_beta_evidence": bool(
+            speak and operator_present and operator_confirmed_audio and voice_review_confirmed and commands_available
+        ),
         "before_playback": before,
         "after_playback": after,
     }
@@ -328,6 +348,7 @@ def _build_findings_markdown(
     speak: bool,
     operator_present: bool,
     operator_confirmed_audio: bool,
+    voice_review_confirmed: bool,
     confirmation_status: str,
     passed: bool,
     payload: dict[str, Any],
@@ -345,6 +366,7 @@ def _build_findings_markdown(
         f"- Real audio requested: {speak}",
         f"- Operator present: {operator_present}",
         f"- Operator confirmed audio: {operator_confirmed_audio}",
+        f"- Voice review confirmed: {voice_review_confirmed}",
         f"- Operator confirmation status: {confirmation_status}",
         f"- Passed: {passed}",
         f"- Voices reported: {len(payload.get('voices', []))}",
@@ -392,6 +414,7 @@ def _build_operator_checklist_markdown(
         f"- System: {system}",
         f"- Records operator identity: {operator_checklist['records_operator_identity']}",
         f"- Redacts spoken text: {operator_checklist['redacts_spoken_text']}",
+        f"- Voice review confirmed: {operator_checklist['voice_review_confirmed']}",
         f"- Commands available: {operator_checklist['commands_available']}",
         f"- Ready for real audio: {operator_checklist['ready_for_real_audio']}",
         f"- Ready for beta evidence: {operator_checklist['ready_for_beta_evidence']}",
@@ -450,6 +473,7 @@ def _print_report(report: dict[str, Any]) -> None:
     print(f"Real audio requested: {report['real_audio_requested']}")
     print(f"Operator present: {report['operator_present']}")
     print(f"Operator confirmation: {report['operator_confirmation_status']}")
+    print(f"Voice review confirmed: {report['voice_review_confirmed']}")
     print(f"Passed: {report['passed']}")
     print(f"Voices: {report['voices_count']}")
     print(f"Commands: {report['commands_count']}")

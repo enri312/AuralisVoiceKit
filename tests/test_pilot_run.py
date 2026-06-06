@@ -45,6 +45,7 @@ class PilotRunTests(unittest.TestCase):
         self.assertIn("Matriz por plataforma", plan)
         self.assertIn("Proximas evidencias beta", plan)
         self.assertIn("--confirm-audible", plan)
+        self.assertIn("--confirm-voice-reviewed", plan)
         self.assertIn("audit-evidence", plan)
         self.assertIn("refresh-beta-checklist", plan)
         self.assertIn("--fail-on-audit-gaps", plan)
@@ -57,6 +58,7 @@ class PilotRunTests(unittest.TestCase):
         self.assertIn("transcription_checklist.quality_review_confirmed", plan)
         self.assertIn("transcription_checklist.ready_for_beta_evidence", plan)
         self.assertIn("output-operator-checklist.md", plan)
+        self.assertIn("operator_checklist.voice_review_confirmed", plan)
         self.assertIn("operator_checklist.ready_for_beta_evidence", plan)
         self.assertIn("manual-capture-checklist.md", plan)
         self.assertIn("capture_checklist.ready_for_beta_evidence", plan)
@@ -92,8 +94,13 @@ class PilotRunTests(unittest.TestCase):
         transcription_step = {
             step["name"]: step for step in report["recommended_pilot_sequence"]
         }["real_transcription_quality"]
+        output_step = {
+            step["name"]: step for step in report["recommended_pilot_sequence"]
+        }["system_output_audible"]
         self.assertIn("--confirm-quality-reviewed", transcription_step["command"])
         self.assertIn("transcription_checklist.quality_review_confirmed", transcription_step["required_fields"])
+        self.assertIn("--confirm-voice-reviewed", output_step["command"])
+        self.assertIn("operator_checklist.voice_review_confirmed", output_step["required_fields"])
         self.assertFalse(checklist_step["requires_hardware"])
         self.assertFalse(checklist_step["requires_operator"])
         self.assertIn("operator_checklist.ready_for_beta_evidence", checklist_step["required_fields"])
@@ -104,6 +111,7 @@ class PilotRunTests(unittest.TestCase):
         self.assertEqual(matrix["transcription-audio-fixture"]["status"], "recommended")
         self.assertEqual(matrix["transcription-mp3-preflight"]["status"], "recommended")
         self.assertTrue(matrix["system-output-audible"]["requires_operator"])
+        self.assertIn("--confirm-voice-reviewed", matrix["system-output-audible"]["command"])
         self.assertIn("--fail-on-audit-gaps", report["beta_readiness"]["strict_audit_command"])
         self.assertIn("microphone-capture-checklist", {step["name"] for step in report["manual_pilot_steps"]})
         self.assertIn("microphone-capture", {step["name"] for step in report["manual_pilot_steps"]})

@@ -200,12 +200,12 @@ Rutas usadas por plataforma:
 
 English: the `system` output backend can list voices and select voice/rate/volume when the operating system command supports those options.
 
-El ejemplo `system_output_demo.py` usa dry-run por defecto: registra el comando que se ejecutaria, lista voces simuladas para Windows/macOS/Linux y emite eventos `output.*` sin reproducir audio. Para pilotos con artifacts, `tools/output_pilot.py` escribe `output-pilot-report.json`, `output-pilot-findings.md` y `output-operator-checklist.md` con el texto redactado en comandos. Para un piloto real que pueda cerrar el blocker beta, usa `--speak --operator-present --confirm-audible` de forma explicita:
+El ejemplo `system_output_demo.py` usa dry-run por defecto: registra el comando que se ejecutaria, lista voces simuladas para Windows/macOS/Linux y emite eventos `output.*` sin reproducir audio. Para pilotos con artifacts, `tools/output_pilot.py` escribe `output-pilot-report.json`, `output-pilot-findings.md` y `output-operator-checklist.md` con el texto redactado en comandos. Para un piloto real que pueda cerrar el blocker beta, usa `--speak --operator-present --confirm-audible --confirm-voice-reviewed` de forma explicita:
 
 ```powershell
 py examples\system_output_demo.py --speak --text "Hola desde AuralisVoiceKit"
 py tools\output_pilot.py --output-dir pilot_runs\output\system-dry-run --json
-py tools\output_pilot.py --speak --operator-present --confirm-audible --output-dir pilot_runs\output\system-real --text "Hola desde AuralisVoiceKit" --json
+py tools\output_pilot.py --speak --operator-present --confirm-audible --confirm-voice-reviewed --output-dir pilot_runs\output\system-real --text "Hola desde AuralisVoiceKit" --json
 ```
 
 ## Backends de salida personalizados
@@ -661,7 +661,7 @@ py tools\beta_readiness.py --evidence pilot_runs\manual\linux --evidence pilot_r
 py tools\beta_readiness.py --fail-on-blockers --json
 ```
 
-El checklist generado vive en `BETA_CHECKLIST.md` y separa dos estados: listo para pilotos reales no significa listo para beta. `--requirements` imprime los campos JSON necesarios para cada blocker antes de ejecutar pilotos reales, incluido `system_guard.expected_system_matched` y `capture_checklist.ready_for_beta_evidence` para captura real, `quality_review_confirmed=true`, `transcription_checklist.quality_review_confirmed=true` y `transcription_checklist.ready_for_beta_evidence=true` para transcripcion real, y `operator_checklist.ready_for_beta_evidence` para salida audible. `--audit-evidence` revisa artifacts reales, resume blockers cerrados/pendientes y explica que campo falta; `--fail-on-audit-gaps` devuelve codigo 1 si todavia faltan blockers o si algun artifact fue ignorado. `--evidence` acepta archivos o carpetas con JSON generados por `tools\manual_pilot.py`, `tools\output_pilot.py` y `tools\transcription_pilot.py`; solo cuenta artifacts con `project: AuralisVoiceKit`, reporta evidencias ignoradas con motivo (`missing_project`, `wrong_project`, `not_json_object`) y usa campos estructurados/nombres de artifacts, no transcripciones ni audio. English: real transcription beta evidence also requires `--confirm-quality-reviewed` after human review, and readiness never copies private transcripts or audio.
+El checklist generado vive en `BETA_CHECKLIST.md` y separa dos estados: listo para pilotos reales no significa listo para beta. `--requirements` imprime los campos JSON necesarios para cada blocker antes de ejecutar pilotos reales, incluido `system_guard.expected_system_matched` y `capture_checklist.ready_for_beta_evidence` para captura real, `quality_review_confirmed=true`, `transcription_checklist.quality_review_confirmed=true` y `transcription_checklist.ready_for_beta_evidence=true` para transcripcion real, y `voice_review_confirmed=true`, `operator_checklist.voice_review_confirmed=true` y `operator_checklist.ready_for_beta_evidence=true` para salida audible. `--audit-evidence` revisa artifacts reales, resume blockers cerrados/pendientes y explica que campo falta; `--fail-on-audit-gaps` devuelve codigo 1 si todavia faltan blockers o si algun artifact fue ignorado. `--evidence` acepta archivos o carpetas con JSON generados por `tools\manual_pilot.py`, `tools\output_pilot.py` y `tools\transcription_pilot.py`; solo cuenta artifacts con `project: AuralisVoiceKit`, reporta evidencias ignoradas con motivo (`missing_project`, `wrong_project`, `not_json_object`) y usa campos estructurados/nombres de artifacts, no transcripciones ni audio. English: real transcription beta evidence requires `--confirm-quality-reviewed`, real output beta evidence requires `--confirm-voice-reviewed`, and readiness never copies private transcripts or audio.
 
 ## Pilotos seguros
 
@@ -696,7 +696,7 @@ py tools\transcription_pilot.py --preflight-only --audio sample.mp3 --audio-non-
 py tools\transcription_pilot.py --real-transcription --audio sample.mp3 --audio-non-sensitive --backend whisper --model base --normalize --expected-text "Hola desde AuralisVoiceKit" --min-word-accuracy 0.75 --min-audio-seconds 0.2 --max-audio-seconds 60 --confirm-quality-reviewed --json
 ```
 
-`tools/beta_readiness.py` resume blockers de beta a partir del gate, `PILOT_FINDINGS.md` y artifacts JSON pasados con `--evidence`. Hoy marca como pendientes la transcripcion real con calidad, `quality_review_confirmed=true`, `transcription_checklist.quality_review_confirmed=true` y `transcription_checklist.ready_for_beta_evidence=true`, salida `system` audible confirmada con `operator_checklist.ready_for_beta_evidence=true`, captura Ubuntu/Linux y captura macOS con `system_guard.expected_system_matched=true` y `capture_checklist.ready_for_beta_evidence=true`.
+`tools/beta_readiness.py` resume blockers de beta a partir del gate, `PILOT_FINDINGS.md` y artifacts JSON pasados con `--evidence`. Hoy marca como pendientes la transcripcion real con calidad, `quality_review_confirmed=true`, `transcription_checklist.quality_review_confirmed=true` y `transcription_checklist.ready_for_beta_evidence=true`, salida `system` audible confirmada con `voice_review_confirmed=true`, `operator_checklist.voice_review_confirmed=true` y `operator_checklist.ready_for_beta_evidence=true`, captura Ubuntu/Linux y captura macOS con `system_guard.expected_system_matched=true` y `capture_checklist.ready_for_beta_evidence=true`.
 
 Los pasos con hardware quedan documentados en:
 
@@ -717,7 +717,7 @@ ROADMAP.md
 Prioridad inmediata:
 
 1. Ejecutar piloto de transcripcion real con audio propio no sensible usando `tools\transcription_pilot.py --real-transcription --audio ... --audio-non-sensitive --expected-text ... --min-word-accuracy 0.75 --min-audio-seconds 0.2 --max-audio-seconds 60 --confirm-quality-reviewed` solo despues de revisar localmente la calidad, y conservar `transcription-review-checklist.md`.
-2. Preparar `output-operator-checklist.md` con `tools\output_pilot.py --output-dir pilot_runs\output\system-dry-run --json` y luego ejecutar salida `system` real con `tools\output_pilot.py --speak --operator-present --confirm-audible --output-dir pilot_runs\output\system-real`.
+2. Preparar `output-operator-checklist.md` con `tools\output_pilot.py --output-dir pilot_runs\output\system-dry-run --json` y luego ejecutar salida `system` real con `tools\output_pilot.py --speak --operator-present --confirm-audible --confirm-voice-reviewed --output-dir pilot_runs\output\system-real`.
 3. Repetir captura con microfono en Ubuntu/Linux y macOS usando `--expected-system Linux` / `--expected-system Darwin` y conservar `manual-capture-checklist.md`.
 4. Cerrar blockers de beta reportados por `tools\beta_readiness.py` y `BETA_CHECKLIST.md`.
 5. Evaluar si el siguiente lote de pilotos permite declarar beta.

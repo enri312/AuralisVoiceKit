@@ -6,6 +6,19 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.61.0] - 2026-06-05
+
+### Agregado
+
+- Flag `tools/output_pilot.py --confirm-voice-reviewed` para confirmar revision humana de voz, volumen y pronunciacion antes de que salida audible real pueda contar como evidencia beta.
+- Campo JSON `voice_review_confirmed` en `output-pilot-report.json` y `operator_checklist.voice_review_confirmed` dentro del checklist de operador.
+- Pruebas para bloquear evidencia de salida audible cuando falta revision de voz aunque `--confirm-audible` este presente.
+
+### Cambiado
+
+- `operator_checklist.ready_for_beta_evidence` ahora exige salida real, operador presente, audio audible confirmado, revision de voz confirmada y comando disponible.
+- `tools/beta_readiness.py --requirements`, auditoria de evidencias, `tools/pilot_run.py`, README, `PILOTS.md`, docs HTML, roadmap y gate de estabilidad documentan el nuevo requisito.
+
 ## [0.60.0] - 2026-06-05
 
 ### Agregado

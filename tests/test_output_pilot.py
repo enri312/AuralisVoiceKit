@@ -45,11 +45,13 @@ class OutputPilotTests(unittest.TestCase):
         self.assertFalse(report["hardware_output_tested"])
         self.assertFalse(report["operator_present"])
         self.assertEqual(report["operator_confirmation_status"], "not-required")
+        self.assertFalse(report["voice_review_confirmed"])
         self.assertEqual(report["text_characters"], len(private_text))
         self.assertIn("<text-redacted>", report_text)
         self.assertNotIn(private_text, report_text)
         self.assertFalse(report["operator_checklist"]["records_operator_identity"])
         self.assertTrue(report["operator_checklist"]["redacts_spoken_text"])
+        self.assertFalse(report["operator_checklist"]["voice_review_confirmed"])
         self.assertFalse(report["operator_checklist"]["ready_for_beta_evidence"])
         self.assertIn("operator_checklist", report["artifacts"])
         self.assertIn("System output pilot findings", findings)
@@ -93,6 +95,8 @@ class OutputPilotTests(unittest.TestCase):
         self.assertTrue(payload["dry_run"])
         self.assertFalse(payload["real_audio_requested"])
         self.assertIn("operator_checklist", payload["artifacts"])
+        self.assertFalse(payload["voice_review_confirmed"])
+        self.assertFalse(payload["operator_checklist"]["voice_review_confirmed"])
         self.assertFalse(payload["operator_checklist"]["ready_for_beta_evidence"])
         self.assertEqual(payload["voice"], "spanish")
         self.assertEqual(payload["commands_count"], 2)
@@ -105,6 +109,7 @@ class OutputPilotTests(unittest.TestCase):
             speak=True,
             operator_present=True,
             operator_confirmed_audio=True,
+            voice_review_confirmed=True,
             voice=None,
             rate=None,
             volume=None,
@@ -119,7 +124,28 @@ class OutputPilotTests(unittest.TestCase):
         self.assertTrue(operator_checklist["ready_for_real_audio"])
         self.assertTrue(operator_checklist["ready_for_beta_evidence"])
         self.assertTrue(operator_checklist["commands_available"])
+        self.assertTrue(operator_checklist["voice_review_confirmed"])
+        self.assertIn("Voice review confirmed: True", checklist)
         self.assertIn("Ready for beta evidence: True", checklist)
+
+    def test_output_pilot_operator_checklist_requires_voice_review_for_beta(self):
+        module = _load_output_pilot()
+
+        operator_checklist = module._operator_checklist(
+            system="Linux",
+            speak=True,
+            operator_present=True,
+            operator_confirmed_audio=True,
+            voice_review_confirmed=False,
+            voice=None,
+            rate=None,
+            volume=None,
+            payload={"commands": [], "spoken": True, "error": None},
+        )
+
+        self.assertTrue(operator_checklist["ready_for_real_audio"])
+        self.assertFalse(operator_checklist["ready_for_beta_evidence"])
+        self.assertFalse(operator_checklist["voice_review_confirmed"])
 
     def test_output_pilot_requires_operator_for_real_audio(self):
         module = _load_output_pilot()
@@ -153,6 +179,19 @@ class OutputPilotTests(unittest.TestCase):
                     root=ROOT,
                     output_dir=tmpdir,
                     operator_present=True,
+                )
+
+    def test_output_pilot_rejects_voice_review_without_audible_confirmation(self):
+        module = _load_output_pilot()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with self.assertRaises(ValueError):
+                module.run_output_pilot(
+                    root=ROOT,
+                    output_dir=tmpdir,
+                    speak=True,
+                    operator_present=True,
+                    voice_review_confirmed=True,
                 )
 
 

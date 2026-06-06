@@ -107,7 +107,11 @@ class BetaReadinessTests(unittest.TestCase):
                     "backend": "system",
                     "real_audio_requested": True,
                     "operator_confirmation_status": "confirmed",
-                    "operator_checklist": {"ready_for_beta_evidence": True},
+                    "voice_review_confirmed": True,
+                    "operator_checklist": {
+                        "voice_review_confirmed": True,
+                        "ready_for_beta_evidence": True,
+                    },
                     "passed": True,
                 },
             )
@@ -246,6 +250,33 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertFalse(checks["system_output_audible"]["ok"])
         self.assertIn("system_output_audible", report["blockers"])
 
+    def test_system_output_evidence_requires_voice_review_confirmation(self):
+        module = _load_beta_readiness()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            evidence_path = Path(tmpdir) / "output-pilot-report.json"
+            _write_json(
+                evidence_path,
+                {
+                    "project": "AuralisVoiceKit",
+                    "backend": "system",
+                    "real_audio_requested": True,
+                    "operator_confirmation_status": "confirmed",
+                    "voice_review_confirmed": False,
+                    "operator_checklist": {
+                        "voice_review_confirmed": False,
+                        "ready_for_beta_evidence": False,
+                    },
+                    "passed": True,
+                },
+            )
+
+            report = module.build_beta_readiness_report(ROOT, evidence_paths=[evidence_path])
+            checks = {check["name"]: check for check in report["checks"]}
+
+        self.assertFalse(checks["system_output_audible"]["ok"])
+        self.assertIn("system_output_audible", report["blockers"])
+
     def test_capture_evidence_requires_capture_checklist(self):
         module = _load_beta_readiness()
 
@@ -323,7 +354,11 @@ class BetaReadinessTests(unittest.TestCase):
                     "backend": "system",
                     "real_audio_requested": True,
                     "operator_confirmation_status": "confirmed",
-                    "operator_checklist": {"ready_for_beta_evidence": True},
+                    "voice_review_confirmed": True,
+                    "operator_checklist": {
+                        "voice_review_confirmed": True,
+                        "ready_for_beta_evidence": True,
+                    },
                     "passed": True,
                 },
             )
@@ -364,7 +399,11 @@ class BetaReadinessTests(unittest.TestCase):
                     "backend": "system",
                     "real_audio_requested": True,
                     "operator_confirmation_status": "confirmed",
-                    "operator_checklist": {"ready_for_beta_evidence": True},
+                    "voice_review_confirmed": True,
+                    "operator_checklist": {
+                        "voice_review_confirmed": True,
+                        "ready_for_beta_evidence": True,
+                    },
                     "passed": True,
                 },
             )
@@ -394,7 +433,11 @@ class BetaReadinessTests(unittest.TestCase):
                     "backend": "system",
                     "real_audio_requested": True,
                     "operator_confirmation_status": "confirmed",
-                    "operator_checklist": {"ready_for_beta_evidence": True},
+                    "voice_review_confirmed": True,
+                    "operator_checklist": {
+                        "voice_review_confirmed": True,
+                        "ready_for_beta_evidence": True,
+                    },
                     "passed": True,
                 },
             )
@@ -454,6 +497,8 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertEqual(transcription_fields["quality_review_confirmed"], True)
         self.assertEqual(transcription_fields["transcription_checklist.quality_review_confirmed"], True)
         self.assertEqual(transcription_fields["transcription_checklist.ready_for_beta_evidence"], True)
+        self.assertIn("voice_review_confirmed", output_fields)
+        self.assertIn("operator_checklist.voice_review_confirmed", output_fields)
         self.assertIn("operator_checklist.ready_for_beta_evidence", output_fields)
         self.assertIn("system_guard.expected_system_matched", linux_fields)
         self.assertIn("capture_checklist.ready_for_beta_evidence", linux_fields)
@@ -473,6 +518,7 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertIn("capture_checklist.ready_for_beta_evidence", content)
         self.assertIn("quality.min_word_accuracy", content)
         self.assertIn("quality_review_confirmed", content)
+        self.assertIn("voice_review_confirmed", content)
         self.assertIn("transcription_checklist.ready_for_beta_evidence", content)
         self.assertIn("No audio bytes", content)
         self.assertNotIn(str(ROOT), content)
@@ -501,7 +547,11 @@ class BetaReadinessTests(unittest.TestCase):
                     "backend": "system",
                     "real_audio_requested": True,
                     "operator_confirmation_status": "confirmed",
-                    "operator_checklist": {"ready_for_beta_evidence": True},
+                    "voice_review_confirmed": True,
+                    "operator_checklist": {
+                        "voice_review_confirmed": True,
+                        "ready_for_beta_evidence": True,
+                    },
                     "passed": True,
                 },
             )
@@ -672,7 +722,11 @@ class BetaReadinessTests(unittest.TestCase):
                     "backend": "system",
                     "real_audio_requested": True,
                     "operator_confirmation_status": "confirmed",
-                    "operator_checklist": {"ready_for_beta_evidence": True},
+                    "voice_review_confirmed": True,
+                    "operator_checklist": {
+                        "voice_review_confirmed": True,
+                        "ready_for_beta_evidence": True,
+                    },
                     "passed": True,
                 },
             )
@@ -744,7 +798,11 @@ class BetaReadinessTests(unittest.TestCase):
                     "backend": "system",
                     "real_audio_requested": True,
                     "operator_confirmation_status": "confirmed",
-                    "operator_checklist": {"ready_for_beta_evidence": True},
+                    "voice_review_confirmed": True,
+                    "operator_checklist": {
+                        "voice_review_confirmed": True,
+                        "ready_for_beta_evidence": True,
+                    },
                     "passed": True,
                 },
             )
