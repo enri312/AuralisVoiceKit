@@ -158,6 +158,8 @@ Nota `v0.157.0`: `system_output_command_card` declara `uses_pip_extra=false`, `p
 
 Nota `v0.158.0`: `target_output_backend.readiness_plan` para salida `system` tambien declara `uses_pip_extra=false`, `python_extra=null` y `pip_command=null`, y el auditor beta exige esos campos antes de aceptar evidencia audible.
 
+Nota `v0.159.0`: `tools/beta_readiness.py` ahora incluye esos campos de readiness en `missing_terms` y en `BETA_CHECKLIST.md`, para que el operador vea la evidencia faltante exacta antes del piloto audible real.
+
 ## Fase 0 - Base del proyecto
 
 **Objetivo:** dejar una libreria instalable, importable y testeable.

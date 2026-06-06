@@ -6,6 +6,16 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.159.0] - 2026-06-06
+
+### Mejorado
+
+- `tools/beta_readiness.py` ahora muestra en `missing_terms` los campos del readiness plan de salida `system`: `Target output backend readiness uses pip extra: False`, `Target output backend readiness python extra: not-set` y `Target output backend readiness pip command: not-set`.
+
+### Pruebas
+
+- `tests/test_beta_readiness.py` valida que el reporte JSON y `BETA_CHECKLIST.md` incluyan esas evidencias faltantes para guiar pilotos reales.
+
 ## [0.158.0] - 2026-06-06
 
 ### Agregado

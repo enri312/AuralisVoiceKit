@@ -34,6 +34,18 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertFalse(checks["system_output_audible"]["ok"])
         self.assertFalse(checks["ubuntu_linux_capture"]["ok"])
         self.assertFalse(checks["macos_capture"]["ok"])
+        self.assertIn(
+            "Target output backend readiness uses pip extra: False",
+            checks["system_output_audible"]["missing_terms"],
+        )
+        self.assertIn(
+            "Target output backend readiness python extra: not-set",
+            checks["system_output_audible"]["missing_terms"],
+        )
+        self.assertIn(
+            "Target output backend readiness pip command: not-set",
+            checks["system_output_audible"]["missing_terms"],
+        )
         self.assertIn("windows_wasapi_capture", report["blockers"])
         self.assertIn("real_transcription_quality", report["blockers"])
         self.assertIn("windows-wasapi-sample-rate", {issue["id"] for issue in report["known_issues"]})
@@ -71,6 +83,9 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertIn("Checklist de beta", content)
         self.assertIn("Bloqueadores para beta", content)
         self.assertIn("real_transcription_quality", content)
+        self.assertIn("Target output backend readiness uses pip extra: False", content)
+        self.assertIn("Target output backend readiness python extra: not-set", content)
+        self.assertIn("Target output backend readiness pip command: not-set", content)
 
     def test_evidence_json_can_close_beta_blockers(self):
         module = _load_beta_readiness()
