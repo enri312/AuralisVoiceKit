@@ -63,6 +63,8 @@ class ManualPilotTests(unittest.TestCase):
         self.assertIn("manual_capture_command_card", report)
         self.assertIn("capture_operator_gate", report)
         self.assertEqual(report["capture_readiness_plan"]["backend"], "wav")
+        self.assertFalse(report["capture_readiness_plan"]["uses_pip_extra"])
+        self.assertIsNone(report["capture_readiness_plan"]["python_extra"])
         self.assertEqual(report["target_capture_backend"]["name"], "wav")
         self.assertTrue(report["target_capture_backend"]["available"])
         self.assertFalse(report["capture_backend_ready_required"])
@@ -78,6 +80,8 @@ class ManualPilotTests(unittest.TestCase):
         self.assertFalse(report["beta_evidence_gap"]["records_local_paths"])
         command = report["manual_capture_command_card"]
         self.assertEqual(command["artifact"], "manual-capture-command.md")
+        self.assertFalse(command["uses_pip_extra"])
+        self.assertIsNone(command["python_extra"])
         self.assertIn("<pilot-output-dir>", command["preflight_command_template"])
         self.assertIn("<pilot-output-dir>", command["real_capture_command_template"])
         self.assertIn("<pilot-output-dir>", command["audit_command_template"])
@@ -171,6 +175,8 @@ class ManualPilotTests(unittest.TestCase):
         self.assertIn("manual_capture_command_card", payload)
         self.assertIn("capture_operator_gate", payload)
         self.assertEqual(payload["capture_readiness_plan"]["backend"], "wav")
+        self.assertFalse(payload["capture_readiness_plan"]["uses_pip_extra"])
+        self.assertIsNone(payload["capture_readiness_plan"]["python_extra"])
         self.assertEqual(payload["target_capture_backend"]["name"], "wav")
         self.assertFalse(payload["capture_backend_ready_required"])
         self.assertFalse(payload["capture_readiness_plan"]["post_install_check_uses_microphone"])
@@ -230,6 +236,10 @@ class ManualPilotTests(unittest.TestCase):
 
         self.assertEqual(report["capture_backend"], "sounddevice")
         self.assertEqual(report["capture_readiness_plan"]["system"], "Linux")
+        self.assertTrue(report["capture_readiness_plan"]["uses_pip_extra"])
+        self.assertEqual(report["capture_readiness_plan"]["python_extra"], "sounddevice")
+        self.assertTrue(report["manual_capture_command_card"]["uses_pip_extra"])
+        self.assertEqual(report["manual_capture_command_card"]["python_extra"], "sounddevice")
         self.assertEqual(report["beta_evidence_gap"]["blocker"], "ubuntu_linux_capture")
 
     def test_manual_pilot_cli_reports_unavailable_capture_backend_guard(self):
@@ -483,6 +493,8 @@ class ManualPilotTests(unittest.TestCase):
         macos_pyaudio = module._capture_readiness_plan(system="Darwin", backend="pyaudio")
 
         self.assertIn("auralisvoicekit[sounddevice]", linux_sounddevice["pip_command"])
+        self.assertTrue(linux_sounddevice["uses_pip_extra"])
+        self.assertEqual(linux_sounddevice["python_extra"], "sounddevice")
         self.assertIn("libportaudio2", " ".join(linux_sounddevice["setup_commands"]))
         self.assertIn("--target-system Linux", linux_sounddevice["post_install_check"])
         self.assertIn("--require-capture-backend-ready", linux_sounddevice["post_install_check"])
@@ -491,6 +503,8 @@ class ManualPilotTests(unittest.TestCase):
         self.assertIn("--capture-test", linux_sounddevice["real_capture_check_template"])
         self.assertIn("--require-capture-backend-ready", linux_sounddevice["real_capture_check_template"])
         self.assertIn("auralisvoicekit[pyaudio]", macos_pyaudio["pip_command"])
+        self.assertTrue(macos_pyaudio["uses_pip_extra"])
+        self.assertEqual(macos_pyaudio["python_extra"], "pyaudio")
         self.assertIn("brew install portaudio", " ".join(macos_pyaudio["setup_commands"]))
         self.assertIn("--expected-system Darwin", macos_pyaudio["real_capture_check_template"])
 
@@ -500,6 +514,8 @@ class ManualPilotTests(unittest.TestCase):
         plan = module._capture_readiness_plan(system="Windows", backend="wasapi")
 
         self.assertIn("auralisvoicekit[sounddevice]", plan["pip_command"])
+        self.assertTrue(plan["uses_pip_extra"])
+        self.assertEqual(plan["python_extra"], "sounddevice")
         self.assertIn("--sample-rate 48000", plan["real_capture_check_template"])
         self.assertFalse(plan["post_install_check_uses_microphone"])
 
@@ -509,6 +525,8 @@ class ManualPilotTests(unittest.TestCase):
         readiness_plan = module._capture_readiness_plan(system="Linux", backend="unknown")
         status = module._capture_backend_status("unknown", readiness_plan)
 
+        self.assertFalse(readiness_plan["uses_pip_extra"])
+        self.assertIsNone(readiness_plan["python_extra"])
         self.assertFalse(status["available"])
         self.assertEqual(status["name"], "unknown")
         self.assertIn("Unknown capture backend", status["reason"])

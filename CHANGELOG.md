@@ -6,6 +6,16 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.154.0] - 2026-06-06
+
+### Agregado
+
+- `tools/manual_pilot.py` alinea `capture_readiness_plan` y `manual_capture_command_card` con el inventario publico agregando `uses_pip_extra` y `python_extra` para captura `sounddevice`, `wasapi` y `pyaudio`.
+
+### Pruebas
+
+- Nuevas aserciones validan extras estructurados para captura Linux/macOS, WASAPI y backends sin extra.
+
 ## [0.153.0] - 2026-06-06
 
 ### Agregado

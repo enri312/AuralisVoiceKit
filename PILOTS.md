@@ -92,6 +92,8 @@ Nota `v0.149.0`: el piloto seguro escribe `real-pilot-local-receipt.md` y `real_
 
 Nota `v0.153.0`: `target_backend.install_plan` en los pilotos de transcripcion conserva `extra` y agrega `uses_pip_extra` y `python_extra`, alineado con `backend_inventory()` para que operadores y scripts lean el mismo contrato. English: transcription pilot install plans now match the public backend inventory fields.
 
+Nota `v0.154.0`: `capture_readiness_plan` y `manual_capture_command_card` agregan `uses_pip_extra` y `python_extra` para `sounddevice`, `wasapi` y `pyaudio`, manteniendo comandos seguros sin abrir microfono. English: manual capture readiness now exposes structured optional extra fields.
+
 ```powershell
 py tools\pilot_run.py --output-dir pilot_runs\safe --json
 py tools\pilot_run.py --output-dir pilot_runs\safe --evidence pilot_runs\manual --evidence pilot_runs\output --evidence pilot_runs\transcription --json

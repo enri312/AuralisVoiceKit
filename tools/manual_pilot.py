@@ -291,11 +291,14 @@ def _capture_readiness_plan(*, system: str, backend: str) -> dict[str, Any]:
     setup_commands: list[str] = []
     platform_notes: list[str] = []
     dependency_notes: list[str] = []
+    python_extra: str | None = None
 
     if normalized_backend in {"sounddevice", "wasapi"}:
+        python_extra = "sounddevice"
         pip_command = 'python -m pip install "auralisvoicekit[sounddevice]"'
         dependency_notes.append("Uses the optional sounddevice extra and PortAudio.")
     elif normalized_backend == "pyaudio":
+        python_extra = "pyaudio"
         pip_command = 'python -m pip install "auralisvoicekit[pyaudio]"'
         dependency_notes.append("Uses the optional PyAudio extra and PortAudio.")
     else:
@@ -351,6 +354,8 @@ def _capture_readiness_plan(*, system: str, backend: str) -> dict[str, Any]:
     return {
         "backend": normalized_backend,
         "system": system,
+        "uses_pip_extra": python_extra is not None,
+        "python_extra": python_extra,
         "pip_command": pip_command,
         "setup_commands": setup_commands,
         "requires_package_manager": bool(setup_commands),
@@ -780,6 +785,8 @@ def _manual_capture_command_card(
         "missing_count": beta_evidence_gap["missing_count"],
         "missing_fields": beta_evidence_gap["missing_fields"],
         "setup_commands": list(capture_readiness_plan["setup_commands"]),
+        "uses_pip_extra": capture_readiness_plan["uses_pip_extra"],
+        "python_extra": capture_readiness_plan["python_extra"],
         "pip_command": capture_readiness_plan["pip_command"],
         "preflight_command_template": preflight_command,
         "preflight_uses_microphone": capture_readiness_plan["post_install_check_uses_microphone"],
@@ -1024,6 +1031,8 @@ def _build_manual_capture_command_markdown(
         f"- Capture backend: {backend}",
         f"- Target capture backend available: {target_capture_backend['available']}",
         f"- Capture backend readiness required: {require_capture_backend_ready}",
+        f"- Capture readiness uses pip extra: {manual_capture_command_card['uses_pip_extra']}",
+        f"- Capture readiness python extra: {_format_optional(manual_capture_command_card['python_extra'])}",
         f"- Preflight uses microphone: {manual_capture_command_card['preflight_uses_microphone']}",
         f"- Real capture requires microphone: {manual_capture_command_card['real_capture_requires_microphone']}",
         f"- Beta evidence gap ready: {beta_evidence_gap['ready_for_beta_evidence']}",

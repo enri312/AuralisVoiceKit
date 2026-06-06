@@ -148,6 +148,8 @@ Nota `v0.152.0`: el inventario publico de backends incorpora `install_plan` con 
 
 Nota `v0.153.0`: `target_backend.install_plan` en pilotos de transcripcion usa el mismo vocabulario publico (`uses_pip_extra`, `python_extra`, `pip_command`) que `backend_inventory()`, conservando `extra` por compatibilidad.
 
+Nota `v0.154.0`: `capture_readiness_plan` y `manual_capture_command_card` en pilotos de captura manual agregan `uses_pip_extra` y `python_extra`, alineando Ubuntu/Linux, macOS y WASAPI con el inventario publico de backends.
+
 ## Fase 0 - Base del proyecto
 
 **Objetivo:** dejar una libreria instalable, importable y testeable.
