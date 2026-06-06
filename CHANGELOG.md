@@ -6,6 +6,15 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.99.1] - 2026-06-06
+
+### Agregado
+
+- `tools/beta_readiness.py` ahora exige que la evidencia beta de transcripcion real use audio no sintetico, no sensible y decodificado.
+- El contrato de evidencias tambien exige `transcript.text_redacted=true` y redaccion explicita de transcripcion/referencia en `transcription_checklist`.
+- `tools/pilot_run.py`, README, `PILOTS.md`, roadmap y documentacion HTML documentan los nuevos campos de privacidad para pilotos reales.
+- Nuevas pruebas cubren artifacts que intentan cerrar `real_transcription_quality` con audio sintetico, audio sin decodificar o transcript no redactado.
+
 ## [0.99.0] - 2026-06-06
 
 ### Agregado

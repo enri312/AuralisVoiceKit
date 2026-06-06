@@ -75,6 +75,9 @@ def build_evidence_requirements_report() -> dict[str, Any]:
                     _required_field("target_backend.available", True),
                     _required_field("target_backend_ready_required", True),
                     _required_field("audio_confirmed_non_sensitive", True),
+                    _required_field("audio.generated_synthetic_audio", False),
+                    _required_field("audio.audio_confirmed_non_sensitive", True),
+                    _required_field("audio.decoded", True),
                     _required_field("audio.audio_file_name_redacted", True),
                     _required_field("audio.duration_gate.enabled", True),
                     _required_field("audio.duration_gate.passed", True),
@@ -83,6 +86,7 @@ def build_evidence_requirements_report() -> dict[str, Any]:
                     _required_field("reference_privacy_scan.passed", True),
                     _required_field("quality_review_confirmed", True),
                     _required_field("passed", True),
+                    _required_field("transcript.text_redacted", True),
                     _required_field("quality.enabled", True),
                     _required_field("quality.passed", True),
                     _required_field("quality.min_word_accuracy", f">= {BETA_MIN_WORD_ACCURACY}"),
@@ -92,6 +96,8 @@ def build_evidence_requirements_report() -> dict[str, Any]:
                     _required_field("transcription_checklist.records_transcript_text", False),
                     _required_field("transcription_checklist.records_expected_text", False),
                     _required_field("transcription_checklist.records_expected_text_file_name", False),
+                    _required_field("transcription_checklist.redacts_transcript_text", True),
+                    _required_field("transcription_checklist.redacts_expected_text", True),
                     _required_field("transcription_checklist.reference_review_confirmed", True),
                     _required_field("transcription_checklist.reference_privacy_scan_passed", True),
                     _required_field("transcription_checklist.quality_review_confirmed", True),
@@ -280,8 +286,11 @@ def build_beta_readiness_report(
                 "Real transcription requested: True",
                 "Target backend available: True",
                 "Target backend readiness required: True",
+                "Generated synthetic audio: False",
+                "Audio decode passed: True",
                 "Audio duration gate enabled: True",
                 "Audio duration gate passed: True",
+                "Transcript text redacted: True",
                 "Audio review confirmed: True",
                 "Reference review confirmed: True",
                 "Reference privacy scan passed: True",
@@ -1014,6 +1023,7 @@ def _is_real_transcription_quality_evidence(report: dict[str, Any]) -> bool:
     quality = report.get("quality", {})
     reference_privacy_scan = report.get("reference_privacy_scan", {})
     target_backend = report.get("target_backend", {})
+    transcript = report.get("transcript", {})
     transcription_checklist = report.get("transcription_checklist", {})
     return (
         report.get("real_transcription_requested") is True
@@ -1022,6 +1032,9 @@ def _is_real_transcription_quality_evidence(report: dict[str, Any]) -> bool:
         and report.get("target_backend_ready_required") is True
         and report.get("audio_confirmed_non_sensitive") is True
         and isinstance(audio, dict)
+        and audio.get("generated_synthetic_audio") is False
+        and audio.get("audio_confirmed_non_sensitive") is True
+        and audio.get("decoded") is True
         and audio.get("audio_file_name_redacted") is True
         and isinstance(audio.get("duration_gate"), dict)
         and audio["duration_gate"].get("enabled") is True
@@ -1032,6 +1045,8 @@ def _is_real_transcription_quality_evidence(report: dict[str, Any]) -> bool:
         and reference_privacy_scan.get("passed") is True
         and report.get("quality_review_confirmed") is True
         and report.get("passed") is True
+        and isinstance(transcript, dict)
+        and transcript.get("text_redacted") is True
         and isinstance(quality, dict)
         and quality.get("enabled") is True
         and quality.get("passed") is True
@@ -1043,6 +1058,8 @@ def _is_real_transcription_quality_evidence(report: dict[str, Any]) -> bool:
         and transcription_checklist.get("records_transcript_text") is False
         and transcription_checklist.get("records_expected_text") is False
         and transcription_checklist.get("records_expected_text_file_name") is False
+        and transcription_checklist.get("redacts_transcript_text") is True
+        and transcription_checklist.get("redacts_expected_text") is True
         and transcription_checklist.get("reference_review_confirmed") is True
         and transcription_checklist.get("reference_privacy_scan_passed") is True
         and transcription_checklist.get("quality_review_confirmed") is True

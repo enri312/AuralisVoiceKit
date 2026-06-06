@@ -412,8 +412,15 @@ class PilotRunTests(unittest.TestCase):
         self.assertEqual(manifest_rows["real_transcription_quality"]["status"], "pending")
         self.assertEqual(manifest_rows["real_transcription_quality"]["artifact"], "transcription-pilot-report.json")
         self.assertIn("target_backend.available", manifest_rows["real_transcription_quality"]["required_fields"])
+        self.assertIn("audio.generated_synthetic_audio", manifest_rows["real_transcription_quality"]["required_fields"])
+        self.assertIn("audio.decoded", manifest_rows["real_transcription_quality"]["required_fields"])
         self.assertIn("audio.duration_gate.enabled", manifest_rows["real_transcription_quality"]["required_fields"])
         self.assertIn("audio.duration_gate.passed", manifest_rows["real_transcription_quality"]["required_fields"])
+        self.assertIn("transcript.text_redacted", manifest_rows["real_transcription_quality"]["required_fields"])
+        self.assertIn(
+            "transcription_checklist.redacts_transcript_text",
+            manifest_rows["real_transcription_quality"]["required_fields"],
+        )
         self.assertTrue(manifest_rows["real_transcription_quality"]["strict_backend_guard_required"])
         self.assertEqual(
             manifest_rows["real_transcription_quality"]["strict_backend_guard_flag"],
@@ -447,8 +454,15 @@ class PilotRunTests(unittest.TestCase):
         self.assertFalse(report["transcription_readiness_card"]["usable_as_beta_evidence"])
         self.assertIn("transcription-pilot-report.json", report["transcription_readiness_card"]["expected_artifacts"])
         self.assertIn("target_backend.available", report["transcription_readiness_card"]["real_required_fields"])
+        self.assertIn("audio.generated_synthetic_audio", report["transcription_readiness_card"]["real_required_fields"])
+        self.assertIn("audio.decoded", report["transcription_readiness_card"]["real_required_fields"])
         self.assertIn(
             "target_backend_ready_required",
+            report["transcription_readiness_card"]["real_required_fields"],
+        )
+        self.assertIn("transcript.text_redacted", report["transcription_readiness_card"]["real_required_fields"])
+        self.assertIn(
+            "transcription_checklist.redacts_transcript_text",
             report["transcription_readiness_card"]["real_required_fields"],
         )
         self.assertIn(
@@ -520,12 +534,18 @@ class PilotRunTests(unittest.TestCase):
         self.assertIn("--require-target-backend-ready", transcription_step["command"])
         self.assertIn("target_backend.available", transcription_step["required_fields"])
         self.assertIn("target_backend_ready_required", transcription_step["required_fields"])
+        self.assertIn("audio.generated_synthetic_audio", transcription_step["required_fields"])
+        self.assertIn("audio.audio_confirmed_non_sensitive", transcription_step["required_fields"])
+        self.assertIn("audio.decoded", transcription_step["required_fields"])
         self.assertIn("audio.duration_gate.enabled", transcription_step["required_fields"])
         self.assertIn("audio.duration_gate.passed", transcription_step["required_fields"])
+        self.assertIn("transcript.text_redacted", transcription_step["required_fields"])
         self.assertIn("transcription_checklist.audio_review_confirmed", transcription_step["required_fields"])
         self.assertIn("audio.audio_file_name_redacted", transcription_step["required_fields"])
         self.assertIn("transcription_checklist.records_audio_file_name", transcription_step["required_fields"])
         self.assertIn("transcription_checklist.records_expected_text_file_name", transcription_step["required_fields"])
+        self.assertIn("transcription_checklist.redacts_transcript_text", transcription_step["required_fields"])
+        self.assertIn("transcription_checklist.redacts_expected_text", transcription_step["required_fields"])
         self.assertIn("transcription_checklist.reference_review_confirmed", transcription_step["required_fields"])
         self.assertIn("transcription_checklist.reference_privacy_scan_passed", transcription_step["required_fields"])
         self.assertIn("transcription_checklist.quality_review_confirmed", transcription_step["required_fields"])
@@ -560,6 +580,9 @@ class PilotRunTests(unittest.TestCase):
         self.assertEqual(matrix["transcription-mp3-preflight"]["status"], "recommended")
         self.assertIn("target_backend.available=true", matrix["real-transcription-quality"]["notes"])
         self.assertIn("target_backend_ready_required=true", matrix["real-transcription-quality"]["notes"])
+        self.assertIn("audio.generated_synthetic_audio=false", matrix["real-transcription-quality"]["notes"])
+        self.assertIn("audio.decoded=true", matrix["real-transcription-quality"]["notes"])
+        self.assertIn("transcript.text_redacted=true", matrix["real-transcription-quality"]["notes"])
         self.assertTrue(matrix["real-transcription-quality"]["strict_backend_guard_required"])
         self.assertEqual(
             matrix["real-transcription-quality"]["strict_backend_guard_flag"],

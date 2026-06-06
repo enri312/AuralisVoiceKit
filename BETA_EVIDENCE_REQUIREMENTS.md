@@ -35,6 +35,9 @@ Este documento describe los campos JSON que pueden cerrar blockers de beta. No r
   - `target_backend.available` = `True`
   - `target_backend_ready_required` = `True`
   - `audio_confirmed_non_sensitive` = `True`
+  - `audio.generated_synthetic_audio` = `False`
+  - `audio.audio_confirmed_non_sensitive` = `True`
+  - `audio.decoded` = `True`
   - `audio.audio_file_name_redacted` = `True`
   - `audio.duration_gate.enabled` = `True`
   - `audio.duration_gate.passed` = `True`
@@ -43,6 +46,7 @@ Este documento describe los campos JSON que pueden cerrar blockers de beta. No r
   - `reference_privacy_scan.passed` = `True`
   - `quality_review_confirmed` = `True`
   - `passed` = `True`
+  - `transcript.text_redacted` = `True`
   - `quality.enabled` = `True`
   - `quality.passed` = `True`
   - `quality.min_word_accuracy` = `>= 0.75`
@@ -52,6 +56,8 @@ Este documento describe los campos JSON que pueden cerrar blockers de beta. No r
   - `transcription_checklist.records_transcript_text` = `False`
   - `transcription_checklist.records_expected_text` = `False`
   - `transcription_checklist.records_expected_text_file_name` = `False`
+  - `transcription_checklist.redacts_transcript_text` = `True`
+  - `transcription_checklist.redacts_expected_text` = `True`
   - `transcription_checklist.reference_review_confirmed` = `True`
   - `transcription_checklist.reference_privacy_scan_passed` = `True`
   - `transcription_checklist.quality_review_confirmed` = `True`

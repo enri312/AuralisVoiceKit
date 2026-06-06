@@ -2,6 +2,36 @@
 
 Este documento resume hallazgos de pilotos reales o semi-manuales. No debe incluir audio, transcripciones privadas, rutas locales completas ni nombres reales de dispositivos.
 
+## 2026-06-06 - Auditoria beta exige audio real decodificado y transcript redactado
+
+Comando ejecutado:
+
+```powershell
+python tools\beta_readiness.py --requirements
+```
+
+Alcance:
+
+- Sistema anfitrion: Windows.
+- Version AuralisVoiceKit: `0.99.1`.
+- Audio real usado: no.
+- Transcripcion real ejecutada: no.
+- Tipo de piloto: auditoria de contrato beta.
+
+Resultado:
+
+- El contrato de evidencias beta ahora exige `audio.generated_synthetic_audio=false`.
+- El contrato de evidencias beta ahora exige `audio.audio_confirmed_non_sensitive=true` y `audio.decoded=true`.
+- El contrato de evidencias beta ahora exige `transcript.text_redacted=true`.
+- El checklist de transcripcion ahora exige `transcription_checklist.redacts_transcript_text=true` y `transcription_checklist.redacts_expected_text=true`.
+- Evidencia beta: `false`; este hallazgo valida el contrato, no reemplaza el piloto real con audio propio no sensible.
+
+Acciones siguientes:
+
+1. Ejecutar el preflight MP3 con audio propio no sensible y revisar que `audio.decoded=true`.
+2. Ejecutar transcripcion real solo si el audio no es sintetico, paso la guarda de duracion y fue revisado como no sensible.
+3. Conservar solo artifacts sanitizados con transcript y referencia redactados.
+
 ## 2026-06-06 - Fixture sintetico MP3 con preflight de duracion
 
 Comando ejecutado:
