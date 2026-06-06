@@ -86,15 +86,18 @@ def build_evidence_requirements_report() -> dict[str, Any]:
                 "artifact": "output-pilot-report.json",
                 "command": (
                     "python tools/output_pilot.py --speak --operator-present "
-                    "--confirm-audible --confirm-voice-reviewed --output-dir pilot_runs/output/system-real "
+                    "--confirm-audible --confirm-voice-reviewed --expected-system \"Windows|Linux|Darwin\" "
+                    "--output-dir pilot_runs/output/system-real "
                     "--text \"Hola desde AuralisVoiceKit\" --json"
                 ),
                 "fields": [
                     _required_field("project", "AuralisVoiceKit"),
                     _required_field("backend", "system"),
+                    _required_field("system_guard.expected_system_matched", True),
                     _required_field("real_audio_requested", True),
                     _required_field("operator_confirmation_status", "confirmed"),
                     _required_field("voice_review_confirmed", True),
+                    _required_field("operator_checklist.expected_system_matched", True),
                     _required_field("operator_checklist.voice_review_confirmed", True),
                     _required_field("operator_checklist.ready_for_beta_evidence", True),
                     _required_field("passed", True),
@@ -262,9 +265,10 @@ def build_beta_readiness_report(
             ),
             next_action=(
                 "Run tools/output_pilot.py --speak --operator-present --confirm-audible "
-                "--confirm-voice-reviewed "
+                "--confirm-voice-reviewed --expected-system \"Windows|Linux|Darwin\" "
                 "--output-dir pilot_runs/output/system-real with a human operator, then keep "
-                "output-operator-checklist.md and only sanitized findings."
+                "output-operator-checklist.md, system_guard.expected_system_matched=true, "
+                "operator_checklist.expected_system_matched=true and only sanitized findings."
             ),
         ),
         _evidence_or_terms_check(
@@ -894,12 +898,16 @@ def _is_macos_capture_evidence(report: dict[str, Any]) -> bool:
 
 def _is_system_output_audible_evidence(report: dict[str, Any]) -> bool:
     operator_checklist = report.get("operator_checklist", {})
+    system_guard = report.get("system_guard", {})
     return (
         report.get("backend") == "system"
+        and isinstance(system_guard, dict)
+        and system_guard.get("expected_system_matched") is True
         and report.get("real_audio_requested") is True
         and report.get("operator_confirmation_status") == "confirmed"
         and report.get("voice_review_confirmed") is True
         and isinstance(operator_checklist, dict)
+        and operator_checklist.get("expected_system_matched") is True
         and operator_checklist.get("voice_review_confirmed") is True
         and operator_checklist.get("ready_for_beta_evidence") is True
         and report.get("passed") is True

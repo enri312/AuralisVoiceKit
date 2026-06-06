@@ -6,6 +6,20 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.63.0] - 2026-06-05
+
+### Agregado
+
+- Flag `tools/output_pilot.py --expected-system` para confirmar que una evidencia de salida audible se genero en una plataforma soportada o esperada.
+- Bloque JSON `system_guard` en `output-pilot-report.json` y campo `operator_checklist.expected_system_matched` dentro del checklist de operador.
+- Pruebas para bloquear evidencia de salida audible cuando falta el guard de plataforma aunque audibilidad y revision de voz esten confirmadas.
+
+### Cambiado
+
+- `operator_checklist.ready_for_beta_evidence` ahora exige salida real, operador presente, audio audible, revision de voz, comando disponible y plataforma esperada confirmada.
+- `tools/output_pilot.py` rechaza `--system` junto con `--speak`; `--system` queda reservado para dry-runs.
+- `tools/beta_readiness.py --requirements`, auditoria de evidencias, `tools/pilot_run.py`, README, `PILOTS.md`, docs HTML, roadmap y gate de estabilidad documentan el nuevo requisito.
+
 ## [0.62.0] - 2026-06-05
 
 ### Agregado

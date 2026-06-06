@@ -240,7 +240,7 @@ def _manual_pilot_steps() -> list[dict[str, str]]:
             "name": "system-speech",
             "command": (
                 "python tools/output_pilot.py --speak --operator-present --confirm-audible "
-                "--confirm-voice-reviewed "
+                "--confirm-voice-reviewed --expected-system \"Windows|Linux|Darwin\" "
                 "--output-dir pilot_runs/output/system-real --text \"Hola desde AuralisVoiceKit\" --json"
             ),
             "reason": "Plays real audio and requires the operator to review audibility and voice quality.",
@@ -510,14 +510,18 @@ def _platform_pilot_matrix(blockers: list[str]) -> list[dict[str, Any]]:
             "blocker": "system_output_audible",
             "command": (
                 "python tools/output_pilot.py --speak --operator-present "
-                "--confirm-audible --confirm-voice-reviewed --output-dir pilot_runs/output/system-real "
+                "--confirm-audible --confirm-voice-reviewed --expected-system \"Windows|Linux|Darwin\" "
+                "--output-dir pilot_runs/output/system-real "
                 "--text \"Hola desde AuralisVoiceKit\" --json"
             ),
             "artifact": "output-pilot-report.json",
             "requires_hardware": True,
             "requires_operator": True,
             "requires_non_sensitive_audio": False,
-            "notes": "Ejecutar solo con operador presente; confirmar audibilidad y revision de voz antes de beta.",
+            "notes": (
+                "Ejecutar solo con operador presente; confirmar audibilidad, plataforma esperada y "
+                "revision de voz antes de beta."
+            ),
         },
         {
             "name": "transcription-audio-fixture",

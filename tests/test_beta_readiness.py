@@ -104,18 +104,7 @@ class BetaReadinessTests(unittest.TestCase):
             )
             _write_json(
                 evidence_root / "output" / "output-pilot-report.json",
-                {
-                    "project": "AuralisVoiceKit",
-                    "backend": "system",
-                    "real_audio_requested": True,
-                    "operator_confirmation_status": "confirmed",
-                    "voice_review_confirmed": True,
-                    "operator_checklist": {
-                        "voice_review_confirmed": True,
-                        "ready_for_beta_evidence": True,
-                    },
-                    "passed": True,
-                },
+                _output_evidence(),
             )
             _write_json(
                 evidence_root / "transcription" / "transcription-pilot-report.json",
@@ -262,16 +251,34 @@ class BetaReadinessTests(unittest.TestCase):
                 {
                     "project": "AuralisVoiceKit",
                     "backend": "system",
+                    "system_guard": _system_guard(),
                     "real_audio_requested": True,
                     "operator_confirmation_status": "confirmed",
                     "voice_review_confirmed": False,
                     "operator_checklist": {
+                        "expected_system_matched": True,
                         "voice_review_confirmed": False,
                         "ready_for_beta_evidence": False,
                     },
                     "passed": True,
                 },
             )
+
+            report = module.build_beta_readiness_report(ROOT, evidence_paths=[evidence_path])
+            checks = {check["name"]: check for check in report["checks"]}
+
+        self.assertFalse(checks["system_output_audible"]["ok"])
+        self.assertIn("system_output_audible", report["blockers"])
+
+    def test_system_output_evidence_requires_expected_system_guard(self):
+        module = _load_beta_readiness()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            evidence_path = Path(tmpdir) / "output-pilot-report.json"
+            payload = _output_evidence()
+            payload["system_guard"] = {"expected_system_matched": False}
+            payload["operator_checklist"]["expected_system_matched"] = False
+            _write_json(evidence_path, payload)
 
             report = module.build_beta_readiness_report(ROOT, evidence_paths=[evidence_path])
             checks = {check["name"]: check for check in report["checks"]}
@@ -380,18 +387,7 @@ class BetaReadinessTests(unittest.TestCase):
             )
             _write_json(
                 evidence_root / "output" / "output-pilot-report.json",
-                {
-                    "project": "AuralisVoiceKit",
-                    "backend": "system",
-                    "real_audio_requested": True,
-                    "operator_confirmation_status": "confirmed",
-                    "voice_review_confirmed": True,
-                    "operator_checklist": {
-                        "voice_review_confirmed": True,
-                        "ready_for_beta_evidence": True,
-                    },
-                    "passed": True,
-                },
+                _output_evidence(),
             )
             _write_json(
                 evidence_root / "transcription" / "transcription-pilot-report.json",
@@ -528,7 +524,9 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertEqual(transcription_fields["quality_review_confirmed"], True)
         self.assertEqual(transcription_fields["transcription_checklist.quality_review_confirmed"], True)
         self.assertEqual(transcription_fields["transcription_checklist.ready_for_beta_evidence"], True)
+        self.assertIn("system_guard.expected_system_matched", output_fields)
         self.assertIn("voice_review_confirmed", output_fields)
+        self.assertIn("operator_checklist.expected_system_matched", output_fields)
         self.assertIn("operator_checklist.voice_review_confirmed", output_fields)
         self.assertIn("operator_checklist.ready_for_beta_evidence", output_fields)
         self.assertIn("system_guard.expected_system_matched", linux_fields)
@@ -554,6 +552,7 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertIn("quality.min_word_accuracy", content)
         self.assertIn("quality_review_confirmed", content)
         self.assertIn("voice_review_confirmed", content)
+        self.assertIn("operator_checklist.expected_system_matched", content)
         self.assertIn("transcription_checklist.ready_for_beta_evidence", content)
         self.assertIn("No audio bytes", content)
         self.assertNotIn(str(ROOT), content)
@@ -577,18 +576,7 @@ class BetaReadinessTests(unittest.TestCase):
             evidence_root = Path(tmpdir)
             _write_json(
                 evidence_root / "output" / "output-pilot-report.json",
-                {
-                    "project": "AuralisVoiceKit",
-                    "backend": "system",
-                    "real_audio_requested": True,
-                    "operator_confirmation_status": "confirmed",
-                    "voice_review_confirmed": True,
-                    "operator_checklist": {
-                        "voice_review_confirmed": True,
-                        "ready_for_beta_evidence": True,
-                    },
-                    "passed": True,
-                },
+                _output_evidence(),
             )
             _write_json(
                 evidence_root / "transcription" / "transcription-pilot-report.json",
@@ -756,18 +744,7 @@ class BetaReadinessTests(unittest.TestCase):
             )
             _write_json(
                 evidence_root / "output" / "output-pilot-report.json",
-                {
-                    "project": "AuralisVoiceKit",
-                    "backend": "system",
-                    "real_audio_requested": True,
-                    "operator_confirmation_status": "confirmed",
-                    "voice_review_confirmed": True,
-                    "operator_checklist": {
-                        "voice_review_confirmed": True,
-                        "ready_for_beta_evidence": True,
-                    },
-                    "passed": True,
-                },
+                _output_evidence(),
             )
             _write_json(
                 evidence_root / "transcription" / "transcription-pilot-report.json",
@@ -835,18 +812,7 @@ class BetaReadinessTests(unittest.TestCase):
             )
             _write_json(
                 evidence_root / "output" / "output-pilot-report.json",
-                {
-                    "project": "AuralisVoiceKit",
-                    "backend": "system",
-                    "real_audio_requested": True,
-                    "operator_confirmation_status": "confirmed",
-                    "voice_review_confirmed": True,
-                    "operator_checklist": {
-                        "voice_review_confirmed": True,
-                        "ready_for_beta_evidence": True,
-                    },
-                    "passed": True,
-                },
+                _output_evidence(),
             )
             _write_json(
                 evidence_root / "transcription" / "transcription-pilot-report.json",
@@ -884,6 +850,23 @@ def _write_json(path: Path, payload: dict):
 
 def _capture_checklist() -> dict[str, bool]:
     return {"input_review_confirmed": True, "ready_for_beta_evidence": True}
+
+
+def _output_evidence() -> dict:
+    return {
+        "project": "AuralisVoiceKit",
+        "backend": "system",
+        "system_guard": _system_guard(),
+        "real_audio_requested": True,
+        "operator_confirmation_status": "confirmed",
+        "voice_review_confirmed": True,
+        "operator_checklist": {
+            "expected_system_matched": True,
+            "voice_review_confirmed": True,
+            "ready_for_beta_evidence": True,
+        },
+        "passed": True,
+    }
 
 
 def _system_guard() -> dict[str, bool]:

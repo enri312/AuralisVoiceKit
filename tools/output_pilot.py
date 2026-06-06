@@ -28,6 +28,7 @@ def run_output_pilot(
     rate: int | None = None,
     volume: int | None = None,
     system: str | None = None,
+    expected_system: str | None = None,
     speak: bool = False,
     operator_present: bool = False,
     operator_confirmed_audio: bool = False,
@@ -42,9 +43,12 @@ def run_output_pilot(
         operator_confirmed_audio=operator_confirmed_audio,
         voice_review_confirmed=voice_review_confirmed,
     )
+    _validate_system_flags(system_override=system, speak=speak)
     workspace = Path(root).resolve()
     timestamp = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
-    system_name = system or platform.system()
+    actual_system = platform.system()
+    system_name = system or actual_system
+    system_guard = _system_guard(expected_system, actual_system)
     output = Path(output_dir) if output_dir is not None else workspace / "pilot_runs" / "output" / _slug(timestamp)
     output = output.resolve()
     output.mkdir(parents=True, exist_ok=True)
@@ -61,6 +65,7 @@ def run_output_pilot(
     )
     sanitized_payload = _sanitize_payload(payload, text)
     passed = bool(payload.get("spoken")) and payload.get("error") is None
+    passed = passed and system_guard["expected_system_matched"] is not False
     confirmation_status = _operator_confirmation_status(
         speak=speak,
         operator_present=operator_present,
@@ -75,6 +80,7 @@ def run_output_pilot(
         voice=voice,
         rate=rate,
         volume=volume,
+        expected_system_matched=system_guard["expected_system_matched"],
         payload=sanitized_payload,
     )
 
@@ -84,6 +90,7 @@ def run_output_pilot(
     findings = _build_findings_markdown(
         timestamp=timestamp,
         system=system_name,
+        system_guard=system_guard,
         speak=speak,
         operator_present=operator_present,
         operator_confirmed_audio=operator_confirmed_audio,
@@ -105,6 +112,7 @@ def run_output_pilot(
         "project": "AuralisVoiceKit",
         "created_at": timestamp,
         "system": system_name,
+        "system_guard": system_guard,
         "backend": "system",
         "dry_run": not speak,
         "real_audio_requested": speak,
@@ -148,6 +156,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--volume", type=int, help="system speech volume when supported")
     parser.add_argument("--system", help="override platform name for dry-run command examples")
     parser.add_argument(
+        "--expected-system",
+        help="expected real platform for this pilot, for example Windows, Linux, Darwin or Windows|Linux|Darwin",
+    )
+    parser.add_argument(
         "--speak",
         action="store_true",
         help="play audio with the real system backend; default is dry-run",
@@ -180,6 +192,7 @@ def main(argv: list[str] | None = None) -> int:
             rate=args.rate,
             volume=args.volume,
             system=args.system,
+            expected_system=args.expected_system,
             speak=args.speak,
             operator_present=args.operator_present,
             operator_confirmed_audio=args.confirm_audible,
@@ -241,6 +254,11 @@ def _validate_operator_flags(
         raise ValueError("--confirm-voice-reviewed requires --confirm-audible.")
 
 
+def _validate_system_flags(*, system_override: str | None, speak: bool) -> None:
+    if speak and system_override:
+        raise ValueError("--system is only valid for dry-run command examples, not with --speak.")
+
+
 def _operator_confirmation_status(
     *,
     speak: bool,
@@ -266,6 +284,7 @@ def _operator_checklist(
     voice: str | None,
     rate: int | None,
     volume: int | None,
+    expected_system_matched: bool | None,
     payload: dict[str, Any],
 ) -> dict[str, Any]:
     before = [
@@ -293,6 +312,12 @@ def _operator_checklist(
             ok=voice is not None or rate is not None or volume is not None,
             required=False,
         ),
+        _checklist_item(
+            "expected_system_matched",
+            "Use --expected-system so output evidence is collected only on the intended OS family.",
+            ok=expected_system_matched,
+            required=True,
+        ),
     ]
     after = [
         _checklist_item(
@@ -316,10 +341,16 @@ def _operator_checklist(
         "records_operator_identity": False,
         "redacts_spoken_text": True,
         "voice_review_confirmed": voice_review_confirmed,
+        "expected_system_matched": expected_system_matched,
         "commands_available": commands_available,
         "ready_for_real_audio": bool(speak and operator_present and commands_available),
         "ready_for_beta_evidence": bool(
-            speak and operator_present and operator_confirmed_audio and voice_review_confirmed and commands_available
+            speak
+            and operator_present
+            and operator_confirmed_audio
+            and voice_review_confirmed
+            and commands_available
+            and expected_system_matched is True
         ),
         "before_playback": before,
         "after_playback": after,
@@ -345,6 +376,7 @@ def _build_findings_markdown(
     *,
     timestamp: str,
     system: str,
+    system_guard: dict[str, Any],
     speak: bool,
     operator_present: bool,
     operator_confirmed_audio: bool,
@@ -361,6 +393,8 @@ def _build_findings_markdown(
         "",
         f"- Created at: {timestamp}",
         f"- System: {system}",
+        f"- Expected system: {_format_nullable(system_guard['expected_system'])}",
+        f"- Expected system matched: {_format_nullable(system_guard['expected_system_matched'])}",
         f"- Backend: system",
         f"- Dry run: {not speak}",
         f"- Real audio requested: {speak}",
@@ -415,6 +449,7 @@ def _build_operator_checklist_markdown(
         f"- Records operator identity: {operator_checklist['records_operator_identity']}",
         f"- Redacts spoken text: {operator_checklist['redacts_spoken_text']}",
         f"- Voice review confirmed: {operator_checklist['voice_review_confirmed']}",
+        f"- Expected system matched: {_format_nullable(operator_checklist['expected_system_matched'])}",
         f"- Commands available: {operator_checklist['commands_available']}",
         f"- Ready for real audio: {operator_checklist['ready_for_real_audio']}",
         f"- Ready for beta evidence: {operator_checklist['ready_for_beta_evidence']}",
@@ -462,6 +497,44 @@ def _format_optional(value: object | None) -> str:
     return "none" if value in (None, "") else str(value)
 
 
+def _format_nullable(value: object | None) -> str:
+    return "not-set" if value is None else str(value)
+
+
+def _system_guard(expected_system: str | None, actual_system: str) -> dict[str, Any]:
+    expected = expected_system.strip() if expected_system else None
+    accepted_actual_systems = _accepted_actual_systems(expected)
+    matched = None if expected is None else actual_system.lower() in accepted_actual_systems
+    return {
+        "enabled": expected is not None,
+        "expected_system": expected,
+        "actual_system": actual_system,
+        "accepted_actual_systems": sorted(accepted_actual_systems),
+        "expected_system_matched": matched,
+    }
+
+
+def _accepted_actual_systems(expected_system: str | None) -> set[str]:
+    if expected_system is None:
+        return set()
+    aliases = {
+        "windows": {"windows"},
+        "linux": {"linux"},
+        "ubuntu": {"linux"},
+        "ubuntu/linux": {"linux"},
+        "darwin": {"darwin"},
+        "mac": {"darwin"},
+        "macos": {"darwin"},
+    }
+    accepted = set()
+    for part in expected_system.split("|"):
+        normalized = part.strip().lower()
+        if not normalized:
+            continue
+        accepted.update(aliases.get(normalized, {normalized}))
+    return accepted
+
+
 def _slug(value: str) -> str:
     return value.replace(":", "").replace("-", "").replace("+", "z")
 
@@ -469,6 +542,7 @@ def _slug(value: str) -> str:
 def _print_report(report: dict[str, Any]) -> None:
     print("AuralisVoiceKit system output pilot")
     print(f"System: {report['system']}")
+    print(f"Expected system matched: {report['system_guard']['expected_system_matched']}")
     print(f"Dry run: {report['dry_run']}")
     print(f"Real audio requested: {report['real_audio_requested']}")
     print(f"Operator present: {report['operator_present']}")
