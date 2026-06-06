@@ -70,7 +70,16 @@ PILOT_CHECKS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
     (
         "manual_pilot_runner",
         "tools/manual_pilot.py",
-        ("run_manual_pilot", "--capture-test", "--sample-rate", "--expected-system", "system_guard"),
+        (
+            "run_manual_pilot",
+            "--capture-test",
+            "--sample-rate",
+            "--expected-system",
+            "--confirm-input-reviewed",
+            "system_guard",
+            "input_review_confirmed",
+            "capture_checklist",
+        ),
     ),
     (
         "output_pilot_runner",
@@ -125,6 +134,8 @@ PILOT_CHECKS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
             "quality.min_word_accuracy",
             "quality_review_confirmed",
             "voice_review_confirmed",
+            "input_review_confirmed",
+            "capture_checklist.input_review_confirmed",
             "system_guard.expected_system_matched",
             "ignored_count",
             "ignored_details",

@@ -232,9 +232,9 @@ def _manual_pilot_steps() -> list[dict[str, str]]:
             "name": "microphone-capture",
             "command": (
                 "python tools/manual_pilot.py --capture-test --backend wasapi --device default "
-                "--sample-rate 48000 --expected-system Windows --json"
+                "--sample-rate 48000 --expected-system Windows --confirm-input-reviewed --json"
             ),
-            "reason": "Requires real microphone hardware and OS permissions.",
+            "reason": "Requires real microphone hardware plus reviewed OS permissions, input device and room privacy.",
         },
         {
             "name": "system-speech",
@@ -458,13 +458,17 @@ def _platform_pilot_matrix(blockers: list[str]) -> list[dict[str, Any]]:
             "blocker": "windows_wasapi_capture",
             "command": (
                 "python tools/manual_pilot.py --capture-test --backend wasapi "
-                "--device default --sample-rate 48000 --expected-system Windows --json"
+                "--device default --sample-rate 48000 --expected-system Windows "
+                "--confirm-input-reviewed --json"
             ),
             "artifact": "manual-pilot-report.json",
             "requires_hardware": True,
             "requires_operator": False,
             "requires_non_sensitive_audio": False,
-            "notes": "Captura Windows ya esta documentada; repetir si cambia hardware o driver y conservar manual-capture-checklist.md.",
+            "notes": (
+                "Captura Windows ya esta documentada; repetir si cambia hardware o driver, revisar "
+                "permisos/dispositivo de entrada y conservar manual-capture-checklist.md."
+            ),
         },
         {
             "name": "ubuntu-linux-capture",
@@ -472,13 +476,16 @@ def _platform_pilot_matrix(blockers: list[str]) -> list[dict[str, Any]]:
             "blocker": "ubuntu_linux_capture",
             "command": (
                 "python tools/manual_pilot.py --capture-test --backend sounddevice "
-                "--device default --expected-system Linux --json"
+                "--device default --expected-system Linux --confirm-input-reviewed --json"
             ),
             "artifact": "manual-pilot-report.json",
             "requires_hardware": True,
             "requires_operator": False,
             "requires_non_sensitive_audio": False,
-            "notes": "Requiere microfono, permisos de audio, PortAudio/sounddevice y manual-capture-checklist.md.",
+            "notes": (
+                "Requiere microfono, permisos de audio, dispositivo de entrada revisado, "
+                "PortAudio/sounddevice y manual-capture-checklist.md."
+            ),
         },
         {
             "name": "macos-capture",
@@ -486,13 +493,16 @@ def _platform_pilot_matrix(blockers: list[str]) -> list[dict[str, Any]]:
             "blocker": "macos_capture",
             "command": (
                 "python tools/manual_pilot.py --capture-test --backend sounddevice "
-                "--device default --expected-system Darwin --json"
+                "--device default --expected-system Darwin --confirm-input-reviewed --json"
             ),
             "artifact": "manual-pilot-report.json",
             "requires_hardware": True,
             "requires_operator": False,
             "requires_non_sensitive_audio": False,
-            "notes": "Requiere permiso de microfono en macOS, revisar el dispositivo default y conservar manual-capture-checklist.md.",
+            "notes": (
+                "Requiere permiso de microfono en macOS, revisar el dispositivo default, confirmar "
+                "entorno no sensible y conservar manual-capture-checklist.md."
+            ),
         },
         {
             "name": "system-output-audible",

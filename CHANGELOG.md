@@ -6,6 +6,19 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.62.0] - 2026-06-05
+
+### Agregado
+
+- Flag `tools/manual_pilot.py --confirm-input-reviewed` para confirmar revision humana de permisos de microfono, dispositivo de entrada y entorno no sensible antes de que una captura real pueda contar como evidencia beta.
+- Campo JSON `input_review_confirmed` en `manual-pilot-report.json` y `capture_checklist.input_review_confirmed` dentro del checklist de captura.
+- Pruebas para bloquear evidencia de captura cuando falta revision de entrada aunque la captura real y el guard de plataforma hayan pasado.
+
+### Cambiado
+
+- `capture_checklist.ready_for_beta_evidence` ahora exige captura real, backend real, plataforma esperada, resultado aprobado y revision de entrada confirmada.
+- `tools/beta_readiness.py --requirements`, auditoria de evidencias, `tools/pilot_run.py`, README, `PILOTS.md`, docs HTML, roadmap y gate de estabilidad documentan el nuevo requisito.
+
 ## [0.61.0] - 2026-06-05
 
 ### Agregado

@@ -61,6 +61,9 @@ class PilotRunTests(unittest.TestCase):
         self.assertIn("operator_checklist.voice_review_confirmed", plan)
         self.assertIn("operator_checklist.ready_for_beta_evidence", plan)
         self.assertIn("manual-capture-checklist.md", plan)
+        self.assertIn("--confirm-input-reviewed", plan)
+        self.assertIn("input_review_confirmed", plan)
+        self.assertIn("capture_checklist.input_review_confirmed", plan)
         self.assertIn("capture_checklist.ready_for_beta_evidence", plan)
         self.assertIn("system_guard.expected_system_matched", plan)
         self.assertIn("--expected-system Linux", plan)
@@ -105,6 +108,8 @@ class PilotRunTests(unittest.TestCase):
         self.assertFalse(checklist_step["requires_operator"])
         self.assertIn("operator_checklist.ready_for_beta_evidence", checklist_step["required_fields"])
         matrix = {row["name"]: row for row in report["platform_pilot_matrix"]}
+        self.assertIn("--confirm-input-reviewed", matrix["ubuntu-linux-capture"]["command"])
+        self.assertIn("--confirm-input-reviewed", matrix["macos-capture"]["command"])
         self.assertEqual(matrix["windows-wasapi-capture"]["status"], "closed")
         self.assertEqual(matrix["ubuntu-linux-capture"]["status"], "pending")
         self.assertEqual(matrix["macos-capture"]["status"], "pending")
@@ -146,7 +151,11 @@ class PilotRunTests(unittest.TestCase):
                     "system": "Linux",
                     "system_guard": {"expected_system_matched": True},
                     "hardware_capture_tested": True,
-                    "capture_checklist": {"ready_for_beta_evidence": True},
+                    "input_review_confirmed": True,
+                    "capture_checklist": {
+                        "input_review_confirmed": True,
+                        "ready_for_beta_evidence": True,
+                    },
                     "passed": True,
                 },
             )

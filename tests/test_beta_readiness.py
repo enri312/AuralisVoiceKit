@@ -84,6 +84,7 @@ class BetaReadinessTests(unittest.TestCase):
                     "capture_backend": "sounddevice",
                     "system_guard": _system_guard(),
                     "hardware_capture_tested": True,
+                    "input_review_confirmed": True,
                     "capture_checklist": _capture_checklist(),
                     "passed": True,
                 },
@@ -96,6 +97,7 @@ class BetaReadinessTests(unittest.TestCase):
                     "capture_backend": "sounddevice",
                     "system_guard": _system_guard(),
                     "hardware_capture_tested": True,
+                    "input_review_confirmed": True,
                     "capture_checklist": _capture_checklist(),
                     "passed": True,
                 },
@@ -309,7 +311,34 @@ class BetaReadinessTests(unittest.TestCase):
                     "project": "AuralisVoiceKit",
                     "system": "Linux",
                     "hardware_capture_tested": True,
+                    "input_review_confirmed": True,
                     "capture_checklist": _capture_checklist(),
+                    "passed": True,
+                },
+            )
+
+            report = module.build_beta_readiness_report(ROOT, evidence_paths=[evidence_path])
+            checks = {check["name"]: check for check in report["checks"]}
+
+        self.assertFalse(checks["ubuntu_linux_capture"]["ok"])
+        self.assertIn("ubuntu_linux_capture", report["blockers"])
+
+    def test_capture_evidence_requires_input_review_confirmation(self):
+        module = _load_beta_readiness()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            evidence_path = Path(tmpdir) / "manual-pilot-report.json"
+            _write_json(
+                evidence_path,
+                {
+                    "project": "AuralisVoiceKit",
+                    "system": "Linux",
+                    "system_guard": _system_guard(),
+                    "hardware_capture_tested": True,
+                    "capture_checklist": {
+                        "ready_for_beta_evidence": True,
+                        "input_review_confirmed": False,
+                    },
                     "passed": True,
                 },
             )
@@ -332,6 +361,7 @@ class BetaReadinessTests(unittest.TestCase):
                     "system": "Linux",
                     "system_guard": _system_guard(),
                     "hardware_capture_tested": True,
+                    "input_review_confirmed": True,
                     "capture_checklist": _capture_checklist(),
                     "passed": True,
                 },
@@ -343,6 +373,7 @@ class BetaReadinessTests(unittest.TestCase):
                     "system": "Darwin",
                     "system_guard": _system_guard(),
                     "hardware_capture_tested": True,
+                    "input_review_confirmed": True,
                     "capture_checklist": _capture_checklist(),
                     "passed": True,
                 },
@@ -501,6 +532,8 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertIn("operator_checklist.voice_review_confirmed", output_fields)
         self.assertIn("operator_checklist.ready_for_beta_evidence", output_fields)
         self.assertIn("system_guard.expected_system_matched", linux_fields)
+        self.assertIn("input_review_confirmed", linux_fields)
+        self.assertIn("capture_checklist.input_review_confirmed", linux_fields)
         self.assertIn("capture_checklist.ready_for_beta_evidence", linux_fields)
 
     def test_cli_requirements_markdown_is_public_safe(self):
@@ -515,6 +548,8 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertIn("Requisitos de evidencias beta", content)
         self.assertIn("transcription-pilot-report.json", content)
         self.assertIn("system_guard.expected_system_matched", content)
+        self.assertIn("input_review_confirmed", content)
+        self.assertIn("capture_checklist.input_review_confirmed", content)
         self.assertIn("capture_checklist.ready_for_beta_evidence", content)
         self.assertIn("quality.min_word_accuracy", content)
         self.assertIn("quality_review_confirmed", content)
@@ -611,6 +646,7 @@ class BetaReadinessTests(unittest.TestCase):
                     "system": "Linux",
                     "system_guard": _system_guard(),
                     "hardware_capture_tested": True,
+                    "input_review_confirmed": True,
                     "capture_checklist": _capture_checklist(),
                     "passed": True,
                 },
@@ -689,6 +725,7 @@ class BetaReadinessTests(unittest.TestCase):
                     "system_guard": _system_guard(),
                     "capture_backend": "wasapi",
                     "hardware_capture_tested": True,
+                    "input_review_confirmed": True,
                     "capture_checklist": _capture_checklist(),
                     "passed": True,
                 },
@@ -700,6 +737,7 @@ class BetaReadinessTests(unittest.TestCase):
                     "system": "Linux",
                     "system_guard": _system_guard(),
                     "hardware_capture_tested": True,
+                    "input_review_confirmed": True,
                     "capture_checklist": _capture_checklist(),
                     "passed": True,
                 },
@@ -711,6 +749,7 @@ class BetaReadinessTests(unittest.TestCase):
                     "system": "Darwin",
                     "system_guard": _system_guard(),
                     "hardware_capture_tested": True,
+                    "input_review_confirmed": True,
                     "capture_checklist": _capture_checklist(),
                     "passed": True,
                 },
@@ -765,6 +804,7 @@ class BetaReadinessTests(unittest.TestCase):
                     "system_guard": _system_guard(),
                     "capture_backend": "wasapi",
                     "hardware_capture_tested": True,
+                    "input_review_confirmed": True,
                     "capture_checklist": _capture_checklist(),
                     "passed": True,
                 },
@@ -776,6 +816,7 @@ class BetaReadinessTests(unittest.TestCase):
                     "system": "Linux",
                     "system_guard": _system_guard(),
                     "hardware_capture_tested": True,
+                    "input_review_confirmed": True,
                     "capture_checklist": _capture_checklist(),
                     "passed": True,
                 },
@@ -787,6 +828,7 @@ class BetaReadinessTests(unittest.TestCase):
                     "system": "Darwin",
                     "system_guard": _system_guard(),
                     "hardware_capture_tested": True,
+                    "input_review_confirmed": True,
                     "capture_checklist": _capture_checklist(),
                     "passed": True,
                 },
@@ -841,7 +883,7 @@ def _write_json(path: Path, payload: dict):
 
 
 def _capture_checklist() -> dict[str, bool]:
-    return {"ready_for_beta_evidence": True}
+    return {"input_review_confirmed": True, "ready_for_beta_evidence": True}
 
 
 def _system_guard() -> dict[str, bool]:

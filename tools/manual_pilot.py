@@ -29,12 +29,16 @@ def run_manual_pilot(
     output_dir: str | Path | None = None,
     capture_backend: str | None = None,
     capture_test: bool = False,
+    input_review_confirmed: bool = False,
     capture_seconds: float = 0.25,
     capture_device: str | int | None = "default",
     sample_rate: int | None = None,
     expected_system: str | None = None,
 ) -> dict[str, Any]:
     """Run a manual-pilot diagnostic pass and write shareable artifacts."""
+
+    if input_review_confirmed and not capture_test:
+        raise ValueError("input_review_confirmed requires capture_test=True")
 
     workspace = Path(root).resolve()
     timestamp = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
@@ -72,6 +76,7 @@ def run_manual_pilot(
         sample_rate=sample_rate,
         passed=passed,
         hardware_capture_tested=capture_test,
+        input_review_confirmed=input_review_confirmed,
         device_redacted=device_redacted,
         expected_system_matched=system_guard["expected_system_matched"],
     )
@@ -81,6 +86,7 @@ def run_manual_pilot(
         system_guard=system_guard,
         backend=backend,
         capture_test=capture_test,
+        input_review_confirmed=input_review_confirmed,
         sample_rate=sample_rate,
         doctor_status=doctor.status.value,
         passed=passed,
@@ -106,6 +112,7 @@ def run_manual_pilot(
         "system_guard": system_guard,
         "capture_backend": backend,
         "capture_test_requested": capture_test,
+        "input_review_confirmed": input_review_confirmed,
         "capture_device": public_device,
         "capture_device_redacted": device_redacted,
         "sample_rate": sample_rate,
@@ -139,6 +146,14 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="open the selected microphone backend briefly",
     )
+    parser.add_argument(
+        "--confirm-input-reviewed",
+        action="store_true",
+        help=(
+            "confirm OS microphone permissions, selected input device and non-sensitive room were "
+            "reviewed before real capture evidence"
+        ),
+    )
     parser.add_argument("--capture-seconds", type=float, default=0.25, help="duration for --capture-test")
     parser.add_argument("--device", default="default", help="input device selector for --capture-test")
     parser.add_argument(
@@ -152,12 +167,15 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--json", action="store_true", help="print JSON report")
     args = parser.parse_args(argv)
+    if args.confirm_input_reviewed and not args.capture_test:
+        parser.error("--confirm-input-reviewed requires --capture-test")
 
     report = run_manual_pilot(
         root=args.root,
         output_dir=args.output_dir,
         capture_backend=args.backend,
         capture_test=args.capture_test,
+        input_review_confirmed=args.confirm_input_reviewed,
         capture_seconds=args.capture_seconds,
         capture_device=args.device,
         sample_rate=args.sample_rate,
@@ -181,6 +199,7 @@ def _build_findings_markdown(
     system_guard: dict[str, Any],
     backend: str,
     capture_test: bool,
+    input_review_confirmed: bool,
     sample_rate: int | None,
     doctor_status: str,
     passed: bool,
@@ -199,6 +218,7 @@ def _build_findings_markdown(
         f"- Expected system matched: {_format_nullable(system_guard['expected_system_matched'])}",
         f"- Capture backend: {backend}",
         f"- Capture test requested: {capture_test}",
+        f"- Input review confirmed: {input_review_confirmed}",
         f"- Sample rate: {_format_optional(sample_rate)}",
         f"- Doctor status: {doctor_status}",
         f"- Passed: {passed}",
@@ -252,6 +272,7 @@ def _capture_checklist(
     sample_rate: int | None,
     passed: bool,
     hardware_capture_tested: bool,
+    input_review_confirmed: bool,
     device_redacted: bool,
     expected_system_matched: bool | None,
 ) -> dict[str, Any]:
@@ -271,9 +292,12 @@ def _capture_checklist(
             required=True,
         ),
         _checklist_item(
-            "microphone_permission_reviewed",
-            "Confirm OS microphone permissions and a non-sensitive room before starting capture.",
-            ok=None,
+            "input_review_confirmed",
+            (
+                "Use --confirm-input-reviewed only after reviewing OS microphone permissions, "
+                "selected input device and a non-sensitive room."
+            ),
+            ok=input_review_confirmed if capture_test else None,
             required=True,
         ),
         _checklist_item(
@@ -318,13 +342,18 @@ def _capture_checklist(
     sample_rate_ready = not needs_sample_rate_review or sample_rate is not None
     ready_for_real_capture = bool(capture_test and real_capture_backend and sample_rate_ready)
     ready_for_beta_evidence = bool(
-        ready_for_real_capture and hardware_capture_tested and passed and expected_system_matched is True
+        ready_for_real_capture
+        and hardware_capture_tested
+        and passed
+        and expected_system_matched is True
+        and input_review_confirmed
     )
     return {
         "system": system,
         "records_audio_bytes": False,
         "redacts_device_selector": device_redacted,
         "expected_system_matched": expected_system_matched,
+        "input_review_confirmed": input_review_confirmed,
         "ready_for_real_capture": ready_for_real_capture,
         "ready_for_beta_evidence": ready_for_beta_evidence,
         "before_capture": before,
@@ -363,6 +392,7 @@ def _build_capture_checklist_markdown(
         f"- Records audio bytes: {capture_checklist['records_audio_bytes']}",
         f"- Redacts device selector: {capture_checklist['redacts_device_selector']}",
         f"- Expected system matched: {_format_nullable(capture_checklist['expected_system_matched'])}",
+        f"- Input review confirmed: {capture_checklist['input_review_confirmed']}",
         f"- Ready for real capture: {capture_checklist['ready_for_real_capture']}",
         f"- Ready for beta evidence: {capture_checklist['ready_for_beta_evidence']}",
         "",
@@ -471,6 +501,7 @@ def _print_report(report: dict[str, Any]) -> None:
     print(f"System: {report['system']}")
     print(f"Capture backend: {report['capture_backend']}")
     print(f"Capture test requested: {report['capture_test_requested']}")
+    print(f"Input review confirmed: {report['input_review_confirmed']}")
     print(f"Doctor status: {report['doctor_status']}")
     print(f"Passed: {report['passed']}")
     print("Artifacts:")

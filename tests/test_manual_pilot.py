@@ -48,6 +48,7 @@ class ManualPilotTests(unittest.TestCase):
         self.assertTrue(report["passed"])
         self.assertTrue(report["diagnostic_passed"])
         self.assertFalse(report["hardware_capture_tested"])
+        self.assertFalse(report["input_review_confirmed"])
         self.assertEqual(report["sample_rate"], 48000)
         self.assertFalse(report["system_guard"]["enabled"])
         self.assertIsNone(report["system_guard"]["expected_system_matched"])
@@ -57,12 +58,14 @@ class ManualPilotTests(unittest.TestCase):
         self.assertEqual(analysis["bundle_count"], 1)
         self.assertIn("Manual pilot findings", findings)
         self.assertIn("Capture test requested: False", findings)
+        self.assertIn("Input review confirmed: False", findings)
         self.assertIn("Expected system matched: not-set", findings)
         self.assertIn("Capture checklist ready for beta evidence: False", findings)
         self.assertIn("Sample rate: 48000", findings)
         self.assertIn("Bundle: doctor-bundle.json", findings)
         self.assertIn("Capture checklist: manual-capture-checklist.md", findings)
         self.assertIn("Checklist de captura manual / Manual capture checklist", checklist)
+        self.assertIn("Input review confirmed: False", checklist)
         self.assertIn("Ready for beta evidence: False", checklist)
         self.assertNotIn(str(Path(tempfile.gettempdir())), findings)
         self.assertNotIn(str(Path(tempfile.gettempdir())), checklist)
@@ -92,6 +95,7 @@ class ManualPilotTests(unittest.TestCase):
         self.assertEqual(payload["capture_backend"], "wav")
         self.assertEqual(payload["sample_rate"], 48000)
         self.assertFalse(payload["capture_test_requested"])
+        self.assertFalse(payload["input_review_confirmed"])
         self.assertIn("capture_checklist", payload)
         self.assertIn("capture_checklist", payload["artifacts"])
         self.assertFalse(payload["system_guard"]["enabled"])
@@ -150,6 +154,7 @@ class ManualPilotTests(unittest.TestCase):
             sample_rate=None,
             passed=True,
             hardware_capture_tested=True,
+            input_review_confirmed=True,
             device_redacted=False,
             expected_system_matched=True,
         )
@@ -163,9 +168,11 @@ class ManualPilotTests(unittest.TestCase):
         self.assertTrue(checklist["ready_for_real_capture"])
         self.assertTrue(checklist["ready_for_beta_evidence"])
         self.assertTrue(checklist["expected_system_matched"])
+        self.assertTrue(checklist["input_review_confirmed"])
         self.assertFalse(checklist["records_audio_bytes"])
         self.assertIn("Ready for beta evidence: True", markdown)
         self.assertIn("Expected system matched: True", markdown)
+        self.assertIn("Input review confirmed: True", markdown)
 
     def test_capture_checklist_requires_sample_rate_for_windows_wasapi(self):
         module = _load_manual_pilot()
@@ -177,6 +184,7 @@ class ManualPilotTests(unittest.TestCase):
             sample_rate=None,
             passed=True,
             hardware_capture_tested=True,
+            input_review_confirmed=True,
             device_redacted=False,
             expected_system_matched=True,
         )
@@ -194,12 +202,65 @@ class ManualPilotTests(unittest.TestCase):
             sample_rate=None,
             passed=True,
             hardware_capture_tested=True,
+            input_review_confirmed=True,
             device_redacted=False,
             expected_system_matched=False,
         )
 
         self.assertTrue(checklist["ready_for_real_capture"])
         self.assertFalse(checklist["ready_for_beta_evidence"])
+
+    def test_capture_checklist_requires_input_review_for_beta_evidence(self):
+        module = _load_manual_pilot()
+
+        checklist = module._capture_checklist(
+            system="Linux",
+            backend="sounddevice",
+            capture_test=True,
+            sample_rate=None,
+            passed=True,
+            hardware_capture_tested=True,
+            input_review_confirmed=False,
+            device_redacted=False,
+            expected_system_matched=True,
+        )
+
+        self.assertTrue(checklist["ready_for_real_capture"])
+        self.assertFalse(checklist["input_review_confirmed"])
+        self.assertFalse(checklist["ready_for_beta_evidence"])
+
+    def test_input_review_confirmation_requires_real_capture(self):
+        module = _load_manual_pilot()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with self.assertRaises(ValueError):
+                module.run_manual_pilot(
+                    root=ROOT,
+                    output_dir=tmpdir,
+                    capture_backend="wav",
+                    input_review_confirmed=True,
+                )
+
+    def test_manual_pilot_cli_rejects_input_review_without_capture_test(self):
+        module = _load_manual_pilot()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with contextlib.redirect_stderr(io.StringIO()):
+                with self.assertRaises(SystemExit) as raised:
+                    module.main(
+                        [
+                            "--root",
+                            str(ROOT),
+                            "--output-dir",
+                            tmpdir,
+                            "--backend",
+                            "wav",
+                            "--confirm-input-reviewed",
+                            "--json",
+                        ]
+                    )
+
+        self.assertEqual(raised.exception.code, 2)
 
 
 if __name__ == "__main__":
