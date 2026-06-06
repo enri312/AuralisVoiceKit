@@ -220,6 +220,7 @@ def run_safe_pilot(
     execution_card_path = output / "real-pilot-execution-card.md"
     consent_card_path = output / "real-pilot-consent-card.md"
     audit_closure_path = output / "real-pilot-audit-closure.md"
+    rehearsal_card_path = output / "real-pilot-rehearsal-card.md"
     plan_path = output / "pilot-plan.md"
     report_path = output / "pilot-report.json"
     report["fixture_preflight_card"] = _real_pilot_fixture_preflight_card(report)
@@ -424,6 +425,7 @@ def run_safe_pilot(
     }
     report["real_pilot_consent_card"] = _real_pilot_consent_card(report, consent_card_path)
     report["real_pilot_audit_closure_card"] = _real_pilot_audit_closure_card(report, audit_closure_path)
+    report["real_pilot_rehearsal_card"] = _real_pilot_rehearsal_card(report, rehearsal_card_path)
     artifacts["real_pilot_findings_template"] = str(findings_template_path)
     artifacts["real_pilot_handoff"] = str(handoff_path)
     artifacts["real_pilot_command_pack"] = str(command_pack_path)
@@ -439,6 +441,7 @@ def run_safe_pilot(
     artifacts["real_pilot_execution_card"] = str(execution_card_path)
     artifacts["real_pilot_consent_card"] = str(consent_card_path)
     artifacts["real_pilot_audit_closure_card"] = str(audit_closure_path)
+    artifacts["real_pilot_rehearsal_card"] = str(rehearsal_card_path)
     artifacts["pilot_plan"] = str(plan_path)
     artifacts["pilot_report"] = str(report_path)
     findings_template_path.write_text(_format_real_pilot_findings_template_markdown(report), encoding="utf-8")
@@ -459,6 +462,7 @@ def run_safe_pilot(
     execution_card_path.write_text(_format_real_pilot_execution_card_markdown(report), encoding="utf-8")
     consent_card_path.write_text(_format_real_pilot_consent_card_markdown(report), encoding="utf-8")
     audit_closure_path.write_text(_format_real_pilot_audit_closure_markdown(report), encoding="utf-8")
+    rehearsal_card_path.write_text(_format_real_pilot_rehearsal_markdown(report), encoding="utf-8")
     plan_path.write_text(_format_pilot_plan_markdown(report), encoding="utf-8")
     report_path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return report
@@ -2052,6 +2056,120 @@ def _real_pilot_audit_closure_card(report: dict[str, Any], artifact_path: Path) 
     }
 
 
+def _real_pilot_rehearsal_card(report: dict[str, Any], artifact_path: Path) -> dict[str, Any]:
+    """Build a public-safe rehearsal card before a local operator touches hardware."""
+
+    gate = report["real_pilot_execution_card"]["operator_gate"]
+    focus = report["beta_readiness"].get("next_evidence_focus", {})
+    sequence = report.get("next_evidence_focus_preparation_sequence", [])
+    rehearsal_items = [
+        {
+            "id": "safe_pilot_refreshed",
+            "required": True,
+            "status": "pending_local_rehearsal",
+            "source": "python tools/pilot_run.py --output-dir pilot_runs/safe --json",
+            "requires_hardware": False,
+            "requires_operator": False,
+        },
+        {
+            "id": "beta_requirements_reviewed",
+            "required": True,
+            "status": "pending_local_rehearsal",
+            "source": "python tools/beta_readiness.py --requirements",
+            "requires_hardware": False,
+            "requires_operator": False,
+        },
+        {
+            "id": "support_cards_reviewed",
+            "required": True,
+            "status": "pending_local_rehearsal",
+            "source": "real-pilot-hard-stop-card.md + real-pilot-execution-card.md",
+            "requires_hardware": False,
+            "requires_operator": True,
+        },
+        {
+            "id": "command_placeholders_reviewed",
+            "required": True,
+            "status": "pending_local_rehearsal",
+            "source": gate["command_audit"]["command"],
+            "requires_hardware": False,
+            "requires_operator": True,
+        },
+        {
+            "id": "strict_backend_guard_preserved",
+            "required": gate["strict_backend_guard_required"],
+            "status": "pending_local_rehearsal",
+            "source": gate["command_audit"].get("present_required_flags", []),
+            "requires_hardware": False,
+            "requires_operator": True,
+        },
+        {
+            "id": "no_real_command_executed_during_rehearsal",
+            "required": True,
+            "status": "pending_local_rehearsal",
+            "source": "local operator",
+            "requires_hardware": False,
+            "requires_operator": True,
+        },
+    ]
+    support_artifacts = [
+        "real-pilot-command-pack.md",
+        "real-pilot-hard-stop-card.md",
+        "real-pilot-evidence-intake-card.md",
+        "real-pilot-execution-card.md",
+        "real-pilot-consent-card.md",
+        "real-pilot-audit-closure.md",
+    ]
+    pending_rehearsal_ids = [item["id"] for item in rehearsal_items if item["required"]]
+    return {
+        "artifact": artifact_path.name,
+        "safe_to_share": True,
+        "source": "real_pilot_execution_card.operator_gate + beta_readiness.next_evidence_focus",
+        "usable_as_beta_evidence": False,
+        "focus": gate["focus"],
+        "focus_status": focus.get("status") or "unknown",
+        "focus_artifact": gate["focus_artifact"],
+        "focus_command": focus.get("command") or "ninguno",
+        "rehearsal_status": "ready_for_local_rehearsal" if gate["allowed_to_run"] else "blocked",
+        "tracks_rehearsal_before_real_run": True,
+        "requires_local_operator": True,
+        "requires_real_hardware": any(step.get("requires_hardware") for step in sequence),
+        "requires_non_sensitive_audio": any(step.get("requires_non_sensitive_audio") for step in sequence),
+        "requires_audible_output": any(step.get("name") == "system_output_audible" for step in sequence),
+        "can_execute_real_command_from_card": False,
+        "real_command_copy_allowed_after_rehearsal": False,
+        "copy_requires_consent_card": True,
+        "copy_requires_audit_closure": True,
+        "safe_rehearsal_commands": [
+            "python tools/pilot_run.py --output-dir pilot_runs/safe --json",
+            "python tools/beta_readiness.py --requirements",
+        ],
+        "support_artifacts": support_artifacts,
+        "rehearsal_items": rehearsal_items,
+        "rehearsal_item_count": len(rehearsal_items),
+        "pending_rehearsal_ids": pending_rehearsal_ids,
+        "pending_rehearsal_count": len(pending_rehearsal_ids),
+        "strict_audit_command": gate["audit_closure"]["strict_audit_command"],
+        "refresh_checklist_command": gate["audit_closure"]["refresh_checklist_command"],
+        "content_policy": {
+            "records_audio": False,
+            "records_transcripts": False,
+            "records_spoken_text": False,
+            "records_expected_text": False,
+            "records_local_paths": False,
+            "records_device_names": False,
+            "records_operator_identity": False,
+        },
+        "records_audio": False,
+        "records_transcripts": False,
+        "records_spoken_text": False,
+        "records_expected_text": False,
+        "records_local_paths": False,
+        "records_device_names": False,
+        "records_operator_identity": False,
+    }
+
+
 def _operator_gate_evidence_contract(focus: dict[str, Any], report: dict[str, Any]) -> dict[str, Any]:
     required_fields = list(focus.get("required_fields", []))
     missing_fields = list(focus.get("missing_fields", []))
@@ -2335,6 +2453,9 @@ def _format_pilot_plan_markdown(report: dict[str, Any]) -> str:
     audit_closure_name = Path(
         report["artifacts"].get("real_pilot_audit_closure_card", "real-pilot-audit-closure.md")
     ).name
+    rehearsal_card_name = Path(
+        report["artifacts"].get("real_pilot_rehearsal_card", "real-pilot-rehearsal-card.md")
+    ).name
     lines = [
         "# Plan de pilotos AuralisVoiceKit",
         "",
@@ -2368,6 +2489,7 @@ def _format_pilot_plan_markdown(report: dict[str, Any]) -> str:
         f"- Tarjeta de ejecucion: `{execution_card_name}`",
         f"- Tarjeta de consentimiento: `{consent_card_name}`",
         f"- Cierre de auditoria: `{audit_closure_name}`",
+        f"- Ensayo local: `{rehearsal_card_name}`",
         f"- Plantilla de hallazgos: `{findings_template_name}`",
         "",
         "## Checks seguros",
@@ -2477,6 +2599,14 @@ def _format_pilot_plan_markdown(report: dict[str, Any]) -> str:
             f"- Artifact JSON esperado: `{report['real_pilot_audit_closure_card']['expected_json_artifact']}`",
             f"- Auditoria requerida: `{_format_bool(report['real_pilot_audit_closure_card']['audit_required'])}`",
             f"- Usable como evidencia beta: `{_format_bool(report['real_pilot_audit_closure_card']['usable_as_beta_evidence'])}`",
+            "",
+            "## Ensayo local previo",
+            "",
+            f"- Artifact: `{rehearsal_card_name}`",
+            f"- Estado de ensayo: `{report['real_pilot_rehearsal_card']['rehearsal_status']}`",
+            f"- Requiere operador local: `{_format_bool(report['real_pilot_rehearsal_card']['requires_local_operator'])}`",
+            f"- Ejecuta comando real: `{_format_bool(report['real_pilot_rehearsal_card']['can_execute_real_command_from_card'])}`",
+            f"- Usable como evidencia beta: `{_format_bool(report['real_pilot_rehearsal_card']['usable_as_beta_evidence'])}`",
             "",
             "## Preflight de fixture de transcripcion",
             "",
@@ -3123,6 +3253,9 @@ def _format_real_pilot_evidence_manifest_markdown(report: dict[str, Any]) -> str
     execution_card_name = Path(
         report["artifacts"].get("real_pilot_execution_card", "real-pilot-execution-card.md")
     ).name
+    rehearsal_card_name = Path(
+        report["artifacts"].get("real_pilot_rehearsal_card", "real-pilot-rehearsal-card.md")
+    ).name
     lines = [
         "# Manifiesto de evidencias para pilotos reales AuralisVoiceKit",
         "",
@@ -3254,6 +3387,9 @@ def _format_real_pilot_decision_gate_markdown(report: dict[str, Any]) -> str:
     audit_closure_name = Path(
         report["artifacts"].get("real_pilot_audit_closure_card", "real-pilot-audit-closure.md")
     ).name
+    rehearsal_card_name = Path(
+        report["artifacts"].get("real_pilot_rehearsal_card", "real-pilot-rehearsal-card.md")
+    ).name
     lines = [
         "# Compuerta go/no-go para pilotos reales AuralisVoiceKit",
         "",
@@ -3278,6 +3414,7 @@ def _format_real_pilot_decision_gate_markdown(report: dict[str, Any]) -> str:
         f"- Tarjeta de ejecucion: `{execution_card_name}`",
         f"- Tarjeta de consentimiento: `{consent_card_name}`",
         f"- Cierre de auditoria: `{audit_closure_name}`",
+        f"- Ensayo local: `{rehearsal_card_name}`",
         f"- Usable como evidencia beta: `{_format_bool(artifact_policy['usable_as_beta_evidence'])}`",
         "",
         "## Politica de contenido",
@@ -3376,6 +3513,9 @@ def _format_real_pilot_next_evidence_focus_markdown(report: dict[str, Any]) -> s
     execution_card_name = Path(
         report["artifacts"].get("real_pilot_execution_card", "real-pilot-execution-card.md")
     ).name
+    rehearsal_card_name = Path(
+        report["artifacts"].get("real_pilot_rehearsal_card", "real-pilot-rehearsal-card.md")
+    ).name
     lines = [
         "# Siguiente foco de evidencia AuralisVoiceKit",
         "",
@@ -3422,6 +3562,7 @@ def _format_real_pilot_next_evidence_focus_markdown(report: dict[str, Any]) -> s
             f"- Alto operativo: `{hard_stop_name}`",
             f"- Ingesta de evidencia: `{evidence_intake_name}`",
             f"- Ejecucion guiada: `{execution_card_name}`",
+            f"- Ensayo local: `{rehearsal_card_name}`",
             "",
             "## Antes de ejecutar",
             "",
@@ -3430,6 +3571,7 @@ def _format_real_pilot_next_evidence_focus_markdown(report: dict[str, Any]) -> s
             "- Usar solo audio/texto no sensible y confirmar revisiones humanas antes de pasar flags `--confirm-*`.",
             "- Conservar solo artifacts JSON/Markdown generados por las herramientas; no pegar audio, transcripciones, rutas locales ni identidad del operador.",
             "- Colocar solo reportes JSON sanitizados en los directorios sugeridos por la tarjeta de ingesta.",
+            f"- Ensayar sin hardware con `{rehearsal_card_name}` antes del comando real.",
             f"- Seguir `{execution_card_name}` como checklist local de ejecucion y cierre.",
             "- Correr la auditoria estricta despues de recolectar evidencia real.",
             "",
@@ -3462,6 +3604,9 @@ def _format_real_pilot_hard_stop_card_markdown(report: dict[str, Any]) -> str:
     audit_closure_name = Path(
         report["artifacts"].get("real_pilot_audit_closure_card", "real-pilot-audit-closure.md")
     ).name
+    rehearsal_card_name = Path(
+        report["artifacts"].get("real_pilot_rehearsal_card", "real-pilot-rehearsal-card.md")
+    ).name
     lines = [
         "# Alto operativo para pilotos reales AuralisVoiceKit",
         "",
@@ -3482,6 +3627,7 @@ def _format_real_pilot_hard_stop_card_markdown(report: dict[str, Any]) -> str:
         f"- Ejecucion guiada: `{execution_card_name}`",
         f"- Consentimiento local: `{consent_card_name}`",
         f"- Cierre de auditoria: `{audit_closure_name}`",
+        f"- Ensayo local: `{rehearsal_card_name}`",
         f"- Usable como evidencia beta: `{_format_bool(policy['usable_as_beta_evidence'])}`",
         "",
         "## Politica de contenido",
@@ -3515,6 +3661,7 @@ def _format_real_pilot_hard_stop_card_markdown(report: dict[str, Any]) -> str:
             "- Reemplazar placeholders solo en la maquina local del operador.",
             f"- Guardar reportes reales solo segun `{evidence_intake_name}`.",
             f"- Revisar `{execution_card_name}` antes de iniciar el comando real.",
+            f"- Ensayar con `{rehearsal_card_name}` antes de tocar hardware real.",
             f"- Revisar `{consent_card_name}` antes de usar cualquier flag `--confirm-*`.",
             f"- Usar `{audit_closure_name}` despues de generar el JSON real sanitizado.",
             "- Mantener beta y estable bloqueados mientras sus decisiones sigan en `blocked`.",
@@ -3549,6 +3696,9 @@ def _format_real_pilot_evidence_intake_card_markdown(report: dict[str, Any]) -> 
     audit_closure_name = Path(
         report["artifacts"].get("real_pilot_audit_closure_card", "real-pilot-audit-closure.md")
     ).name
+    rehearsal_card_name = Path(
+        report["artifacts"].get("real_pilot_rehearsal_card", "real-pilot-rehearsal-card.md")
+    ).name
     expected_artifacts = sorted({row["artifact"] for row in manifest["rows"] if row.get("artifact")})
     lines = [
         "# Ingesta de evidencia para pilotos reales AuralisVoiceKit",
@@ -3568,6 +3718,7 @@ def _format_real_pilot_evidence_intake_card_markdown(report: dict[str, Any]) -> 
         f"- Ejecucion guiada: `{execution_card_name}`",
         f"- Consentimiento local: `{consent_card_name}`",
         f"- Cierre de auditoria: `{audit_closure_name}`",
+        f"- Ensayo local: `{rehearsal_card_name}`",
         f"- Plantilla de hallazgos: `{findings_template_name}`",
         f"- Usable como evidencia beta: `{_format_bool(policy['usable_as_beta_evidence'])}`",
         "",
@@ -3619,6 +3770,7 @@ def _format_real_pilot_evidence_intake_card_markdown(report: dict[str, Any]) -> 
             "- Mantener audio, transcripciones completas, texto esperado completo y texto hablado real fuera del repositorio.",
             "- Usar nombres de carpetas publicos por plataforma o tipo de piloto; no usar nombres de personas, dispositivos ni rutas locales.",
             "- Conservar Markdown operativo generado por las herramientas solo si mantiene placeholders y politica publica segura.",
+            f"- Usar `{rehearsal_card_name}` para ensayar sin hardware antes de copiar el comando real.",
             f"- Usar `{execution_card_name}` para cerrar cada corrida con auditoria antes de refrescar beta.",
             f"- Usar `{consent_card_name}` como checklist local antes de pasar flags `--confirm-*`.",
             f"- Usar `{audit_closure_name}` para auditar, refrescar checklist y actualizar hallazgos.",
@@ -3657,6 +3809,9 @@ def _format_real_pilot_execution_card_markdown(report: dict[str, Any]) -> str:
     ).name
     audit_closure_name = Path(
         report["artifacts"].get("real_pilot_audit_closure_card", "real-pilot-audit-closure.md")
+    ).name
+    rehearsal_card_name = Path(
+        report["artifacts"].get("real_pilot_rehearsal_card", "real-pilot-rehearsal-card.md")
     ).name
     findings_template_name = Path(
         report["artifacts"].get("real_pilot_findings_template", "real-pilot-findings-template.md")
@@ -3765,6 +3920,7 @@ def _format_real_pilot_execution_card_markdown(report: dict[str, Any]) -> str:
             f"- Ingesta de evidencia: `{evidence_intake_name}`",
             f"- Consentimiento local: `{consent_card_name}`",
             f"- Cierre de auditoria: `{audit_closure_name}`",
+            f"- Ensayo local: `{rehearsal_card_name}`",
             f"- Paquete de comandos: `{command_pack_name}`",
             f"- Checklist de entorno: `{environment_checklist_name}`",
             f"- Plantilla de hallazgos: `{findings_template_name}`",
@@ -3773,6 +3929,7 @@ def _format_real_pilot_execution_card_markdown(report: dict[str, Any]) -> str:
             "",
             "- Confirmar que `Pilotos reales` este en `go` y que `Beta` siga en `blocked` hasta cerrar evidencias reales.",
             "- Revisar el alto operativo y detenerse si el audio, texto hablado, referencia, dispositivo o entorno no son publicos/no sensibles.",
+            f"- Ejecutar ensayo local con `{rehearsal_card_name}` antes de copiar el comando real.",
             "- Reemplazar placeholders solo en la maquina local del operador.",
             "- No pasar flags `--confirm-*` hasta que la revision humana correspondiente haya ocurrido.",
             "",
@@ -3866,6 +4023,9 @@ def _format_real_pilot_consent_card_markdown(report: dict[str, Any]) -> str:
     audit_closure_name = Path(
         report["artifacts"].get("real_pilot_audit_closure_card", "real-pilot-audit-closure.md")
     ).name
+    rehearsal_card_name = Path(
+        report["artifacts"].get("real_pilot_rehearsal_card", "real-pilot-rehearsal-card.md")
+    ).name
     lines = [
         "# Consentimiento local para piloto real AuralisVoiceKit",
         "",
@@ -3904,6 +4064,7 @@ def _format_real_pilot_consent_card_markdown(report: dict[str, Any]) -> str:
         f"- Alto operativo: `{hard_stop_name}`",
         f"- Ejecucion guiada: `{execution_card_name}`",
         f"- Ingesta de evidencia: `{evidence_intake_name}`",
+        f"- Ensayo local: `{rehearsal_card_name}`",
         f"- Cierre de auditoria: `{audit_closure_name}`",
         f"- Plantilla de hallazgos: `{findings_template_name}`",
         "",
@@ -3942,6 +4103,7 @@ def _format_real_pilot_consent_card_markdown(report: dict[str, Any]) -> str:
             "",
             "## Cierre obligatorio",
             "",
+            f"- Ensayo previo: `{rehearsal_card_name}`",
             f"- Auditoria estricta: `{policy['strict_audit_command']}`",
             f"- Refrescar checklist: `{policy['refresh_checklist_command']}`",
             f"- Revisar cierre de auditoria: `{audit_closure_name}`",
@@ -3960,6 +4122,9 @@ def _format_real_pilot_consent_card_markdown(report: dict[str, Any]) -> str:
 def _format_real_pilot_audit_closure_markdown(report: dict[str, Any]) -> str:
     closure = report["real_pilot_audit_closure_card"]
     gate = report["pilot_decision_gate"]
+    rehearsal_card_name = Path(
+        report["artifacts"].get("real_pilot_rehearsal_card", "real-pilot-rehearsal-card.md")
+    ).name
     lines = [
         "# Cierre de auditoria para piloto real AuralisVoiceKit",
         "",
@@ -3992,6 +4157,7 @@ def _format_real_pilot_audit_closure_markdown(report: dict[str, Any]) -> str:
         "",
         "## Artifacts de apoyo",
         "",
+        f"- Ensayo local: `{rehearsal_card_name}`",
         f"- Ejecucion guiada: `{closure['execution_card']}`",
         f"- Consentimiento local: `{closure['consent_card']}`",
         f"- Ingesta de evidencia: `{closure['evidence_intake_card']}`",
@@ -4021,6 +4187,76 @@ def _format_real_pilot_audit_closure_markdown(report: dict[str, Any]) -> str:
             "- No copiar audio, transcripciones, texto esperado, texto hablado real, rutas locales ni nombres de dispositivos en hallazgos compartidos.",
             "- Ejecutar la auditoria estricta antes de refrescar beta o publicar hallazgos.",
             "- Si la auditoria reporta gaps, corregir artifacts sanitizados antes de declarar avance beta.",
+            "",
+        ]
+    )
+    return "\n".join(lines)
+
+
+def _format_real_pilot_rehearsal_markdown(report: dict[str, Any]) -> str:
+    rehearsal = report["real_pilot_rehearsal_card"]
+    gate = report["pilot_decision_gate"]
+    lines = [
+        "# Ensayo local antes del piloto real AuralisVoiceKit",
+        "",
+        "Esta tarjeta guia un ensayo publico antes del piloto real. No ejecuta hardware, no abre microfono, no reproduce audio, no ejecuta modelos y no cuenta como evidencia beta.",
+        "",
+        "## Estado",
+        "",
+        f"- Version: `{report['version']}`",
+        f"- Stage: `{report['stage']}`",
+        f"- Pilotos reales: `{gate['real_world_pilot']['decision']}`",
+        f"- Beta: `{gate['beta']['decision']}`",
+        f"- Foco: `{rehearsal['focus']}`",
+        f"- Estado de ensayo: `{rehearsal['rehearsal_status']}`",
+        f"- Artifact esperado: `{rehearsal['focus_artifact']}`",
+        f"- Requiere operador local: `{_format_bool(rehearsal['requires_local_operator'])}`",
+        f"- Requiere hardware real: `{_format_bool(rehearsal['requires_real_hardware'])}`",
+        f"- Puede ejecutar comando real desde esta tarjeta: `{_format_bool(rehearsal['can_execute_real_command_from_card'])}`",
+        f"- Copia del comando real permitida tras ensayo: `{_format_bool(rehearsal['real_command_copy_allowed_after_rehearsal'])}`",
+        f"- Usable como evidencia beta: `{_format_bool(rehearsal['usable_as_beta_evidence'])}`",
+        "",
+        "## Politica de contenido",
+        "",
+        f"- Seguro para compartir: `{_format_bool(rehearsal['safe_to_share'])}`",
+        f"- Registra audio: `{_format_bool(rehearsal['records_audio'])}`",
+        f"- Registra transcripciones: `{_format_bool(rehearsal['records_transcripts'])}`",
+        f"- Registra texto hablado: `{_format_bool(rehearsal['records_spoken_text'])}`",
+        f"- Registra texto esperado completo: `{_format_bool(rehearsal['records_expected_text'])}`",
+        f"- Registra rutas locales: `{_format_bool(rehearsal['records_local_paths'])}`",
+        f"- Registra nombres reales de dispositivos: `{_format_bool(rehearsal['records_device_names'])}`",
+        f"- Registra identidad del operador: `{_format_bool(rehearsal['records_operator_identity'])}`",
+        "",
+        "## Comandos seguros de ensayo",
+        "",
+    ]
+    for command in rehearsal["safe_rehearsal_commands"]:
+        lines.append(f"- `{command}`")
+    lines.extend(["", "## Artifacts de apoyo", ""])
+    for artifact in rehearsal["support_artifacts"]:
+        lines.append(f"- `{artifact}`")
+    lines.extend(["", "## Checklist de ensayo", ""])
+    for item in rehearsal["rehearsal_items"]:
+        lines.append(
+            f"- `{item['id']}` required={str(item['required']).lower()} "
+            f"status={item['status']} hardware={str(item['requires_hardware']).lower()} "
+            f"operator={str(item['requires_operator']).lower()} source={item['source']}"
+        )
+    lines.extend(
+        [
+            "",
+            "## Comando real",
+            "",
+            f"- Comando del foco: `{rehearsal['focus_command']}`",
+            "- No ejecutar este comando durante el ensayo.",
+            "- Reemplazar placeholders solo en la maquina local del operador.",
+            "- Copiar o ejecutar el comando real solo despues de revisar consentimiento, alto operativo y guards estrictos.",
+            "",
+            "## Cierre posterior",
+            "",
+            f"- Auditoria estricta: `{rehearsal['strict_audit_command']}`",
+            f"- Refrescar checklist: `{rehearsal['refresh_checklist_command']}`",
+            "- Ejecutar estas acciones solo despues de generar el JSON real sanitizado.",
             "",
         ]
     )
@@ -4069,6 +4305,9 @@ def _format_real_pilot_handoff_markdown(report: dict[str, Any]) -> str:
     audit_closure_name = Path(
         report["artifacts"].get("real_pilot_audit_closure_card", "real-pilot-audit-closure.md")
     ).name
+    rehearsal_card_name = Path(
+        report["artifacts"].get("real_pilot_rehearsal_card", "real-pilot-rehearsal-card.md")
+    ).name
     lines = [
         "# Handoff de pilotos reales AuralisVoiceKit",
         "",
@@ -4096,6 +4335,7 @@ def _format_real_pilot_handoff_markdown(report: dict[str, Any]) -> str:
         f"- Ejecucion guiada: `{execution_card_name}`",
         f"- Consentimiento local: `{consent_card_name}`",
         f"- Cierre de auditoria: `{audit_closure_name}`",
+        f"- Ensayo local: `{rehearsal_card_name}`",
         "",
         "## Politica de contenido",
         "",
@@ -4145,6 +4385,7 @@ def _format_real_pilot_handoff_markdown(report: dict[str, Any]) -> str:
             f"- Revisar `{system_output_readiness_name}` para confirmar backend de salida, texto publico y operador presente.",
             f"- Revisar `{hard_stop_name}` antes de usar hardware, audio real, texto hablado real o flags `--confirm-*`.",
             f"- Revisar `{evidence_intake_name}` antes de mover artifacts reales al lote de auditoria.",
+            f"- Revisar `{rehearsal_card_name}` para ensayar sin hardware antes de copiar el comando real.",
             f"- Revisar `{execution_card_name}` para ejecutar el foco actual en orden y cerrar con auditoria.",
             f"- Revisar `{consent_card_name}` antes de usar hardware, audio real o flags `--confirm-*`.",
             f"- Revisar `{audit_closure_name}` despues de generar el JSON real sanitizado.",

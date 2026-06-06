@@ -6,6 +6,18 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.144.0] - 2026-06-06
+
+### Agregado
+
+- `tools/pilot_run.py` ahora genera `real-pilot-rehearsal-card.md`, una tarjeta publica de ensayo local antes de copiar o ejecutar el comando real del siguiente piloto.
+- `real_pilot_rehearsal_card` lista comandos seguros de ensayo, artifacts de apoyo, checklist previo, estado del foco activo y reglas para no ejecutar hardware, microfono, audio real, modelos ni evidencia beta durante el ensayo.
+- `pilot-plan.md`, `real-pilot-handoff.md`, `real-pilot-next-evidence-focus.md`, `real-pilot-decision-gate.md`, `real-pilot-hard-stop-card.md`, `real-pilot-evidence-intake-card.md`, `real-pilot-execution-card.md`, `real-pilot-consent-card.md` y `real-pilot-audit-closure.md` enlazan el ensayo local previo.
+
+### Pruebas
+
+- Nuevas pruebas validan el artifact de ensayo, sus flags de privacidad, su estado `ready_for_local_rehearsal`, su salida CLI y su presencia en reportes Markdown sin rutas locales ni contenido sensible.
+
 ## [0.143.0] - 2026-06-06
 
 ### Agregado
