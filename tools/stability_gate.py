@@ -190,7 +190,7 @@ PILOT_CHECKS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
     ("pilot_findings", "PILOT_FINDINGS.md", ("Windows manual seguro", "sounddevice")),
     ("doctor_bundle_api", "src/auralis_voicekit/diagnostics.py", ("create_doctor_bundle", "write_doctor_bundle")),
     ("doctor_bundle_analysis", "src/auralis_voicekit/diagnostics.py", ("analyze_doctor_bundles", "DoctorBundleAnalysis")),
-    ("ci", ".github/workflows/ci.yml", ("stability_gate.py", "unittest discover", "windows-2025-vs2026")),
+    ("ci", ".github/workflows/ci.yml", ("stability_gate.py", "unittest discover", "windows-2025-vs2026", "PIP_NO_CACHE_DIR")),
     ("release_workflow", ".github/workflows/release.yml", ("python -m build", "actions/upload-artifact@v7.0.1", "gh release create")),
 )
 

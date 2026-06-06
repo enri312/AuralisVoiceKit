@@ -15,6 +15,12 @@ class WorkflowTests(unittest.TestCase):
         self.assertIn("windows-2025-vs2026", content)
         self.assertNotIn("windows-latest", content)
 
+    def test_ci_disables_pip_cache_for_runner_python_bootstrap(self):
+        content = CI_WORKFLOW.read_text(encoding="utf-8")
+
+        self.assertIn('PIP_NO_CACHE_DIR: "1"', content)
+        self.assertIn('PIP_DISABLE_PIP_VERSION_CHECK: "1"', content)
+
     def test_release_upload_artifact_uses_node24_ready_action(self):
         content = RELEASE_WORKFLOW.read_text(encoding="utf-8")
 

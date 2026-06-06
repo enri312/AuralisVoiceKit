@@ -6,6 +6,13 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.76.0] - 2026-06-06
+
+### Cambiado
+
+- CI desactiva la cache de pip con `PIP_NO_CACHE_DIR=1` y el aviso de version de pip para evitar warnings no bloqueantes de cache corrupta durante `actions/setup-python` en macOS.
+- Gate de estabilidad y pruebas de workflows ahora verifican la configuracion de pip sin cache en CI.
+
 ## [0.75.0] - 2026-06-06
 
 ### Cambiado

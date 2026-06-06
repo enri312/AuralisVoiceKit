@@ -36,7 +36,7 @@ La meta no es competir con todos los motores de voz a la vez. La meta es constru
 | Diagnostico doctor | Inicial estructurado con test de apertura, bundle sanitizado y analisis de bundles |
 | Transcripcion real | Inicial por API y local opcional |
 | Salida de voz real | Inicial con backend `system`, listado de voces, parametros de voz y ejemplo seguro |
-| CI multiplataforma | Inicial con pruebas reales de MP3/FLAC y runner Windows 2025 VS2026 explicito |
+| CI multiplataforma | Inicial con pruebas reales de MP3/FLAC, runner Windows 2025 VS2026 explicito y pip sin cache |
 | Publicacion en PyPI | Preparada con workflow manual |
 | Benchmarks de latencia | Inicial offline, comparativo para Whisper y exportacion JSON/CSV |
 | Errores de ffmpeg | Inicial con diagnostico accionable |
@@ -204,7 +204,7 @@ Entregables:
 
 - Tests unitarios y de integracion con mocks.
 - Linting y formateo.
-- CI para Windows, Ubuntu/Linux y macOS. Estado: Windows usa `windows-2025-vs2026` explicito para anticipar la migracion de GitHub Actions.
+- CI para Windows, Ubuntu/Linux y macOS. Estado: Windows usa `windows-2025-vs2026` explicito para anticipar la migracion de GitHub Actions y pip cache queda desactivado para evitar warnings de cache del runner.
 - Matriz de Python estable y prerelease.
 - Pruebas reales de MP3 y FLAC con `ffmpeg` en Windows, Ubuntu/Linux y macOS. Estado: inicial.
 - Benchmarks basicos de latencia para captura offline, segmentacion y transcripcion. Estado: inicial con exportacion JSON/CSV.
