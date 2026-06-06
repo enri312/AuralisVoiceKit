@@ -91,7 +91,10 @@ class OpenAITranscriptionBackend:
             request["prompt"] = config.transcription_prompt
 
         try:
-            client = OpenAI()
+            client_kwargs: dict[str, Any] = {}
+            if config.transcription_timeout_seconds is not None:
+                client_kwargs["timeout"] = config.transcription_timeout_seconds
+            client = OpenAI(**client_kwargs)
             response = client.audio.transcriptions.create(**request)
         except Exception as exc:
             raise TranscriptionError(f"OpenAI transcription failed: {exc}") from exc
@@ -102,6 +105,7 @@ class OpenAITranscriptionBackend:
                 "model": model_name,
                 "response_format": config.transcription_response_format,
                 "duration_seconds": chunk.duration_seconds,
+                "timeout_seconds": config.transcription_timeout_seconds,
             }
         )
         return TranscriptResult(

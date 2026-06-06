@@ -549,6 +549,26 @@ class CliTests(unittest.TestCase):
         self.assertEqual(exit_code, 1)
         self.assertIn("Cannot read WAV file", output.getvalue())
 
+    def test_transcribe_command_rejects_invalid_timeout(self):
+        output = io.StringIO()
+
+        with contextlib.redirect_stdout(output):
+            exit_code = main(
+                [
+                    "transcribe",
+                    "sample.wav",
+                    "--backend",
+                    "null",
+                    "--timeout-seconds",
+                    "0",
+                    "--json",
+                ]
+            )
+
+        payload = json.loads(output.getvalue())
+        self.assertEqual(exit_code, 1)
+        self.assertIn("transcription_timeout_seconds", payload["error"])
+
     def test_transcribe_command_reports_missing_ffmpeg_as_json(self):
         output = io.StringIO()
 

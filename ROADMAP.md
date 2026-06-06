@@ -130,7 +130,7 @@ Entregables:
 - Backend por API como extra opcional. Estado: inicial con `openai`.
 - Resultado con texto, idioma, confianza aproximada y metadatos.
 - Eventos `transcription.started` y `transcription.completed`.
-- Manejo claro de errores y timeouts.
+- Manejo claro de errores y timeouts. Estado: inicial con `transcription_timeout_seconds`, `AURALIS_TRANSCRIPTION_TIMEOUT_SECONDS`, `--timeout-seconds` en CLI y timeout aplicado al backend `openai`.
 
 Criterio de salida:
 

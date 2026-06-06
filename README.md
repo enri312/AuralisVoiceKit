@@ -345,7 +345,7 @@ auralis transcribe sample.wav --backend openai --language es
 auralis transcribe sample.mp3 --backend openai --language es
 auralis transcribe sample.flac --backend openai --language es
 auralis transcribe sample.mp3 --backend openai --normalize --target-peak 0.95
-auralis transcribe sample.wav --backend openai --model gpt-4o-transcribe --json
+auralis transcribe sample.wav --backend openai --model gpt-4o-transcribe --timeout-seconds 30 --json
 py examples\transcribe_wav.py sample.mp3 --backend openai
 ```
 
@@ -359,6 +359,7 @@ kit = AuralisVoiceKit(
     VoiceKitConfig(
         transcription_backend="openai",
         transcription_model="gpt-4o-mini-transcribe",
+        transcription_timeout_seconds=30,
         language="es",
     )
 )
@@ -366,6 +367,8 @@ kit = AuralisVoiceKit(
 result = kit.transcribe(chunk)
 print(result.text)
 ```
+
+El timeout es opcional. `transcription_timeout_seconds` tambien se puede configurar con `AURALIS_TRANSCRIPTION_TIMEOUT_SECONDS` o con `--timeout-seconds` en `auralis transcribe` y `auralis transcribe-segments`. English: the OpenAI backend passes the configured timeout to the official client; local Whisper runs remain local/model-bound and are not interrupted by this setting.
 
 Segun la documentacion oficial de OpenAI para speech-to-text, los modelos soportados incluyen `gpt-4o-transcribe`, `gpt-4o-mini-transcribe` y `whisper-1`, con limite de carga de archivo de 25 MB:
 

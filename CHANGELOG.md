@@ -6,6 +6,14 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.102.0] - 2026-06-06
+
+### Agregado
+
+- `VoiceKitConfig` ahora acepta `transcription_timeout_seconds` y la variable `AURALIS_TRANSCRIPTION_TIMEOUT_SECONDS`.
+- El backend `openai` pasa el timeout configurado al cliente `OpenAI(timeout=...)` y lo registra en metadata tecnica como `timeout_seconds`.
+- La CLI agrega `--timeout-seconds` en `auralis transcribe` y `auralis transcribe-segments`, con validacion clara para valores invalidos.
+
 ## [0.101.0] - 2026-06-06
 
 ### Agregado

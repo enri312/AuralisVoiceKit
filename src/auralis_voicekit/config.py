@@ -33,6 +33,15 @@ def _env_optional_int(value: str | None) -> int | None:
         return None
 
 
+def _env_optional_float(value: str | None) -> float | None:
+    if value is None or value.strip() == "":
+        return None
+    try:
+        return float(value)
+    except ValueError:
+        return None
+
+
 @dataclass(slots=True)
 class VoiceKitConfig:
     """Runtime configuration for capture, transcription and voice events."""
@@ -50,6 +59,7 @@ class VoiceKitConfig:
     transcription_compute_type: str = "default"
     transcription_beam_size: int = 5
     transcription_vad_filter: bool = False
+    transcription_timeout_seconds: float | None = None
     output_backend: str = "null"
     input_device: str | int | None = None
     output_device: str | int | None = None
@@ -74,6 +84,8 @@ class VoiceKitConfig:
             raise ValueError("capture_block_ms must be greater than zero")
         if self.transcription_beam_size <= 0:
             raise ValueError("transcription_beam_size must be greater than zero")
+        if self.transcription_timeout_seconds is not None and self.transcription_timeout_seconds <= 0:
+            raise ValueError("transcription_timeout_seconds must be greater than zero")
         if self.output_volume is not None and not 0 <= self.output_volume <= 100:
             raise ValueError("output_volume must be between 0 and 100")
 
@@ -95,6 +107,9 @@ class VoiceKitConfig:
             transcription_compute_type=os.getenv(prefix + "TRANSCRIPTION_COMPUTE_TYPE", "default"),
             transcription_beam_size=_env_int(os.getenv(prefix + "TRANSCRIPTION_BEAM_SIZE"), 5),
             transcription_vad_filter=_env_bool(os.getenv(prefix + "TRANSCRIPTION_VAD_FILTER"), False),
+            transcription_timeout_seconds=_env_optional_float(
+                os.getenv(prefix + "TRANSCRIPTION_TIMEOUT_SECONDS")
+            ),
             output_backend=os.getenv(prefix + "OUTPUT_BACKEND", "null"),
             input_device=os.getenv(prefix + "INPUT_DEVICE") or None,
             output_device=os.getenv(prefix + "OUTPUT_DEVICE") or None,

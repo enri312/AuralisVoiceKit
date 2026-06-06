@@ -68,6 +68,16 @@ class DocumentationTests(unittest.TestCase):
             self.assertIn("activation_hook", content)
         self.assertIn("turn_is_activated", api_doc)
 
+    def test_transcription_timeout_is_documented(self):
+        readme = README.read_text(encoding="utf-8")
+        main_doc = MAIN_DOC.read_text(encoding="utf-8")
+        api_doc = API_DOC.read_text(encoding="utf-8")
+
+        for content in (readme, main_doc, api_doc):
+            self.assertIn("transcription_timeout_seconds", content)
+            self.assertIn("AURALIS_TRANSCRIPTION_TIMEOUT_SECONDS", content)
+            self.assertIn("--timeout-seconds", content)
+
     def test_pyaudio_optional_backend_is_documented(self):
         readme = README.read_text(encoding="utf-8")
         main_doc = MAIN_DOC.read_text(encoding="utf-8")

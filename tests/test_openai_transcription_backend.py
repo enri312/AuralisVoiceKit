@@ -85,6 +85,32 @@ class OpenAITranscriptionBackendTests(unittest.TestCase):
         self.assertEqual(captured["model"], "gpt-4o-mini-transcribe")
         self.assertEqual(result.metadata["model"], "gpt-4o-mini-transcribe")
 
+    def test_transcribe_passes_configured_timeout_to_client(self):
+        captured = {}
+
+        class FakeTranscriptions:
+            def create(self, **request):
+                return FakeTranscriptionResponse()
+
+        class FakeOpenAI:
+            def __init__(self, **kwargs):
+                captured.update(kwargs)
+                self.audio = types.SimpleNamespace(transcriptions=FakeTranscriptions())
+
+        openai_module = types.ModuleType("openai")
+        openai_module.OpenAI = FakeOpenAI
+        chunk = AudioChunk(
+            data=b"\x00\x00" * 8,
+            format=AudioFormat(sample_rate=8000, channels=1, sample_width=2),
+        )
+        config = VoiceKitConfig(transcription_timeout_seconds=7.5)
+
+        with patch.dict(sys.modules, {"openai": openai_module}):
+            result = OpenAITranscriptionBackend().transcribe(chunk, config)
+
+        self.assertEqual(captured["timeout"], 7.5)
+        self.assertEqual(result.metadata["timeout_seconds"], 7.5)
+
     def test_info_reports_missing_openai_dependency(self):
         with patch(
             "auralis_voicekit.backends.openai_transcription._load_openai_client_class",

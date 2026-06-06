@@ -392,6 +392,7 @@ config = VoiceKitConfig(
     language="es",
     capture_backend="wav",
     transcription_backend="null",
+    transcription_timeout_seconds=30,
     output_backend="system",
     output_voice="Microsoft Helena",
     output_rate=2,
@@ -405,10 +406,14 @@ AURALIS_LANGUAGE=es
 AURALIS_CAPTURE_BACKEND=sounddevice
 AURALIS_TRANSCRIPTION_BACKEND=whisper
 AURALIS_TRANSCRIPTION_MODEL=base
+AURALIS_TRANSCRIPTION_TIMEOUT_SECONDS=30
 AURALIS_OUTPUT_BACKEND=system
 AURALIS_OUTPUT_VOICE=Microsoft Helena
 AURALIS_OUTPUT_RATE=2
 AURALIS_OUTPUT_VOLUME=80</code></pre>
+        <p>El timeout de transcripcion es opcional. <code>transcription_timeout_seconds</code> tambien se puede configurar con <code>AURALIS_TRANSCRIPTION_TIMEOUT_SECONDS</code> o <code>--timeout-seconds</code> en la CLI; el backend <code>openai</code> lo pasa al cliente oficial como limite de red. English: local Whisper runs remain local/model-bound and are not interrupted by this setting.</p>
+        <pre><code>auralis transcribe sample.wav --backend openai --timeout-seconds 30 --json
+auralis transcribe-segments sample.wav --backend openai --timeout-seconds 30 --json</code></pre>
       </section>
 
       <section id="facade">

@@ -428,7 +428,7 @@ auralis transcribe sample.wav --backend openai --language es
 auralis transcribe sample.mp3 --backend openai --language es
 auralis transcribe sample.flac --backend openai --language es
 auralis transcribe sample.mp3 --backend openai --normalize --target-peak 0.95
-auralis transcribe sample.wav --backend openai --model gpt-4o-transcribe --json
+auralis transcribe sample.wav --backend openai --model gpt-4o-transcribe --timeout-seconds 30 --json
 py examples\transcribe_wav.py sample.mp3 --backend openai</code></pre>
         <p>Desde Python, se lee un archivo de audio como <code>AudioChunk</code> y se llama a <code>kit.transcribe()</code>.</p>
         <pre><code>from auralis_voicekit import AuralisVoiceKit, VoiceKitConfig, read_audio_as_chunk
@@ -438,12 +438,14 @@ kit = AuralisVoiceKit(
     VoiceKitConfig(
         transcription_backend="openai",
         transcription_model="gpt-4o-mini-transcribe",
+        transcription_timeout_seconds=30,
         language="es",
     )
 )
 
 result = kit.transcribe(chunk)
 print(result.text)</code></pre>
+        <p>El timeout es opcional. <code>transcription_timeout_seconds</code> tambien se puede configurar con <code>AURALIS_TRANSCRIPTION_TIMEOUT_SECONDS</code> o con <code>--timeout-seconds</code> en <code>auralis transcribe</code> y <code>auralis transcribe-segments</code>. English: the OpenAI backend passes the configured timeout to the official client; local Whisper runs remain local/model-bound and are not interrupted by this setting.</p>
         <p>Ambos backends convierten el audio a un flujo compatible y devuelven un <code>TranscriptResult</code> con texto, idioma, fuente y metadatos. Referencias: <a href="https://github.com/SYSTRAN/faster-whisper">faster-whisper</a> y <a href="https://platform.openai.com/docs/guides/speech-to-text">OpenAI speech-to-text</a>.</p>
         <h3>Diagnostico de ffmpeg</h3>
         <p>Para MP3, FLAC y otros formatos comprimidos, la libreria usa <code>ffmpeg</code> como herramienta externa opcional. Si falta o falla, el error incluye rutas revisadas, sugerencia de instalacion por sistema operativo, comando usado, <code>stderr</code> truncado y una prueba manual con <code>ffmpeg -hide_banner -i</code>.</p>

@@ -250,6 +250,7 @@ def _transcribe_audio(
     language: str,
     prompt: str | None,
     response_format: str,
+    timeout_seconds: float | None,
     ffmpeg_executable: str,
     device: str,
     compute_type: str,
@@ -271,6 +272,7 @@ def _transcribe_audio(
             transcription_compute_type=compute_type,
             transcription_beam_size=beam_size,
             transcription_vad_filter=vad_filter,
+            transcription_timeout_seconds=timeout_seconds,
         )
         chunk = read_audio_as_chunk(
             path,
@@ -317,6 +319,7 @@ def _transcribe_audio_segments(
     language: str,
     prompt: str | None,
     response_format: str,
+    timeout_seconds: float | None,
     chunk_duration_ms: int,
     threshold: float,
     min_voice_ms: int,
@@ -344,6 +347,7 @@ def _transcribe_audio_segments(
             transcription_compute_type=compute_type,
             transcription_beam_size=beam_size,
             transcription_vad_filter=vad_filter,
+            transcription_timeout_seconds=timeout_seconds,
         )
         session_config = VoiceSessionConfig(
             chunk_duration_ms=chunk_duration_ms,
@@ -878,6 +882,11 @@ def main(argv: list[str] | None = None) -> int:
         default="json",
         help="backend response format",
     )
+    transcribe_parser.add_argument(
+        "--timeout-seconds",
+        type=float,
+        help="optional transcription timeout passed to supported backends",
+    )
     transcribe_parser.add_argument("--ffmpeg", default="ffmpeg", help="ffmpeg executable for MP3 input")
     transcribe_parser.add_argument("--device", default="auto", help="local whisper device")
     transcribe_parser.add_argument("--compute-type", default="default", help="local whisper compute type")
@@ -907,6 +916,11 @@ def main(argv: list[str] | None = None) -> int:
         "--response-format",
         default="json",
         help="backend response format",
+    )
+    segments_parser.add_argument(
+        "--timeout-seconds",
+        type=float,
+        help="optional transcription timeout passed to supported backends",
     )
     segments_parser.add_argument("--chunk-ms", type=int, default=50, help="WAV chunk size")
     segments_parser.add_argument(
@@ -1048,6 +1062,7 @@ def main(argv: list[str] | None = None) -> int:
             language=args.language,
             prompt=args.prompt,
             response_format=args.response_format,
+            timeout_seconds=args.timeout_seconds,
             ffmpeg_executable=args.ffmpeg,
             device=args.device,
             compute_type=args.compute_type,
@@ -1066,6 +1081,7 @@ def main(argv: list[str] | None = None) -> int:
             language=args.language,
             prompt=args.prompt,
             response_format=args.response_format,
+            timeout_seconds=args.timeout_seconds,
             chunk_duration_ms=args.chunk_ms,
             threshold=args.threshold,
             min_voice_ms=args.min_voice_ms,
