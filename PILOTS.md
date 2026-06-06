@@ -18,6 +18,8 @@ Nota `v0.109.0`: `tools/beta_readiness.py` lista evidencias aceptadas con fuente
 
 Nota `v0.110.0`: `tools/beta_readiness.py --audit-evidence` agrega `blocker_summaries` y un `Resumen por blocker` en Markdown para mostrar candidato mas cercano y campos faltantes sin exponer contenido privado. English: evidence audits now summarize the closest candidate per beta blocker.
 
+Nota `v0.111.0`: `tools/pilot_run.py` conserva esos `blocker_summaries` en `pilot-report.json` y los muestra en `pilot-plan.md` y `real-pilot-evidence-manifest.md`. English: safe-pilot artifacts now show per-blocker evidence summaries for operators.
+
 ```powershell
 py tools\pilot_run.py --output-dir pilot_runs\safe --json
 py tools\pilot_run.py --output-dir pilot_runs\safe --evidence pilot_runs\manual --evidence pilot_runs\output --evidence pilot_runs\transcription --json

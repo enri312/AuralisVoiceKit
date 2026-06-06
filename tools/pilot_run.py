@@ -175,6 +175,7 @@ def run_safe_pilot(
             "ready_for_beta_by_json_evidence": beta_audit["ready_for_beta_by_evidence"],
             "satisfied_json_blockers": beta_audit["satisfied_blockers"],
             "missing_json_blockers": beta_audit["missing_blockers"],
+            "blocker_summaries": beta_audit["blocker_summaries"],
             "accepted_json_artifacts": _pilot_plan_artifact_summary(beta_audit["artifacts"]),
             "ignored_json_artifacts": beta_audit["ignored_details"],
             "strict_audit_command": (
@@ -1214,6 +1215,7 @@ def _real_pilot_evidence_manifest(
         "pending_blockers": beta_readiness["blockers"],
         "missing_json_blockers": beta_audit["missing_blockers"],
         "closed_blockers": beta_audit["satisfied_blockers"],
+        "blocker_summaries": beta_audit["blocker_summaries"],
         "accepted_json_artifacts": _pilot_plan_artifact_summary(beta_audit["artifacts"]),
         "ignored_json_artifacts": beta_audit["ignored_details"],
         "pending_count": len(beta_readiness["blockers"]),
@@ -1729,6 +1731,8 @@ def _format_pilot_plan_markdown(report: dict[str, Any]) -> str:
                 f"- `{artifact['file']}`: `{artifact['reason']}` - {artifact['message_es']} / {artifact['message_en']}."
             )
         lines.append("")
+    lines.extend(["## Resumen por blocker", ""])
+    _append_blocker_summary_lines(lines, beta.get("blocker_summaries", []))
     lines.extend(
         [
             "## Manifiesto de evidencias",
@@ -2413,9 +2417,16 @@ def _format_real_pilot_evidence_manifest_markdown(report: dict[str, Any]) -> str
         f"- Registra nombres reales de dispositivos: `{_format_bool(artifact_policy['records_device_names'])}`",
         f"- Registra identidad del operador: `{_format_bool(artifact_policy['records_operator_identity'])}`",
         "",
-        "## Tabla de evidencias",
+        "## Resumen por blocker",
         "",
     ]
+    _append_blocker_summary_lines(lines, manifest.get("blocker_summaries", []))
+    lines.extend(
+        [
+            "## Tabla de evidencias",
+            "",
+        ]
+    )
     if not manifest["rows"]:
         lines.extend(["- No hay blockers pendientes o cerrados por JSON.", ""])
     for row in manifest["rows"]:
@@ -2709,6 +2720,32 @@ def _format_conditional_required_fields_inline(conditional_fields: list[dict[str
 
 def _format_bool(value: bool) -> str:
     return str(value).lower()
+
+
+def _append_blocker_summary_lines(lines: list[str], summaries: list[dict[str, Any]]) -> None:
+    if not summaries:
+        lines.extend(["- No hay resumen de blockers disponible.", ""])
+        return
+    for summary in summaries:
+        accepted_sources = _format_inline_list(summary.get("accepted_sources", []))
+        closest = summary.get("closest_candidate")
+        lines.extend(
+            [
+                f"### {summary['name']}",
+                "",
+                f"- Estado: `{summary['status']}`",
+                f"- Artifact esperado: `{summary['artifact']}`",
+                f"- Fuentes que cierran: {accepted_sources}",
+                f"- Candidatos evaluados: `{summary['candidate_count']}`",
+            ]
+        )
+        if closest is None:
+            lines.append("- Candidato mas cercano: `ninguno`")
+        else:
+            missing_fields = _format_inline_list(closest.get("missing_fields", []))
+            lines.append(f"- Candidato mas cercano: `{closest['file']}`")
+            lines.append(f"- Campos faltantes del candidato mas cercano: {missing_fields}")
+        lines.append("")
 
 
 def _append_conditional_required_field_lines(lines: list[str], item: dict[str, Any]) -> None:

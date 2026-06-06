@@ -6,6 +6,14 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.111.0] - 2026-06-06
+
+### Agregado
+
+- `tools/pilot_run.py` ahora incorpora `blocker_summaries` del auditor beta dentro de `beta_readiness` y `evidence_manifest`.
+- `pilot-plan.md` y `real-pilot-evidence-manifest.md` muestran un resumen por blocker con fuentes que cierran, candidato mas cercano y campos faltantes.
+- Nuevas pruebas verifican que el piloto seguro preserve esos resumenes sin rutas locales completas.
+
 ## [0.110.0] - 2026-06-06
 
 ### Agregado
