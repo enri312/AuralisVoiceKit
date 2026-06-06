@@ -6,6 +6,13 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.83.0] - 2026-06-06
+
+### Agregado
+
+- `tools/output_pilot.py` ahora reporta `target_output_backend` con disponibilidad, dependencias y razon del backend `system`.
+- Flag `tools/output_pilot.py --require-output-backend-ready` para fallar temprano, con error sanitizado, si el comando de voz del sistema no esta disponible antes de un piloto audible.
+
 ## [0.82.0] - 2026-06-06
 
 ### Agregado

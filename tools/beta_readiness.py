@@ -101,6 +101,7 @@ def build_evidence_requirements_report() -> dict[str, Any]:
                 "command": (
                     "python tools/output_pilot.py --speak --operator-present "
                     "--confirm-audible --confirm-text-reviewed --confirm-voice-reviewed "
+                    "--require-output-backend-ready "
                     "--expected-system \"Windows|Linux|Darwin\" "
                     "--output-dir pilot_runs/output/system-real "
                     "--text \"Hola desde AuralisVoiceKit\" --json"
@@ -109,6 +110,7 @@ def build_evidence_requirements_report() -> dict[str, Any]:
                     _required_field("project", "AuralisVoiceKit"),
                     _required_field("backend", "system"),
                     _required_field("system_guard.expected_system_matched", True),
+                    _required_field("target_output_backend.available", True),
                     _required_field("real_audio_requested", True),
                     _required_field("operator_confirmation_status", "confirmed"),
                     _required_field("text_review_confirmed", True),
@@ -300,11 +302,13 @@ def build_beta_readiness_report(
             ),
             next_action=(
                 "Run tools/output_pilot.py --speak --operator-present --confirm-audible "
-                "--confirm-text-reviewed --confirm-voice-reviewed --expected-system \"Windows|Linux|Darwin\" "
+                "--confirm-text-reviewed --confirm-voice-reviewed --require-output-backend-ready "
+                "--expected-system \"Windows|Linux|Darwin\" "
                 "--output-dir pilot_runs/output/system-real with a human operator, then keep "
                 "output-operator-checklist.md, system-output-next-step.md, "
                 "system_guard.expected_system_matched=true, "
-                "operator_checklist.expected_system_matched=true, spoken_text_privacy_scan.passed=true "
+                "target_output_backend.available=true, operator_checklist.expected_system_matched=true, "
+                "spoken_text_privacy_scan.passed=true "
                 "and only sanitized findings."
             ),
         ),
@@ -948,10 +952,13 @@ def _is_system_output_audible_evidence(report: dict[str, Any]) -> bool:
     operator_checklist = report.get("operator_checklist", {})
     system_guard = report.get("system_guard", {})
     spoken_text_privacy_scan = report.get("spoken_text_privacy_scan", {})
+    target_output_backend = report.get("target_output_backend", {})
     return (
         report.get("backend") == "system"
         and isinstance(system_guard, dict)
         and system_guard.get("expected_system_matched") is True
+        and isinstance(target_output_backend, dict)
+        and target_output_backend.get("available") is True
         and report.get("real_audio_requested") is True
         and report.get("operator_confirmation_status") == "confirmed"
         and report.get("text_review_confirmed") is True

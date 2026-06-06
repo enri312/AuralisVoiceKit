@@ -629,6 +629,7 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertEqual(transcription_fields["transcription_checklist.quality_review_confirmed"], True)
         self.assertEqual(transcription_fields["transcription_checklist.ready_for_beta_evidence"], True)
         self.assertIn("system_guard.expected_system_matched", output_fields)
+        self.assertIn("target_output_backend.available", output_fields)
         self.assertIn("text_review_confirmed", output_fields)
         self.assertIn("spoken_text_privacy_scan.passed", output_fields)
         self.assertIn("voice_review_confirmed", output_fields)
@@ -951,6 +952,13 @@ def _output_evidence() -> dict:
     return {
         "project": "AuralisVoiceKit",
         "backend": "system",
+        "target_output_backend": {
+            "name": "system",
+            "kind": "output",
+            "available": True,
+            "dependencies": ["test-tts"],
+            "reason": None,
+        },
         "system_guard": _system_guard(),
         "real_audio_requested": True,
         "operator_confirmation_status": "confirmed",

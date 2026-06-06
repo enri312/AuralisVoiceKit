@@ -273,7 +273,8 @@ def _manual_pilot_steps() -> list[dict[str, str]]:
             "name": "system-speech",
             "command": (
                 "python tools/output_pilot.py --speak --operator-present --confirm-audible "
-                "--confirm-text-reviewed --confirm-voice-reviewed --expected-system \"Windows|Linux|Darwin\" "
+                "--confirm-text-reviewed --confirm-voice-reviewed --require-output-backend-ready "
+                "--expected-system \"Windows|Linux|Darwin\" "
                 "--output-dir pilot_runs/output/system-real --text \"Hola desde AuralisVoiceKit\" --json"
             ),
             "reason": "Plays real audio and requires the operator to review text privacy, audibility and voice quality.",
@@ -477,6 +478,7 @@ def _system_output_operator_checklist_step(order: int) -> dict[str, Any]:
         "command": "python tools/output_pilot.py --output-dir pilot_runs/output/system-dry-run --json",
         "artifact": "output-operator-checklist.md",
         "required_fields": [
+            "target_output_backend.available",
             "operator_checklist.records_operator_identity",
             "operator_checklist.redacts_spoken_text",
             "operator_checklist.ready_for_beta_evidence",
@@ -558,6 +560,7 @@ def _platform_pilot_matrix(blockers: list[str]) -> list[dict[str, Any]]:
             "command": (
                 "python tools/output_pilot.py --speak --operator-present "
                 "--confirm-audible --confirm-text-reviewed --confirm-voice-reviewed "
+                "--require-output-backend-ready "
                 "--expected-system \"Windows|Linux|Darwin\" "
                 "--output-dir pilot_runs/output/system-real "
                 "--text \"Hola desde AuralisVoiceKit\" --json"

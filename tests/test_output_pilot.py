@@ -53,6 +53,10 @@ class OutputPilotTests(unittest.TestCase):
 
         self.assertTrue(report["passed"])
         self.assertTrue(report["dry_run"])
+        self.assertEqual(report["target_output_backend"]["name"], "system")
+        self.assertEqual(report["target_output_backend"]["kind"], "output")
+        self.assertIsInstance(report["target_output_backend"]["available"], bool)
+        self.assertFalse(report["output_backend_ready_required"])
         self.assertFalse(report["hardware_output_tested"])
         self.assertFalse(report["operator_present"])
         self.assertFalse(report["system_guard"]["enabled"])
@@ -75,6 +79,7 @@ class OutputPilotTests(unittest.TestCase):
         self.assertIn("system_output_next_step", report["artifacts"])
         self.assertIn("System output pilot findings", findings)
         self.assertIn("Real audio requested: False", findings)
+        self.assertIn("Target output backend available:", findings)
         self.assertIn("Spoken text privacy scan passed: True", findings)
         self.assertIn("Expected system matched: not-set", findings)
         self.assertIn("Operator checklist ready for beta evidence: False", findings)
@@ -89,9 +94,13 @@ class OutputPilotTests(unittest.TestCase):
         self.assertNotIn(private_text, checklist)
         self.assertIn("--text <public-spoken-text>", next_step)
         self.assertIn('--expected-system "Windows|Linux|Darwin"', next_step)
+        self.assertIn("--require-output-backend-ready", next_step)
+        self.assertIn("Target output backend available:", next_step)
         self.assertIn("spoken_text_privacy_scan.passed=true", next_step)
+        self.assertIn("target_output_backend.available=true", next_step)
         self.assertNotIn(private_text, next_step)
         self.assertEqual(report["next_system_output"]["uses_placeholders"], True)
+        self.assertEqual(report["next_system_output"]["target_output_backend"]["name"], "system")
         self.assertFalse(report["next_system_output"]["records_spoken_text"])
         self.assertFalse(report["next_system_output"]["records_operator_identity"])
 
@@ -126,6 +135,9 @@ class OutputPilotTests(unittest.TestCase):
         self.assertEqual(payload["system"], "Linux")
         self.assertFalse(payload["system_guard"]["enabled"])
         self.assertTrue(payload["dry_run"])
+        self.assertEqual(payload["target_output_backend"]["name"], "system")
+        self.assertEqual(payload["target_output_backend"]["kind"], "output")
+        self.assertIsInstance(payload["target_output_backend"]["available"], bool)
         self.assertFalse(payload["real_audio_requested"])
         self.assertIn("operator_checklist", payload["artifacts"])
         self.assertFalse(payload["text_review_confirmed"])
@@ -136,6 +148,48 @@ class OutputPilotTests(unittest.TestCase):
         self.assertFalse(payload["operator_checklist"]["ready_for_beta_evidence"])
         self.assertEqual(payload["voice"], "spanish")
         self.assertEqual(payload["commands_count"], 2)
+
+    def test_output_pilot_cli_can_require_output_backend_ready(self):
+        module = _load_output_pilot()
+
+        def unavailable_backend(system: str) -> dict:
+            return {
+                "name": "system",
+                "kind": "output",
+                "available": False,
+                "dependencies": ["say"],
+                "reason": "missing test command",
+            }
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            original_status = module._output_backend_status
+            module._output_backend_status = unavailable_backend
+            output = io.StringIO()
+            try:
+                with contextlib.redirect_stdout(output):
+                    exit_code = module.main(
+                        [
+                            "--root",
+                            str(ROOT),
+                            "--output-dir",
+                            tmpdir,
+                            "--system",
+                            "Darwin",
+                            "--text",
+                            "Texto publico seguro",
+                            "--require-output-backend-ready",
+                            "--json",
+                        ]
+                    )
+            finally:
+                module._output_backend_status = original_status
+            payload = json.loads(output.getvalue())
+
+        self.assertEqual(exit_code, 1)
+        self.assertIn("System output backend 'system' is not available", payload["error"])
+        self.assertIn("say", payload["error"])
+        self.assertIn("missing test command", payload["error"])
+        self.assertNotIn("Texto publico seguro", payload["error"])
 
     def test_output_pilot_operator_checklist_marks_confirmed_real_audio(self):
         module = _load_output_pilot()

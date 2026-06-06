@@ -16,6 +16,8 @@ import re
 import sys
 from typing import Any
 
+from auralis_voicekit.backends import SystemSpeechOutputBackend
+
 
 DEFAULT_TEXT = "Hola desde AuralisVoiceKit"
 SPOKEN_TEXT_PRIVACY_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
@@ -50,6 +52,7 @@ def run_output_pilot(
     operator_confirmed_audio: bool = False,
     text_review_confirmed: bool = False,
     voice_review_confirmed: bool = False,
+    require_output_backend_ready: bool = False,
     include_voices: bool = True,
 ) -> dict[str, Any]:
     """Run a safe system-output pilot and write shareable artifacts."""
@@ -69,6 +72,11 @@ def run_output_pilot(
     timestamp = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
     actual_system = platform.system()
     system_name = system or actual_system
+    target_output_backend = _output_backend_status(system_name)
+    _validate_output_backend_ready(
+        target_output_backend=target_output_backend,
+        required=require_output_backend_ready,
+    )
     system_guard = _system_guard(expected_system, actual_system)
     output = Path(output_dir) if output_dir is not None else workspace / "pilot_runs" / "output" / _slug(timestamp)
     output = output.resolve()
@@ -125,6 +133,7 @@ def run_output_pilot(
         operator_confirmed_audio=operator_confirmed_audio,
         text_review_confirmed=text_review_confirmed,
         voice_review_confirmed=voice_review_confirmed,
+        target_output_backend=target_output_backend,
         confirmation_status=confirmation_status,
         passed=passed,
         spoken_text_privacy_scan=spoken_text_privacy_scan,
@@ -148,6 +157,8 @@ def run_output_pilot(
         operator_confirmed_audio=operator_confirmed_audio,
         text_review_confirmed=text_review_confirmed,
         voice_review_confirmed=voice_review_confirmed,
+        require_output_backend_ready=require_output_backend_ready,
+        target_output_backend=target_output_backend,
         spoken_text_privacy_scan=spoken_text_privacy_scan,
         operator_checklist=operator_checklist,
         command_template=command_template,
@@ -160,6 +171,8 @@ def run_output_pilot(
         "system": system_name,
         "system_guard": system_guard,
         "backend": "system",
+        "target_output_backend": target_output_backend,
+        "output_backend_ready_required": require_output_backend_ready,
         "dry_run": not speak,
         "real_audio_requested": speak,
         "hardware_output_tested": speak,
@@ -184,6 +197,7 @@ def run_output_pilot(
         "next_system_output": {
             "artifact": str(next_step_path),
             "command_template": command_template,
+            "target_output_backend": target_output_backend,
             "uses_placeholders": True,
             "records_spoken_text": False,
             "records_operator_identity": False,
@@ -242,6 +256,11 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="record that the operator reviewed voice, volume and pronunciation quality",
     )
+    parser.add_argument(
+        "--require-output-backend-ready",
+        action="store_true",
+        help="fail before playback when the selected system output command is unavailable",
+    )
     parser.add_argument("--no-voices", action="store_true", help="skip voice listing")
     parser.add_argument("--json", action="store_true", help="print JSON report")
     args = parser.parse_args(argv)
@@ -261,6 +280,7 @@ def main(argv: list[str] | None = None) -> int:
             operator_confirmed_audio=args.confirm_audible,
             text_review_confirmed=args.confirm_text_reviewed,
             voice_review_confirmed=args.confirm_voice_reviewed,
+            require_output_backend_ready=args.require_output_backend_ready,
             include_voices=not args.no_voices,
         )
     except ValueError as exc:
@@ -346,6 +366,28 @@ def _validate_operator_flags(
 def _validate_system_flags(*, system_override: str | None, speak: bool) -> None:
     if speak and system_override:
         raise ValueError("--system is only valid for dry-run command examples, not with --speak.")
+
+
+def _output_backend_status(system: str) -> dict[str, Any]:
+    info = SystemSpeechOutputBackend(system=system).info()
+    return {
+        "name": info.name,
+        "kind": info.kind,
+        "available": info.available,
+        "dependencies": list(info.dependencies),
+        "reason": info.reason,
+    }
+
+
+def _validate_output_backend_ready(*, target_output_backend: dict[str, Any], required: bool) -> None:
+    if not required or target_output_backend["available"]:
+        return
+    dependencies = _format_list(target_output_backend["dependencies"])
+    reason = target_output_backend["reason"] or "backend dependency check failed"
+    raise ValueError(
+        f"System output backend {target_output_backend['name']!r} is not available. "
+        f"Dependencies: {dependencies}. Reason: {reason}"
+    )
 
 
 def _operator_confirmation_status(
@@ -491,6 +533,7 @@ def _build_findings_markdown(
     operator_confirmed_audio: bool,
     text_review_confirmed: bool,
     voice_review_confirmed: bool,
+    target_output_backend: dict[str, Any],
     confirmation_status: str,
     passed: bool,
     spoken_text_privacy_scan: dict[str, Any],
@@ -508,6 +551,9 @@ def _build_findings_markdown(
         f"- Expected system: {_format_nullable(system_guard['expected_system'])}",
         f"- Expected system matched: {_format_nullable(system_guard['expected_system_matched'])}",
         f"- Backend: system",
+        f"- Target output backend available: {target_output_backend['available']}",
+        f"- Target output backend dependencies: {_format_list(target_output_backend['dependencies'])}",
+        f"- Target output backend reason: {_format_optional(target_output_backend['reason'])}",
         f"- Dry run: {not speak}",
         f"- Real audio requested: {speak}",
         f"- Operator present: {operator_present}",
@@ -557,7 +603,7 @@ def _system_output_command_template(*, expected_system: str | None) -> str:
     expected = expected_system or "Windows|Linux|Darwin"
     return (
         "python tools/output_pilot.py --speak --operator-present --confirm-audible "
-        "--confirm-text-reviewed --confirm-voice-reviewed "
+        "--confirm-text-reviewed --confirm-voice-reviewed --require-output-backend-ready "
         f"--expected-system \"{expected}\" --output-dir pilot_runs/output/system-real "
         "--text <public-spoken-text> --json"
     )
@@ -573,6 +619,8 @@ def _build_system_output_next_step_markdown(
     operator_confirmed_audio: bool,
     text_review_confirmed: bool,
     voice_review_confirmed: bool,
+    require_output_backend_ready: bool,
+    target_output_backend: dict[str, Any],
     spoken_text_privacy_scan: dict[str, Any],
     operator_checklist: dict[str, Any],
     command_template: str,
@@ -589,6 +637,10 @@ def _build_system_output_next_step_markdown(
         f"- System from current run: {system}",
         f"- Expected system: {_format_nullable(system_guard['expected_system'])}",
         f"- Expected system matched: {_format_nullable(system_guard['expected_system_matched'])}",
+        f"- Target output backend available: {target_output_backend['available']}",
+        f"- Target output backend dependencies: {_format_list(target_output_backend['dependencies'])}",
+        f"- Target output backend reason: {_format_optional(target_output_backend['reason'])}",
+        f"- Output backend readiness required: {require_output_backend_ready}",
         f"- Dry run: {not speak}",
         f"- Real audio requested: {speak}",
         f"- Operator present: {operator_present}",
@@ -615,6 +667,7 @@ def _build_system_output_next_step_markdown(
         "- Review `output-operator-checklist.md` before enabling `--speak`.",
         "- Keep the spoken text public/non-sensitive; do not paste private text into public findings.",
         "- Confirm `spoken_text_privacy_scan.passed=true` before playback.",
+        "- Confirm `target_output_backend.available=true` before enabling `--speak`.",
         "- Confirm `system_guard.expected_system_matched=true` on the target OS.",
         "- Confirm `operator_checklist.text_review_confirmed=true`.",
         "- Confirm `operator_checklist.voice_review_confirmed=true` after hearing the output.",
@@ -741,6 +794,7 @@ def _print_report(report: dict[str, Any]) -> None:
     print("AuralisVoiceKit system output pilot")
     print(f"System: {report['system']}")
     print(f"Expected system matched: {report['system_guard']['expected_system_matched']}")
+    print(f"Target output backend available: {report['target_output_backend']['available']}")
     print(f"Dry run: {report['dry_run']}")
     print(f"Real audio requested: {report['real_audio_requested']}")
     print(f"Operator present: {report['operator_present']}")

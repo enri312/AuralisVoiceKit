@@ -56,11 +56,12 @@ Este documento describe los campos JSON que pueden cerrar blockers de beta. No r
 ### system_output_audible
 
 - Artifact: `output-pilot-report.json`
-- Comando sugerido: `python tools/output_pilot.py --speak --operator-present --confirm-audible --confirm-text-reviewed --confirm-voice-reviewed --expected-system "Windows|Linux|Darwin" --output-dir pilot_runs/output/system-real --text "Hola desde AuralisVoiceKit" --json`
+- Comando sugerido: `python tools/output_pilot.py --speak --operator-present --confirm-audible --confirm-text-reviewed --confirm-voice-reviewed --require-output-backend-ready --expected-system "Windows|Linux|Darwin" --output-dir pilot_runs/output/system-real --text "Hola desde AuralisVoiceKit" --json`
 - Campos requeridos:
   - `project` = `AuralisVoiceKit`
   - `backend` = `system`
   - `system_guard.expected_system_matched` = `True`
+  - `target_output_backend.available` = `True`
   - `real_audio_requested` = `True`
   - `operator_confirmation_status` = `confirmed`
   - `text_review_confirmed` = `True`
