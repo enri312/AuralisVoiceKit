@@ -613,7 +613,8 @@ def format_audit_markdown(report: dict[str, Any]) -> str:
     if privacy_audit.get("findings"):
         for finding in privacy_audit["findings"]:
             lines.append(
-                f"- `{finding['file']}` campo `{finding['field']}`: `{finding['reason']}`"
+                f"- `{finding['file']}` campo `{finding['field']}`: `{finding['reason']}`. "
+                f"Accion: {finding.get('action_es', 'Revisar y redactar el campo localmente.')}"
             )
     else:
         lines.append("- No se detectaron campos crudos sospechosos.")
@@ -1112,7 +1113,13 @@ def _privacy_findings_for_evidence(report: dict[str, Any]) -> list[dict[str, str
         reason = _privacy_finding_reason(path, value)
         if reason is None:
             continue
-        findings.append({"field": path, "reason": reason})
+        findings.append(
+            {
+                "field": path,
+                "reason": reason,
+                **_privacy_finding_remediation(reason),
+            }
+        )
     return findings
 
 
@@ -1146,6 +1153,62 @@ def _privacy_finding_reason(path: str, value: Any) -> str | None:
     if _is_raw_credential_field(field):
         return "raw_credential_field"
     return None
+
+
+def _privacy_finding_remediation(reason: str) -> dict[str, str]:
+    if reason == "raw_text_field":
+        return {
+            "action_es": (
+                "Eliminar el texto crudo y conservar solo placeholders o flags de redaccion "
+                "como transcript.text_redacted=true."
+            ),
+            "action_en": (
+                "Remove the raw text and keep only placeholders or redaction flags such as "
+                "transcript.text_redacted=true."
+            ),
+            "safe_replacement": "<text-redacted>",
+        }
+    if reason == "raw_local_path_field":
+        return {
+            "action_es": (
+                "Eliminar la ruta local completa y conservar solo rutas relativas de artifact "
+                "o un placeholder como <path-redacted>."
+            ),
+            "action_en": (
+                "Remove the full local path and keep only relative artifact paths or a "
+                "placeholder such as <path-redacted>."
+            ),
+            "safe_replacement": "<path-redacted>",
+        }
+    if reason == "raw_file_name_field":
+        return {
+            "action_es": (
+                "Redactar el nombre real del archivo o dispositivo y conservar un flag "
+                "*_file_name_redacted=true cuando aplique."
+            ),
+            "action_en": (
+                "Redact the real file or device name and keep a *_file_name_redacted=true "
+                "flag when applicable."
+            ),
+            "safe_replacement": "<file-name-redacted>",
+        }
+    if reason == "raw_credential_field":
+        return {
+            "action_es": (
+                "Eliminar la credencial cruda y conservar solo booleanos de presencia, por "
+                "ejemplo credentials.openai_api_key_present."
+            ),
+            "action_en": (
+                "Remove the raw credential and keep only presence booleans, for example "
+                "credentials.openai_api_key_present."
+            ),
+            "safe_replacement": "<credential-redacted>",
+        }
+    return {
+        "action_es": "Revisar el campo localmente y reemplazarlo por metadata publica o un placeholder.",
+        "action_en": "Review the field locally and replace it with public metadata or a placeholder.",
+        "safe_replacement": "<redacted>",
+    }
 
 
 def _is_safe_placeholder_value(value: str) -> bool:

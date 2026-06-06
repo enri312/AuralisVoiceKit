@@ -3044,7 +3044,8 @@ def _append_privacy_audit_lines(lines: list[str], privacy_audit: dict[str, Any])
         return
     for finding in findings:
         lines.append(
-            f"- `{finding['file']}` campo `{finding['field']}`: `{finding['reason']}`"
+            f"- `{finding['file']}` campo `{finding['field']}`: `{finding['reason']}`. "
+            f"Accion: {finding.get('action_es', 'Revisar y redactar el campo localmente.')}"
         )
     lines.append("")
 

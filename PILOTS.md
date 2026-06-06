@@ -48,6 +48,8 @@ Nota `v0.127.0`: `tools/beta_readiness.py --audit-evidence` agrega `privacy_audi
 
 Nota `v0.128.0`: `tools/pilot_run.py` muestra `privacy_audit` en `pilot-report.json`, `pilot-plan.md`, `real-pilot-evidence-manifest.md` y `real-pilot-decision-gate.md`; si el escaneo falla, la compuerta beta queda bloqueada aunque el artifact JSON cierre un blocker funcional. English: safe-pilot artifacts now surface privacy-audit blockers before beta decisions.
 
+Nota `v0.129.0`: cada hallazgo de `privacy_audit` incluye `action_es`, `action_en` y `safe_replacement`, por ejemplo `<text-redacted>` o `<path-redacted>`, para reparar evidencias sin copiar valores privados. English: privacy audit findings now include safe remediation hints.
+
 ```powershell
 py tools\pilot_run.py --output-dir pilot_runs\safe --json
 py tools\pilot_run.py --output-dir pilot_runs\safe --evidence pilot_runs\manual --evidence pilot_runs\output --evidence pilot_runs\transcription --json

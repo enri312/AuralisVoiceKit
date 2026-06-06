@@ -1048,6 +1048,8 @@ class PilotRunTests(unittest.TestCase):
         self.assertTrue(privacy_audit["blocking"])
         self.assertEqual(privacy_audit["findings"][0]["field"], "transcript.text")
         self.assertEqual(privacy_audit["findings"][0]["reason"], "raw_text_field")
+        self.assertEqual(privacy_audit["findings"][0]["safe_replacement"], "<text-redacted>")
+        self.assertIn("Eliminar el texto crudo", privacy_audit["findings"][0]["action_es"])
         self.assertEqual(report["evidence_manifest"]["privacy_audit"], privacy_audit)
         self.assertEqual(report["pilot_decision_gate"]["privacy_audit"], privacy_audit)
         self.assertEqual(report["pilot_decision_gate"]["beta"]["decision"], "blocked")
@@ -1058,6 +1060,8 @@ class PilotRunTests(unittest.TestCase):
         combined = "\n".join([plan, evidence_manifest, decision_gate, json.dumps(report, sort_keys=True)])
         self.assertIn("transcript.text", combined)
         self.assertIn("raw_text_field", combined)
+        self.assertIn("Eliminar el texto crudo", combined)
+        self.assertIn("<text-redacted>", combined)
         self.assertNotIn(private_value, combined)
 
 

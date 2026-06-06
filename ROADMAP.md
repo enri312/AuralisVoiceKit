@@ -98,6 +98,8 @@ Nota `v0.127.0`: la auditoria de evidencias beta agrega `privacy_audit`, que blo
 
 Nota `v0.128.0`: el piloto seguro propaga `privacy_audit` a `pilot-report.json`, `pilot-plan.md`, `real-pilot-evidence-manifest.md` y `real-pilot-decision-gate.md`, manteniendo beta bloqueada si aparecen campos crudos aunque los blockers funcionales esten cerrados por JSON.
 
+Nota `v0.129.0`: los hallazgos de `privacy_audit` ahora incluyen `action_es`, `action_en` y `safe_replacement`, para que el operador sepa como reemplazar texto, rutas, nombres o credenciales crudas por placeholders sin ver ni compartir valores privados.
+
 ## Fase 0 - Base del proyecto
 
 **Objetivo:** dejar una libreria instalable, importable y testeable.

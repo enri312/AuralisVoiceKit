@@ -1418,6 +1418,11 @@ class BetaReadinessTests(unittest.TestCase):
         fields = {finding["field"] for finding in report["privacy_audit"]["findings"]}
         self.assertIn("transcript.text", fields)
         self.assertIn("audio.path", fields)
+        findings = {finding["field"]: finding for finding in report["privacy_audit"]["findings"]}
+        self.assertEqual(findings["transcript.text"]["safe_replacement"], "<text-redacted>")
+        self.assertIn("Eliminar el texto crudo", findings["transcript.text"]["action_es"])
+        self.assertEqual(findings["audio.path"]["safe_replacement"], "<path-redacted>")
+        self.assertIn("Eliminar la ruta local completa", findings["audio.path"]["action_es"])
         serialized = json.dumps(report, sort_keys=True)
         self.assertNotIn("hola secreto interno", serialized)
         self.assertNotIn("Private", serialized)
@@ -1460,6 +1465,8 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertEqual(payload["missing_blockers"], [])
         self.assertEqual(payload["privacy_audit"]["status"], "failed")
         self.assertEqual(payload["privacy_audit"]["findings"][0]["field"], "expected_text")
+        self.assertIn("action_es", payload["privacy_audit"]["findings"][0])
+        self.assertEqual(payload["privacy_audit"]["findings"][0]["safe_replacement"], "<text-redacted>")
         self.assertNotIn("texto esperado privado", output.getvalue())
 
     def test_evidence_audit_can_mark_all_json_blockers_satisfied(self):

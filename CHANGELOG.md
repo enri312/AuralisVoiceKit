@@ -6,6 +6,18 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.129.0] - 2026-06-06
+
+### Cambiado
+
+- `tools/beta_readiness.py --audit-evidence` ahora agrega acciones seguras de remediacion para cada hallazgo de `privacy_audit`.
+- Los hallazgos incluyen `action_es`, `action_en` y `safe_replacement` para indicar si hay que reemplazar texto, rutas, nombres de archivo/dispositivo o credenciales por placeholders.
+- `tools/pilot_run.py` muestra esas acciones en `pilot-plan.md`, `real-pilot-evidence-manifest.md` y `real-pilot-decision-gate.md` sin imprimir valores privados.
+
+### Pruebas
+
+- Nuevas pruebas validan las acciones de remediacion para texto y rutas crudas, y confirman que los valores privados siguen fuera de JSON y Markdown.
+
 ## [0.128.0] - 2026-06-06
 
 ### Cambiado
