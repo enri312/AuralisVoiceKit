@@ -1246,7 +1246,7 @@ def _real_transcription_command_template(
     default_timeout_seconds = 30 if real_backend == "openai" else None
     effective_timeout_seconds = timeout_seconds if timeout_seconds is not None else default_timeout_seconds
     timeout_flag = (
-        f" --timeout-seconds {effective_timeout_seconds}"
+        f" --timeout-seconds {_format_cli_number(effective_timeout_seconds)}"
         if effective_timeout_seconds is not None
         else ""
     )
@@ -1256,9 +1256,16 @@ def _real_transcription_command_template(
         "--confirm-reference-reviewed "
         f"--backend {real_backend} --model {real_model}{normalize_flag}{timeout_flag} "
         "--expected-text-file <expected-text-path> --min-word-accuracy 0.75 "
-        f"--min-audio-seconds {min_seconds} --max-audio-seconds {max_seconds} "
+        f"--min-audio-seconds {_format_cli_number(min_seconds)} "
+        f"--max-audio-seconds {_format_cli_number(max_seconds)} "
         "--confirm-quality-reviewed --require-target-backend-ready --json"
     )
+
+
+def _format_cli_number(value: float | int) -> str:
+    if isinstance(value, float) and value.is_integer():
+        return str(int(value))
+    return str(value)
 
 
 def _build_real_transcription_next_step_markdown(

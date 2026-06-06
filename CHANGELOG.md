@@ -6,6 +6,15 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.104.0] - 2026-06-06
+
+### Agregado
+
+- `tools/pilot_audio_fixture.py --run-preflight` ahora acepta `--preflight-backend`, `--preflight-model` y `--preflight-timeout-seconds`.
+- El preflight de fixture conserva backend, modelo, timeout y disponibilidad del backend objetivo en el reporte sanitizado y en findings.
+- Los ejemplos de pilotos documentan como preparar una plantilla OpenAI con `--timeout-seconds 30` desde un fixture sintetico sin ejecutar red ni modelo.
+- Las plantillas CLI de transcripcion formatean valores enteros como `30` en vez de `30.0` para facilitar copiar comandos.
+
 ## [0.103.0] - 2026-06-06
 
 ### Agregado

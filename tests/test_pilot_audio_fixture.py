@@ -72,6 +72,25 @@ class PilotAudioFixtureTests(unittest.TestCase):
         self.assertTrue(payload["passed"])
         self.assertEqual(payload["formats_requested"], ["wav"])
 
+    def test_cli_rejects_invalid_preflight_timeout(self):
+        module = _load_pilot_audio_fixture()
+
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            exit_code = module.main(
+                [
+                    "--format",
+                    "wav",
+                    "--preflight-timeout-seconds",
+                    "0",
+                    "--json",
+                ]
+            )
+        payload = json.loads(output.getvalue())
+
+        self.assertEqual(exit_code, 2)
+        self.assertIn("--preflight-timeout-seconds", payload["error"])
+
     def test_preflight_auto_adds_mp3_and_fails_safely_without_ffmpeg(self):
         module = _load_pilot_audio_fixture()
 
@@ -92,6 +111,9 @@ class PilotAudioFixtureTests(unittest.TestCase):
         self.assertTrue(report["preflight"]["requested"])
         self.assertFalse(report["preflight"]["passed"])
         self.assertEqual(report["preflight"]["reason"], "missing_mp3_fixture")
+        self.assertEqual(report["preflight"]["backend"], "whisper")
+        self.assertEqual(report["preflight"]["model"], "auto")
+        self.assertIsNone(report["preflight"]["transcription_timeout_seconds"])
         self.assertIsNone(report["preflight"]["review_checklist"])
         self.assertIsNone(report["preflight"]["real_transcription_next_step"])
         self.assertFalse(report["usable_as_beta_evidence"])

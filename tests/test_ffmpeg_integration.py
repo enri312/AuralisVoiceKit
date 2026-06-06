@@ -362,6 +362,37 @@ class FfmpegIntegrationTests(unittest.TestCase):
         self.assertIn("Review checklist:", findings)
         self.assertIn("Real transcription next step:", findings)
 
+    def test_pilot_audio_fixture_preflight_can_target_openai_with_timeout(self):
+        module = _load_pilot_audio_fixture()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            report = module.generate_pilot_audio_fixture(
+                root=ROOT,
+                output_dir=tmpdir,
+                formats=("mp3",),
+                duration_seconds=0.35,
+                sample_rate=8000,
+                ffmpeg=self.ffmpeg,
+                run_preflight=True,
+                preflight_backend="openai",
+                preflight_model="gpt-4o-mini-transcribe",
+                preflight_timeout_seconds=30,
+                min_audio_seconds=0.2,
+                max_audio_seconds=1.0,
+            )
+            next_step = Path(report["artifacts"]["fixture_preflight_next_step"]).read_text(encoding="utf-8")
+            findings = Path(report["artifacts"]["fixture_findings"]).read_text(encoding="utf-8")
+
+        self.assertTrue(report["passed"])
+        self.assertEqual(report["preflight"]["backend"], "openai")
+        self.assertEqual(report["preflight"]["model"], "gpt-4o-mini-transcribe")
+        self.assertEqual(report["preflight"]["transcription_timeout_seconds"], 30)
+        self.assertIsInstance(report["preflight"]["target_backend_available"], bool)
+        self.assertIn("--backend openai", next_step)
+        self.assertIn("--model gpt-4o-mini-transcribe", next_step)
+        self.assertIn("--timeout-seconds 30", next_step)
+        self.assertIn("Fixture preflight backend: `openai`", findings)
+        self.assertIn("Fixture preflight timeout seconds: `30`", findings)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -77,6 +77,8 @@ class DocumentationTests(unittest.TestCase):
             self.assertIn("transcription_timeout_seconds", content)
             self.assertIn("AURALIS_TRANSCRIPTION_TIMEOUT_SECONDS", content)
             self.assertIn("--timeout-seconds", content)
+            self.assertIn("--preflight-backend", content)
+            self.assertIn("--preflight-timeout-seconds", content)
 
     def test_pyaudio_optional_backend_is_documented(self):
         readme = README.read_text(encoding="utf-8")

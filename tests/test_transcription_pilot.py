@@ -159,6 +159,23 @@ class TranscriptionPilotTests(unittest.TestCase):
         self.assertIn("--model gpt-4o-mini-transcribe", command)
         self.assertIn("--timeout-seconds 30", command)
 
+    def test_transcription_pilot_template_formats_integer_float_values(self):
+        module = _load_transcription_pilot()
+
+        command = module._real_transcription_command_template(
+            backend="openai",
+            model="gpt-4o-mini-transcribe",
+            normalize=True,
+            min_audio_seconds=0.2,
+            max_audio_seconds=60.0,
+            timeout_seconds=30.0,
+        )
+
+        self.assertIn("--timeout-seconds 30", command)
+        self.assertIn("--max-audio-seconds 60", command)
+        self.assertNotIn("--timeout-seconds 30.0", command)
+        self.assertNotIn("--max-audio-seconds 60.0", command)
+
     def test_transcription_pilot_cli_rejects_invalid_timeout(self):
         module = _load_transcription_pilot()
 

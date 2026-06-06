@@ -39,6 +39,9 @@ def generate_pilot_audio_fixture(
     sample_rate: int = 16_000,
     ffmpeg: str = "ffmpeg",
     run_preflight: bool = False,
+    preflight_backend: str = "whisper",
+    preflight_model: str | None = None,
+    preflight_timeout_seconds: float | None = None,
     min_audio_seconds: float | None = 0.2,
     max_audio_seconds: float | None = 60.0,
     normalize_preflight: bool = True,
@@ -46,6 +49,7 @@ def generate_pilot_audio_fixture(
     """Generate a non-sensitive synthetic fixture and write sanitized artifacts."""
 
     requested_formats = _normalize_formats(formats)
+    _validate_preflight_options(preflight_timeout_seconds=preflight_timeout_seconds)
     if run_preflight and "mp3" not in requested_formats:
         requested_formats = (*requested_formats, "mp3")
     _validate_audio_shape(duration_seconds=duration_seconds, sample_rate=sample_rate)
@@ -101,12 +105,19 @@ def generate_pilot_audio_fixture(
             min_audio_seconds=min_audio_seconds,
             max_audio_seconds=max_audio_seconds,
             normalize=normalize_preflight,
+            backend=preflight_backend,
+            model=preflight_model,
+            timeout_seconds=preflight_timeout_seconds,
         )
         if run_preflight
         else {
             "requested": False,
             "passed": None,
             "reason": "not_requested",
+            "backend": preflight_backend,
+            "model": preflight_model or "auto",
+            "transcription_timeout_seconds": preflight_timeout_seconds,
+            "target_backend_available": None,
             "artifact": None,
             "review_checklist": None,
             "real_transcription_next_step": None,
@@ -147,7 +158,7 @@ def generate_pilot_audio_fixture(
             "fixture_findings": str(findings_path),
             "fixture_report": str(report_path),
         },
-        "next_step": _fixture_next_step(run_preflight=run_preflight),
+        "next_step": _fixture_next_step(run_preflight=run_preflight, backend=preflight_backend),
     }
 
     findings_path.write_text(_build_findings_markdown(report), encoding="utf-8")
@@ -173,6 +184,20 @@ def main(argv: list[str] | None = None) -> int:
         "--run-preflight",
         action="store_true",
         help="run a safe transcription preflight against the generated MP3 fixture",
+    )
+    parser.add_argument(
+        "--preflight-backend",
+        default="whisper",
+        help="target transcription backend for the generated preflight command template",
+    )
+    parser.add_argument(
+        "--preflight-model",
+        help="optional model for the generated preflight command template",
+    )
+    parser.add_argument(
+        "--preflight-timeout-seconds",
+        type=float,
+        help="optional timeout for the generated preflight command template",
     )
     parser.add_argument(
         "--min-audio-seconds",
@@ -203,6 +228,9 @@ def main(argv: list[str] | None = None) -> int:
             sample_rate=args.sample_rate,
             ffmpeg=args.ffmpeg,
             run_preflight=args.run_preflight,
+            preflight_backend=args.preflight_backend,
+            preflight_model=args.preflight_model,
+            preflight_timeout_seconds=args.preflight_timeout_seconds,
             min_audio_seconds=args.min_audio_seconds,
             max_audio_seconds=args.max_audio_seconds,
             normalize_preflight=not args.no_normalize_preflight,
@@ -245,6 +273,11 @@ def _validate_audio_shape(*, duration_seconds: float, sample_rate: int) -> None:
         raise ValueError("--duration must be greater than 0.")
     if sample_rate <= 0:
         raise ValueError("--sample-rate must be greater than 0.")
+
+
+def _validate_preflight_options(*, preflight_timeout_seconds: float | None) -> None:
+    if preflight_timeout_seconds is not None and preflight_timeout_seconds <= 0:
+        raise ValueError("--preflight-timeout-seconds must be greater than 0.")
 
 
 def _encode_fixture(
@@ -337,6 +370,9 @@ def _run_fixture_preflight(
     min_audio_seconds: float | None,
     max_audio_seconds: float | None,
     normalize: bool,
+    backend: str,
+    model: str | None,
+    timeout_seconds: float | None,
 ) -> dict[str, Any]:
     mp3_path = artifacts.get("mp3")
     if mp3_path is None:
@@ -344,6 +380,10 @@ def _run_fixture_preflight(
             "requested": True,
             "passed": False,
             "reason": "missing_mp3_fixture",
+            "backend": backend,
+            "model": model or "auto",
+            "transcription_timeout_seconds": timeout_seconds,
+            "target_backend_available": None,
             "artifact": None,
             "review_checklist": None,
             "real_transcription_next_step": None,
@@ -358,7 +398,9 @@ def _run_fixture_preflight(
             root=root,
             output_dir=output / "preflight",
             audio=mp3_path,
-            backend="whisper",
+            backend=backend,
+            model=model,
+            timeout_seconds=timeout_seconds,
             ffmpeg=ffmpeg_path or ffmpeg,
             normalize=normalize,
             preflight_only=True,
@@ -372,6 +414,10 @@ def _run_fixture_preflight(
             "requested": True,
             "passed": False,
             "reason": "preflight_error",
+            "backend": backend,
+            "model": model or "auto",
+            "transcription_timeout_seconds": timeout_seconds,
+            "target_backend_available": None,
             "artifact": None,
             "review_checklist": None,
             "real_transcription_next_step": None,
@@ -385,6 +431,10 @@ def _run_fixture_preflight(
         "requested": True,
         "passed": report["passed"],
         "reason": "completed",
+        "backend": report["backend"],
+        "model": report["model"],
+        "transcription_timeout_seconds": report["transcription_timeout_seconds"],
+        "target_backend_available": report["target_backend"]["available"],
         "artifact": report["artifacts"]["transcription_pilot_report"],
         "review_checklist": report["artifacts"]["transcription_review_checklist"],
         "real_transcription_next_step": report["artifacts"]["real_transcription_next_step"],
@@ -409,11 +459,11 @@ def _load_transcription_pilot_module():
     return module
 
 
-def _fixture_next_step(*, run_preflight: bool) -> str:
+def _fixture_next_step(*, run_preflight: bool, backend: str) -> str:
     if run_preflight:
         return (
             "Replace the generated fixture with your own non-sensitive MP3 and run "
-            "tools/transcription_pilot.py --preflight-only before collecting real beta evidence. "
+            f"tools/transcription_pilot.py --preflight-only --backend {backend} before collecting real beta evidence. "
             f"Review {TRANSCRIPTION_REVIEW_CHECKLIST_NAME} and {REAL_TRANSCRIPTION_NEXT_STEP_NAME} "
             "from the preflight artifacts."
         )
@@ -461,6 +511,9 @@ def _build_findings_markdown(report: dict[str, Any]) -> str:
         f"- ffmpeg available: `{str(report['ffmpeg']['available']).lower()}`",
         f"- Fixture preflight requested: `{str(report['preflight']['requested']).lower()}`",
         f"- Fixture preflight passed: `{report['preflight']['passed']}`",
+        f"- Fixture preflight backend: `{report['preflight']['backend']}`",
+        f"- Fixture preflight model: `{report['preflight']['model']}`",
+        f"- Fixture preflight timeout seconds: `{report['preflight']['transcription_timeout_seconds']}`",
         "",
         "## Files",
         "",
@@ -484,6 +537,8 @@ def _build_findings_markdown(report: dict[str, Any]) -> str:
             "",
             f"- Requested: `{str(report['preflight']['requested']).lower()}`",
             f"- Passed: `{report['preflight']['passed']}`",
+            f"- Backend: `{report['preflight']['backend']}`",
+            f"- Target backend available: `{report['preflight']['target_backend_available']}`",
             f"- Review checklist: `{report['preflight'].get('review_checklist') or 'none'}`",
             f"- Real transcription next step: `{report['preflight'].get('real_transcription_next_step') or 'none'}`",
             f"- Audio decoded: `{report['preflight']['audio_decoded']}`",
@@ -491,7 +546,7 @@ def _build_findings_markdown(report: dict[str, Any]) -> str:
             "",
             "## Next step",
             "",
-            "- Run `tools/transcription_pilot.py --preflight-only` against your own non-sensitive MP3.",
+            f"- Run `tools/transcription_pilot.py --preflight-only --backend {report['preflight']['backend']}` against your own non-sensitive MP3.",
             f"- Review `{REAL_TRANSCRIPTION_NEXT_STEP_NAME}` for the sanitized real-transcription command template.",
             "- Replace the fixture with your own non-sensitive MP3 before collecting beta evidence.",
             "",
