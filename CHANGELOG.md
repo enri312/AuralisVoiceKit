@@ -6,6 +6,14 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.89.0] - 2026-06-06
+
+### Agregado
+
+- `tools/pilot_run.py` ahora genera `real-pilot-evidence-manifest.md` para cruzar blockers beta pendientes/cerrados, artifacts JSON esperados, campos requeridos, evidencias aceptadas/ignoradas y auditoria estricta.
+- El reporte `pilot-report.json` expone `evidence_manifest` y `real_pilot_evidence_manifest` con politica segura: no cuenta como evidencia beta, no registra audio, transcripciones, texto hablado, rutas locales, nombres de dispositivos ni identidad del operador.
+- README, `PILOTS.md`, roadmap, documentacion HTML y referencia API documentan el manifiesto de evidencias para pilotos reales.
+
 ## [0.88.0] - 2026-06-06
 
 ### Agregado

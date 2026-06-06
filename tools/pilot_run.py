@@ -187,10 +187,16 @@ def run_safe_pilot(
         "environment_checklist": environment_checklist,
         "artifacts": artifacts,
     }
+    report["evidence_manifest"] = _real_pilot_evidence_manifest(
+        report["beta_readiness"],
+        beta_audit,
+        next_beta_evidence_steps,
+    )
     findings_template_path = output / "real-pilot-findings-template.md"
     handoff_path = output / "real-pilot-handoff.md"
     command_pack_path = output / "real-pilot-command-pack.md"
     environment_checklist_path = output / "real-pilot-environment-checklist.md"
+    evidence_manifest_path = output / "real-pilot-evidence-manifest.md"
     plan_path = output / "pilot-plan.md"
     report_path = output / "pilot-report.json"
     report["real_pilot_findings_template"] = {
@@ -248,16 +254,32 @@ def run_safe_pilot(
         "records_device_names": False,
         "records_operator_identity": False,
     }
+    report["real_pilot_evidence_manifest"] = {
+        "artifact": str(evidence_manifest_path),
+        "safe_to_share": True,
+        "source": "beta_readiness + evidence_audit",
+        "usable_as_beta_evidence": False,
+        "tracks_pending_and_closed_blockers": True,
+        "records_audio": False,
+        "records_transcripts": False,
+        "records_spoken_text": False,
+        "records_expected_text": False,
+        "records_local_paths": False,
+        "records_device_names": False,
+        "records_operator_identity": False,
+    }
     artifacts["real_pilot_findings_template"] = str(findings_template_path)
     artifacts["real_pilot_handoff"] = str(handoff_path)
     artifacts["real_pilot_command_pack"] = str(command_pack_path)
     artifacts["real_pilot_environment_checklist"] = str(environment_checklist_path)
+    artifacts["real_pilot_evidence_manifest"] = str(evidence_manifest_path)
     artifacts["pilot_plan"] = str(plan_path)
     artifacts["pilot_report"] = str(report_path)
     findings_template_path.write_text(_format_real_pilot_findings_template_markdown(report), encoding="utf-8")
     handoff_path.write_text(_format_real_pilot_handoff_markdown(report), encoding="utf-8")
     command_pack_path.write_text(_format_real_pilot_command_pack_markdown(report), encoding="utf-8")
     environment_checklist_path.write_text(_format_real_pilot_environment_checklist_markdown(report), encoding="utf-8")
+    evidence_manifest_path.write_text(_format_real_pilot_evidence_manifest_markdown(report), encoding="utf-8")
     plan_path.write_text(_format_pilot_plan_markdown(report), encoding="utf-8")
     report_path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return report
@@ -889,6 +911,90 @@ def _doctor_check_ready(checks: dict[str, Any], name: str) -> bool:
     return bool(check is not None and check.status is DiagnosticStatus.OK)
 
 
+def _real_pilot_evidence_manifest(
+    beta_readiness: dict[str, Any],
+    beta_audit: dict[str, Any],
+    next_beta_evidence_steps: list[dict[str, Any]],
+) -> dict[str, Any]:
+    closed_by_blocker: dict[str, dict[str, Any]] = {}
+    for artifact in beta_audit["artifacts"]:
+        for candidate in artifact["candidates"]:
+            if not candidate["ok"]:
+                continue
+            closed_by_blocker[candidate["name"]] = {
+                "file": artifact["file"],
+                "artifact": artifact["artifact"],
+                "title": candidate["title"],
+                "required_fields": [field["path"] for field in candidate["fields"]],
+            }
+
+    rows: list[dict[str, Any]] = []
+    pending_names = set()
+    for step in next_beta_evidence_steps:
+        pending_names.add(step["name"])
+        rows.append(
+            {
+                "status": "pending",
+                "blocker": step["name"],
+                "title": step["title"],
+                "artifact": step["artifact"],
+                "command": step["command"],
+                "required_fields": step["required_fields"],
+                "accepted_json_artifact": None,
+                "review_state": "real-evidence-required",
+                **_strict_backend_guard_metadata(step["name"]),
+            }
+        )
+    for blocker in beta_audit["satisfied_blockers"]:
+        if blocker in pending_names:
+            continue
+        closed = closed_by_blocker.get(blocker, {})
+        rows.append(
+            {
+                "status": "closed",
+                "blocker": blocker,
+                "title": closed.get("title", blocker),
+                "artifact": closed.get("artifact", "unknown"),
+                "command": None,
+                "required_fields": closed.get("required_fields", []),
+                "accepted_json_artifact": closed.get("file"),
+                "review_state": "closed-by-accepted-json",
+                **_strict_backend_guard_metadata(blocker),
+            }
+        )
+
+    return {
+        "ready_for_beta_by_json_evidence": beta_audit["ready_for_beta_by_evidence"],
+        "ready_for_beta": beta_readiness["ready_for_beta"],
+        "pending_blockers": beta_readiness["blockers"],
+        "missing_json_blockers": beta_audit["missing_blockers"],
+        "closed_blockers": beta_audit["satisfied_blockers"],
+        "accepted_json_artifacts": _pilot_plan_artifact_summary(beta_audit["artifacts"]),
+        "ignored_json_artifacts": beta_audit["ignored_details"],
+        "pending_count": len(beta_readiness["blockers"]),
+        "missing_json_count": len(beta_audit["missing_blockers"]),
+        "closed_count": len(beta_audit["satisfied_blockers"]),
+        "ignored_count": beta_audit["ignored_count"],
+        "rows": rows,
+        "strict_audit_command": beta_readiness["strict_audit_command"],
+        "refresh_checklist_command": (
+            "python tools/beta_readiness.py --evidence pilot_runs/manual "
+            "--evidence pilot_runs/output --evidence pilot_runs/transcription "
+            "--output BETA_CHECKLIST.md --fail-on-blockers --json"
+        ),
+        "content_policy": {
+            "usable_as_beta_evidence": False,
+            "records_audio": False,
+            "records_transcripts": False,
+            "records_spoken_text": False,
+            "records_expected_text": False,
+            "records_local_paths": False,
+            "records_device_names": False,
+            "records_operator_identity": False,
+        },
+    }
+
+
 def _pilot_plan_artifact_summary(artifacts: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return [
         {
@@ -912,6 +1018,9 @@ def _format_pilot_plan_markdown(report: dict[str, Any]) -> str:
     environment_checklist_name = Path(
         report["artifacts"].get("real_pilot_environment_checklist", "real-pilot-environment-checklist.md")
     ).name
+    evidence_manifest_name = Path(
+        report["artifacts"].get("real_pilot_evidence_manifest", "real-pilot-evidence-manifest.md")
+    ).name
     lines = [
         "# Plan de pilotos AuralisVoiceKit",
         "",
@@ -932,6 +1041,7 @@ def _format_pilot_plan_markdown(report: dict[str, Any]) -> str:
         f"- Handoff seguro: `{handoff_name}`",
         f"- Paquete de comandos: `{command_pack_name}`",
         f"- Checklist de entorno: `{environment_checklist_name}`",
+        f"- Manifiesto de evidencias: `{evidence_manifest_name}`",
         f"- Plantilla de hallazgos: `{findings_template_name}`",
         "",
         "## Checks seguros",
@@ -970,6 +1080,18 @@ def _format_pilot_plan_markdown(report: dict[str, Any]) -> str:
                 f"- `{artifact['file']}`: `{artifact['reason']}` - {artifact['message_es']} / {artifact['message_en']}."
             )
         lines.append("")
+    lines.extend(
+        [
+            "## Manifiesto de evidencias",
+            "",
+            f"- Artifact: `{evidence_manifest_name}`",
+            f"- Pendientes: `{report['evidence_manifest']['pending_count']}`",
+            f"- Cerradas por JSON: `{report['evidence_manifest']['closed_count']}`",
+            f"- Ignoradas: `{report['evidence_manifest']['ignored_count']}`",
+            f"- Auditoria: `{report['evidence_manifest']['strict_audit_command']}`",
+            "",
+        ]
+    )
     lines.extend(
         [
             "## Secuencia recomendada",
@@ -1151,6 +1273,9 @@ def _format_real_pilot_command_pack_markdown(report: dict[str, Any]) -> str:
     environment_checklist_name = Path(
         report["artifacts"].get("real_pilot_environment_checklist", "real-pilot-environment-checklist.md")
     ).name
+    evidence_manifest_name = Path(
+        report["artifacts"].get("real_pilot_evidence_manifest", "real-pilot-evidence-manifest.md")
+    ).name
     lines = [
         "# Paquete de comandos para pilotos reales AuralisVoiceKit",
         "",
@@ -1182,6 +1307,7 @@ def _format_real_pilot_command_pack_markdown(report: dict[str, Any]) -> str:
         "- Ejecutar comandos `pending` solo con hardware/audio no sensible y revision humana completada.",
         "- Conservar los artifacts JSON/Markdown generados por las herramientas; no copiar contenido privado al reporte publico.",
         f"- Revisar `{environment_checklist_name}` antes de usar audio real.",
+        f"- Revisar `{evidence_manifest_name}` para saber que artifact JSON cierra cada blocker.",
         "- Cerrar con la auditoria estricta y luego refrescar `BETA_CHECKLIST.md`.",
         "",
         "## Comandos por plataforma",
@@ -1210,6 +1336,7 @@ def _format_real_pilot_command_pack_markdown(report: dict[str, Any]) -> str:
             "## Auditoria y cierre",
             "",
             f"- Auditoria estricta: `{beta['strict_audit_command']}`",
+            f"- Manifiesto de evidencias: `{evidence_manifest_name}`",
             "- Refrescar checklist: `python tools/beta_readiness.py --evidence pilot_runs/manual --evidence pilot_runs/output --evidence pilot_runs/transcription --output BETA_CHECKLIST.md --fail-on-blockers --json`",
             "- Publicar hallazgos solo con la plantilla sanitizada `real-pilot-findings-template.md`.",
             "",
@@ -1282,6 +1409,101 @@ def _format_real_pilot_environment_checklist_markdown(report: dict[str, Any]) ->
     return "\n".join(lines)
 
 
+def _format_real_pilot_evidence_manifest_markdown(report: dict[str, Any]) -> str:
+    beta = report["beta_readiness"]
+    artifact_policy = report["real_pilot_evidence_manifest"]
+    manifest = report["evidence_manifest"]
+    lines = [
+        "# Manifiesto de evidencias para pilotos reales AuralisVoiceKit",
+        "",
+        "Este artefacto cruza blockers beta, artifacts JSON esperados y auditoria estricta. No es evidencia beta; es una guia publica para no perder que falta cerrar.",
+        "",
+        "## Estado",
+        "",
+        f"- Version: `{report['version']}`",
+        f"- Stage: `{report['stage']}`",
+        f"- Listo para pilotos reales: `{_format_bool(report['gate']['ready_for_real_world_pilots'])}`",
+        f"- Listo para beta: `{_format_bool(beta['ready_for_beta'])}`",
+        f"- Listo para beta por evidencias JSON: `{_format_bool(manifest['ready_for_beta_by_json_evidence'])}`",
+        f"- Usable como evidencia beta: `{_format_bool(artifact_policy['usable_as_beta_evidence'])}`",
+        f"- Blockers beta pendientes: {_format_inline_list(manifest['pending_blockers'])}",
+        f"- Blockers pendientes solo por auditoria JSON: {_format_inline_list(manifest['missing_json_blockers'])}",
+        f"- Blockers cerrados por JSON: {_format_inline_list(manifest['closed_blockers'])}",
+        f"- Evidencias ignoradas: `{manifest['ignored_count']}`",
+        "",
+        "## Politica de contenido",
+        "",
+        f"- Seguro para compartir: `{_format_bool(artifact_policy['safe_to_share'])}`",
+        f"- Registra audio: `{_format_bool(artifact_policy['records_audio'])}`",
+        f"- Registra transcripciones: `{_format_bool(artifact_policy['records_transcripts'])}`",
+        f"- Registra texto hablado: `{_format_bool(artifact_policy['records_spoken_text'])}`",
+        f"- Registra texto esperado completo: `{_format_bool(artifact_policy['records_expected_text'])}`",
+        f"- Registra rutas locales: `{_format_bool(artifact_policy['records_local_paths'])}`",
+        f"- Registra nombres reales de dispositivos: `{_format_bool(artifact_policy['records_device_names'])}`",
+        f"- Registra identidad del operador: `{_format_bool(artifact_policy['records_operator_identity'])}`",
+        "",
+        "## Tabla de evidencias",
+        "",
+    ]
+    if not manifest["rows"]:
+        lines.extend(["- No hay blockers pendientes o cerrados por JSON.", ""])
+    for row in manifest["rows"]:
+        lines.extend(
+            [
+                f"### {row['blocker']}",
+                "",
+                f"- Estado: `{row['status']}`",
+                f"- Titulo: {row['title']}",
+                f"- Artifact esperado: `{row['artifact']}`",
+                f"- JSON aceptado: `{row['accepted_json_artifact'] or 'pendiente'}`",
+                f"- Comando: `{row['command'] or 'cerrado por evidencia JSON aceptada'}`",
+                f"- Campos requeridos: {_format_inline_list(row['required_fields'])}",
+                f"- Revision: `{row['review_state']}`",
+            ]
+        )
+        _append_strict_backend_guard_lines(lines, row)
+        lines.append("")
+    lines.extend(["## Evidencias aceptadas", ""])
+    if manifest["accepted_json_artifacts"]:
+        for artifact in manifest["accepted_json_artifacts"]:
+            lines.extend(
+                [
+                    f"- `{artifact['file']}`",
+                    f"  - Artifact: `{artifact['artifact']}`",
+                    f"  - Blockers cerrados: {_format_inline_list(artifact['satisfied_blockers'])}",
+                ]
+            )
+        lines.append("")
+    else:
+        lines.extend(["- Ninguna todavia.", ""])
+    lines.extend(["## Evidencias ignoradas", ""])
+    if manifest["ignored_json_artifacts"]:
+        for artifact in manifest["ignored_json_artifacts"]:
+            lines.append(
+                f"- `{artifact['file']}`: `{artifact['reason']}` - {artifact['message_es']} / {artifact['message_en']}."
+            )
+        lines.append("")
+    else:
+        lines.extend(["- Ninguna.", ""])
+    lines.extend(
+        [
+            "## Auditoria",
+            "",
+            f"- Auditoria estricta: `{manifest['strict_audit_command']}`",
+            f"- Refrescar checklist: `{manifest['refresh_checklist_command']}`",
+            "- Si la auditoria sigue marcando blockers, no declarar beta ni estable.",
+            "",
+            "## Privacidad",
+            "",
+            "- Mantener solo nombres de artifacts y campos estructurados.",
+            "- No copiar audio, transcripciones completas, texto esperado completo, texto hablado real, rutas locales completas, nombres reales de dispositivos ni identidad del operador.",
+            "- Revisar localmente audio propio, referencia y texto hablado antes de confirmar flags de evidencia.",
+            "",
+        ]
+    )
+    return "\n".join(lines)
+
+
 def _format_real_pilot_handoff_markdown(report: dict[str, Any]) -> str:
     beta = report["beta_readiness"]
     policy = report["real_pilot_handoff"]["content_policy"]
@@ -1290,6 +1512,9 @@ def _format_real_pilot_handoff_markdown(report: dict[str, Any]) -> str:
     ).name
     environment_checklist_name = Path(
         report["artifacts"].get("real_pilot_environment_checklist", "real-pilot-environment-checklist.md")
+    ).name
+    evidence_manifest_name = Path(
+        report["artifacts"].get("real_pilot_evidence_manifest", "real-pilot-evidence-manifest.md")
     ).name
     lines = [
         "# Handoff de pilotos reales AuralisVoiceKit",
@@ -1307,6 +1532,7 @@ def _format_real_pilot_handoff_markdown(report: dict[str, Any]) -> str:
         f"- Blockers cerrados por JSON: {_format_inline_list(beta['satisfied_json_blockers'])}",
         f"- Paquete de comandos: `{command_pack_name}`",
         f"- Checklist de entorno: `{environment_checklist_name}`",
+        f"- Manifiesto de evidencias: `{evidence_manifest_name}`",
         "",
         "## Politica de contenido",
         "",
@@ -1342,6 +1568,7 @@ def _format_real_pilot_handoff_markdown(report: dict[str, Any]) -> str:
             "## Auditoria",
             "",
             f"- Comando estricto: `{beta['strict_audit_command']}`",
+            f"- Revisar manifiesto: `{evidence_manifest_name}`",
             "- Guardar solo artifacts JSON/Markdown sanitizados generados por las herramientas.",
             "- Ejecutar el refresco de `BETA_CHECKLIST.md` despues de auditar evidencias reales.",
             "",
