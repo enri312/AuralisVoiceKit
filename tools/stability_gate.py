@@ -191,6 +191,7 @@ PILOT_CHECKS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
     ("doctor_bundle_api", "src/auralis_voicekit/diagnostics.py", ("create_doctor_bundle", "write_doctor_bundle")),
     ("doctor_bundle_analysis", "src/auralis_voicekit/diagnostics.py", ("analyze_doctor_bundles", "DoctorBundleAnalysis")),
     ("ci", ".github/workflows/ci.yml", ("stability_gate.py", "unittest discover")),
+    ("release_workflow", ".github/workflows/release.yml", ("python -m build", "actions/upload-artifact@v5", "gh release create")),
 )
 
 

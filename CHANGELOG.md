@@ -6,6 +6,17 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.73.0] - 2026-06-06
+
+### Agregado
+
+- Pruebas de workflows para bloquear regresiones a `actions/upload-artifact@v4`.
+
+### Cambiado
+
+- Workflow de release actualizado a `actions/upload-artifact@v5` para evitar la advertencia de Node.js 20 en GitHub Actions.
+- `tools/stability_gate.py` ahora verifica el workflow de release junto con CI.
+
 ## [0.72.0] - 2026-06-06
 
 ### Agregado
