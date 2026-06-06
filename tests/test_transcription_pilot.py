@@ -489,6 +489,82 @@ class TranscriptionPilotTests(unittest.TestCase):
         self.assertFalse(report["transcription_checklist"]["ready_for_beta_evidence"])
         self.assertIn("Ready for beta evidence: False", checklist)
 
+    def test_real_transcription_with_strict_guard_keeps_preflight_readiness_ready(self):
+        module = _load_transcription_pilot()
+
+        class FakeKit:
+            def __init__(self, config):
+                self.config = config
+
+            def transcribe(self, chunk):
+                return type(
+                    "FakeResult",
+                    (),
+                    {
+                        "text": "Hola desde AuralisVoiceKit",
+                        "source": "fake-whisper",
+                        "language": "es",
+                        "confidence": 0.98,
+                        "is_final": True,
+                        "metadata": {"prompt": "private prompt should redact"},
+                    },
+                )()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            audio_path = Path(tmpdir) / "private-meeting.wav"
+            write_wav(
+                str(audio_path),
+                [AudioChunk(data=b"\x00\x00" * 800, format=AudioFormat(sample_rate=8000, channels=1))],
+            )
+            target_backend = {
+                "name": "whisper",
+                "kind": "transcription",
+                "available": True,
+                "dependencies": ["faster-whisper"],
+                "reason": None,
+                "install_command": 'python -m pip install "auralisvoicekit[whisper]"',
+                "install_plan": module._target_backend_install_plan("whisper", ["faster-whisper"]),
+            }
+            with patch.object(module, "_transcription_backend_status", return_value=target_backend):
+                with patch.object(module, "AuralisVoiceKit", FakeKit):
+                    report = module.run_transcription_pilot(
+                        root=ROOT,
+                        output_dir=Path(tmpdir) / "pilot",
+                        audio=audio_path,
+                        backend="whisper",
+                        real_transcription=True,
+                        require_target_backend_ready=True,
+                        audio_confirmed_non_sensitive=True,
+                        audio_review_confirmed=True,
+                        reference_review_confirmed=True,
+                        quality_review_confirmed=True,
+                        expected_text="Hola desde AuralisVoiceKit",
+                        min_word_accuracy=0.75,
+                        min_audio_seconds=0.05,
+                        max_audio_seconds=1.0,
+                        sample_rate=8000,
+                    )
+            report_text = Path(report["artifacts"]["transcription_pilot_report"]).read_text(encoding="utf-8")
+            findings = Path(report["artifacts"]["pilot_findings"]).read_text(encoding="utf-8")
+            next_step = Path(report["artifacts"]["real_transcription_next_step"]).read_text(encoding="utf-8")
+
+        self.assertTrue(report["passed"])
+        self.assertTrue(report["real_transcription_requested"])
+        self.assertTrue(report["target_backend_ready_required"])
+        self.assertEqual(report["preflight_decision"]["decision"], "ready_for_real_transcription")
+        self.assertEqual(report["preflight_readiness"]["status"], "ready")
+        self.assertTrue(report["preflight_readiness"]["ready_for_model_run"])
+        self.assertFalse(report["preflight_readiness"]["must_rerun_preflight"])
+        self.assertTrue(report["preflight_readiness"]["backend_ready"])
+        self.assertTrue(report["preflight_readiness"]["audio_decoded"])
+        self.assertTrue(report["preflight_readiness"]["duration_gate_enabled"])
+        self.assertTrue(report["preflight_readiness"]["duration_gate_passed"])
+        self.assertTrue(report["transcription_checklist"]["ready_for_beta_evidence"])
+        self.assertNotIn("private-meeting.wav", report_text)
+        self.assertNotIn(str(audio_path), report_text)
+        self.assertIn("Preflight readiness status: ready", findings)
+        self.assertIn("Ready for beta evidence: True", next_step)
+
     def test_transcription_pilot_openai_preflight_requires_sanitized_api_key(self):
         module = _load_transcription_pilot()
 

@@ -242,6 +242,8 @@ def run_transcription_pilot(
     )
     preflight_decision = _preflight_decision(
         preflight_only=preflight_only,
+        real_transcription=real_transcription,
+        require_target_backend_ready=require_target_backend_ready,
         target_backend=target_backend,
         credentials=credentials,
         audio=audio_payload,
@@ -1099,15 +1101,23 @@ def _checklist_item(
 def _preflight_decision(
     *,
     preflight_only: bool,
+    real_transcription: bool,
+    require_target_backend_ready: bool,
     target_backend: dict[str, Any],
     credentials: dict[str, Any],
     audio: dict[str, Any],
 ) -> dict[str, Any]:
     checks = [
         _checklist_item(
-            "preflight_only",
-            "Run --preflight-only before a real transcription model.",
-            ok=preflight_only,
+            "preflight_or_guarded_real_run",
+            "Run --preflight-only or a guarded real run before accepting beta evidence.",
+            ok=preflight_only or real_transcription,
+            required=True,
+        ),
+        _checklist_item(
+            "target_backend_ready_required",
+            "Use --require-target-backend-ready for real transcription evidence.",
+            ok=True if preflight_only else require_target_backend_ready,
             required=True,
         ),
         _checklist_item(
@@ -1162,7 +1172,7 @@ def _preflight_decision(
         if item["id"] != "target_backend_available" and item["required"] and item["ok"] is not True
     ]
     backend_ready = target_backend["available"] is True
-    if not preflight_only:
+    if not preflight_only and not real_transcription:
         decision = "not_applicable"
         blocking_reasons: list[str] = []
         next_action = "Run a sanitized --preflight-only pass with the target audio before the real model."

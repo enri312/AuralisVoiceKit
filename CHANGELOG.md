@@ -6,6 +6,14 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.118.0] - 2026-06-06
+
+### Corregido
+
+- `tools/transcription_pilot.py --real-transcription --require-target-backend-ready` ahora conserva `preflight_readiness.status=ready` cuando los checks previos al modelo pasan.
+- La evidencia real de transcripcion ya puede alinearse con el contrato beta que exige `preflight_readiness.ready_for_model_run=true` y `must_rerun_preflight=false`.
+- Nueva prueba simula un backend real disponible sin usar Whisper/OpenAI y verifica que el reporte real sigue redactando ruta/nombre del audio.
+
 ## [0.117.0] - 2026-06-06
 
 ### Agregado

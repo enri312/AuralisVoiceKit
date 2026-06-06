@@ -32,6 +32,8 @@ Nota `v0.116.0`: el auditor beta ahora exige `preflight_readiness.status=ready`,
 
 Nota `v0.117.0`: el fixture sintetico con `--run-preflight` muestra `preflight_readiness` en `pilot-audio-fixture-report.json` y `pilot-audio-fixture-findings.md`, para decidir si instalar backend o repetir preflight antes del MP3 real. English: fixture preflights surface readiness without opening the nested report.
 
+Nota `v0.118.0`: la corrida real de transcripcion con `--require-target-backend-ready` mantiene `preflight_readiness.status=ready` si audio, backend, credenciales y guardas pasan antes del modelo. English: guarded real transcription reports can now satisfy the beta preflight-readiness contract.
+
 ```powershell
 py tools\pilot_run.py --output-dir pilot_runs\safe --json
 py tools\pilot_run.py --output-dir pilot_runs\safe --evidence pilot_runs\manual --evidence pilot_runs\output --evidence pilot_runs\transcription --json

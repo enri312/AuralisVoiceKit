@@ -76,6 +76,8 @@ Nota `v0.116.0`: el contrato beta y la auditoria de evidencias ahora requieren `
 
 Nota `v0.117.0`: el fixture sintetico propaga `preflight_readiness` al reporte principal del fixture para que el operador vea si el backend real falta, si debe repetir preflight o si ya esta listo para modelo.
 
+Nota `v0.118.0`: el piloto real de transcripcion con guard estricto conserva `preflight_readiness.status=ready` cuando los checks previos al modelo pasan, cerrando la ruta tecnica para que `real_transcription_quality` pueda cumplir el contrato beta.
+
 ## Fase 0 - Base del proyecto
 
 **Objetivo:** dejar una libreria instalable, importable y testeable.
