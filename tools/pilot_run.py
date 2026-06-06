@@ -739,7 +739,8 @@ def _platform_pilot_matrix(blockers: list[str]) -> list[dict[str, Any]]:
             "notes": (
                 "Ejecutar solo con operador presente; confirmar privacidad del texto, audibilidad, "
                 "plataforma esperada, output_backend_ready_required=true, revision de voz "
-                "y system-output-next-step.md antes de beta."
+                "operator_checklist.redacts_spoken_text=true, "
+                "next_system_output.records_spoken_text=false y system-output-next-step.md antes de beta."
             ),
         },
         {
@@ -1280,7 +1281,14 @@ def _real_pilot_system_output_readiness_card(report: dict[str, Any]) -> dict[str
                 "text_review_confirmed",
                 "spoken_text_privacy_scan.passed",
                 "voice_review_confirmed",
+                "operator_checklist.records_operator_identity",
+                "operator_checklist.redacts_spoken_text",
+                "operator_checklist.commands_available",
+                "operator_checklist.ready_for_real_audio",
                 "operator_checklist.ready_for_beta_evidence",
+                "next_system_output.uses_placeholders",
+                "next_system_output.records_spoken_text",
+                "next_system_output.records_operator_identity",
             ],
         },
     )

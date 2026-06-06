@@ -428,6 +428,14 @@ class PilotRunTests(unittest.TestCase):
         )
         self.assertEqual(manifest_rows["system_output_audible"]["status"], "pending")
         self.assertEqual(manifest_rows["system_output_audible"]["artifact"], "output-pilot-report.json")
+        self.assertIn(
+            "operator_checklist.redacts_spoken_text",
+            manifest_rows["system_output_audible"]["required_fields"],
+        )
+        self.assertIn(
+            "next_system_output.records_spoken_text",
+            manifest_rows["system_output_audible"]["required_fields"],
+        )
         self.assertTrue(manifest_rows["system_output_audible"]["strict_backend_guard_required"])
         self.assertEqual(
             manifest_rows["system_output_audible"]["strict_backend_guard_flag"],
@@ -479,6 +487,14 @@ class PilotRunTests(unittest.TestCase):
         self.assertIn("output-pilot-report.json", report["system_output_readiness_card"]["expected_artifacts"])
         self.assertIn("operator_checklist.ready_for_beta_evidence", report["system_output_readiness_card"]["required_fields"])
         self.assertIn("target_output_backend.available", report["system_output_readiness_card"]["audible_required_fields"])
+        self.assertIn(
+            "operator_checklist.redacts_spoken_text",
+            report["system_output_readiness_card"]["audible_required_fields"],
+        )
+        self.assertIn(
+            "next_system_output.records_spoken_text",
+            report["system_output_readiness_card"]["audible_required_fields"],
+        )
         self.assertIn("status", report["system_output_readiness_card"]["output_backend"])
         self.assertFalse(report["system_output_readiness_card"]["content_policy"]["records_spoken_text"])
         decision_environment_rows = {row["name"]: row for row in report["environment_checklist"]}
@@ -565,6 +581,13 @@ class PilotRunTests(unittest.TestCase):
         self.assertIn("operator_checklist.text_review_confirmed", output_step["required_fields"])
         self.assertIn("operator_checklist.spoken_text_privacy_scan_passed", output_step["required_fields"])
         self.assertIn("operator_checklist.voice_review_confirmed", output_step["required_fields"])
+        self.assertIn("operator_checklist.records_operator_identity", output_step["required_fields"])
+        self.assertIn("operator_checklist.redacts_spoken_text", output_step["required_fields"])
+        self.assertIn("operator_checklist.commands_available", output_step["required_fields"])
+        self.assertIn("operator_checklist.ready_for_real_audio", output_step["required_fields"])
+        self.assertIn("next_system_output.uses_placeholders", output_step["required_fields"])
+        self.assertIn("next_system_output.records_spoken_text", output_step["required_fields"])
+        self.assertIn("next_system_output.records_operator_identity", output_step["required_fields"])
         self.assertFalse(checklist_step["requires_hardware"])
         self.assertFalse(checklist_step["requires_operator"])
         self.assertFalse(checklist_step["strict_backend_guard_required"])
@@ -594,6 +617,8 @@ class PilotRunTests(unittest.TestCase):
         self.assertIn("--confirm-text-reviewed", matrix["system-output-audible"]["command"])
         self.assertIn('--expected-system "Windows|Linux|Darwin"', matrix["system-output-audible"]["command"])
         self.assertIn("output_backend_ready_required=true", matrix["system-output-audible"]["notes"])
+        self.assertIn("operator_checklist.redacts_spoken_text=true", matrix["system-output-audible"]["notes"])
+        self.assertIn("next_system_output.records_spoken_text=false", matrix["system-output-audible"]["notes"])
         self.assertIn("--fail-on-audit-gaps", report["beta_readiness"]["strict_audit_command"])
         environment_rows = {row["name"]: row for row in report["environment_checklist"]}
         self.assertIn("python-runtime", environment_rows)

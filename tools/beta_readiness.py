@@ -128,10 +128,17 @@ def build_evidence_requirements_report() -> dict[str, Any]:
                     _required_field("spoken_text_privacy_scan.passed", True),
                     _required_field("voice_review_confirmed", True),
                     _required_field("operator_checklist.expected_system_matched", True),
+                    _required_field("operator_checklist.records_operator_identity", False),
+                    _required_field("operator_checklist.redacts_spoken_text", True),
                     _required_field("operator_checklist.text_review_confirmed", True),
                     _required_field("operator_checklist.spoken_text_privacy_scan_passed", True),
                     _required_field("operator_checklist.voice_review_confirmed", True),
+                    _required_field("operator_checklist.commands_available", True),
+                    _required_field("operator_checklist.ready_for_real_audio", True),
                     _required_field("operator_checklist.ready_for_beta_evidence", True),
+                    _required_field("next_system_output.uses_placeholders", True),
+                    _required_field("next_system_output.records_spoken_text", False),
+                    _required_field("next_system_output.records_operator_identity", False),
                     _required_field("passed", True),
                 ],
             },
@@ -324,6 +331,10 @@ def build_beta_readiness_report(
                 "Text review confirmed: True",
                 "Spoken text privacy scan passed: True",
                 "Voice review confirmed: True",
+                "Records operator identity: False",
+                "Redacts spoken text: True",
+                "Commands available: True",
+                "Ready for real audio: True",
                 "Operator checklist ready for beta evidence: True",
             ),
             next_action=(
@@ -335,7 +346,12 @@ def build_beta_readiness_report(
                 "system_guard.expected_system_matched=true, "
                 "target_output_backend.available=true, output_backend_ready_required=true, "
                 "operator_checklist.expected_system_matched=true, "
-                "spoken_text_privacy_scan.passed=true "
+                "spoken_text_privacy_scan.passed=true, "
+                "operator_checklist.redacts_spoken_text=true, "
+                "operator_checklist.records_operator_identity=false, "
+                "operator_checklist.commands_available=true, "
+                "operator_checklist.ready_for_real_audio=true, "
+                "next_system_output.records_spoken_text=false "
                 "and only sanitized findings."
             ),
         ),
@@ -991,6 +1007,7 @@ def _is_macos_capture_evidence(report: dict[str, Any]) -> bool:
 
 
 def _is_system_output_audible_evidence(report: dict[str, Any]) -> bool:
+    next_system_output = report.get("next_system_output", {})
     operator_checklist = report.get("operator_checklist", {})
     system_guard = report.get("system_guard", {})
     spoken_text_privacy_scan = report.get("spoken_text_privacy_scan", {})
@@ -1008,11 +1025,19 @@ def _is_system_output_audible_evidence(report: dict[str, Any]) -> bool:
         and isinstance(spoken_text_privacy_scan, dict)
         and spoken_text_privacy_scan.get("passed") is True
         and report.get("voice_review_confirmed") is True
+        and isinstance(next_system_output, dict)
+        and next_system_output.get("uses_placeholders") is True
+        and next_system_output.get("records_spoken_text") is False
+        and next_system_output.get("records_operator_identity") is False
         and isinstance(operator_checklist, dict)
         and operator_checklist.get("expected_system_matched") is True
+        and operator_checklist.get("records_operator_identity") is False
+        and operator_checklist.get("redacts_spoken_text") is True
         and operator_checklist.get("text_review_confirmed") is True
         and operator_checklist.get("spoken_text_privacy_scan_passed") is True
         and operator_checklist.get("voice_review_confirmed") is True
+        and operator_checklist.get("commands_available") is True
+        and operator_checklist.get("ready_for_real_audio") is True
         and operator_checklist.get("ready_for_beta_evidence") is True
         and report.get("passed") is True
     )

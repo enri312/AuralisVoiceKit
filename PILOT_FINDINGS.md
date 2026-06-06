@@ -2,6 +2,36 @@
 
 Este documento resume hallazgos de pilotos reales o semi-manuales. No debe incluir audio, transcripciones privadas, rutas locales completas ni nombres reales de dispositivos.
 
+## 2026-06-06 - Auditoria beta exige salida audible redactada
+
+Comando ejecutado:
+
+```powershell
+python tools\beta_readiness.py --requirements
+```
+
+Alcance:
+
+- Sistema anfitrion: Windows.
+- Version AuralisVoiceKit: `0.99.2`.
+- Audio real reproducido: no.
+- Texto hablado real usado: no.
+- Tipo de piloto: auditoria de contrato beta.
+
+Resultado:
+
+- El contrato de salida audible ahora exige `operator_checklist.redacts_spoken_text=true`.
+- El contrato tambien exige `operator_checklist.records_operator_identity=false`.
+- La evidencia debe probar `operator_checklist.commands_available=true` y `operator_checklist.ready_for_real_audio=true`.
+- `next_system_output` debe usar placeholders y declarar `records_spoken_text=false`.
+- Evidencia beta: `false`; este hallazgo valida el contrato, no reemplaza el piloto audible con operador presente.
+
+Acciones siguientes:
+
+1. Ejecutar el dry-run de `tools/output_pilot.py` y revisar `output-operator-checklist.md`.
+2. Ejecutar salida `system` real solo con operador presente y texto publico/no sensible.
+3. Conservar solo artifacts sanitizados con texto hablado y operador redactados.
+
 ## 2026-06-06 - Auditoria beta exige audio real decodificado y transcript redactado
 
 Comando ejecutado:

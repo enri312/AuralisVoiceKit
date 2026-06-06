@@ -79,10 +79,17 @@ Este documento describe los campos JSON que pueden cerrar blockers de beta. No r
   - `spoken_text_privacy_scan.passed` = `True`
   - `voice_review_confirmed` = `True`
   - `operator_checklist.expected_system_matched` = `True`
+  - `operator_checklist.records_operator_identity` = `False`
+  - `operator_checklist.redacts_spoken_text` = `True`
   - `operator_checklist.text_review_confirmed` = `True`
   - `operator_checklist.spoken_text_privacy_scan_passed` = `True`
   - `operator_checklist.voice_review_confirmed` = `True`
+  - `operator_checklist.commands_available` = `True`
+  - `operator_checklist.ready_for_real_audio` = `True`
   - `operator_checklist.ready_for_beta_evidence` = `True`
+  - `next_system_output.uses_placeholders` = `True`
+  - `next_system_output.records_spoken_text` = `False`
+  - `next_system_output.records_operator_identity` = `False`
   - `passed` = `True`
 
 ### ubuntu_linux_capture

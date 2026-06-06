@@ -6,6 +6,15 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.99.2] - 2026-06-06
+
+### Agregado
+
+- `tools/beta_readiness.py` ahora exige que la evidencia beta de salida audible mantenga `operator_checklist.redacts_spoken_text=true`.
+- El contrato de salida audible tambien exige no registrar identidad del operador, tener comandos disponibles y usar `next_system_output` con placeholders sin texto hablado.
+- `tools/pilot_run.py`, README, `PILOTS.md`, roadmap y documentacion HTML reflejan los nuevos campos requeridos para `system_output_audible`.
+- Nuevas pruebas bloquean artifacts de salida audible que omiten redaccion de texto hablado, placeholders o readiness real de comandos.
+
 ## [0.99.1] - 2026-06-06
 
 ### Agregado

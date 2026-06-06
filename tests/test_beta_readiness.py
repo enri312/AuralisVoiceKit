@@ -434,6 +434,69 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertFalse(checks["system_output_audible"]["ok"])
         self.assertIn("system_output_audible", report["blockers"])
 
+    def test_system_output_evidence_requires_spoken_text_redaction(self):
+        module = _load_beta_readiness()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            evidence_path = Path(tmpdir) / "output-pilot-report.json"
+            payload = _output_evidence()
+            payload["operator_checklist"]["redacts_spoken_text"] = False
+            _write_json(evidence_path, payload)
+
+            report = module.build_beta_readiness_report(ROOT, evidence_paths=[evidence_path])
+            checks = {check["name"]: check for check in report["checks"]}
+
+        self.assertFalse(checks["system_output_audible"]["ok"])
+        self.assertIn("system_output_audible", report["blockers"])
+
+    def test_system_output_evidence_requires_operator_identity_redaction(self):
+        module = _load_beta_readiness()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            evidence_path = Path(tmpdir) / "output-pilot-report.json"
+            payload = _output_evidence()
+            payload["operator_checklist"]["records_operator_identity"] = True
+            payload["next_system_output"]["records_operator_identity"] = True
+            _write_json(evidence_path, payload)
+
+            report = module.build_beta_readiness_report(ROOT, evidence_paths=[evidence_path])
+            checks = {check["name"]: check for check in report["checks"]}
+
+        self.assertFalse(checks["system_output_audible"]["ok"])
+        self.assertIn("system_output_audible", report["blockers"])
+
+    def test_system_output_evidence_requires_placeholder_next_step(self):
+        module = _load_beta_readiness()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            evidence_path = Path(tmpdir) / "output-pilot-report.json"
+            payload = _output_evidence()
+            payload["next_system_output"]["uses_placeholders"] = False
+            payload["next_system_output"]["records_spoken_text"] = True
+            _write_json(evidence_path, payload)
+
+            report = module.build_beta_readiness_report(ROOT, evidence_paths=[evidence_path])
+            checks = {check["name"]: check for check in report["checks"]}
+
+        self.assertFalse(checks["system_output_audible"]["ok"])
+        self.assertIn("system_output_audible", report["blockers"])
+
+    def test_system_output_evidence_requires_real_audio_readiness(self):
+        module = _load_beta_readiness()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            evidence_path = Path(tmpdir) / "output-pilot-report.json"
+            payload = _output_evidence()
+            payload["operator_checklist"]["commands_available"] = False
+            payload["operator_checklist"]["ready_for_real_audio"] = False
+            _write_json(evidence_path, payload)
+
+            report = module.build_beta_readiness_report(ROOT, evidence_paths=[evidence_path])
+            checks = {check["name"]: check for check in report["checks"]}
+
+        self.assertFalse(checks["system_output_audible"]["ok"])
+        self.assertIn("system_output_audible", report["blockers"])
+
     def test_system_output_evidence_requires_expected_system_guard(self):
         module = _load_beta_readiness()
 
@@ -698,7 +761,9 @@ class BetaReadinessTests(unittest.TestCase):
         transcription_fields = {
             field["path"]: field["expected"] for field in requirements["real_transcription_quality"]["fields"]
         }
-        output_fields = {field["path"] for field in requirements["system_output_audible"]["fields"]}
+        output_fields = {
+            field["path"]: field["expected"] for field in requirements["system_output_audible"]["fields"]
+        }
         linux_fields = {
             field["path"]: field["expected"] for field in requirements["ubuntu_linux_capture"]["fields"]
         }
@@ -737,10 +802,17 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertIn("spoken_text_privacy_scan.passed", output_fields)
         self.assertIn("voice_review_confirmed", output_fields)
         self.assertIn("operator_checklist.expected_system_matched", output_fields)
+        self.assertEqual(output_fields["operator_checklist.records_operator_identity"], False)
+        self.assertEqual(output_fields["operator_checklist.redacts_spoken_text"], True)
         self.assertIn("operator_checklist.text_review_confirmed", output_fields)
         self.assertIn("operator_checklist.spoken_text_privacy_scan_passed", output_fields)
         self.assertIn("operator_checklist.voice_review_confirmed", output_fields)
+        self.assertEqual(output_fields["operator_checklist.commands_available"], True)
+        self.assertEqual(output_fields["operator_checklist.ready_for_real_audio"], True)
         self.assertIn("operator_checklist.ready_for_beta_evidence", output_fields)
+        self.assertEqual(output_fields["next_system_output.uses_placeholders"], True)
+        self.assertEqual(output_fields["next_system_output.records_spoken_text"], False)
+        self.assertEqual(output_fields["next_system_output.records_operator_identity"], False)
         self.assertIn("system_guard.expected_system_matched", linux_fields)
         self.assertEqual(linux_fields["capture_backend"], "sounddevice | pyaudio")
         self.assertEqual(linux_fields["target_capture_backend.available"], True)
@@ -795,8 +867,15 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertIn("output_backend_ready_required", content)
         self.assertIn("voice_review_confirmed", content)
         self.assertIn("operator_checklist.expected_system_matched", content)
+        self.assertIn("operator_checklist.records_operator_identity", content)
+        self.assertIn("operator_checklist.redacts_spoken_text", content)
         self.assertIn("operator_checklist.text_review_confirmed", content)
         self.assertIn("operator_checklist.spoken_text_privacy_scan_passed", content)
+        self.assertIn("operator_checklist.commands_available", content)
+        self.assertIn("operator_checklist.ready_for_real_audio", content)
+        self.assertIn("next_system_output.uses_placeholders", content)
+        self.assertIn("next_system_output.records_spoken_text", content)
+        self.assertIn("next_system_output.records_operator_identity", content)
         self.assertIn("transcription_checklist.ready_for_beta_evidence", content)
         self.assertIn("No audio bytes", content)
         self.assertNotIn(str(ROOT), content)
@@ -1073,10 +1152,19 @@ def _output_evidence() -> dict:
         "voice_review_confirmed": True,
         "operator_checklist": {
             "expected_system_matched": True,
+            "records_operator_identity": False,
+            "redacts_spoken_text": True,
             "text_review_confirmed": True,
             "spoken_text_privacy_scan_passed": True,
             "voice_review_confirmed": True,
+            "commands_available": True,
+            "ready_for_real_audio": True,
             "ready_for_beta_evidence": True,
+        },
+        "next_system_output": {
+            "uses_placeholders": True,
+            "records_spoken_text": False,
+            "records_operator_identity": False,
         },
         "passed": True,
     }
