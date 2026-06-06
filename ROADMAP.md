@@ -102,6 +102,8 @@ Nota `v0.129.0`: los hallazgos de `privacy_audit` ahora incluyen `action_es`, `a
 
 Nota `v0.130.0`: `privacy_remediation_plan` agrupa esos hallazgos en pasos ordenados por artifact y campo, con `safe_to_share=true` y `records_private_values=false`, y el piloto seguro lo muestra en el plan, manifiesto y compuerta go/no-go.
 
+Nota `v0.131.0`: `tools/pilot_run.py` genera `real-pilot-hard-stop-card.md`, una tarjeta publica con condiciones de alto, acciones minimas y politica de contenido antes de tocar hardware, audio real o flags `--confirm-*`.
+
 ## Fase 0 - Base del proyecto
 
 **Objetivo:** dejar una libreria instalable, importable y testeable.

@@ -6,6 +6,18 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.131.0] - 2026-06-06
+
+### Agregado
+
+- `tools/pilot_run.py` ahora genera `real-pilot-hard-stop-card.md`, una tarjeta publica de alto operativo antes de tocar hardware, audio real, texto hablado real o flags `--confirm-*`.
+- El artifact se enlaza desde `pilot-plan.md`, `real-pilot-handoff.md`, `real-pilot-next-evidence-focus.md` y `real-pilot-decision-gate.md`.
+- `pilot-report.json` incluye `real_pilot_hard_stop_card` con politica de contenido segura y flags que prueban que no registra audio, transcripciones, texto hablado, rutas locales, nombres de dispositivos ni identidad del operador.
+
+### Pruebas
+
+- Nuevas pruebas validan que la tarjeta se escribe, se serializa, queda enlazada y conserva la politica publica segura.
+
 ## [0.130.0] - 2026-06-06
 
 ### Agregado
