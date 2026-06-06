@@ -56,7 +56,7 @@ def build_evidence_requirements_report() -> dict[str, Any]:
                     _required_field("input_review_confirmed", True),
                     _required_field("capture_checklist.input_review_confirmed", True),
                     _required_field("capture_checklist.ready_for_beta_evidence", True),
-                    *_manual_capture_command_card_required_fields("windows_wasapi_capture"),
+                    *_manual_capture_command_card_required_fields("windows_wasapi_capture", "sounddevice"),
                     *_capture_operator_gate_required_fields("windows_wasapi_capture"),
                     _required_field("passed", True),
                 ],
@@ -198,7 +198,7 @@ def build_evidence_requirements_report() -> dict[str, Any]:
                     _required_field("input_review_confirmed", True),
                     _required_field("capture_checklist.input_review_confirmed", True),
                     _required_field("capture_checklist.ready_for_beta_evidence", True),
-                    *_manual_capture_command_card_required_fields("ubuntu_linux_capture"),
+                    *_manual_capture_command_card_required_fields("ubuntu_linux_capture", "sounddevice | pyaudio"),
                     *_capture_operator_gate_required_fields("ubuntu_linux_capture"),
                     _required_field("passed", True),
                 ],
@@ -224,7 +224,7 @@ def build_evidence_requirements_report() -> dict[str, Any]:
                     _required_field("input_review_confirmed", True),
                     _required_field("capture_checklist.input_review_confirmed", True),
                     _required_field("capture_checklist.ready_for_beta_evidence", True),
-                    *_manual_capture_command_card_required_fields("macos_capture"),
+                    *_manual_capture_command_card_required_fields("macos_capture", "sounddevice | pyaudio"),
                     *_capture_operator_gate_required_fields("macos_capture"),
                     _required_field("passed", True),
                 ],
@@ -360,6 +360,8 @@ def build_beta_readiness_report(
                 "Expected system matched: True",
                 "Target capture backend available: True",
                 "Capture backend readiness required: True",
+                "Capture readiness uses pip extra: True",
+                "Capture readiness python extra: sounddevice",
                 "Input review confirmed: True",
                 "Manual capture command: manual-capture-command.md",
             ),
@@ -367,7 +369,8 @@ def build_beta_readiness_report(
                 "Repeat the Windows WASAPI pilot with --sample-rate 48000, --expected-system Windows, "
                 "--confirm-input-reviewed and --require-capture-backend-ready after checking permissions, "
                 "input device and room privacy, then keep manual-capture-checklist.md, "
-                "manual-capture-command.md and only sanitized findings."
+                "manual-capture-command.md, manual_capture_command_card.uses_pip_extra=true, "
+                "manual_capture_command_card.python_extra=sounddevice and only sanitized findings."
             ),
         ),
         _evidence_or_terms_check(
@@ -492,6 +495,7 @@ def build_beta_readiness_report(
                 "Piloto manual: `passed=true`",
                 "Target capture backend available: True",
                 "Capture backend readiness required: True",
+                "Capture readiness uses pip extra: True",
             ),
             next_action=(
                 "Run the manual capture pilot on Ubuntu/Linux with real hardware and "
@@ -502,7 +506,9 @@ def build_beta_readiness_report(
                 "target_capture_backend.available=true, capture_backend_ready_required=true, "
                 "input_review_confirmed=true, "
                 "capture_checklist.input_review_confirmed=true, capture_checklist.ready_for_beta_evidence=true "
-                "and manual_capture_command_card safe-to-share redaction flags."
+                "and manual_capture_command_card safe-to-share redaction flags plus "
+                "manual_capture_command_card.uses_pip_extra=true and "
+                "manual_capture_command_card.python_extra=sounddevice|pyaudio."
             ),
         ),
         _evidence_or_terms_check(
@@ -517,6 +523,7 @@ def build_beta_readiness_report(
                 "Piloto manual: `passed=true`",
                 "Target capture backend available: True",
                 "Capture backend readiness required: True",
+                "Capture readiness uses pip extra: True",
             ),
             next_action=(
                 "Run the manual capture pilot on macOS with real hardware and --backend sounddevice "
@@ -527,7 +534,9 @@ def build_beta_readiness_report(
                 "capture_backend=sounddevice|pyaudio, target_capture_backend.available=true, "
                 "capture_backend_ready_required=true, input_review_confirmed=true, "
                 "capture_checklist.input_review_confirmed=true, capture_checklist.ready_for_beta_evidence=true "
-                "and manual_capture_command_card safe-to-share redaction flags."
+                "and manual_capture_command_card safe-to-share redaction flags plus "
+                "manual_capture_command_card.uses_pip_extra=true and "
+                "manual_capture_command_card.python_extra=sounddevice|pyaudio."
             ),
         ),
     ]
@@ -1035,13 +1044,18 @@ def _required_field(path: str, expected: Any) -> dict[str, Any]:
     return {"path": path, "expected": expected}
 
 
-def _manual_capture_command_card_required_fields(blocker: str) -> list[dict[str, Any]]:
+def _manual_capture_command_card_required_fields(
+    blocker: str,
+    python_extra: str,
+) -> list[dict[str, Any]]:
     return [
         _required_field("manual_capture_command_card.artifact", "manual-capture-command.md"),
         _required_field("manual_capture_command_card.blocker", blocker),
         _required_field("manual_capture_command_card.ready_for_beta_evidence", True),
         _required_field("manual_capture_command_card.safe_to_share", True),
         _required_field("manual_capture_command_card.uses_placeholders", True),
+        _required_field("manual_capture_command_card.uses_pip_extra", True),
+        _required_field("manual_capture_command_card.python_extra", python_extra),
         _required_field("manual_capture_command_card.preflight_uses_microphone", False),
         _required_field("manual_capture_command_card.real_capture_requires_microphone", True),
         _required_field("manual_capture_command_card.records_audio", False),
@@ -1679,6 +1693,7 @@ def _has_safe_manual_capture_command_card(report: dict[str, Any], blocker: str) 
     card = report.get("manual_capture_command_card", {})
     if not isinstance(card, dict):
         return False
+    expected_python_extra = _capture_python_extra(report.get("capture_backend"))
     command_templates = (
         card.get("preflight_command_template"),
         card.get("real_capture_command_template"),
@@ -1690,6 +1705,9 @@ def _has_safe_manual_capture_command_card(report: dict[str, Any], blocker: str) 
         and card.get("ready_for_beta_evidence") is True
         and card.get("safe_to_share") is True
         and card.get("uses_placeholders") is True
+        and expected_python_extra is not None
+        and card.get("uses_pip_extra") is True
+        and card.get("python_extra") == expected_python_extra
         and card.get("preflight_uses_microphone") is False
         and card.get("real_capture_requires_microphone") is True
         and card.get("records_audio") is False
@@ -1698,6 +1716,15 @@ def _has_safe_manual_capture_command_card(report: dict[str, Any], blocker: str) 
         and card.get("records_local_paths") is False
         and all(isinstance(command, str) and "<pilot-output-dir>" in command for command in command_templates)
     )
+
+
+def _capture_python_extra(backend: object) -> str | None:
+    normalized = str(backend).casefold()
+    if normalized in {"sounddevice", "wasapi"}:
+        return "sounddevice"
+    if normalized == "pyaudio":
+        return "pyaudio"
+    return None
 
 
 def _has_ready_capture_operator_gate(report: dict[str, Any], blocker: str) -> bool:

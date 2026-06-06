@@ -1961,6 +1961,7 @@ def _manual_capture_command_card(blocker: str, evidence_system: str, backend: st
         f"python tools/manual_pilot.py --backend {backend} --device default "
         "--expected-system Linux --require-capture-backend-ready --json"
     )
+    python_extra = _capture_python_extra(backend)
     return {
         "artifact": "manual-capture-command.md",
         "safe_to_share": True,
@@ -1971,6 +1972,8 @@ def _manual_capture_command_card(blocker: str, evidence_system: str, backend: st
         "missing_count": 0,
         "missing_fields": [],
         "setup_commands": [],
+        "uses_pip_extra": python_extra is not None,
+        "python_extra": python_extra,
         "pip_command": f"python -m pip install .[{backend}]",
         "preflight_command_template": f"{base_command} --output-dir <pilot-output-dir>",
         "preflight_uses_microphone": False,
@@ -2025,6 +2028,14 @@ def _capture_operator_gate(blocker: str, backend: str) -> dict:
         "records_local_paths": False,
         "records_operator_identity": False,
     }
+
+
+def _capture_python_extra(backend: str) -> str | None:
+    if backend in {"sounddevice", "wasapi"}:
+        return "sounddevice"
+    if backend == "pyaudio":
+        return "pyaudio"
+    return None
 
 
 if __name__ == "__main__":

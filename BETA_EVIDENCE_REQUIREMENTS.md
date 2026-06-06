@@ -30,6 +30,8 @@ Este documento describe los campos JSON que pueden cerrar blockers de beta. No r
   - `manual_capture_command_card.ready_for_beta_evidence` = `True`
   - `manual_capture_command_card.safe_to_share` = `True`
   - `manual_capture_command_card.uses_placeholders` = `True`
+  - `manual_capture_command_card.uses_pip_extra` = `True`
+  - `manual_capture_command_card.python_extra` = `sounddevice`
   - `manual_capture_command_card.preflight_uses_microphone` = `False`
   - `manual_capture_command_card.real_capture_requires_microphone` = `True`
   - `manual_capture_command_card.records_audio` = `False`
@@ -223,6 +225,8 @@ Este documento describe los campos JSON que pueden cerrar blockers de beta. No r
   - `manual_capture_command_card.ready_for_beta_evidence` = `True`
   - `manual_capture_command_card.safe_to_share` = `True`
   - `manual_capture_command_card.uses_placeholders` = `True`
+  - `manual_capture_command_card.uses_pip_extra` = `True`
+  - `manual_capture_command_card.python_extra` = `sounddevice | pyaudio`
   - `manual_capture_command_card.preflight_uses_microphone` = `False`
   - `manual_capture_command_card.real_capture_requires_microphone` = `True`
   - `manual_capture_command_card.records_audio` = `False`
@@ -268,6 +272,8 @@ Este documento describe los campos JSON que pueden cerrar blockers de beta. No r
   - `manual_capture_command_card.ready_for_beta_evidence` = `True`
   - `manual_capture_command_card.safe_to_share` = `True`
   - `manual_capture_command_card.uses_placeholders` = `True`
+  - `manual_capture_command_card.uses_pip_extra` = `True`
+  - `manual_capture_command_card.python_extra` = `sounddevice | pyaudio`
   - `manual_capture_command_card.preflight_uses_microphone` = `False`
   - `manual_capture_command_card.real_capture_requires_microphone` = `True`
   - `manual_capture_command_card.records_audio` = `False`

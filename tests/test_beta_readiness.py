@@ -923,6 +923,8 @@ class BetaReadinessTests(unittest.TestCase):
         unsafe_cases = [
             ("safe_to_share", False),
             ("uses_placeholders", False),
+            ("uses_pip_extra", False),
+            ("python_extra", "pyaudio"),
             ("preflight_uses_microphone", True),
             ("real_capture_requires_microphone", False),
             ("records_audio", True),
@@ -1290,16 +1292,22 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertEqual(output_fields["system_output_operator_gate.records_local_paths"], False)
         self.assertEqual(windows_fields["target_capture_backend.available"], True)
         self.assertEqual(windows_fields["capture_backend_ready_required"], True)
+        self.assertEqual(windows_fields["manual_capture_command_card.uses_pip_extra"], True)
+        self.assertEqual(windows_fields["manual_capture_command_card.python_extra"], "sounddevice")
         self.assertIn("system_guard.expected_system_matched", linux_fields)
         self.assertEqual(linux_fields["capture_backend"], "sounddevice | pyaudio")
         self.assertEqual(linux_fields["target_capture_backend.available"], True)
         self.assertEqual(linux_fields["capture_backend_ready_required"], True)
+        self.assertEqual(linux_fields["manual_capture_command_card.uses_pip_extra"], True)
+        self.assertEqual(linux_fields["manual_capture_command_card.python_extra"], "sounddevice | pyaudio")
         self.assertIn("input_review_confirmed", linux_fields)
         self.assertIn("capture_checklist.input_review_confirmed", linux_fields)
         self.assertIn("capture_checklist.ready_for_beta_evidence", linux_fields)
         self.assertEqual(macos_fields["capture_backend"], "sounddevice | pyaudio")
         self.assertEqual(macos_fields["target_capture_backend.available"], True)
         self.assertEqual(macos_fields["capture_backend_ready_required"], True)
+        self.assertEqual(macos_fields["manual_capture_command_card.uses_pip_extra"], True)
+        self.assertEqual(macos_fields["manual_capture_command_card.python_extra"], "sounddevice | pyaudio")
         for blocker, capture_fields in (
             ("windows_wasapi_capture", windows_fields),
             ("ubuntu_linux_capture", linux_fields),
@@ -1354,6 +1362,8 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertIn("capture_checklist.ready_for_beta_evidence", content)
         self.assertIn("manual_capture_command_card.safe_to_share", content)
         self.assertIn("manual_capture_command_card.uses_placeholders", content)
+        self.assertIn("manual_capture_command_card.uses_pip_extra", content)
+        self.assertIn("manual_capture_command_card.python_extra", content)
         self.assertIn("manual_capture_command_card.records_audio_bytes", content)
         self.assertIn("capture_operator_gate.ready_for_beta_audit", content)
         self.assertIn("capture_operator_gate.missing_confirmation_count", content)
@@ -1791,6 +1801,7 @@ def _manual_capture_command_card(system: str, backend: str) -> dict:
         f"python tools/manual_pilot.py --backend {backend} --device default "
         f"--expected-system {system} --require-capture-backend-ready --json"
     )
+    python_extra = _capture_python_extra(backend)
     return {
         "artifact": "manual-capture-command.md",
         "safe_to_share": True,
@@ -1801,6 +1812,8 @@ def _manual_capture_command_card(system: str, backend: str) -> dict:
         "missing_count": 0,
         "missing_fields": [],
         "setup_commands": [],
+        "uses_pip_extra": python_extra is not None,
+        "python_extra": python_extra,
         "pip_command": f"python -m pip install .[{backend}]",
         "preflight_command_template": f"{base_command} --output-dir <pilot-output-dir>",
         "preflight_uses_microphone": False,
@@ -1851,6 +1864,14 @@ def _capture_operator_gate(system: str, backend: str) -> dict:
         "records_local_paths": False,
         "records_operator_identity": False,
     }
+
+
+def _capture_python_extra(backend: str) -> str | None:
+    if backend in {"sounddevice", "wasapi"}:
+        return "sounddevice"
+    if backend == "pyaudio":
+        return "pyaudio"
+    return None
 
 
 def _capture_evidence(system: str, backend: str) -> dict:

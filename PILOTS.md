@@ -94,6 +94,8 @@ Nota `v0.153.0`: `target_backend.install_plan` en los pilotos de transcripcion c
 
 Nota `v0.154.0`: `capture_readiness_plan` y `manual_capture_command_card` agregan `uses_pip_extra` y `python_extra` para `sounddevice`, `wasapi` y `pyaudio`, manteniendo comandos seguros sin abrir microfono. English: manual capture readiness now exposes structured optional extra fields.
 
+Nota `v0.155.0`: `tools/beta_readiness.py` exige esos campos estructurados en `manual_capture_command_card` antes de aceptar evidencia beta de captura. English: capture beta evidence now requires structured optional extra fields.
+
 ```powershell
 py tools\pilot_run.py --output-dir pilot_runs\safe --json
 py tools\pilot_run.py --output-dir pilot_runs\safe --evidence pilot_runs\manual --evidence pilot_runs\output --evidence pilot_runs\transcription --json

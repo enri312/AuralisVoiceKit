@@ -150,6 +150,8 @@ Nota `v0.153.0`: `target_backend.install_plan` en pilotos de transcripcion usa e
 
 Nota `v0.154.0`: `capture_readiness_plan` y `manual_capture_command_card` en pilotos de captura manual agregan `uses_pip_extra` y `python_extra`, alineando Ubuntu/Linux, macOS y WASAPI con el inventario publico de backends.
 
+Nota `v0.155.0`: el contrato beta de captura exige `manual_capture_command_card.uses_pip_extra=true` y `manual_capture_command_card.python_extra`, evitando que evidencias antiguas sin plan de extra opcional cierren beta.
+
 ## Fase 0 - Base del proyecto
 
 **Objetivo:** dejar una libreria instalable, importable y testeable.

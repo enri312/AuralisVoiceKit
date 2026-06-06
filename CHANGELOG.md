@@ -6,6 +6,16 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.155.0] - 2026-06-06
+
+### Agregado
+
+- `tools/beta_readiness.py` ahora exige `manual_capture_command_card.uses_pip_extra=true` y `manual_capture_command_card.python_extra` correcto para cerrar evidencia beta de captura Windows/WASAPI, Ubuntu/Linux y macOS.
+
+### Pruebas
+
+- Nuevas aserciones validan que el contrato beta, el auditor de evidencias y los fixtures de pilotos seguros rechacen tarjetas de captura sin extra estructurado.
+
 ## [0.154.0] - 2026-06-06
 
 ### Agregado

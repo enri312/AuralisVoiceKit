@@ -453,6 +453,8 @@ def _build_findings_markdown(
         f"- Target capture backend dependencies: {_format_list(target_capture_backend['dependencies'])}",
         f"- Capture backend readiness required: {require_capture_backend_ready}",
         f"- Capture readiness target system: {capture_readiness_plan['system']}",
+        f"- Capture readiness uses pip extra: {capture_readiness_plan['uses_pip_extra']}",
+        f"- Capture readiness python extra: {_format_optional(capture_readiness_plan['python_extra'])}",
         f"- Capture readiness pip command: {capture_readiness_plan['pip_command']}",
         f"- Capture readiness setup commands: {_format_list(capture_readiness_plan['setup_commands'])}",
         f"- Capture readiness post-install check: {capture_readiness_plan['post_install_check']}",
