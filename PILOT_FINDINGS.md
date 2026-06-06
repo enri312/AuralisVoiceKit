@@ -2,6 +2,39 @@
 
 Este documento resume hallazgos de pilotos reales o semi-manuales. No debe incluir audio, transcripciones privadas, rutas locales completas ni nombres reales de dispositivos.
 
+## 2026-06-06 - Windows dry-run de readiness para captura Ubuntu/Linux
+
+Comando ejecutado:
+
+```powershell
+python tools\manual_pilot.py --output-dir pilot_runs\manual\capture-readiness-linux --backend sounddevice --target-system Linux --json
+```
+
+Alcance:
+
+- Sistema anfitrion: Windows.
+- Sistema objetivo para instrucciones: Ubuntu/Linux.
+- Version AuralisVoiceKit: `0.96.0`.
+- Microfono abierto: no.
+- Audio real guardado: no.
+- Artifact de preparacion: `manual-capture-checklist.md`.
+
+Resultado:
+
+- Dry-run: `passed=true`.
+- `capture_backend`: `sounddevice`.
+- `capture_readiness_plan.pip_command`: `python -m pip install "auralisvoicekit[sounddevice]"`.
+- `capture_readiness_plan.setup_commands`: `sudo apt-get update` y `sudo apt-get install -y libportaudio2`.
+- `capture_readiness_plan.post_install_check`: usa `--target-system Linux --json` sin abrir microfono.
+- `capture_readiness_plan.real_capture_check_template`: conserva `--capture-test`, `--expected-system Linux` y `--confirm-input-reviewed`.
+- Evidencia beta: `false`; falta Ubuntu/Linux real, microfono real, revision de entrada y `capture_checklist.ready_for_beta_evidence=true`.
+
+Acciones siguientes:
+
+1. Ejecutar el `post_install_check` en Ubuntu/Linux real despues de instalar el extra y PortAudio.
+2. Ejecutar captura real solo despues de revisar permisos de microfono, dispositivo y entorno no sensible.
+3. Mantener beta bloqueada hasta que `system_guard.expected_system_matched=true`, `input_review_confirmed=true` y `capture_checklist.ready_for_beta_evidence=true`.
+
 ## 2026-06-06 - Windows dry-run de readiness para salida system en Ubuntu/Linux
 
 Comando ejecutado:

@@ -28,10 +28,12 @@ El reporte generado incluye:
 
 ## Piloto manual guiado
 
-Este piloto genera bundle doctor, analisis `doctor-bundles`, reporte JSON, Markdown de hallazgos y `manual-capture-checklist.md`. Por defecto no abre el microfono; `--capture-test` es obligatorio para una prueba real de captura. Usa `--expected-system Windows`, `--expected-system Linux` o `--expected-system Darwin` para confirmar que el artifact se genero en la plataforma esperada, y `--confirm-input-reviewed` solo despues de revisar permisos del microfono, dispositivo de entrada y un entorno no sensible. En Ubuntu/Linux y macOS la evidencia beta acepta `--backend sounddevice` o `--backend pyaudio`; Windows mantiene `--backend wasapi`. El reporte no guarda bytes de audio y redacta el selector de dispositivo cuando no es `default` o un id numerico. English: beta capture evidence requires `system_guard.expected_system_matched=true`, `capture_backend=sounddevice|pyaudio` on Ubuntu/Linux and macOS, `input_review_confirmed=true`, `capture_checklist.input_review_confirmed=true` and `capture_checklist.ready_for_beta_evidence=true`.
+Este piloto genera bundle doctor, analisis `doctor-bundles`, reporte JSON, Markdown de hallazgos y `manual-capture-checklist.md`. Por defecto no abre el microfono; `--capture-test` es obligatorio para una prueba real de captura. Usa `--target-system Linux` o `--target-system Darwin` para preparar instrucciones de captura sin cambiar el sistema real del diagnostico, y `--expected-system Windows`, `--expected-system Linux` o `--expected-system Darwin` para confirmar que el artifact se genero en la plataforma esperada. El reporte incluye `capture_readiness_plan` con `pip_command`, setup por sistema, `post_install_check`, `post_install_check_uses_microphone=false` y `real_capture_check_template`; Ubuntu/Linux documenta `libportaudio2` para `sounddevice` o `portaudio19-dev python3-dev` para `pyaudio`, y macOS documenta `brew install portaudio`. `--confirm-input-reviewed` se usa solo despues de revisar permisos del microfono, dispositivo de entrada y un entorno no sensible. En Ubuntu/Linux y macOS la evidencia beta acepta `--backend sounddevice` o `--backend pyaudio`; Windows mantiene `--backend wasapi`. El reporte no guarda bytes de audio y redacta el selector de dispositivo cuando no es `default` o un id numerico. English: capture readiness can be prepared without microphone access; beta capture evidence requires `system_guard.expected_system_matched=true`, `capture_backend=sounddevice|pyaudio` on Ubuntu/Linux and macOS, `input_review_confirmed=true`, `capture_checklist.input_review_confirmed=true` and `capture_checklist.ready_for_beta_evidence=true`.
 
 ```powershell
 py tools\manual_pilot.py --output-dir pilot_runs\manual\windows-safe --json
+py tools\manual_pilot.py --backend sounddevice --target-system Linux --json
+py tools\manual_pilot.py --backend pyaudio --target-system Darwin --json
 py tools\manual_pilot.py --capture-test --backend wasapi --device default --sample-rate 48000 --expected-system Windows --confirm-input-reviewed --json
 py tools\manual_pilot.py --capture-test --backend sounddevice --device default --expected-system Linux --confirm-input-reviewed --json
 py tools\manual_pilot.py --capture-test --backend pyaudio --device default --expected-system Linux --confirm-input-reviewed --json
@@ -74,6 +76,8 @@ Ejecutar estos pasos solo cuando haya hardware, permisos y tiempo para revisar r
 auralis doctor --devices --backend sounddevice --json
 auralis doctor --capture-test --backend sounddevice --device default --bundle pilot_runs\manual\doctor-capture.json --json
 auralis doctor-bundles pilot_runs\manual\doctor-capture.json --output pilot_runs\manual\doctor-analysis.json --json
+python tools\manual_pilot.py --backend sounddevice --target-system Linux --json
+python tools\manual_pilot.py --backend pyaudio --target-system Darwin --json
 python tools\manual_pilot.py --capture-test --backend wasapi --device default --sample-rate 48000 --expected-system Windows --confirm-input-reviewed --json
 python tools\manual_pilot.py --capture-test --backend sounddevice --device default --expected-system Linux --confirm-input-reviewed --json
 python tools\manual_pilot.py --capture-test --backend pyaudio --device default --expected-system Linux --confirm-input-reviewed --json

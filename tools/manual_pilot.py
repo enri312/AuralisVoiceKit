@@ -37,6 +37,7 @@ def run_manual_pilot(
     capture_device: str | int | None = "default",
     sample_rate: int | None = None,
     expected_system: str | None = None,
+    target_system: str | None = None,
 ) -> dict[str, Any]:
     """Run a manual-pilot diagnostic pass and write shareable artifacts."""
 
@@ -46,7 +47,9 @@ def run_manual_pilot(
     workspace = Path(root).resolve()
     timestamp = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
     system = platform.system()
-    backend = capture_backend or _default_capture_backend(system)
+    readiness_system = target_system or expected_system or system
+    backend = capture_backend or _default_capture_backend(readiness_system)
+    capture_readiness_plan = _capture_readiness_plan(system=readiness_system, backend=backend)
     output = Path(output_dir) if output_dir is not None else workspace / "pilot_runs" / "manual" / _slug(timestamp)
     output = output.resolve()
     output.mkdir(parents=True, exist_ok=True)
@@ -88,6 +91,7 @@ def run_manual_pilot(
         system=system,
         system_guard=system_guard,
         backend=backend,
+        capture_readiness_plan=capture_readiness_plan,
         capture_test=capture_test,
         input_review_confirmed=input_review_confirmed,
         sample_rate=sample_rate,
@@ -104,6 +108,7 @@ def run_manual_pilot(
         timestamp=timestamp,
         system=system,
         backend=backend,
+        capture_readiness_plan=capture_readiness_plan,
         capture_checklist=capture_checklist,
     )
     checklist_path.write_text(checklist, encoding="utf-8")
@@ -114,6 +119,7 @@ def run_manual_pilot(
         "system": system,
         "system_guard": system_guard,
         "capture_backend": backend,
+        "capture_readiness_plan": capture_readiness_plan,
         "capture_test_requested": capture_test,
         "input_review_confirmed": input_review_confirmed,
         "capture_device": public_device,
@@ -168,6 +174,13 @@ def main(argv: list[str] | None = None) -> int:
         "--expected-system",
         help="expected platform for this pilot, for example Windows, Linux or Darwin",
     )
+    parser.add_argument(
+        "--target-system",
+        help=(
+            "platform used only for capture readiness instructions, for example Linux or Darwin; "
+            "does not override the actual doctor system"
+        ),
+    )
     parser.add_argument("--json", action="store_true", help="print JSON report")
     args = parser.parse_args(argv)
     if args.confirm_input_reviewed and not args.capture_test:
@@ -183,6 +196,7 @@ def main(argv: list[str] | None = None) -> int:
         capture_device=args.device,
         sample_rate=args.sample_rate,
         expected_system=args.expected_system,
+        target_system=args.target_system,
     )
     if args.json:
         print(json.dumps(report, indent=2, sort_keys=True))
@@ -192,7 +206,87 @@ def main(argv: list[str] | None = None) -> int:
 
 
 def _default_capture_backend(system: str) -> str:
-    return "wasapi" if system == "Windows" else "sounddevice"
+    return "wasapi" if system.strip().lower() == "windows" else "sounddevice"
+
+
+def _capture_readiness_plan(*, system: str, backend: str) -> dict[str, Any]:
+    normalized_system = system.strip().lower()
+    normalized_backend = backend.strip().lower()
+    setup_commands: list[str] = []
+    platform_notes: list[str] = []
+    dependency_notes: list[str] = []
+
+    if normalized_backend in {"sounddevice", "wasapi"}:
+        pip_command = 'python -m pip install "auralisvoicekit[sounddevice]"'
+        dependency_notes.append("Uses the optional sounddevice extra and PortAudio.")
+    elif normalized_backend == "pyaudio":
+        pip_command = 'python -m pip install "auralisvoicekit[pyaudio]"'
+        dependency_notes.append("Uses the optional PyAudio extra and PortAudio.")
+    else:
+        pip_command = "python -m pip install auralisvoicekit"
+        dependency_notes.append("No optional capture extra is required for this dry-run backend.")
+
+    if normalized_system in {"linux", "ubuntu", "ubuntu/linux"}:
+        if normalized_backend == "pyaudio":
+            setup_commands = [
+                "sudo apt-get update",
+                "sudo apt-get install -y portaudio19-dev python3-dev",
+            ]
+        elif normalized_backend in {"sounddevice", "wasapi"}:
+            setup_commands = [
+                "sudo apt-get update",
+                "sudo apt-get install -y libportaudio2",
+            ]
+        platform_notes = [
+            "Ubuntu/Linux capture should use sounddevice or pyaudio for beta evidence.",
+            "Review microphone permissions, input device and room privacy before --capture-test.",
+        ]
+    elif normalized_system in {"darwin", "mac", "macos"}:
+        if normalized_backend in {"sounddevice", "pyaudio", "wasapi"}:
+            setup_commands = ["brew install portaudio"]
+        platform_notes = [
+            "macOS capture should use sounddevice or pyaudio for beta evidence.",
+            "Review System Settings microphone permissions before --capture-test.",
+        ]
+    elif normalized_system == "windows":
+        platform_notes = [
+            "Windows beta capture evidence should use wasapi plus --sample-rate, commonly 48000.",
+            "Review Windows microphone privacy settings and selected input device before --capture-test.",
+        ]
+    else:
+        platform_notes = ["Unsupported or unknown target system; verify capture dependencies manually."]
+
+    if normalized_backend == "wasapi" and normalized_system != "windows":
+        dependency_notes.append("wasapi is Windows-only; use sounddevice or pyaudio on Ubuntu/Linux and macOS.")
+
+    system_arg = _quote_cli_argument(system)
+    real_capture_command = (
+        f"python tools/manual_pilot.py --capture-test --backend {normalized_backend} "
+        f"--device default --expected-system {system_arg} --confirm-input-reviewed --json"
+    )
+    if normalized_backend == "wasapi":
+        real_capture_command = (
+            f"python tools/manual_pilot.py --capture-test --backend wasapi "
+            f"--device default --sample-rate 48000 --expected-system {system_arg} "
+            "--confirm-input-reviewed --json"
+        )
+
+    return {
+        "backend": normalized_backend,
+        "system": system,
+        "pip_command": pip_command,
+        "setup_commands": setup_commands,
+        "requires_package_manager": bool(setup_commands),
+        "post_install_check": (
+            f"python tools/manual_pilot.py --backend {normalized_backend} "
+            f"--target-system {system_arg} --json"
+        ),
+        "post_install_check_uses_microphone": False,
+        "real_capture_check_template": real_capture_command,
+        "real_capture_check_requires_microphone": True,
+        "platform_notes": platform_notes,
+        "dependency_notes": dependency_notes,
+    }
 
 
 def _build_findings_markdown(
@@ -201,6 +295,7 @@ def _build_findings_markdown(
     system: str,
     system_guard: dict[str, Any],
     backend: str,
+    capture_readiness_plan: dict[str, Any],
     capture_test: bool,
     input_review_confirmed: bool,
     sample_rate: int | None,
@@ -220,6 +315,10 @@ def _build_findings_markdown(
         f"- Expected system: {_format_nullable(system_guard['expected_system'])}",
         f"- Expected system matched: {_format_nullable(system_guard['expected_system_matched'])}",
         f"- Capture backend: {backend}",
+        f"- Capture readiness target system: {capture_readiness_plan['system']}",
+        f"- Capture readiness pip command: {capture_readiness_plan['pip_command']}",
+        f"- Capture readiness setup commands: {_format_list(capture_readiness_plan['setup_commands'])}",
+        f"- Capture readiness post-install check: {capture_readiness_plan['post_install_check']}",
         f"- Capture test requested: {capture_test}",
         f"- Input review confirmed: {input_review_confirmed}",
         f"- Sample rate: {_format_optional(sample_rate)}",
@@ -259,6 +358,7 @@ def _build_findings_markdown(
             "## Follow-up",
             "",
             "- Install optional extras before real microphone testing if dependency warnings block capture.",
+            f"- Recheck capture readiness without opening the microphone: {capture_readiness_plan['post_install_check']}",
             "- Re-run with --capture-test only when a human is ready to open the microphone briefly.",
             "- Keep doctor bundle JSON sanitized; do not attach audio unless intentionally sharing that file.",
             "",
@@ -384,6 +484,7 @@ def _build_capture_checklist_markdown(
     timestamp: str,
     system: str,
     backend: str,
+    capture_readiness_plan: dict[str, Any],
     capture_checklist: dict[str, Any],
 ) -> str:
     lines = [
@@ -392,6 +493,12 @@ def _build_capture_checklist_markdown(
         f"- Created at: {timestamp}",
         f"- System: {system}",
         f"- Capture backend: {backend}",
+        f"- Readiness target system: {capture_readiness_plan['system']}",
+        f"- Readiness pip command: `{capture_readiness_plan['pip_command']}`",
+        f"- Readiness setup commands: {_format_list(capture_readiness_plan['setup_commands'])}",
+        f"- Readiness post-install check: `{capture_readiness_plan['post_install_check']}`",
+        f"- Readiness post-install uses microphone: {capture_readiness_plan['post_install_check_uses_microphone']}",
+        f"- Real capture command template: `{capture_readiness_plan['real_capture_check_template']}`",
         f"- Records audio bytes: {capture_checklist['records_audio_bytes']}",
         f"- Redacts device selector: {capture_checklist['redacts_device_selector']}",
         f"- Expected system matched: {_format_nullable(capture_checklist['expected_system_matched'])}",
@@ -419,6 +526,7 @@ def _build_capture_checklist_markdown(
             "## Notas / Notes",
             "",
             "- No escribas nombres privados de dispositivos, rutas locales completas ni audio capturado en reportes compartidos.",
+            "- The readiness post-install check does not open the microphone; beta evidence still requires a real --capture-test.",
             "- A dry run checklist is preparation only; beta evidence requires --capture-test on real hardware.",
             "",
         ]
@@ -444,6 +552,20 @@ def _format_optional(value: object | None) -> str:
 
 def _format_nullable(value: object | None) -> str:
     return "not-set" if value is None else str(value)
+
+
+def _format_list(values: list[str]) -> str:
+    if not values:
+        return "none"
+    return ", ".join(f"`{value}`" for value in values)
+
+
+def _quote_cli_argument(value: str) -> str:
+    if not value:
+        return '""'
+    if any(char.isspace() or char in '"&|<>' for char in value):
+        return '"' + value.replace('"', '\\"') + '"'
+    return value
 
 
 def _public_capture_device(value: str | int | None) -> tuple[str | int | None, bool]:
@@ -503,6 +625,10 @@ def _print_report(report: dict[str, Any]) -> None:
     print("AuralisVoiceKit manual pilot")
     print(f"System: {report['system']}")
     print(f"Capture backend: {report['capture_backend']}")
+    readiness_plan = report["capture_readiness_plan"]
+    print(f"Capture readiness target: {readiness_plan['system']}")
+    print(f"Capture readiness pip: {readiness_plan['pip_command']}")
+    print(f"Capture readiness post-install check: {readiness_plan['post_install_check']}")
     print(f"Capture test requested: {report['capture_test_requested']}")
     print(f"Input review confirmed: {report['input_review_confirmed']}")
     print(f"Doctor status: {report['doctor_status']}")

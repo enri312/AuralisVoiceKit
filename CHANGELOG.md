@@ -6,6 +6,14 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.96.0] - 2026-06-06
+
+### Agregado
+
+- `tools/manual_pilot.py` ahora expone `capture_readiness_plan` con comando pip, setup PortAudio por plataforma, `post_install_check` sin microfono y plantilla de captura real.
+- Nuevo flag `--target-system` para preparar instrucciones Ubuntu/Linux o macOS sin alterar el sistema real del diagnostico ni cerrar evidencia beta.
+- README, `PILOTS.md`, roadmap, documentacion HTML y referencia API documentan la preparacion de captura con `sounddevice`/`pyaudio` en Ubuntu/Linux y macOS.
+
 ## [0.95.0] - 2026-06-06
 
 ### Agregado

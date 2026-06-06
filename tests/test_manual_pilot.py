@@ -53,6 +53,9 @@ class ManualPilotTests(unittest.TestCase):
         self.assertFalse(report["system_guard"]["enabled"])
         self.assertIsNone(report["system_guard"]["expected_system_matched"])
         self.assertIn("capture_checklist", report)
+        self.assertIn("capture_readiness_plan", report)
+        self.assertEqual(report["capture_readiness_plan"]["backend"], "wav")
+        self.assertFalse(report["capture_readiness_plan"]["post_install_check_uses_microphone"])
         self.assertFalse(report["capture_checklist"]["records_audio_bytes"])
         self.assertFalse(report["capture_checklist"]["ready_for_beta_evidence"])
         self.assertEqual(analysis["bundle_count"], 1)
@@ -61,10 +64,12 @@ class ManualPilotTests(unittest.TestCase):
         self.assertIn("Input review confirmed: False", findings)
         self.assertIn("Expected system matched: not-set", findings)
         self.assertIn("Capture checklist ready for beta evidence: False", findings)
+        self.assertIn("Capture readiness post-install check", findings)
         self.assertIn("Sample rate: 48000", findings)
         self.assertIn("Bundle: doctor-bundle.json", findings)
         self.assertIn("Capture checklist: manual-capture-checklist.md", findings)
         self.assertIn("Checklist de captura manual / Manual capture checklist", checklist)
+        self.assertIn("Readiness post-install uses microphone: False", checklist)
         self.assertIn("Input review confirmed: False", checklist)
         self.assertIn("Ready for beta evidence: False", checklist)
         self.assertNotIn(str(Path(tempfile.gettempdir())), findings)
@@ -97,8 +102,38 @@ class ManualPilotTests(unittest.TestCase):
         self.assertFalse(payload["capture_test_requested"])
         self.assertFalse(payload["input_review_confirmed"])
         self.assertIn("capture_checklist", payload)
+        self.assertIn("capture_readiness_plan", payload)
+        self.assertEqual(payload["capture_readiness_plan"]["backend"], "wav")
+        self.assertFalse(payload["capture_readiness_plan"]["post_install_check_uses_microphone"])
         self.assertIn("capture_checklist", payload["artifacts"])
         self.assertFalse(payload["system_guard"]["enabled"])
+
+    def test_manual_pilot_target_system_only_changes_readiness_plan(self):
+        module = _load_manual_pilot()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output = io.StringIO()
+            with contextlib.redirect_stdout(output):
+                exit_code = module.main(
+                    [
+                        "--root",
+                        str(ROOT),
+                        "--output-dir",
+                        tmpdir,
+                        "--backend",
+                        "wav",
+                        "--target-system",
+                        "Linux",
+                        "--json",
+                    ]
+                )
+            payload = json.loads(output.getvalue())
+
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(payload["capture_readiness_plan"]["system"], "Linux")
+        self.assertEqual(payload["system"], module.platform.system())
+        self.assertFalse(payload["system_guard"]["enabled"])
+        self.assertIn("--target-system Linux", payload["capture_readiness_plan"]["post_install_check"])
 
     def test_manual_pilot_redacts_named_device_selector(self):
         module = _load_manual_pilot()
@@ -162,6 +197,7 @@ class ManualPilotTests(unittest.TestCase):
             timestamp="2026-06-05T00:00:00+00:00",
             system="Linux",
             backend="sounddevice",
+            capture_readiness_plan=module._capture_readiness_plan(system="Linux", backend="sounddevice"),
             capture_checklist=checklist,
         )
 
@@ -191,6 +227,31 @@ class ManualPilotTests(unittest.TestCase):
 
         self.assertTrue(checklist["ready_for_real_capture"])
         self.assertTrue(checklist["ready_for_beta_evidence"])
+
+    def test_capture_readiness_plan_supports_linux_and_macos_backends(self):
+        module = _load_manual_pilot()
+
+        linux_sounddevice = module._capture_readiness_plan(system="Linux", backend="sounddevice")
+        macos_pyaudio = module._capture_readiness_plan(system="Darwin", backend="pyaudio")
+
+        self.assertIn("auralisvoicekit[sounddevice]", linux_sounddevice["pip_command"])
+        self.assertIn("libportaudio2", " ".join(linux_sounddevice["setup_commands"]))
+        self.assertIn("--target-system Linux", linux_sounddevice["post_install_check"])
+        self.assertFalse(linux_sounddevice["post_install_check_uses_microphone"])
+        self.assertTrue(linux_sounddevice["real_capture_check_requires_microphone"])
+        self.assertIn("--capture-test", linux_sounddevice["real_capture_check_template"])
+        self.assertIn("auralisvoicekit[pyaudio]", macos_pyaudio["pip_command"])
+        self.assertIn("brew install portaudio", " ".join(macos_pyaudio["setup_commands"]))
+        self.assertIn("--expected-system Darwin", macos_pyaudio["real_capture_check_template"])
+
+    def test_capture_readiness_plan_documents_wasapi_sample_rate(self):
+        module = _load_manual_pilot()
+
+        plan = module._capture_readiness_plan(system="Windows", backend="wasapi")
+
+        self.assertIn("auralisvoicekit[sounddevice]", plan["pip_command"])
+        self.assertIn("--sample-rate 48000", plan["real_capture_check_template"])
+        self.assertFalse(plan["post_install_check_uses_microphone"])
 
     def test_capture_checklist_requires_sample_rate_for_windows_wasapi(self):
         module = _load_manual_pilot()
