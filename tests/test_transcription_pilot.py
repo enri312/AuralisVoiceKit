@@ -400,6 +400,40 @@ class TranscriptionPilotTests(unittest.TestCase):
         self.assertTrue(payload["audio"]["duration_gate"]["passed"])
         self.assertIsNone(payload["transcript"])
 
+    def test_transcription_pilot_cli_preflight_rejects_unknown_target_backend(self):
+        module = _load_transcription_pilot()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            audio_path = Path(tmpdir) / "sample.wav"
+            write_wav(
+                str(audio_path),
+                [AudioChunk(data=b"\x00\x00" * 800, format=AudioFormat(sample_rate=8000, channels=1))],
+            )
+            output = io.StringIO()
+            with contextlib.redirect_stdout(output):
+                exit_code = module.main(
+                    [
+                        "--root",
+                        str(ROOT),
+                        "--output-dir",
+                        str(Path(tmpdir) / "pilot"),
+                        "--audio",
+                        str(audio_path),
+                        "--backend",
+                        "missing",
+                        "--preflight-only",
+                        "--audio-non-sensitive",
+                        "--sample-rate",
+                        "8000",
+                        "--json",
+                    ]
+                )
+            payload = json.loads(output.getvalue())
+
+        self.assertEqual(exit_code, 1)
+        self.assertIn("Unknown transcription backend 'missing'", payload["error"])
+        self.assertIn("Available: null, openai, whisper", payload["error"])
+
     def test_transcription_checklist_marks_beta_ready_real_quality(self):
         module = _load_transcription_pilot()
 

@@ -26,6 +26,7 @@ from auralis_voicekit import (
     read_audio_as_chunk,
     write_wav,
 )
+from auralis_voicekit.backends import create_default_registry
 from auralis_voicekit.exceptions import AudioSourceError, BackendNotAvailable, TranscriptionError
 
 
@@ -97,6 +98,7 @@ def run_transcription_pilot(
         audio_confirmed_non_sensitive=audio_confirmed_non_sensitive,
         audio_review_confirmed=audio_review_confirmed,
     )
+    _validate_transcription_backend_name(backend)
     _validate_duration_limits(
         min_audio_seconds=min_audio_seconds,
         max_audio_seconds=max_audio_seconds,
@@ -498,6 +500,13 @@ def _validate_quality_review_flags(
         raise ValueError("--confirm-quality-reviewed cannot be used with --preflight-only.")
     if quality_review_confirmed and not real_transcription:
         raise ValueError("--confirm-quality-reviewed requires --real-transcription.")
+
+
+def _validate_transcription_backend_name(backend: str) -> None:
+    try:
+        create_default_registry().create_transcription(backend)
+    except BackendNotAvailable as exc:
+        raise ValueError(str(exc)) from exc
 
 
 def _validate_duration_limits(

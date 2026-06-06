@@ -6,6 +6,13 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.80.0] - 2026-06-06
+
+### Cambiado
+
+- `tools/transcription_pilot.py --preflight-only` ahora valida que el backend objetivo de transcripcion este registrado antes de preparar el siguiente paso real.
+- El preflight de transcripcion evita generar tarjetas de piloto real con nombres de backend invalidos y devuelve el listado de backends disponibles.
+
 ## [0.79.0] - 2026-06-06
 
 ### Cambiado
