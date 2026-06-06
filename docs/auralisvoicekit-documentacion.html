@@ -567,9 +567,11 @@ python tools/transcription_pilot.py --preflight-only --audio sample.mp3 --audio-
 python tools/transcription_pilot.py --real-transcription --audio sample.mp3 --audio-non-sensitive --confirm-audio-reviewed --confirm-reference-reviewed --backend whisper --model base --normalize --expected-text "Hola desde AuralisVoiceKit" --min-word-accuracy 0.75 --min-audio-seconds 0.2 --max-audio-seconds 60 --confirm-quality-reviewed --json
 python tools/beta_readiness.py --output BETA_CHECKLIST.md --json
 python tools/beta_readiness.py --requirements
+python tools/beta_readiness.py --requirements --output BETA_EVIDENCE_REQUIREMENTS.md
 python tools/beta_readiness.py --audit-evidence --evidence pilot_runs/manual --evidence pilot_runs/output --evidence pilot_runs/transcription --json
 python tools/beta_readiness.py --audit-evidence --evidence pilot_runs/manual --evidence pilot_runs/output --evidence pilot_runs/transcription --fail-on-audit-gaps --json
 python tools/beta_readiness.py --evidence pilot_runs/manual --evidence pilot_runs/output --evidence pilot_runs/transcription --output BETA_CHECKLIST.md --json</code></pre>
+        <p>El contrato versionado de evidencias beta vive en <a href="../BETA_EVIDENCE_REQUIREMENTS.md">BETA_EVIDENCE_REQUIREMENTS.md</a>; enumera artifacts JSON aceptados, campos requeridos y reglas de privacidad antes de ejecutar pilotos reales. English: the beta evidence contract is a public-safe checklist for real pilot artifacts.</p>
         <pre><code>$env:AURALIS_RUN_FFMPEG_INTEGRATION="1"
 py -m unittest tests.test_ffmpeg_integration
         Remove-Item Env:\AURALIS_RUN_FFMPEG_INTEGRATION</code></pre>

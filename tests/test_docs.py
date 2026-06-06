@@ -15,6 +15,7 @@ LOCAL_ASSISTANT_PRIVACY_DEMO = ROOT / "examples" / "local_assistant_privacy_demo
 PILOTS = ROOT / "PILOTS.md"
 PILOT_FINDINGS = ROOT / "PILOT_FINDINGS.md"
 BETA_CHECKLIST = ROOT / "BETA_CHECKLIST.md"
+BETA_EVIDENCE_REQUIREMENTS = ROOT / "BETA_EVIDENCE_REQUIREMENTS.md"
 PILOT_RUN = ROOT / "tools" / "pilot_run.py"
 MANUAL_PILOT = ROOT / "tools" / "manual_pilot.py"
 OUTPUT_PILOT = ROOT / "tools" / "output_pilot.py"
@@ -81,6 +82,7 @@ class DocumentationTests(unittest.TestCase):
         self.assertTrue(PILOTS.exists())
         self.assertTrue(PILOT_FINDINGS.exists())
         self.assertTrue(BETA_CHECKLIST.exists())
+        self.assertTrue(BETA_EVIDENCE_REQUIREMENTS.exists())
         self.assertTrue(PILOT_RUN.exists())
         self.assertTrue(MANUAL_PILOT.exists())
         self.assertTrue(OUTPUT_PILOT.exists())
@@ -89,11 +91,14 @@ class DocumentationTests(unittest.TestCase):
         self.assertIn("PILOTS.md", README.read_text(encoding="utf-8"))
         self.assertIn("PILOT_FINDINGS.md", README.read_text(encoding="utf-8"))
         self.assertIn("BETA_CHECKLIST.md", README.read_text(encoding="utf-8"))
+        self.assertIn("BETA_EVIDENCE_REQUIREMENTS.md", README.read_text(encoding="utf-8"))
         self.assertIn("PILOTS.md", MAIN_DOC.read_text(encoding="utf-8"))
         self.assertIn("PILOT_FINDINGS.md", MAIN_DOC.read_text(encoding="utf-8"))
         self.assertIn("BETA_CHECKLIST.md", MAIN_DOC.read_text(encoding="utf-8"))
+        self.assertIn("BETA_EVIDENCE_REQUIREMENTS.md", MAIN_DOC.read_text(encoding="utf-8"))
         self.assertIn("PILOTS.md", API_DOC.read_text(encoding="utf-8"))
         self.assertIn("BETA_CHECKLIST.md", API_DOC.read_text(encoding="utf-8"))
+        self.assertIn("BETA_EVIDENCE_REQUIREMENTS.md", API_DOC.read_text(encoding="utf-8"))
         self.assertIn("tools\\pilot_run.py", README.read_text(encoding="utf-8"))
         self.assertIn("tools\\manual_pilot.py", README.read_text(encoding="utf-8"))
         self.assertIn("tools\\output_pilot.py", README.read_text(encoding="utf-8"))

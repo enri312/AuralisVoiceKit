@@ -6,6 +6,16 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.77.0] - 2026-06-06
+
+### Agregado
+
+- `BETA_EVIDENCE_REQUIREMENTS.md` como contrato versionado y seguro de evidencias JSON para pilotos reales antes de beta.
+
+### Cambiado
+
+- Gate de estabilidad, README, roadmap y docs HTML ahora verifican y enlazan el contrato de evidencias beta.
+
 ## [0.76.0] - 2026-06-06
 
 ### Cambiado

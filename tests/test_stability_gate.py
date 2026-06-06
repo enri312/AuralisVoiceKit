@@ -33,6 +33,7 @@ class StabilityGateTests(unittest.TestCase):
         self.assertIn("manual_pilot_runner", check_names)
         self.assertIn("beta_readiness_runner", check_names)
         self.assertIn("beta_checklist", check_names)
+        self.assertIn("beta_evidence_requirements", check_names)
         self.assertIn("pilot_findings", check_names)
         self.assertIn("doctor_bundle_api", check_names)
         self.assertIn("doctor_bundle_analysis", check_names)
