@@ -64,6 +64,8 @@ Nota `v0.135.0`: `operator_gate.command_audit` revisa que el comando local inclu
 
 Nota `v0.136.0`: `operator_gate.evidence_contract` muestra el contrato beta del foco activo en la tarjeta de ejecucion, con campos requeridos/faltantes y comandos de auditoria sin copiar contenido sensible. English: operator gates now include a public-safe beta evidence contract.
 
+Nota `v0.137.0`: `tools/manual_pilot.py` agrega `capture_operator_gate` en `manual-pilot-report.json`, `pilot-findings.md`, `manual-capture-checklist.md` y `manual-capture-command.md` para indicar si la captura manual puede auditarse como evidencia beta. English: manual capture pilots now include a public-safe operator gate.
+
 ```powershell
 py tools\pilot_run.py --output-dir pilot_runs\safe --json
 py tools\pilot_run.py --output-dir pilot_runs\safe --evidence pilot_runs\manual --evidence pilot_runs\output --evidence pilot_runs\transcription --json

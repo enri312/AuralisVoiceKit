@@ -111,6 +111,16 @@ def run_manual_pilot(
         capture_readiness_plan=capture_readiness_plan,
         beta_evidence_gap=beta_evidence_gap,
     )
+    capture_operator_gate = _capture_operator_gate(
+        system_guard=system_guard,
+        target_capture_backend=target_capture_backend,
+        require_capture_backend_ready=require_capture_backend_ready,
+        capture_test=capture_test,
+        input_review_confirmed=input_review_confirmed,
+        capture_checklist=capture_checklist,
+        beta_evidence_gap=beta_evidence_gap,
+        manual_capture_command_card=manual_capture_command_card,
+    )
     findings = _build_findings_markdown(
         timestamp=timestamp,
         system=system,
@@ -126,6 +136,7 @@ def run_manual_pilot(
         passed=passed,
         capture_checklist=capture_checklist,
         beta_evidence_gap=beta_evidence_gap,
+        capture_operator_gate=capture_operator_gate,
         analysis=analysis.to_dict(),
         bundle_path=bundle_path,
         analysis_path=analysis_path,
@@ -142,6 +153,7 @@ def run_manual_pilot(
         capture_readiness_plan=capture_readiness_plan,
         capture_checklist=capture_checklist,
         beta_evidence_gap=beta_evidence_gap,
+        capture_operator_gate=capture_operator_gate,
     )
     checklist_path.write_text(checklist, encoding="utf-8")
     command_card = _build_manual_capture_command_markdown(
@@ -153,6 +165,7 @@ def run_manual_pilot(
         require_capture_backend_ready=require_capture_backend_ready,
         beta_evidence_gap=beta_evidence_gap,
         manual_capture_command_card=manual_capture_command_card,
+        capture_operator_gate=capture_operator_gate,
         checklist_path=checklist_path,
     )
     command_path.write_text(command_card, encoding="utf-8")
@@ -178,6 +191,7 @@ def run_manual_pilot(
         "capture_checklist": capture_checklist,
         "beta_evidence_gap": beta_evidence_gap,
         "manual_capture_command_card": manual_capture_command_card,
+        "capture_operator_gate": capture_operator_gate,
         "notes": _pilot_notes(capture_test),
         "analysis": analysis.to_dict(),
         "artifacts": {
@@ -415,6 +429,7 @@ def _build_findings_markdown(
     passed: bool,
     capture_checklist: dict[str, Any],
     beta_evidence_gap: dict[str, Any],
+    capture_operator_gate: dict[str, Any],
     analysis: dict[str, Any],
     bundle_path: Path,
     analysis_path: Path,
@@ -445,6 +460,8 @@ def _build_findings_markdown(
         f"- Beta evidence gap ready: {beta_evidence_gap['ready_for_beta_evidence']}",
         f"- Beta evidence gap missing count: {beta_evidence_gap['missing_count']}",
         f"- Beta evidence gap next action: {beta_evidence_gap['next_action']}",
+        f"- Capture operator gate decision: {capture_operator_gate['decision']}",
+        f"- Capture operator gate missing confirmations: {capture_operator_gate['missing_confirmation_count']}",
         f"- Bundle: {bundle_path.name}",
         f"- Analysis: {analysis_path.name}",
         f"- Capture checklist: {checklist_path.name}",
@@ -482,6 +499,14 @@ def _build_findings_markdown(
             f"- Evidence target system: `{beta_evidence_gap['evidence_system']}`",
             f"- Ready for beta evidence: `{beta_evidence_gap['ready_for_beta_evidence']}`",
             f"- Missing fields: {_format_list(beta_evidence_gap['missing_fields'])}",
+            "",
+            "## Capture Operator Gate",
+            "",
+            f"- Decision: `{capture_operator_gate['decision']}`",
+            f"- Ready for beta audit: `{capture_operator_gate['ready_for_beta_audit']}`",
+            f"- Command safe to copy: `{capture_operator_gate['command_safe_to_copy']}`",
+            f"- Missing confirmations: {_format_list(capture_operator_gate['missing_confirmations'])}",
+            f"- Next action: {capture_operator_gate['next_action']}",
             "",
             "## Follow-up",
             "",
@@ -771,6 +796,107 @@ def _manual_capture_command_card(
     }
 
 
+def _capture_operator_gate(
+    *,
+    system_guard: dict[str, Any],
+    target_capture_backend: dict[str, Any],
+    require_capture_backend_ready: bool,
+    capture_test: bool,
+    input_review_confirmed: bool,
+    capture_checklist: dict[str, Any],
+    beta_evidence_gap: dict[str, Any],
+    manual_capture_command_card: dict[str, Any],
+) -> dict[str, Any]:
+    confirmations = [
+        _operator_gate_confirmation(
+            "real_capture_explicitly_requested",
+            "--capture-test was used for this evidence report.",
+            confirmed=capture_test,
+            source="capture_test_requested",
+        ),
+        _operator_gate_confirmation(
+            "input_reviewed",
+            "Microphone permissions, selected input and room privacy were reviewed.",
+            confirmed=input_review_confirmed and capture_checklist["input_review_confirmed"],
+            source="--confirm-input-reviewed",
+        ),
+        _operator_gate_confirmation(
+            "expected_system_matched",
+            "--expected-system matched the actual platform.",
+            confirmed=system_guard["expected_system_matched"] is True,
+            source="system_guard.expected_system_matched",
+        ),
+        _operator_gate_confirmation(
+            "capture_backend_ready_guarded",
+            "The selected backend was available and --require-capture-backend-ready was used.",
+            confirmed=target_capture_backend["available"] is True and require_capture_backend_ready,
+            source="target_capture_backend.available + capture_backend_ready_required",
+        ),
+        _operator_gate_confirmation(
+            "real_capture_passed",
+            "The capture checklist marked the real hardware run as beta-ready.",
+            confirmed=capture_checklist["ready_for_beta_evidence"],
+            source="capture_checklist.ready_for_beta_evidence",
+        ),
+    ]
+    missing_confirmations = [item["id"] for item in confirmations if item["confirmed"] is not True]
+    command_safe_to_copy = bool(
+        manual_capture_command_card["safe_to_share"]
+        and manual_capture_command_card["uses_placeholders"]
+        and not manual_capture_command_card["records_audio"]
+        and not manual_capture_command_card["records_audio_bytes"]
+        and not manual_capture_command_card["records_device_name"]
+        and not manual_capture_command_card["records_local_paths"]
+    )
+    ready_for_beta_audit = bool(
+        beta_evidence_gap["ready_for_beta_evidence"]
+        and command_safe_to_copy
+        and not missing_confirmations
+    )
+    return {
+        "safe_to_share": True,
+        "decision": "ready_for_beta_audit" if ready_for_beta_audit else "blocked",
+        "blocker": beta_evidence_gap["blocker"],
+        "expected_artifact": "manual-pilot-report.json",
+        "ready_for_beta_audit": ready_for_beta_audit,
+        "command_safe_to_copy": command_safe_to_copy,
+        "local_operator_required": True,
+        "confirmations": confirmations,
+        "missing_confirmations": missing_confirmations,
+        "missing_confirmation_count": len(missing_confirmations),
+        "missing_fields": list(beta_evidence_gap["missing_fields"]),
+        "missing_field_count": beta_evidence_gap["missing_count"],
+        "real_capture_command_template": manual_capture_command_card["real_capture_command_template"],
+        "audit_command_template": manual_capture_command_card["audit_command_template"],
+        "next_action": (
+            "Run the strict beta evidence audit before closing this blocker."
+            if ready_for_beta_audit
+            else beta_evidence_gap["next_action"]
+        ),
+        "records_audio": False,
+        "records_audio_bytes": False,
+        "records_device_name": False,
+        "records_local_paths": False,
+        "records_operator_identity": False,
+    }
+
+
+def _operator_gate_confirmation(
+    confirmation_id: str,
+    instruction: str,
+    *,
+    confirmed: bool,
+    source: str,
+) -> dict[str, Any]:
+    return {
+        "id": confirmation_id,
+        "required": True,
+        "confirmed": bool(confirmed),
+        "source": source,
+        "instruction": instruction,
+    }
+
+
 def _append_output_dir_placeholder(command: str) -> str:
     return f"{command} --output-dir <pilot-output-dir>"
 
@@ -800,6 +926,7 @@ def _build_capture_checklist_markdown(
     capture_readiness_plan: dict[str, Any],
     capture_checklist: dict[str, Any],
     beta_evidence_gap: dict[str, Any],
+    capture_operator_gate: dict[str, Any],
 ) -> str:
     lines = [
         "# Checklist de captura manual / Manual capture checklist",
@@ -825,6 +952,8 @@ def _build_capture_checklist_markdown(
         f"- Beta evidence gap ready: {beta_evidence_gap['ready_for_beta_evidence']}",
         f"- Beta evidence gap missing count: {beta_evidence_gap['missing_count']}",
         f"- Beta evidence gap next action: {beta_evidence_gap['next_action']}",
+        f"- Capture operator gate decision: {capture_operator_gate['decision']}",
+        f"- Capture operator gate missing confirmations: {capture_operator_gate['missing_confirmation_count']}",
         "",
         "## Antes de capturar / Before Capture",
         "",
@@ -850,6 +979,13 @@ def _build_capture_checklist_markdown(
             f"- Ready for beta evidence: `{beta_evidence_gap['ready_for_beta_evidence']}`",
             f"- Missing fields: {_format_list(beta_evidence_gap['missing_fields'])}",
             "",
+            "## Capture Operator Gate",
+            "",
+            f"- Decision: `{capture_operator_gate['decision']}`",
+            f"- Ready for beta audit: `{capture_operator_gate['ready_for_beta_audit']}`",
+            f"- Missing confirmations: {_format_list(capture_operator_gate['missing_confirmations'])}",
+            f"- Next action: {capture_operator_gate['next_action']}",
+            "",
             "## Notas / Notes",
             "",
             "- No escribas nombres privados de dispositivos, rutas locales completas ni audio capturado en reportes compartidos.",
@@ -871,6 +1007,7 @@ def _build_manual_capture_command_markdown(
     require_capture_backend_ready: bool,
     beta_evidence_gap: dict[str, Any],
     manual_capture_command_card: dict[str, Any],
+    capture_operator_gate: dict[str, Any],
     checklist_path: Path,
 ) -> str:
     lines = [
@@ -892,6 +1029,8 @@ def _build_manual_capture_command_markdown(
         f"- Beta evidence gap ready: {beta_evidence_gap['ready_for_beta_evidence']}",
         f"- Beta evidence gap missing count: {beta_evidence_gap['missing_count']}",
         f"- Beta evidence gap next action: {beta_evidence_gap['next_action']}",
+        f"- Capture operator gate decision: {capture_operator_gate['decision']}",
+        f"- Capture operator gate missing confirmations: {capture_operator_gate['missing_confirmation_count']}",
         f"- Manual checklist: {checklist_path.name}",
         "",
         "## Setup",
@@ -937,6 +1076,14 @@ def _build_manual_capture_command_markdown(
         f"- Blocker: `{beta_evidence_gap['blocker']}`",
         f"- Ready for beta evidence: `{beta_evidence_gap['ready_for_beta_evidence']}`",
         f"- Missing fields: {_format_list(beta_evidence_gap['missing_fields'])}",
+        "",
+        "## Capture Operator Gate",
+        "",
+        f"- Decision: `{capture_operator_gate['decision']}`",
+        f"- Ready for beta audit: `{capture_operator_gate['ready_for_beta_audit']}`",
+        f"- Command safe to copy: `{capture_operator_gate['command_safe_to_copy']}`",
+        f"- Missing confirmations: {_format_list(capture_operator_gate['missing_confirmations'])}",
+        f"- Next action: {capture_operator_gate['next_action']}",
         "",
         "## Required Review",
         "",

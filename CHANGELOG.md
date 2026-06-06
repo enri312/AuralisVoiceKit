@@ -6,6 +6,18 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.137.0] - 2026-06-06
+
+### Agregado
+
+- `tools/manual_pilot.py` ahora incluye `capture_operator_gate`, una compuerta publica para decidir si una captura manual esta lista para auditoria beta o sigue bloqueada.
+- El gate lista confirmaciones requeridas, faltantes, comando real con placeholders, comando de auditoria y flags de privacidad sin guardar audio, bytes, nombres de dispositivos, rutas locales ni identidad del operador.
+- `pilot-findings.md`, `manual-capture-checklist.md` y `manual-capture-command.md` muestran la decision del gate para reducir errores antes del primer piloto Windows/WASAPI real.
+
+### Pruebas
+
+- Nuevas pruebas cubren el gate bloqueado en dry-run y el gate listo para auditoria beta cuando captura, plataforma, backend y revisiones estan confirmadas.
+
 ## [0.136.0] - 2026-06-06
 
 ### Agregado

@@ -61,6 +61,7 @@ class ManualPilotTests(unittest.TestCase):
         self.assertIn("capture_backend_ready_required", report)
         self.assertIn("beta_evidence_gap", report)
         self.assertIn("manual_capture_command_card", report)
+        self.assertIn("capture_operator_gate", report)
         self.assertEqual(report["capture_readiness_plan"]["backend"], "wav")
         self.assertEqual(report["target_capture_backend"]["name"], "wav")
         self.assertTrue(report["target_capture_backend"]["available"])
@@ -84,6 +85,21 @@ class ManualPilotTests(unittest.TestCase):
         self.assertFalse(command["records_audio_bytes"])
         self.assertFalse(command["records_device_name"])
         self.assertFalse(command["records_local_paths"])
+        operator_gate = report["capture_operator_gate"]
+        self.assertTrue(operator_gate["safe_to_share"])
+        self.assertEqual(operator_gate["decision"], "blocked")
+        self.assertFalse(operator_gate["ready_for_beta_audit"])
+        self.assertTrue(operator_gate["command_safe_to_copy"])
+        self.assertEqual(operator_gate["expected_artifact"], "manual-pilot-report.json")
+        self.assertIn("real_capture_explicitly_requested", operator_gate["missing_confirmations"])
+        self.assertIn("input_reviewed", operator_gate["missing_confirmations"])
+        self.assertIn("expected_system_matched", operator_gate["missing_confirmations"])
+        self.assertIn("capture_backend_ready_guarded", operator_gate["missing_confirmations"])
+        self.assertFalse(operator_gate["records_audio"])
+        self.assertFalse(operator_gate["records_audio_bytes"])
+        self.assertFalse(operator_gate["records_device_name"])
+        self.assertFalse(operator_gate["records_local_paths"])
+        self.assertFalse(operator_gate["records_operator_identity"])
         self.assertEqual(analysis["bundle_count"], 1)
         self.assertIn("Manual pilot findings", findings)
         self.assertIn("Capture test requested: False", findings)
@@ -95,6 +111,8 @@ class ManualPilotTests(unittest.TestCase):
         self.assertIn("Capture readiness post-install check", findings)
         self.assertIn("Beta evidence gap ready: False", findings)
         self.assertIn("Beta Evidence Gap", findings)
+        self.assertIn("Capture operator gate decision: blocked", findings)
+        self.assertIn("Capture Operator Gate", findings)
         self.assertIn("Sample rate: 48000", findings)
         self.assertIn("Bundle: doctor-bundle.json", findings)
         self.assertIn("Capture checklist: manual-capture-checklist.md", findings)
@@ -107,10 +125,14 @@ class ManualPilotTests(unittest.TestCase):
         self.assertIn("Ready for beta evidence: False", checklist)
         self.assertIn("Beta evidence gap ready: False", checklist)
         self.assertIn("Beta Evidence Gap", checklist)
+        self.assertIn("Capture operator gate decision: blocked", checklist)
+        self.assertIn("Capture Operator Gate", checklist)
         self.assertIn("Manual capture command", command_card)
         self.assertIn("Preflight Command", command_card)
         self.assertIn("Real Capture Command", command_card)
         self.assertIn("Audit Command", command_card)
+        self.assertIn("Capture operator gate decision: blocked", command_card)
+        self.assertIn("Capture Operator Gate", command_card)
         self.assertIn("<pilot-output-dir>", command_card)
         self.assertNotIn(str(Path(tempfile.gettempdir())), findings)
         self.assertNotIn(str(Path(tempfile.gettempdir())), checklist)
@@ -147,6 +169,7 @@ class ManualPilotTests(unittest.TestCase):
         self.assertIn("target_capture_backend", payload)
         self.assertIn("beta_evidence_gap", payload)
         self.assertIn("manual_capture_command_card", payload)
+        self.assertIn("capture_operator_gate", payload)
         self.assertEqual(payload["capture_readiness_plan"]["backend"], "wav")
         self.assertEqual(payload["target_capture_backend"]["name"], "wav")
         self.assertFalse(payload["capture_backend_ready_required"])
@@ -156,6 +179,8 @@ class ManualPilotTests(unittest.TestCase):
         self.assertFalse(payload["system_guard"]["enabled"])
         self.assertFalse(payload["beta_evidence_gap"]["ready_for_beta_evidence"])
         self.assertTrue(payload["manual_capture_command_card"]["uses_placeholders"])
+        self.assertEqual(payload["capture_operator_gate"]["decision"], "blocked")
+        self.assertFalse(payload["capture_operator_gate"]["ready_for_beta_audit"])
 
     def test_manual_pilot_target_system_only_changes_readiness_plan(self):
         module = _load_manual_pilot()
@@ -315,6 +340,21 @@ class ManualPilotTests(unittest.TestCase):
             passed=True,
             capture_checklist=checklist,
         )
+        capture_readiness_plan = module._capture_readiness_plan(system="Linux", backend="sounddevice")
+        command_card = module._manual_capture_command_card(
+            capture_readiness_plan=capture_readiness_plan,
+            beta_evidence_gap=beta_evidence_gap,
+        )
+        operator_gate = module._capture_operator_gate(
+            system_guard={"expected_system_matched": True},
+            target_capture_backend={"available": True},
+            require_capture_backend_ready=True,
+            capture_test=True,
+            input_review_confirmed=True,
+            capture_checklist=checklist,
+            beta_evidence_gap=beta_evidence_gap,
+            manual_capture_command_card=command_card,
+        )
         markdown = module._build_capture_checklist_markdown(
             timestamp="2026-06-05T00:00:00+00:00",
             system="Linux",
@@ -327,9 +367,10 @@ class ManualPilotTests(unittest.TestCase):
                 "reason": None,
             },
             require_capture_backend_ready=True,
-            capture_readiness_plan=module._capture_readiness_plan(system="Linux", backend="sounddevice"),
+            capture_readiness_plan=capture_readiness_plan,
             capture_checklist=checklist,
             beta_evidence_gap=beta_evidence_gap,
+            capture_operator_gate=operator_gate,
         )
 
         self.assertTrue(checklist["ready_for_real_capture"])
@@ -347,6 +388,11 @@ class ManualPilotTests(unittest.TestCase):
         self.assertIn("Beta evidence gap ready: True", markdown)
         self.assertIn("Expected system matched: True", markdown)
         self.assertIn("Input review confirmed: True", markdown)
+        self.assertEqual(operator_gate["decision"], "ready_for_beta_audit")
+        self.assertTrue(operator_gate["ready_for_beta_audit"])
+        self.assertEqual(operator_gate["missing_confirmations"], [])
+        self.assertIn("Run the strict beta evidence audit", operator_gate["next_action"])
+        self.assertIn("Capture operator gate decision: ready_for_beta_audit", markdown)
 
     def test_capture_checklist_accepts_pyaudio_for_cross_platform_capture(self):
         module = _load_manual_pilot()
