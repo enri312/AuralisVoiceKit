@@ -6,6 +6,14 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.116.0] - 2026-06-06
+
+### Agregado
+
+- `tools/beta_readiness.py` ahora exige `preflight_readiness.status=ready` para aceptar evidencia de `real_transcription_quality`.
+- El contrato de evidencias beta requiere que `preflight_readiness` confirme modelo listo, sin repeticion pendiente y sin audio, rutas, transcripciones ni texto esperado en artifacts.
+- Nuevas pruebas cubren evidencia real de transcripcion con `preflight_readiness` bloqueado y los nuevos campos de requisitos.
+
 ## [0.115.0] - 2026-06-06
 
 ### Agregado

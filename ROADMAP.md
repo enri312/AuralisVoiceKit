@@ -72,6 +72,8 @@ Nota `v0.114.0`: `real-pilot-next-evidence-focus.md` ahora incluye una secuencia
 
 Nota `v0.115.0`: el piloto de transcripcion agrega `preflight_readiness` para resumir si el preflight esta listo para modelo real, bloqueado, pendiente de instalacion de backend o pendiente de repeticion, con comando sanitizado para repetirlo.
 
+Nota `v0.116.0`: el contrato beta y la auditoria de evidencias ahora requieren `preflight_readiness.status=ready` y flags publicos de privacidad antes de aceptar evidencia de transcripcion real.
+
 ## Fase 0 - Base del proyecto
 
 **Objetivo:** dejar una libreria instalable, importable y testeable.

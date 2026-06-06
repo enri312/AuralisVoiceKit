@@ -28,6 +28,8 @@ Nota `v0.114.0`: la tarjeta `real-pilot-next-evidence-focus.md` incluye `Secuenc
 
 Nota `v0.115.0`: `tools/transcription_pilot.py` agrega `preflight_readiness` a `transcription-pilot-report.json`, `transcription-pilot-findings.md` y `real-transcription-next-step.md`, con estado listo/bloqueado/instalar backend/repetir preflight y un comando de repeticion sanitizado. English: transcription preflights now include a share-safe readiness summary.
 
+Nota `v0.116.0`: el auditor beta ahora exige `preflight_readiness.status=ready`, `ready_for_model_run=true`, `must_rerun_preflight=false` y flags de privacidad seguros para cerrar `real_transcription_quality`. English: beta evidence requires a ready transcription preflight.
+
 ```powershell
 py tools\pilot_run.py --output-dir pilot_runs\safe --json
 py tools\pilot_run.py --output-dir pilot_runs\safe --evidence pilot_runs\manual --evidence pilot_runs\output --evidence pilot_runs\transcription --json

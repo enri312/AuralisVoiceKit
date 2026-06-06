@@ -186,6 +186,32 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertFalse(checks["real_transcription_quality"]["ok"])
         self.assertIn("real_transcription_quality", report["blockers"])
 
+    def test_real_transcription_evidence_requires_preflight_readiness_ready(self):
+        module = _load_beta_readiness()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            evidence_path = Path(tmpdir) / "transcription-pilot-report.json"
+            evidence = _transcription_evidence()
+            evidence["preflight_readiness"]["status"] = "blocked"
+            evidence["preflight_readiness"]["decision"] = "blocked"
+            evidence["preflight_readiness"]["ready_for_model_run"] = False
+            evidence["preflight_readiness"]["must_rerun_preflight"] = True
+            evidence["preflight_readiness"]["blocking_reasons"] = ["duration_gate_enabled"]
+            _write_json(evidence_path, evidence)
+
+            report = module.build_beta_readiness_report(ROOT, evidence_paths=[evidence_path])
+            audit = module.build_evidence_audit_report(ROOT, evidence_paths=[evidence_path])
+            checks = {check["name"]: check for check in report["checks"]}
+
+        self.assertFalse(checks["real_transcription_quality"]["ok"])
+        self.assertIn("real_transcription_quality", report["blockers"])
+        transcription = audit["artifacts"][0]["candidates"][0]
+        missing_fields = [field["path"] for field in transcription["fields"] if not field["ok"]]
+        self.assertIn("preflight_readiness.status", missing_fields)
+        self.assertIn("preflight_readiness.decision", missing_fields)
+        self.assertIn("preflight_readiness.ready_for_model_run", missing_fields)
+        self.assertIn("preflight_readiness.must_rerun_preflight", missing_fields)
+
     def test_openai_real_transcription_evidence_requires_sanitized_credential_check(self):
         module = _load_beta_readiness()
 
@@ -866,6 +892,14 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertEqual(transcription_fields["audio_confirmed_non_sensitive"], True)
         self.assertEqual(transcription_fields["target_backend.available"], True)
         self.assertEqual(transcription_fields["target_backend_ready_required"], True)
+        self.assertEqual(transcription_fields["preflight_readiness.status"], "ready")
+        self.assertEqual(transcription_fields["preflight_readiness.decision"], "ready_for_real_transcription")
+        self.assertEqual(transcription_fields["preflight_readiness.ready_for_model_run"], True)
+        self.assertEqual(transcription_fields["preflight_readiness.must_rerun_preflight"], False)
+        self.assertEqual(transcription_fields["preflight_readiness.records_audio_file_name"], False)
+        self.assertEqual(transcription_fields["preflight_readiness.records_local_paths"], False)
+        self.assertEqual(transcription_fields["preflight_readiness.backend_ready"], True)
+        self.assertEqual(transcription_fields["preflight_readiness.duration_gate_passed"], True)
         self.assertEqual(transcription_fields["audio.generated_synthetic_audio"], False)
         self.assertEqual(transcription_fields["audio.audio_confirmed_non_sensitive"], True)
         self.assertEqual(transcription_fields["audio.decoded"], True)
@@ -945,6 +979,10 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertIn("quality.min_word_accuracy", content)
         self.assertIn("target_backend.available", content)
         self.assertIn("target_backend_ready_required", content)
+        self.assertIn("preflight_readiness.status", content)
+        self.assertIn("preflight_readiness.ready_for_model_run", content)
+        self.assertIn("preflight_readiness.must_rerun_preflight", content)
+        self.assertIn("preflight_readiness.records_audio_file_name", content)
         self.assertIn("audio.generated_synthetic_audio", content)
         self.assertIn("audio.audio_confirmed_non_sensitive", content)
         self.assertIn("audio.decoded", content)
@@ -1317,6 +1355,24 @@ def _transcription_evidence(
             "reason": None,
         },
         "target_backend_ready_required": True,
+        "preflight_readiness": {
+            "status": "ready",
+            "decision": "ready_for_real_transcription",
+            "ready_for_model_run": True,
+            "must_rerun_preflight": False,
+            "safe_to_share": True,
+            "usable_as_beta_evidence": False,
+            "records_audio": False,
+            "records_transcripts": False,
+            "records_expected_text": False,
+            "records_audio_file_name": False,
+            "records_local_paths": False,
+            "backend_ready": True,
+            "audio_decoded": True,
+            "duration_gate_enabled": True,
+            "duration_gate_passed": True,
+            "blocking_reasons": [],
+        },
         "audio_confirmed_non_sensitive": True,
         "audio": {
             "generated_synthetic_audio": False,

@@ -74,6 +74,21 @@ def build_evidence_requirements_report() -> dict[str, Any]:
                     _required_field("real_transcription_requested", True),
                     _required_field("target_backend.available", True),
                     _required_field("target_backend_ready_required", True),
+                    _required_field("preflight_readiness.status", "ready"),
+                    _required_field("preflight_readiness.decision", "ready_for_real_transcription"),
+                    _required_field("preflight_readiness.ready_for_model_run", True),
+                    _required_field("preflight_readiness.must_rerun_preflight", False),
+                    _required_field("preflight_readiness.safe_to_share", True),
+                    _required_field("preflight_readiness.usable_as_beta_evidence", False),
+                    _required_field("preflight_readiness.records_audio", False),
+                    _required_field("preflight_readiness.records_transcripts", False),
+                    _required_field("preflight_readiness.records_expected_text", False),
+                    _required_field("preflight_readiness.records_audio_file_name", False),
+                    _required_field("preflight_readiness.records_local_paths", False),
+                    _required_field("preflight_readiness.backend_ready", True),
+                    _required_field("preflight_readiness.audio_decoded", True),
+                    _required_field("preflight_readiness.duration_gate_enabled", True),
+                    _required_field("preflight_readiness.duration_gate_passed", True),
                     _required_field("audio_confirmed_non_sensitive", True),
                     _required_field("audio.generated_synthetic_audio", False),
                     _required_field("audio.audio_confirmed_non_sensitive", True),
@@ -343,6 +358,8 @@ def build_beta_readiness_report(
                 "--confirm-audio-reviewed before model use plus --confirm-reference-reviewed before scoring "
                 "with reference_privacy_scan.passed=true, "
                 "preflight_decision.decision=ready_for_real_transcription or a repeated preflight after backend install, "
+                "preflight_readiness.status=ready, preflight_readiness.ready_for_model_run=true, "
+                "preflight_readiness.must_rerun_preflight=false and public-safe preflight_readiness redaction flags, "
                 "--require-target-backend-ready before model execution, "
                 "--timeout-seconds 30 when using --backend openai, "
                 "--require-openai-api-key when using --backend openai, "
@@ -1317,6 +1334,7 @@ def _is_real_transcription_quality_evidence(report: dict[str, Any]) -> bool:
     audio = report.get("audio", {})
     quality = report.get("quality", {})
     reference_privacy_scan = report.get("reference_privacy_scan", {})
+    preflight_readiness = report.get("preflight_readiness", {})
     target_backend = report.get("target_backend", {})
     transcript = report.get("transcript", {})
     transcription_checklist = report.get("transcription_checklist", {})
@@ -1325,6 +1343,22 @@ def _is_real_transcription_quality_evidence(report: dict[str, Any]) -> bool:
         and isinstance(target_backend, dict)
         and target_backend.get("available") is True
         and report.get("target_backend_ready_required") is True
+        and isinstance(preflight_readiness, dict)
+        and preflight_readiness.get("status") == "ready"
+        and preflight_readiness.get("decision") == "ready_for_real_transcription"
+        and preflight_readiness.get("ready_for_model_run") is True
+        and preflight_readiness.get("must_rerun_preflight") is False
+        and preflight_readiness.get("safe_to_share") is True
+        and preflight_readiness.get("usable_as_beta_evidence") is False
+        and preflight_readiness.get("records_audio") is False
+        and preflight_readiness.get("records_transcripts") is False
+        and preflight_readiness.get("records_expected_text") is False
+        and preflight_readiness.get("records_audio_file_name") is False
+        and preflight_readiness.get("records_local_paths") is False
+        and preflight_readiness.get("backend_ready") is True
+        and preflight_readiness.get("audio_decoded") is True
+        and preflight_readiness.get("duration_gate_enabled") is True
+        and preflight_readiness.get("duration_gate_passed") is True
         and report.get("audio_confirmed_non_sensitive") is True
         and isinstance(audio, dict)
         and audio.get("generated_synthetic_audio") is False
