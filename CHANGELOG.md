@@ -6,6 +6,13 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.75.0] - 2026-06-06
+
+### Cambiado
+
+- CI usa `windows-2025-vs2026` de forma explicita para anticipar la migracion de `windows-latest` anunciada por GitHub Actions.
+- Gate de estabilidad y pruebas de workflows ahora bloquean regresiones a `windows-latest` en la matriz Windows.
+
 ## [0.74.0] - 2026-06-06
 
 ### Cambiado
