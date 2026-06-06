@@ -160,6 +160,8 @@ Nota `v0.158.0`: `target_output_backend.readiness_plan` para salida `system` tam
 
 Nota `v0.159.0`: `tools/beta_readiness.py` ahora incluye esos campos de readiness en `missing_terms` y en `BETA_CHECKLIST.md`, para que el operador vea la evidencia faltante exacta antes del piloto audible real.
 
+Nota `v0.160.0`: `BETA_CHECKLIST.md` tambien muestra los campos faltantes de la command card de salida `system` para `python_extra=null`, `pip_command=null` y preflight sin audio.
+
 ## Fase 0 - Base del proyecto
 
 **Objetivo:** dejar una libreria instalable, importable y testeable.

@@ -6,6 +6,16 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.160.0] - 2026-06-06
+
+### Mejorado
+
+- `tools/beta_readiness.py` agrega a `missing_terms` de `system_output_audible` los campos `System output command card python extra: not-set`, `System output command card pip command: not-set` y `System output dependency post-install plays audio: False`.
+
+### Pruebas
+
+- `tests/test_beta_readiness.py` valida que el reporte JSON y `BETA_CHECKLIST.md` muestren esos campos antes del piloto audible real.
+
 ## [0.159.0] - 2026-06-06
 
 ### Mejorado

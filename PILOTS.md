@@ -26,6 +26,8 @@ Nota `v0.158.0`: `target_output_backend.readiness_plan` en pilotos de salida `sy
 
 Nota `v0.159.0`: `BETA_CHECKLIST.md` ahora muestra como evidencia faltante los tres campos del readiness plan de salida `system`: `Target output backend readiness uses pip extra: False`, `Target output backend readiness python extra: not-set` y `Target output backend readiness pip command: not-set`. English: beta checklists now surface missing system-output readiness evidence.
 
+Nota `v0.160.0`: `BETA_CHECKLIST.md` tambien muestra `System output command card python extra: not-set`, `System output command card pip command: not-set` y `System output dependency post-install plays audio: False`. English: beta checklists now surface missing system-output command-card no-pip-extra evidence.
+
 Nota `v0.111.0`: `tools/pilot_run.py` conserva esos `blocker_summaries` en `pilot-report.json` y los muestra en `pilot-plan.md` y `real-pilot-evidence-manifest.md`. English: safe-pilot artifacts now show per-blocker evidence summaries for operators.
 
 Nota `v0.112.0`: `tools/beta_readiness.py --audit-evidence` y `tools/pilot_run.py` publican `next_evidence_focus` para mostrar el primer blocker beta activo, campos faltantes y candidato mas cercano sin rutas locales. English: operators now get a public-safe next evidence focus.

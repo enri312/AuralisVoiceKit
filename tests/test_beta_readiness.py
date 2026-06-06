@@ -46,6 +46,18 @@ class BetaReadinessTests(unittest.TestCase):
             "Target output backend readiness pip command: not-set",
             checks["system_output_audible"]["missing_terms"],
         )
+        self.assertIn(
+            "System output command card python extra: not-set",
+            checks["system_output_audible"]["missing_terms"],
+        )
+        self.assertIn(
+            "System output command card pip command: not-set",
+            checks["system_output_audible"]["missing_terms"],
+        )
+        self.assertIn(
+            "System output dependency post-install plays audio: False",
+            checks["system_output_audible"]["missing_terms"],
+        )
         self.assertIn("windows_wasapi_capture", report["blockers"])
         self.assertIn("real_transcription_quality", report["blockers"])
         self.assertIn("windows-wasapi-sample-rate", {issue["id"] for issue in report["known_issues"]})
@@ -86,6 +98,9 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertIn("Target output backend readiness uses pip extra: False", content)
         self.assertIn("Target output backend readiness python extra: not-set", content)
         self.assertIn("Target output backend readiness pip command: not-set", content)
+        self.assertIn("System output command card python extra: not-set", content)
+        self.assertIn("System output command card pip command: not-set", content)
+        self.assertIn("System output dependency post-install plays audio: False", content)
 
     def test_evidence_json_can_close_beta_blockers(self):
         module = _load_beta_readiness()

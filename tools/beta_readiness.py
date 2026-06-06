@@ -463,7 +463,10 @@ def build_beta_readiness_report(
                 "Target output backend readiness pip command: not-set",
                 "System output command card ready for beta evidence: True",
                 "System output command card uses pip extra: False",
+                "System output command card python extra: not-set",
+                "System output command card pip command: not-set",
                 "System output dependency plan safe to share: True",
+                "System output dependency post-install plays audio: False",
                 "System output operator gate ready for beta audit: True",
             ),
             next_action=(
