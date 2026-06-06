@@ -370,12 +370,63 @@ def _validate_system_flags(*, system_override: str | None, speak: bool) -> None:
 
 def _output_backend_status(system: str) -> dict[str, Any]:
     info = SystemSpeechOutputBackend(system=system).info()
+    dependencies = list(info.dependencies)
+    readiness_plan = _output_backend_readiness_plan(system, dependencies)
     return {
         "name": info.name,
         "kind": info.kind,
         "available": info.available,
-        "dependencies": list(info.dependencies),
+        "dependencies": dependencies,
         "reason": info.reason,
+        "readiness_plan": readiness_plan,
+    }
+
+
+def _output_backend_readiness_plan(system: str, dependencies: list[str]) -> dict[str, Any]:
+    normalized = system.lower()
+    if normalized == "windows":
+        setup_commands: list[str] = []
+        platform_notes = [
+            "Windows uses PowerShell plus the built-in System.Speech assembly.",
+            "Run from the same session that will execute the audible pilot.",
+        ]
+    elif normalized in {"darwin", "macos", "mac"}:
+        setup_commands = []
+        platform_notes = [
+            "macOS normally ships the say command with the operating system.",
+            "Use System Settings to verify output device and volume before --speak.",
+        ]
+    elif normalized in {"linux", "ubuntu", "ubuntu/linux"}:
+        setup_commands = [
+            "sudo apt-get update",
+            "sudo apt-get install -y speech-dispatcher espeak",
+        ]
+        platform_notes = [
+            "Ubuntu/Linux needs either spd-say from speech-dispatcher or espeak on PATH.",
+            "Check desktop audio routing and volume before asking an operator to confirm audible output.",
+        ]
+    else:
+        setup_commands = []
+        platform_notes = ["Unsupported system for the built-in system output backend."]
+    post_install_check = (
+        "python tools/output_pilot.py "
+        f"--system {system} --require-output-backend-ready --json"
+    )
+    audible_check = (
+        "python tools/output_pilot.py --speak --operator-present --confirm-audible "
+        "--confirm-text-reviewed --confirm-voice-reviewed --require-output-backend-ready "
+        f"--expected-system \"{system}\" --text <public-spoken-text> --json"
+    )
+    return {
+        "backend": "system",
+        "system": system,
+        "candidate_commands": dependencies,
+        "setup_commands": setup_commands,
+        "requires_package_manager": bool(setup_commands),
+        "post_install_check": post_install_check,
+        "post_install_check_plays_audio": False,
+        "audible_check_template": audible_check,
+        "platform_notes": platform_notes,
     }
 
 
@@ -384,9 +435,14 @@ def _validate_output_backend_ready(*, target_output_backend: dict[str, Any], req
         return
     dependencies = _format_list(target_output_backend["dependencies"])
     reason = target_output_backend["reason"] or "backend dependency check failed"
+    readiness_plan = target_output_backend.get("readiness_plan", {})
+    setup_commands = readiness_plan.get("setup_commands", [])
+    setup_hint = f" Setup commands: {_format_list(setup_commands)}." if setup_commands else ""
+    post_install_check = readiness_plan.get("post_install_check")
+    check_hint = f" Recheck with: {post_install_check}." if post_install_check else ""
     raise ValueError(
         f"System output backend {target_output_backend['name']!r} is not available. "
-        f"Dependencies: {dependencies}. Reason: {reason}"
+        f"Dependencies: {dependencies}. Reason: {reason}.{setup_hint}{check_hint}"
     )
 
 
@@ -554,6 +610,8 @@ def _build_findings_markdown(
         f"- Target output backend available: {target_output_backend['available']}",
         f"- Target output backend dependencies: {_format_list(target_output_backend['dependencies'])}",
         f"- Target output backend reason: {_format_optional(target_output_backend['reason'])}",
+        f"- Target output backend setup commands: {_format_list(target_output_backend['readiness_plan']['setup_commands'])}",
+        f"- Target output backend post-install check: {target_output_backend['readiness_plan']['post_install_check']}",
         f"- Dry run: {not speak}",
         f"- Real audio requested: {speak}",
         f"- Operator present: {operator_present}",
@@ -640,6 +698,8 @@ def _build_system_output_next_step_markdown(
         f"- Target output backend available: {target_output_backend['available']}",
         f"- Target output backend dependencies: {_format_list(target_output_backend['dependencies'])}",
         f"- Target output backend reason: {_format_optional(target_output_backend['reason'])}",
+        f"- Target output backend setup commands: {_format_list(target_output_backend['readiness_plan']['setup_commands'])}",
+        f"- Target output backend post-install check: {target_output_backend['readiness_plan']['post_install_check']}",
         f"- Output backend readiness required: {require_output_backend_ready}",
         f"- Dry run: {not speak}",
         f"- Real audio requested: {speak}",
@@ -667,6 +727,8 @@ def _build_system_output_next_step_markdown(
         "- Review `output-operator-checklist.md` before enabling `--speak`.",
         "- Keep the spoken text public/non-sensitive; do not paste private text into public findings.",
         "- Confirm `spoken_text_privacy_scan.passed=true` before playback.",
+        "- If the backend is unavailable, follow `target_output_backend.readiness_plan.setup_commands` on the target OS.",
+        "- Run `target_output_backend.readiness_plan.post_install_check` before enabling `--speak`.",
         "- Confirm `target_output_backend.available=true` before enabling `--speak`.",
         "- Confirm `system_guard.expected_system_matched=true` on the target OS.",
         "- Confirm `operator_checklist.text_review_confirmed=true`.",
@@ -795,6 +857,10 @@ def _print_report(report: dict[str, Any]) -> None:
     print(f"System: {report['system']}")
     print(f"Expected system matched: {report['system_guard']['expected_system_matched']}")
     print(f"Target output backend available: {report['target_output_backend']['available']}")
+    print(
+        "Target output backend setup commands: "
+        f"{_format_list(report['target_output_backend']['readiness_plan']['setup_commands'])}"
+    )
     print(f"Dry run: {report['dry_run']}")
     print(f"Real audio requested: {report['real_audio_requested']}")
     print(f"Operator present: {report['operator_present']}")

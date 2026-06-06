@@ -2,6 +2,38 @@
 
 Este documento resume hallazgos de pilotos reales o semi-manuales. No debe incluir audio, transcripciones privadas, rutas locales completas ni nombres reales de dispositivos.
 
+## 2026-06-06 - Windows dry-run de readiness para salida system en Ubuntu/Linux
+
+Comando ejecutado:
+
+```powershell
+python tools\output_pilot.py --output-dir pilot_runs\output\readiness-plan-linux --system Linux --text "Hola desde AuralisVoiceKit" --json
+```
+
+Alcance:
+
+- Sistema anfitrion: Windows.
+- Sistema objetivo simulado para comandos: Ubuntu/Linux.
+- Version AuralisVoiceKit: `0.95.0`.
+- Audio real: no.
+- Operador presente: no.
+- Texto hablado completo guardado: no; comandos sanitizados con `<text-redacted>`.
+
+Resultado:
+
+- Dry-run: `passed=true`.
+- `target_output_backend.available`: `false`, esperado porque el host Windows no tiene `spd-say`/`espeak` en PATH.
+- `target_output_backend.readiness_plan.setup_commands`: `sudo apt-get update` y `sudo apt-get install -y speech-dispatcher espeak`.
+- `target_output_backend.readiness_plan.post_install_check`: usa `--system Linux --require-output-backend-ready --json` sin reproducir audio.
+- `spoken_text_privacy_scan.passed`: `true`.
+- Evidencia beta: `false`; falta audio real, operador, plataforma objetivo real y revision de voz.
+
+Acciones siguientes:
+
+1. Ejecutar el `post_install_check` en Ubuntu/Linux real despues de instalar `speech-dispatcher` o `espeak`.
+2. Ejecutar salida real solo con operador presente y texto publico/no sensible.
+3. Mantener beta bloqueada hasta que `target_output_backend.available=true`, `output_backend_ready_required=true`, `operator_checklist.voice_review_confirmed=true` y `operator_checklist.ready_for_beta_evidence=true`.
+
 ## 2026-06-06 - Windows preflight MP3 con plan de instalacion de backend
 
 Comandos ejecutados:

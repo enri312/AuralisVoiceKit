@@ -56,6 +56,9 @@ class OutputPilotTests(unittest.TestCase):
         self.assertEqual(report["target_output_backend"]["name"], "system")
         self.assertEqual(report["target_output_backend"]["kind"], "output")
         self.assertIsInstance(report["target_output_backend"]["available"], bool)
+        self.assertEqual(report["target_output_backend"]["readiness_plan"]["system"], "Darwin")
+        self.assertEqual(report["target_output_backend"]["readiness_plan"]["setup_commands"], [])
+        self.assertIn("--require-output-backend-ready", report["target_output_backend"]["readiness_plan"]["post_install_check"])
         self.assertFalse(report["output_backend_ready_required"])
         self.assertFalse(report["hardware_output_tested"])
         self.assertFalse(report["operator_present"])
@@ -80,6 +83,7 @@ class OutputPilotTests(unittest.TestCase):
         self.assertIn("System output pilot findings", findings)
         self.assertIn("Real audio requested: False", findings)
         self.assertIn("Target output backend available:", findings)
+        self.assertIn("Target output backend post-install check:", findings)
         self.assertIn("Spoken text privacy scan passed: True", findings)
         self.assertIn("Expected system matched: not-set", findings)
         self.assertIn("Operator checklist ready for beta evidence: False", findings)
@@ -96,6 +100,8 @@ class OutputPilotTests(unittest.TestCase):
         self.assertIn('--expected-system "Windows|Linux|Darwin"', next_step)
         self.assertIn("--require-output-backend-ready", next_step)
         self.assertIn("Target output backend available:", next_step)
+        self.assertIn("target_output_backend.readiness_plan.setup_commands", next_step)
+        self.assertIn("target_output_backend.readiness_plan.post_install_check", next_step)
         self.assertIn("spoken_text_privacy_scan.passed=true", next_step)
         self.assertIn("target_output_backend.available=true", next_step)
         self.assertNotIn(private_text, next_step)
@@ -138,6 +144,8 @@ class OutputPilotTests(unittest.TestCase):
         self.assertEqual(payload["target_output_backend"]["name"], "system")
         self.assertEqual(payload["target_output_backend"]["kind"], "output")
         self.assertIsInstance(payload["target_output_backend"]["available"], bool)
+        self.assertEqual(payload["target_output_backend"]["readiness_plan"]["system"], "Linux")
+        self.assertIn("speech-dispatcher", " ".join(payload["target_output_backend"]["readiness_plan"]["setup_commands"]))
         self.assertFalse(payload["real_audio_requested"])
         self.assertIn("operator_checklist", payload["artifacts"])
         self.assertFalse(payload["text_review_confirmed"])
@@ -159,6 +167,10 @@ class OutputPilotTests(unittest.TestCase):
                 "available": False,
                 "dependencies": ["say"],
                 "reason": "missing test command",
+                "readiness_plan": {
+                    "setup_commands": [],
+                    "post_install_check": "python tools/output_pilot.py --system Darwin --require-output-backend-ready --json",
+                },
             }
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -189,7 +201,24 @@ class OutputPilotTests(unittest.TestCase):
         self.assertIn("System output backend 'system' is not available", payload["error"])
         self.assertIn("say", payload["error"])
         self.assertIn("missing test command", payload["error"])
+        self.assertIn("--require-output-backend-ready", payload["error"])
         self.assertNotIn("Texto publico seguro", payload["error"])
+
+    def test_output_backend_readiness_plan_supports_target_platforms(self):
+        module = _load_output_pilot()
+
+        windows = module._output_backend_readiness_plan("Windows", ["powershell.exe"])
+        linux = module._output_backend_readiness_plan("Linux", ["spd-say", "espeak"])
+        macos = module._output_backend_readiness_plan("Darwin", ["say"])
+
+        self.assertFalse(windows["requires_package_manager"])
+        self.assertIn("System.Speech", " ".join(windows["platform_notes"]))
+        self.assertTrue(linux["requires_package_manager"])
+        self.assertIn("speech-dispatcher", " ".join(linux["setup_commands"]))
+        self.assertIn("espeak", " ".join(linux["setup_commands"]))
+        self.assertFalse(macos["requires_package_manager"])
+        self.assertIn("say", " ".join(macos["candidate_commands"]))
+        self.assertFalse(linux["post_install_check_plays_audio"])
 
     def test_output_pilot_operator_checklist_marks_confirmed_real_audio(self):
         module = _load_output_pilot()

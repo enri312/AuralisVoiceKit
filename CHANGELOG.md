@@ -6,6 +6,14 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.95.0] - 2026-06-06
+
+### Agregado
+
+- `tools/output_pilot.py` ahora expone `target_output_backend.readiness_plan` con comandos candidatos, setup por sistema operativo y `post_install_check` sin audio para preparar salida audible `system`.
+- El guard `--require-output-backend-ready` ahora incluye setup y comando de re-chequeo cuando falta `powershell`, `say`, `spd-say` o `espeak`.
+- README, `PILOTS.md`, documentacion HTML y referencia API documentan la preparacion de salida audible en Windows, Ubuntu/Linux y macOS.
+
 ## [0.94.0] - 2026-06-06
 
 ### Agregado
