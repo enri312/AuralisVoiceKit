@@ -790,6 +790,24 @@ def _output_beta_evidence_gap(
             system_output_command_card["uses_placeholders"] is True,
         ),
         _beta_gap_check(
+            "system_output_command_card.uses_pip_extra",
+            False,
+            system_output_command_card["uses_pip_extra"],
+            system_output_command_card["uses_pip_extra"] is False,
+        ),
+        _beta_gap_check(
+            "system_output_command_card.python_extra",
+            None,
+            system_output_command_card["python_extra"],
+            system_output_command_card["python_extra"] is None,
+        ),
+        _beta_gap_check(
+            "system_output_command_card.pip_command",
+            None,
+            system_output_command_card["pip_command"],
+            system_output_command_card["pip_command"] is None,
+        ),
+        _beta_gap_check(
             "system_output_command_card.preflight_plays_audio",
             False,
             system_output_command_card["preflight_plays_audio"],
@@ -824,6 +842,24 @@ def _output_beta_evidence_gap(
             False,
             system_output_command_card["records_local_paths"],
             system_output_command_card["records_local_paths"] is False,
+        ),
+        _beta_gap_check(
+            "system_output_command_card.system_dependency_plan.safe_to_share",
+            True,
+            system_output_command_card["system_dependency_plan"]["safe_to_share"],
+            system_output_command_card["system_dependency_plan"]["safe_to_share"] is True,
+        ),
+        _beta_gap_check(
+            "system_output_command_card.system_dependency_plan.post_install_check_plays_audio",
+            False,
+            system_output_command_card["system_dependency_plan"]["post_install_check_plays_audio"],
+            system_output_command_card["system_dependency_plan"]["post_install_check_plays_audio"] is False,
+        ),
+        _beta_gap_check(
+            "system_output_command_card.system_dependency_plan.records_local_paths",
+            False,
+            system_output_command_card["system_dependency_plan"]["records_local_paths"],
+            system_output_command_card["system_dependency_plan"]["records_local_paths"] is False,
         ),
         _beta_gap_check("passed", True, passed, passed),
     ]
@@ -941,12 +977,18 @@ def _system_output_operator_gate(
     command_safe_to_copy = bool(
         system_output_command_card["safe_to_share"]
         and system_output_command_card["uses_placeholders"]
+        and system_output_command_card["uses_pip_extra"] is False
+        and system_output_command_card["python_extra"] is None
+        and system_output_command_card["pip_command"] is None
         and system_output_command_card["preflight_plays_audio"] is False
         and system_output_command_card["real_output_requires_operator"] is True
         and system_output_command_card["records_audio"] is False
         and system_output_command_card["records_spoken_text"] is False
         and system_output_command_card["records_operator_identity"] is False
         and system_output_command_card["records_local_paths"] is False
+        and system_output_command_card["system_dependency_plan"]["safe_to_share"] is True
+        and system_output_command_card["system_dependency_plan"]["post_install_check_plays_audio"] is False
+        and system_output_command_card["system_dependency_plan"]["records_local_paths"] is False
         and all(isinstance(command, str) and "<pilot-output-dir>" in command for command in command_templates)
         and "<public-spoken-text>" in system_output_command_card["real_output_command_template"]
     )
@@ -1050,6 +1092,11 @@ def _build_findings_markdown(
         f"- Commands observed: {len(payload.get('commands', []))}",
         f"- Operator checklist ready for beta evidence: {operator_checklist['ready_for_beta_evidence']}",
         f"- System output command card ready for beta evidence: {system_output_command_card['ready_for_beta_evidence']}",
+        f"- System output command card uses pip extra: {system_output_command_card['uses_pip_extra']}",
+        f"- System output command card python extra: {_format_nullable(system_output_command_card['python_extra'])}",
+        f"- System output command card pip command: {_format_nullable(system_output_command_card['pip_command'])}",
+        f"- System output dependency plan safe to share: {system_output_command_card['system_dependency_plan']['safe_to_share']}",
+        f"- System output dependency post-install plays audio: {system_output_command_card['system_dependency_plan']['post_install_check_plays_audio']}",
         f"- System output operator gate decision: {system_output_operator_gate['decision']}",
         f"- System output operator gate ready for beta audit: {system_output_operator_gate['ready_for_beta_audit']}",
         f"- System output operator gate missing confirmations: {system_output_operator_gate['missing_confirmation_count']}",
@@ -1125,8 +1172,11 @@ def _system_output_command_card(
     operator_checklist: dict[str, Any],
     passed: bool,
 ) -> dict[str, Any]:
-    preflight_command = _append_output_dir_placeholder(
-        target_output_backend["readiness_plan"]["post_install_check"]
+    readiness_plan = target_output_backend["readiness_plan"]
+    preflight_command = _append_output_dir_placeholder(readiness_plan["post_install_check"])
+    system_dependency_plan = _system_output_dependency_plan(
+        readiness_plan=readiness_plan,
+        preflight_command=preflight_command,
     )
     ready = (
         target_output_backend["available"] is True
@@ -1143,17 +1193,21 @@ def _system_output_command_card(
         "artifact": "system-output-next-step.md",
         "safe_to_share": True,
         "uses_placeholders": True,
+        "uses_pip_extra": False,
+        "python_extra": None,
+        "pip_command": None,
         "blocker": "system_output_audible",
         "ready_for_beta_evidence": ready,
         "target_backend_available": target_output_backend["available"],
         "output_backend_ready_required": require_output_backend_ready,
         "preflight_command_template": preflight_command,
-        "preflight_plays_audio": target_output_backend["readiness_plan"]["post_install_check_plays_audio"],
+        "preflight_plays_audio": readiness_plan["post_install_check_plays_audio"],
         "real_output_command_template": command_template,
         "real_output_requires_operator": True,
         "audit_command_template": (
             "python tools/beta_readiness.py --audit-evidence --evidence <pilot-output-dir> --json"
         ),
+        "system_dependency_plan": system_dependency_plan,
         "records_audio": False,
         "records_spoken_text": False,
         "records_operator_identity": False,
@@ -1163,6 +1217,24 @@ def _system_output_command_card(
             if ready
             else "Complete the audible output checklist and rerun before beta evidence audit."
         ),
+    }
+
+
+def _system_output_dependency_plan(
+    *,
+    readiness_plan: dict[str, Any],
+    preflight_command: str,
+) -> dict[str, Any]:
+    return {
+        "backend": "system",
+        "system": readiness_plan["system"],
+        "candidate_commands": list(readiness_plan["candidate_commands"]),
+        "setup_commands": list(readiness_plan["setup_commands"]),
+        "uses_system_package_manager": readiness_plan["requires_package_manager"],
+        "post_install_check": preflight_command,
+        "post_install_check_plays_audio": readiness_plan["post_install_check_plays_audio"],
+        "safe_to_share": True,
+        "records_local_paths": False,
     }
 
 
@@ -1221,6 +1293,11 @@ def _build_system_output_next_step_markdown(
         f"- Command card ready for beta evidence: {system_output_command_card['ready_for_beta_evidence']}",
         f"- Command card safe to share: {system_output_command_card['safe_to_share']}",
         f"- Command card uses placeholders: {system_output_command_card['uses_placeholders']}",
+        f"- Command card uses pip extra: {system_output_command_card['uses_pip_extra']}",
+        f"- Command card python extra: {_format_nullable(system_output_command_card['python_extra'])}",
+        f"- Command card pip command: {_format_nullable(system_output_command_card['pip_command'])}",
+        f"- Command card system dependency plan safe to share: {system_output_command_card['system_dependency_plan']['safe_to_share']}",
+        f"- Command card system dependency post-install plays audio: {system_output_command_card['system_dependency_plan']['post_install_check_plays_audio']}",
         f"- Command card records spoken text: {system_output_command_card['records_spoken_text']}",
         f"- Command card records operator identity: {system_output_command_card['records_operator_identity']}",
         f"- Command card records local paths: {system_output_command_card['records_local_paths']}",
@@ -1252,6 +1329,13 @@ def _build_system_output_next_step_markdown(
         "```powershell",
         system_output_command_card["audit_command_template"],
         "```",
+        "",
+        "System dependency plan:",
+        "",
+        f"- Candidate commands: {_format_list(system_output_command_card['system_dependency_plan']['candidate_commands'])}",
+        f"- Setup commands: {_format_list(system_output_command_card['system_dependency_plan']['setup_commands'])}",
+        f"- Uses system package manager: {system_output_command_card['system_dependency_plan']['uses_system_package_manager']}",
+        f"- Post-install check plays audio: {system_output_command_card['system_dependency_plan']['post_install_check_plays_audio']}",
         "",
         "## Beta Evidence Gap",
         "",

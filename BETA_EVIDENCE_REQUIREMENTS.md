@@ -184,8 +184,14 @@ Este documento describe los campos JSON que pueden cerrar blockers de beta. No r
   - `system_output_command_card.ready_for_beta_evidence` = `True`
   - `system_output_command_card.safe_to_share` = `True`
   - `system_output_command_card.uses_placeholders` = `True`
+  - `system_output_command_card.uses_pip_extra` = `False`
+  - `system_output_command_card.python_extra` = `None`
+  - `system_output_command_card.pip_command` = `None`
   - `system_output_command_card.preflight_plays_audio` = `False`
   - `system_output_command_card.real_output_requires_operator` = `True`
+  - `system_output_command_card.system_dependency_plan.safe_to_share` = `True`
+  - `system_output_command_card.system_dependency_plan.post_install_check_plays_audio` = `False`
+  - `system_output_command_card.system_dependency_plan.records_local_paths` = `False`
   - `system_output_command_card.records_audio` = `False`
   - `system_output_command_card.records_spoken_text` = `False`
   - `system_output_command_card.records_operator_identity` = `False`

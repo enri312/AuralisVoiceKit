@@ -154,6 +154,8 @@ Nota `v0.155.0`: el contrato beta de captura exige `manual_capture_command_card.
 
 Nota `v0.156.0`: `real_transcription_command_card` ahora declara `uses_pip_extra`, `python_extra` y `pip_command`, y el auditor beta de transcripcion real exige que coincidan con `whisper` u `openai`.
 
+Nota `v0.157.0`: `system_output_command_card` declara `uses_pip_extra=false`, `python_extra=null`, `pip_command=null` y un `system_dependency_plan` seguro para Windows, Ubuntu/Linux y macOS; el auditor beta de salida audible exige ese plan antes de cerrar evidencia.
+
 ## Fase 0 - Base del proyecto
 
 **Objetivo:** dejar una libreria instalable, importable y testeable.

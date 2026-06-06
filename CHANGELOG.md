@@ -6,6 +6,17 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.157.0] - 2026-06-06
+
+### Agregado
+
+- `tools/output_pilot.py` ahora agrega `uses_pip_extra=false`, `python_extra=null`, `pip_command=null` y `system_dependency_plan` a `system_output_command_card`, dejando explicito que la salida `system` usa dependencias del sistema y no extras pip.
+- `tools/beta_readiness.py` exige ese plan seguro para cerrar evidencia beta de salida audible y rechaza command cards antiguos o con preflight que pueda reproducir audio.
+
+### Pruebas
+
+- Nuevas aserciones cubren el contrato beta de salida audible, el piloto seguro y artifacts Markdown/JSON con plan de dependencias del sistema.
+
 ## [0.156.0] - 2026-06-06
 
 ### Agregado

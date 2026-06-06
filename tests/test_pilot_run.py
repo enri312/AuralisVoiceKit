@@ -1405,6 +1405,10 @@ class PilotRunTests(unittest.TestCase):
             "system_output_command_card.safe_to_share",
             manifest_rows["system_output_audible"]["required_fields"],
         )
+        self.assertIn(
+            "system_output_command_card.system_dependency_plan.safe_to_share",
+            manifest_rows["system_output_audible"]["required_fields"],
+        )
         self.assertTrue(manifest_rows["system_output_audible"]["strict_backend_guard_required"])
         self.assertEqual(
             manifest_rows["system_output_audible"]["strict_backend_guard_flag"],
@@ -1640,6 +1644,21 @@ class PilotRunTests(unittest.TestCase):
         self.assertIn("next_system_output.records_operator_identity", output_step["required_fields"])
         self.assertIn("system_output_command_card.safe_to_share", output_step["required_fields"])
         self.assertIn("system_output_command_card.uses_placeholders", output_step["required_fields"])
+        self.assertIn("system_output_command_card.uses_pip_extra", output_step["required_fields"])
+        self.assertIn("system_output_command_card.python_extra", output_step["required_fields"])
+        self.assertIn("system_output_command_card.pip_command", output_step["required_fields"])
+        self.assertIn(
+            "system_output_command_card.system_dependency_plan.safe_to_share",
+            output_step["required_fields"],
+        )
+        self.assertIn(
+            "system_output_command_card.system_dependency_plan.post_install_check_plays_audio",
+            output_step["required_fields"],
+        )
+        self.assertIn(
+            "system_output_command_card.system_dependency_plan.records_local_paths",
+            output_step["required_fields"],
+        )
         self.assertIn("system_output_command_card.records_spoken_text", output_step["required_fields"])
         self.assertIn("system_output_command_card.records_operator_identity", output_step["required_fields"])
         self.assertFalse(checklist_step["requires_hardware"])
@@ -1713,6 +1732,7 @@ class PilotRunTests(unittest.TestCase):
         self.assertIn("output_backend_ready_required=true", matrix["system-output-audible"]["notes"])
         self.assertIn("operator_checklist.redacts_spoken_text=true", matrix["system-output-audible"]["notes"])
         self.assertIn("next_system_output.records_spoken_text=false", matrix["system-output-audible"]["notes"])
+        self.assertIn("system_output_command_card.uses_pip_extra=false", matrix["system-output-audible"]["notes"])
         self.assertIn("system_output_command_card.records_spoken_text=false", matrix["system-output-audible"]["notes"])
         self.assertIn("--fail-on-audit-gaps", report["beta_readiness"]["strict_audit_command"])
         self.assertIn("Campos condicionales", evidence_manifest)

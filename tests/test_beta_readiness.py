@@ -689,6 +689,9 @@ class BetaReadinessTests(unittest.TestCase):
         unsafe_cases = [
             ("safe_to_share", False),
             ("uses_placeholders", False),
+            ("uses_pip_extra", True),
+            ("python_extra", "system"),
+            ("pip_command", 'python -m pip install "auralisvoicekit[system]"'),
             ("preflight_plays_audio", True),
             ("real_output_requires_operator", False),
             ("records_audio", True),
@@ -702,6 +705,29 @@ class BetaReadinessTests(unittest.TestCase):
                     evidence_path = Path(tmpdir) / "output-pilot-report.json"
                     payload = _output_evidence()
                     payload["system_output_command_card"][field] = value
+                    _write_json(evidence_path, payload)
+
+                    report = module.build_beta_readiness_report(ROOT, evidence_paths=[evidence_path])
+                    checks = {check["name"]: check for check in report["checks"]}
+
+                self.assertFalse(checks["system_output_audible"]["ok"])
+                self.assertIn("system_output_audible", report["blockers"])
+
+    def test_system_output_evidence_requires_safe_system_dependency_plan(self):
+        module = _load_beta_readiness()
+
+        unsafe_cases = [
+            ("safe_to_share", False),
+            ("post_install_check_plays_audio", True),
+            ("records_local_paths", True),
+            ("post_install_check", "python tools/output_pilot.py --json"),
+        ]
+        for field, value in unsafe_cases:
+            with self.subTest(field=field):
+                with tempfile.TemporaryDirectory() as tmpdir:
+                    evidence_path = Path(tmpdir) / "output-pilot-report.json"
+                    payload = _output_evidence()
+                    payload["system_output_command_card"]["system_dependency_plan"][field] = value
                     _write_json(evidence_path, payload)
 
                     report = module.build_beta_readiness_report(ROOT, evidence_paths=[evidence_path])
@@ -1279,8 +1305,20 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertEqual(output_fields["system_output_command_card.ready_for_beta_evidence"], True)
         self.assertEqual(output_fields["system_output_command_card.safe_to_share"], True)
         self.assertEqual(output_fields["system_output_command_card.uses_placeholders"], True)
+        self.assertEqual(output_fields["system_output_command_card.uses_pip_extra"], False)
+        self.assertIsNone(output_fields["system_output_command_card.python_extra"])
+        self.assertIsNone(output_fields["system_output_command_card.pip_command"])
         self.assertEqual(output_fields["system_output_command_card.preflight_plays_audio"], False)
         self.assertEqual(output_fields["system_output_command_card.real_output_requires_operator"], True)
+        self.assertEqual(output_fields["system_output_command_card.system_dependency_plan.safe_to_share"], True)
+        self.assertEqual(
+            output_fields["system_output_command_card.system_dependency_plan.post_install_check_plays_audio"],
+            False,
+        )
+        self.assertEqual(
+            output_fields["system_output_command_card.system_dependency_plan.records_local_paths"],
+            False,
+        )
         self.assertEqual(output_fields["system_output_command_card.records_audio"], False)
         self.assertEqual(output_fields["system_output_command_card.records_spoken_text"], False)
         self.assertEqual(output_fields["system_output_command_card.records_operator_identity"], False)
@@ -1380,6 +1418,15 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertIn("capture_operator_gate.records_operator_identity", content)
         self.assertIn("system_output_command_card.safe_to_share", content)
         self.assertIn("system_output_command_card.uses_placeholders", content)
+        self.assertIn("system_output_command_card.uses_pip_extra", content)
+        self.assertIn("system_output_command_card.python_extra", content)
+        self.assertIn("system_output_command_card.pip_command", content)
+        self.assertIn("system_output_command_card.system_dependency_plan.safe_to_share", content)
+        self.assertIn(
+            "system_output_command_card.system_dependency_plan.post_install_check_plays_audio",
+            content,
+        )
+        self.assertIn("system_output_command_card.system_dependency_plan.records_local_paths", content)
         self.assertIn("system_output_command_card.records_spoken_text", content)
         self.assertIn("system_output_operator_gate.ready_for_beta_audit", content)
         self.assertIn("system_output_operator_gate.missing_confirmation_count", content)
@@ -1954,6 +2001,9 @@ def _system_output_command_card() -> dict:
         "artifact": "system-output-next-step.md",
         "safe_to_share": True,
         "uses_placeholders": True,
+        "uses_pip_extra": False,
+        "python_extra": None,
+        "pip_command": None,
         "blocker": "system_output_audible",
         "ready_for_beta_evidence": True,
         "preflight_command_template": (
@@ -1971,6 +2021,20 @@ def _system_output_command_card() -> dict:
         "audit_command_template": (
             "python tools/beta_readiness.py --audit-evidence --evidence <pilot-output-dir> --json"
         ),
+        "system_dependency_plan": {
+            "backend": "system",
+            "system": "Linux",
+            "candidate_commands": ["test-tts"],
+            "setup_commands": ["sudo apt-get install -y speech-dispatcher espeak"],
+            "uses_system_package_manager": True,
+            "post_install_check": (
+                "python tools/output_pilot.py --system Linux --require-output-backend-ready "
+                "--json --output-dir <pilot-output-dir>"
+            ),
+            "post_install_check_plays_audio": False,
+            "safe_to_share": True,
+            "records_local_paths": False,
+        },
         "records_audio": False,
         "records_spoken_text": False,
         "records_operator_identity": False,

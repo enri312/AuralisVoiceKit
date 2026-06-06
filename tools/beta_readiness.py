@@ -456,6 +456,8 @@ def build_beta_readiness_report(
                 "Ready for real audio: True",
                 "Operator checklist ready for beta evidence: True",
                 "System output command card ready for beta evidence: True",
+                "System output command card uses pip extra: False",
+                "System output dependency plan safe to share: True",
                 "System output operator gate ready for beta audit: True",
             ),
             next_action=(
@@ -475,6 +477,12 @@ def build_beta_readiness_report(
                 "next_system_output.records_spoken_text=false, "
                 "system_output_command_card.safe_to_share=true, "
                 "system_output_command_card.uses_placeholders=true, "
+                "system_output_command_card.uses_pip_extra=false, "
+                "system_output_command_card.python_extra=null, "
+                "system_output_command_card.pip_command=null, "
+                "system_output_command_card.system_dependency_plan.safe_to_share=true, "
+                "system_output_command_card.system_dependency_plan.post_install_check_plays_audio=false, "
+                "system_output_command_card.system_dependency_plan.records_local_paths=false, "
                 "system_output_command_card.records_spoken_text=false, "
                 "system_output_command_card.records_operator_identity=false, "
                 "system_output_operator_gate.ready_for_beta_audit=true, "
@@ -1096,8 +1104,14 @@ def _system_output_command_card_required_fields() -> list[dict[str, Any]]:
         _required_field("system_output_command_card.ready_for_beta_evidence", True),
         _required_field("system_output_command_card.safe_to_share", True),
         _required_field("system_output_command_card.uses_placeholders", True),
+        _required_field("system_output_command_card.uses_pip_extra", False),
+        _required_field("system_output_command_card.python_extra", None),
+        _required_field("system_output_command_card.pip_command", None),
         _required_field("system_output_command_card.preflight_plays_audio", False),
         _required_field("system_output_command_card.real_output_requires_operator", True),
+        _required_field("system_output_command_card.system_dependency_plan.safe_to_share", True),
+        _required_field("system_output_command_card.system_dependency_plan.post_install_check_plays_audio", False),
+        _required_field("system_output_command_card.system_dependency_plan.records_local_paths", False),
         _required_field("system_output_command_card.records_audio", False),
         _required_field("system_output_command_card.records_spoken_text", False),
         _required_field("system_output_command_card.records_operator_identity", False),
@@ -1787,8 +1801,12 @@ def _has_safe_system_output_command_card(report: dict[str, Any]) -> bool:
         and card.get("ready_for_beta_evidence") is True
         and card.get("safe_to_share") is True
         and card.get("uses_placeholders") is True
+        and card.get("uses_pip_extra") is False
+        and card.get("python_extra") is None
+        and card.get("pip_command") is None
         and card.get("preflight_plays_audio") is False
         and card.get("real_output_requires_operator") is True
+        and _has_safe_system_dependency_plan(card)
         and card.get("records_audio") is False
         and card.get("records_spoken_text") is False
         and card.get("records_operator_identity") is False
@@ -1796,6 +1814,25 @@ def _has_safe_system_output_command_card(report: dict[str, Any]) -> bool:
         and all(isinstance(command, str) and "<pilot-output-dir>" in command for command in command_templates)
         and isinstance(card.get("real_output_command_template"), str)
         and "<public-spoken-text>" in card["real_output_command_template"]
+    )
+
+
+def _has_safe_system_dependency_plan(card: dict[str, Any]) -> bool:
+    plan = card.get("system_dependency_plan", {})
+    return (
+        isinstance(plan, dict)
+        and plan.get("backend") == "system"
+        and isinstance(plan.get("system"), str)
+        and isinstance(plan.get("candidate_commands"), list)
+        and all(isinstance(command, str) for command in plan.get("candidate_commands", []))
+        and isinstance(plan.get("setup_commands"), list)
+        and all(isinstance(command, str) for command in plan.get("setup_commands", []))
+        and isinstance(plan.get("uses_system_package_manager"), bool)
+        and isinstance(plan.get("post_install_check"), str)
+        and "<pilot-output-dir>" in plan["post_install_check"]
+        and plan.get("post_install_check_plays_audio") is False
+        and plan.get("safe_to_share") is True
+        and plan.get("records_local_paths") is False
     )
 
 
