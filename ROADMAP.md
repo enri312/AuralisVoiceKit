@@ -214,7 +214,7 @@ Entregables:
 - Versionado semantico.
 - Licencia y metadata final.
 - Workflow manual para TestPyPI/PyPI con Trusted Publishing. Estado: inicial.
-- Gate de estabilidad para CI. Estado: inicial con `tools/stability_gate.py` y workflow de release verificado con `actions/upload-artifact@v5`.
+- Gate de estabilidad para CI. Estado: inicial con `tools/stability_gate.py` y workflow de release verificado con `actions/upload-artifact@v7.0.1`.
 - Runner de piloto automatizado seguro. Estado: inicial con `tools/pilot_run.py`.
 - Runner de piloto manual guiado. Estado: inicial con `tools/manual_pilot.py`, `manual-capture-checklist.md`, `capture_checklist`, `system_guard`, `--expected-system`, `--confirm-input-reviewed`, `input_review_confirmed`, redaccion de selector de dispositivo y sin captura real salvo `--capture-test`.
 

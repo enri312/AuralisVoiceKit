@@ -11,14 +11,16 @@ class WorkflowTests(unittest.TestCase):
     def test_release_upload_artifact_uses_node24_ready_action(self):
         content = RELEASE_WORKFLOW.read_text(encoding="utf-8")
 
-        self.assertIn("actions/upload-artifact@v5", content)
+        self.assertIn("actions/upload-artifact@v7.0.1", content)
         self.assertNotIn("actions/upload-artifact@v4", content)
+        self.assertNotIn("actions/upload-artifact@v5", content)
 
     def test_publish_pypi_upload_artifact_uses_node24_ready_action(self):
         content = PUBLISH_PYPI_WORKFLOW.read_text(encoding="utf-8")
 
-        self.assertIn("actions/upload-artifact@v5", content)
+        self.assertIn("actions/upload-artifact@v7.0.1", content)
         self.assertNotIn("actions/upload-artifact@v4", content)
+        self.assertNotIn("actions/upload-artifact@v5", content)
 
 
 if __name__ == "__main__":

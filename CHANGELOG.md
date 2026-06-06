@@ -6,6 +6,13 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.74.0] - 2026-06-06
+
+### Cambiado
+
+- Workflows de release y PyPI actualizados a `actions/upload-artifact@v7.0.1`, que declara runtime `node24`.
+- Gate de estabilidad y pruebas de workflows ahora bloquean regresiones a `actions/upload-artifact@v4` o `actions/upload-artifact@v5`.
+
 ## [0.73.0] - 2026-06-06
 
 ### Agregado
