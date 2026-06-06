@@ -6,6 +6,13 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.81.0] - 2026-06-06
+
+### Cambiado
+
+- `tools/transcription_pilot.py --preflight-only` ahora reporta `target_backend` con disponibilidad, dependencias y razon del backend objetivo antes de ejecutar una transcripcion real.
+- `transcription-pilot-findings.md` y `real-transcription-next-step.md` indican revisar `target_backend.available=true` para detectar extras faltantes como `auralisvoicekit[whisper]` u `auralisvoicekit[openai]` sin exponer audio privado.
+
 ## [0.80.0] - 2026-06-06
 
 ### Cambiado

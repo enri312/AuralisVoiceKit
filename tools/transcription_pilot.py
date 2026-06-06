@@ -98,7 +98,7 @@ def run_transcription_pilot(
         audio_confirmed_non_sensitive=audio_confirmed_non_sensitive,
         audio_review_confirmed=audio_review_confirmed,
     )
-    _validate_transcription_backend_name(backend)
+    target_backend = _transcription_backend_status(backend)
     _validate_duration_limits(
         min_audio_seconds=min_audio_seconds,
         max_audio_seconds=max_audio_seconds,
@@ -240,6 +240,7 @@ def run_transcription_pilot(
     findings = _build_findings_markdown(
         timestamp=timestamp,
         backend=backend,
+        target_backend=target_backend,
         preflight_only=preflight_only,
         real_transcription=real_transcription,
         passed=passed,
@@ -264,6 +265,7 @@ def run_transcription_pilot(
     next_step = _build_real_transcription_next_step_markdown(
         timestamp=timestamp,
         backend=backend,
+        target_backend=target_backend,
         model=model,
         preflight_only=preflight_only,
         real_transcription=real_transcription,
@@ -280,6 +282,7 @@ def run_transcription_pilot(
         "created_at": timestamp,
         "system": platform.system(),
         "backend": backend,
+        "target_backend": target_backend,
         "model": model or "auto",
         "language": language,
         "preflight_only": preflight_only,
@@ -300,6 +303,7 @@ def run_transcription_pilot(
         "next_real_transcription": {
             "artifact": str(next_step_path),
             "command_template": command_template,
+            "target_backend": target_backend,
             "uses_placeholders": True,
             "records_audio_path": False,
             "records_audio_file_name": False,
@@ -502,11 +506,18 @@ def _validate_quality_review_flags(
         raise ValueError("--confirm-quality-reviewed requires --real-transcription.")
 
 
-def _validate_transcription_backend_name(backend: str) -> None:
+def _transcription_backend_status(backend: str) -> dict[str, Any]:
     try:
-        create_default_registry().create_transcription(backend)
+        info = create_default_registry().create_transcription(backend).info()
     except BackendNotAvailable as exc:
         raise ValueError(str(exc)) from exc
+    return {
+        "name": info.name,
+        "kind": info.kind,
+        "available": info.available,
+        "dependencies": list(info.dependencies),
+        "reason": info.reason,
+    }
 
 
 def _validate_duration_limits(
@@ -924,6 +935,7 @@ def _build_findings_markdown(
     *,
     timestamp: str,
     backend: str,
+    target_backend: dict[str, Any],
     preflight_only: bool,
     real_transcription: bool,
     passed: bool,
@@ -946,6 +958,9 @@ def _build_findings_markdown(
         "",
         f"- Created at: {timestamp}",
         f"- Backend: {backend}",
+        f"- Target backend available: {target_backend['available']}",
+        f"- Target backend dependencies: {_format_list(target_backend['dependencies'])}",
+        f"- Target backend reason: {_format_optional(target_backend['reason'])}",
         f"- Preflight only: {preflight_only}",
         f"- Real transcription requested: {real_transcription}",
         f"- Passed: {passed}",
@@ -1068,6 +1083,7 @@ def _build_real_transcription_next_step_markdown(
     *,
     timestamp: str,
     backend: str,
+    target_backend: dict[str, Any],
     model: str | None,
     preflight_only: bool,
     real_transcription: bool,
@@ -1087,6 +1103,9 @@ def _build_real_transcription_next_step_markdown(
         "",
         f"- Created at: {timestamp}",
         f"- Backend from current run: {backend}",
+        f"- Target backend available: {target_backend['available']}",
+        f"- Target backend dependencies: {_format_list(target_backend['dependencies'])}",
+        f"- Target backend reason: {_format_optional(target_backend['reason'])}",
         f"- Model from current run: {_format_optional(model)}",
         f"- Preflight only: {preflight_only}",
         f"- Real transcription requested: {real_transcription}",
@@ -1115,6 +1134,7 @@ def _build_real_transcription_next_step_markdown(
         "- Replace `<audio-path>` locally; do not paste the real path into public findings.",
         "- Replace `<expected-text-path>` locally or use `--expected-text` only with public/non-sensitive text.",
         "- Confirm `audio.audio_file_name_redacted=true` in `transcription-pilot-report.json`.",
+        "- Confirm `target_backend.available=true` before running without `--preflight-only`.",
         "- Confirm `transcription_checklist.records_audio_file_name=false`.",
         "- Confirm `transcription_checklist.records_expected_text_file_name=false`.",
         "- Confirm `reference_privacy_scan.passed=true` before accepting beta evidence.",
@@ -1208,6 +1228,7 @@ def _slug(value: str) -> str:
 def _print_report(report: dict[str, Any]) -> None:
     print("AuralisVoiceKit transcription pilot")
     print(f"Backend: {report['backend']}")
+    print(f"Target backend available: {report['target_backend']['available']}")
     print(f"Preflight only: {report['preflight_only']}")
     print(f"Real transcription requested: {report['real_transcription_requested']}")
     print(f"Generated synthetic audio: {report['generated_synthetic_audio']}")
