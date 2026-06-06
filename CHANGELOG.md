@@ -6,6 +6,18 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.133.0] - 2026-06-06
+
+### Agregado
+
+- `tools/pilot_run.py` ahora genera `real-pilot-execution-card.md`, una tarjeta publica para ejecutar el siguiente piloto real en orden, revisar confirmaciones humanas y cerrar con auditoria estricta.
+- `pilot-report.json` incluye `real_pilot_execution_card` con foco actual, flags de privacidad y enlaces desde plan, handoff, foco, manifiesto, compuerta, alto operativo e ingesta de evidencia.
+- La tarjeta resume pre-run, comando del foco, campos faltantes, directorios de ingesta, auditoria/refresco y condiciones de alto sin copiar audio, transcripciones, texto esperado, texto hablado real, rutas locales ni identidad del operador.
+
+### Pruebas
+
+- Nuevas pruebas validan que la tarjeta de ejecucion se escribe, se serializa, queda enlazada y mantiene politica publica segura.
+
 ## [0.132.0] - 2026-06-06
 
 ### Agregado

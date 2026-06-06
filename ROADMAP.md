@@ -106,6 +106,8 @@ Nota `v0.131.0`: `tools/pilot_run.py` genera `real-pilot-hard-stop-card.md`, una
 
 Nota `v0.132.0`: `tools/pilot_run.py` genera `real-pilot-evidence-intake-card.md`, una tarjeta publica para ubicar reportes JSON reales sanitizados, ejecutar la auditoria estricta y refrescar el checklist beta sin copiar contenido privado.
 
+Nota `v0.133.0`: `tools/pilot_run.py` genera `real-pilot-execution-card.md`, una tarjeta publica para ejecutar el siguiente piloto real en orden, revisar confirmaciones humanas y cerrar con auditoria estricta antes de refrescar beta.
+
 ## Fase 0 - Base del proyecto
 
 **Objetivo:** dejar una libreria instalable, importable y testeable.
