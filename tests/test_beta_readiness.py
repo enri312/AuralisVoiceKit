@@ -94,7 +94,7 @@ class BetaReadinessTests(unittest.TestCase):
                 {
                     "project": "AuralisVoiceKit",
                     "system": "Darwin",
-                    "capture_backend": "sounddevice",
+                    "capture_backend": "pyaudio",
                     "system_guard": _system_guard(),
                     "hardware_capture_tested": True,
                     "input_review_confirmed": True,
@@ -387,6 +387,7 @@ class BetaReadinessTests(unittest.TestCase):
                 {
                     "project": "AuralisVoiceKit",
                     "system": "Linux",
+                    "capture_backend": "sounddevice",
                     "hardware_capture_tested": True,
                     "input_review_confirmed": True,
                     "capture_checklist": _capture_checklist(),
@@ -410,12 +411,38 @@ class BetaReadinessTests(unittest.TestCase):
                 {
                     "project": "AuralisVoiceKit",
                     "system": "Linux",
+                    "capture_backend": "pyaudio",
                     "system_guard": _system_guard(),
                     "hardware_capture_tested": True,
                     "capture_checklist": {
                         "ready_for_beta_evidence": True,
                         "input_review_confirmed": False,
                     },
+                    "passed": True,
+                },
+            )
+
+            report = module.build_beta_readiness_report(ROOT, evidence_paths=[evidence_path])
+            checks = {check["name"]: check for check in report["checks"]}
+
+        self.assertFalse(checks["ubuntu_linux_capture"]["ok"])
+        self.assertIn("ubuntu_linux_capture", report["blockers"])
+
+    def test_cross_platform_capture_evidence_requires_supported_backend(self):
+        module = _load_beta_readiness()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            evidence_path = Path(tmpdir) / "manual-pilot-report.json"
+            _write_json(
+                evidence_path,
+                {
+                    "project": "AuralisVoiceKit",
+                    "system": "Linux",
+                    "capture_backend": "wav",
+                    "system_guard": _system_guard(),
+                    "hardware_capture_tested": True,
+                    "input_review_confirmed": True,
+                    "capture_checklist": _capture_checklist(),
                     "passed": True,
                 },
             )
@@ -436,6 +463,7 @@ class BetaReadinessTests(unittest.TestCase):
                 {
                     "project": "AuralisVoiceKit",
                     "system": "Linux",
+                    "capture_backend": "sounddevice",
                     "system_guard": _system_guard(),
                     "hardware_capture_tested": True,
                     "input_review_confirmed": True,
@@ -448,6 +476,7 @@ class BetaReadinessTests(unittest.TestCase):
                 {
                     "project": "AuralisVoiceKit",
                     "system": "Darwin",
+                    "capture_backend": "pyaudio",
                     "system_guard": _system_guard(),
                     "hardware_capture_tested": True,
                     "input_review_confirmed": True,
@@ -578,7 +607,10 @@ class BetaReadinessTests(unittest.TestCase):
             field["path"]: field["expected"] for field in requirements["real_transcription_quality"]["fields"]
         }
         output_fields = {field["path"] for field in requirements["system_output_audible"]["fields"]}
-        linux_fields = {field["path"] for field in requirements["ubuntu_linux_capture"]["fields"]}
+        linux_fields = {
+            field["path"]: field["expected"] for field in requirements["ubuntu_linux_capture"]["fields"]
+        }
+        macos_fields = {field["path"]: field["expected"] for field in requirements["macos_capture"]["fields"]}
         self.assertEqual(transcription_fields["audio_confirmed_non_sensitive"], True)
         self.assertEqual(transcription_fields["audio.audio_file_name_redacted"], True)
         self.assertEqual(transcription_fields["audio_review_confirmed"], True)
@@ -606,9 +638,11 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertIn("operator_checklist.voice_review_confirmed", output_fields)
         self.assertIn("operator_checklist.ready_for_beta_evidence", output_fields)
         self.assertIn("system_guard.expected_system_matched", linux_fields)
+        self.assertEqual(linux_fields["capture_backend"], "sounddevice | pyaudio")
         self.assertIn("input_review_confirmed", linux_fields)
         self.assertIn("capture_checklist.input_review_confirmed", linux_fields)
         self.assertIn("capture_checklist.ready_for_beta_evidence", linux_fields)
+        self.assertEqual(macos_fields["capture_backend"], "sounddevice | pyaudio")
 
     def test_cli_requirements_markdown_is_public_safe(self):
         module = _load_beta_readiness()
@@ -710,6 +744,7 @@ class BetaReadinessTests(unittest.TestCase):
                 {
                     "project": "AuralisVoiceKit",
                     "system": "Linux",
+                    "capture_backend": "pyaudio",
                     "system_guard": _system_guard(),
                     "hardware_capture_tested": True,
                     "input_review_confirmed": True,
@@ -801,6 +836,7 @@ class BetaReadinessTests(unittest.TestCase):
                 {
                     "project": "AuralisVoiceKit",
                     "system": "Linux",
+                    "capture_backend": "sounddevice",
                     "system_guard": _system_guard(),
                     "hardware_capture_tested": True,
                     "input_review_confirmed": True,
@@ -813,6 +849,7 @@ class BetaReadinessTests(unittest.TestCase):
                 {
                     "project": "AuralisVoiceKit",
                     "system": "Darwin",
+                    "capture_backend": "pyaudio",
                     "system_guard": _system_guard(),
                     "hardware_capture_tested": True,
                     "input_review_confirmed": True,
@@ -858,6 +895,7 @@ class BetaReadinessTests(unittest.TestCase):
                 {
                     "project": "AuralisVoiceKit",
                     "system": "Linux",
+                    "capture_backend": "sounddevice",
                     "system_guard": _system_guard(),
                     "hardware_capture_tested": True,
                     "input_review_confirmed": True,
@@ -870,6 +908,7 @@ class BetaReadinessTests(unittest.TestCase):
                 {
                     "project": "AuralisVoiceKit",
                     "system": "Darwin",
+                    "capture_backend": "pyaudio",
                     "system_guard": _system_guard(),
                     "hardware_capture_tested": True,
                     "input_review_confirmed": True,

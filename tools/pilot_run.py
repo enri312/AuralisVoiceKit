@@ -529,7 +529,8 @@ def _platform_pilot_matrix(blockers: list[str]) -> list[dict[str, Any]]:
             "requires_non_sensitive_audio": False,
             "notes": (
                 "Requiere microfono, permisos de audio, dispositivo de entrada revisado, "
-                "PortAudio/sounddevice y manual-capture-checklist.md."
+                "PortAudio con sounddevice o PyAudio y manual-capture-checklist.md. "
+                "Si el stack disponible es PyAudio, repetir el comando con --backend pyaudio."
             ),
         },
         {
@@ -546,7 +547,8 @@ def _platform_pilot_matrix(blockers: list[str]) -> list[dict[str, Any]]:
             "requires_non_sensitive_audio": False,
             "notes": (
                 "Requiere permiso de microfono en macOS, revisar el dispositivo default, confirmar "
-                "entorno no sensible y conservar manual-capture-checklist.md."
+                "entorno no sensible y conservar manual-capture-checklist.md. Usar --backend sounddevice "
+                "o --backend pyaudio segun el stack instalado."
             ),
         },
         {

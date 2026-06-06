@@ -19,6 +19,7 @@ from typing import Any
 
 
 BETA_MIN_WORD_ACCURACY = 0.75
+CROSS_PLATFORM_CAPTURE_BACKENDS = ("sounddevice", "pyaudio")
 
 
 def build_evidence_requirements_report() -> dict[str, Any]:
@@ -129,10 +130,12 @@ def build_evidence_requirements_report() -> dict[str, Any]:
                     "python tools/manual_pilot.py --capture-test --backend sounddevice "
                     "--device default --expected-system Linux --confirm-input-reviewed --json"
                 ),
+                "notes": "If PyAudio is the installed capture stack, use --backend pyaudio with the same flags.",
                 "fields": [
                     _required_field("project", "AuralisVoiceKit"),
                     _required_field("system", "Linux | Ubuntu/Linux | Ubuntu"),
                     _required_field("system_guard.expected_system_matched", True),
+                    _required_field("capture_backend", "sounddevice | pyaudio"),
                     _required_field("hardware_capture_tested", True),
                     _required_field("input_review_confirmed", True),
                     _required_field("capture_checklist.input_review_confirmed", True),
@@ -148,10 +151,12 @@ def build_evidence_requirements_report() -> dict[str, Any]:
                     "python tools/manual_pilot.py --capture-test --backend sounddevice "
                     "--device default --expected-system Darwin --confirm-input-reviewed --json"
                 ),
+                "notes": "If PyAudio is the installed capture stack, use --backend pyaudio with the same flags.",
                 "fields": [
                     _required_field("project", "AuralisVoiceKit"),
                     _required_field("system", "Darwin | macOS | Mac"),
                     _required_field("system_guard.expected_system_matched", True),
+                    _required_field("capture_backend", "sounddevice | pyaudio"),
                     _required_field("hardware_capture_tested", True),
                     _required_field("input_review_confirmed", True),
                     _required_field("capture_checklist.input_review_confirmed", True),
@@ -315,8 +320,10 @@ def build_beta_readiness_report(
             ),
             next_action=(
                 "Run the manual capture pilot on Ubuntu/Linux with real hardware and "
-                "--expected-system Linux --confirm-input-reviewed, then keep manual-capture-checklist.md, "
-                "system_guard.expected_system_matched=true, input_review_confirmed=true, "
+                "--backend sounddevice or --backend pyaudio, --expected-system Linux "
+                "--confirm-input-reviewed, then keep manual-capture-checklist.md, "
+                "system_guard.expected_system_matched=true, capture_backend=sounddevice|pyaudio, "
+                "input_review_confirmed=true, "
                 "capture_checklist.input_review_confirmed=true and capture_checklist.ready_for_beta_evidence=true."
             ),
         ),
@@ -332,9 +339,10 @@ def build_beta_readiness_report(
                 "Piloto manual: `passed=true`",
             ),
             next_action=(
-                "Run the manual capture pilot on macOS with real hardware and --expected-system Darwin "
-                "--confirm-input-reviewed, then keep manual-capture-checklist.md, "
-                "system_guard.expected_system_matched=true, input_review_confirmed=true, "
+                "Run the manual capture pilot on macOS with real hardware and --backend sounddevice "
+                "or --backend pyaudio, --expected-system Darwin --confirm-input-reviewed, then keep "
+                "manual-capture-checklist.md, system_guard.expected_system_matched=true, "
+                "capture_backend=sounddevice|pyaudio, input_review_confirmed=true, "
                 "capture_checklist.input_review_confirmed=true and capture_checklist.ready_for_beta_evidence=true."
             ),
         ),
@@ -482,6 +490,8 @@ def format_requirements_markdown(report: dict[str, Any]) -> str:
         lines.append("")
         lines.append(f"- Artifact: `{requirement['artifact']}`")
         lines.append(f"- Comando sugerido: `{requirement['command']}`")
+        if requirement.get("notes"):
+            lines.append(f"- Nota: {requirement['notes']}")
         lines.append("- Campos requeridos:")
         for field in requirement["fields"]:
             lines.append(f"  - `{field['path']}` = `{field['expected']}`")
@@ -893,6 +903,10 @@ def _is_windows_wasapi_capture_evidence(report: dict[str, Any]) -> bool:
     )
 
 
+def _is_cross_platform_capture_backend(value: object) -> bool:
+    return str(value).casefold() in CROSS_PLATFORM_CAPTURE_BACKENDS
+
+
 def _is_ubuntu_linux_capture_evidence(report: dict[str, Any]) -> bool:
     system = str(report.get("system", "")).lower()
     capture_checklist = report.get("capture_checklist", {})
@@ -901,6 +915,7 @@ def _is_ubuntu_linux_capture_evidence(report: dict[str, Any]) -> bool:
         system in {"linux", "ubuntu/linux", "ubuntu"}
         and isinstance(system_guard, dict)
         and system_guard.get("expected_system_matched") is True
+        and _is_cross_platform_capture_backend(report.get("capture_backend"))
         and report.get("hardware_capture_tested") is True
         and report.get("input_review_confirmed") is True
         and isinstance(capture_checklist, dict)
@@ -918,6 +933,7 @@ def _is_macos_capture_evidence(report: dict[str, Any]) -> bool:
         system in {"darwin", "macos", "mac"}
         and isinstance(system_guard, dict)
         and system_guard.get("expected_system_matched") is True
+        and _is_cross_platform_capture_backend(report.get("capture_backend"))
         and report.get("hardware_capture_tested") is True
         and report.get("input_review_confirmed") is True
         and isinstance(capture_checklist, dict)

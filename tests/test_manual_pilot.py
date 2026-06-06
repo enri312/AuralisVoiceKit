@@ -174,6 +174,24 @@ class ManualPilotTests(unittest.TestCase):
         self.assertIn("Expected system matched: True", markdown)
         self.assertIn("Input review confirmed: True", markdown)
 
+    def test_capture_checklist_accepts_pyaudio_for_cross_platform_capture(self):
+        module = _load_manual_pilot()
+
+        checklist = module._capture_checklist(
+            system="Darwin",
+            backend="pyaudio",
+            capture_test=True,
+            sample_rate=None,
+            passed=True,
+            hardware_capture_tested=True,
+            input_review_confirmed=True,
+            device_redacted=False,
+            expected_system_matched=True,
+        )
+
+        self.assertTrue(checklist["ready_for_real_capture"])
+        self.assertTrue(checklist["ready_for_beta_evidence"])
+
     def test_capture_checklist_requires_sample_rate_for_windows_wasapi(self):
         module = _load_manual_pilot()
 

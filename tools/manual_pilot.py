@@ -23,6 +23,9 @@ from auralis_voicekit import (
 )
 
 
+REAL_CAPTURE_BACKENDS = {"sounddevice", "wasapi", "pyaudio"}
+
+
 def run_manual_pilot(
     *,
     root: str | Path = ".",
@@ -276,7 +279,7 @@ def _capture_checklist(
     device_redacted: bool,
     expected_system_matched: bool | None,
 ) -> dict[str, Any]:
-    real_capture_backend = backend in {"sounddevice", "wasapi"}
+    real_capture_backend = backend in REAL_CAPTURE_BACKENDS
     needs_sample_rate_review = system == "Windows" and backend == "wasapi"
     before = [
         _checklist_item(
@@ -287,7 +290,7 @@ def _capture_checklist(
         ),
         _checklist_item(
             "real_backend_selected",
-            "Use wasapi on Windows or sounddevice on Ubuntu/Linux and macOS for real capture evidence.",
+            "Use wasapi on Windows or sounddevice/pyaudio on Ubuntu/Linux and macOS for real capture evidence.",
             ok=real_capture_backend if capture_test else None,
             required=True,
         ),

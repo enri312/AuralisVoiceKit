@@ -6,6 +6,13 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.79.0] - 2026-06-06
+
+### Cambiado
+
+- La evidencia beta de captura en Ubuntu/Linux y macOS ahora acepta `sounddevice` o `pyaudio`, manteniendo WASAPI como requisito dedicado para Windows.
+- `manual_pilot.py`, `beta_readiness.py`, el plan de pilotos y la documentacion publica ahora reflejan el backend PyAudio como ruta valida para pilotos reales multiplataforma.
+
 ## [0.78.0] - 2026-06-06
 
 ### Agregado

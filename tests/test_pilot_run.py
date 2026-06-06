@@ -245,6 +245,7 @@ class PilotRunTests(unittest.TestCase):
                 {
                     "project": "AuralisVoiceKit",
                     "system": "Linux",
+                    "capture_backend": "pyaudio",
                     "system_guard": {"expected_system_matched": True},
                     "hardware_capture_tested": True,
                     "input_review_confirmed": True,
