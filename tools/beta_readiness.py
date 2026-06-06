@@ -405,6 +405,8 @@ def build_beta_readiness_report(
             ),
             next_action=(
                 "Run tools/transcription_pilot.py with --real-transcription, non-sensitive audio, "
+                "prefer --backend whisper for the recommended free/local pilot path, "
+                "use --backend openai only as a proprietary opt-in integration, "
                 "--expected-text or --expected-text-file, a meaningful --min-word-accuracy, "
                 "--min-audio-seconds/--max-audio-seconds duration guards and "
                 "--confirm-audio-reviewed before model use plus --confirm-reference-reviewed before scoring "
@@ -413,8 +415,8 @@ def build_beta_readiness_report(
                 "preflight_readiness.status=ready, preflight_readiness.ready_for_model_run=true, "
                 "preflight_readiness.must_rerun_preflight=false and public-safe preflight_readiness redaction flags, "
                 "--require-target-backend-ready before model execution, "
-                "--timeout-seconds 30 when using --backend openai, "
-                "--require-openai-api-key when using --backend openai, "
+                "--timeout-seconds 30 when using the proprietary --backend openai path, "
+                "--require-openai-api-key when using the proprietary --backend openai path, "
                 "and --confirm-quality-reviewed after human review, "
                 "then keep target_backend.available=true, target_backend_ready_required=true, "
                 "credentials.checked=true, credentials.openai_api_key_required=true, "

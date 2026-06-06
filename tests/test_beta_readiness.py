@@ -31,6 +31,10 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertTrue(checks["stability_gate_pilot"]["ok"])
         self.assertFalse(checks["windows_wasapi_capture"]["ok"])
         self.assertFalse(checks["real_transcription_quality"]["ok"])
+        transcription_next_action = checks["real_transcription_quality"]["next_action"]
+        self.assertIn("prefer --backend whisper", transcription_next_action)
+        self.assertIn("proprietary opt-in integration", transcription_next_action)
+        self.assertIn("proprietary --backend openai path", transcription_next_action)
         self.assertFalse(checks["system_output_audible"]["ok"])
         self.assertFalse(checks["ubuntu_linux_capture"]["ok"])
         self.assertFalse(checks["macos_capture"]["ok"])

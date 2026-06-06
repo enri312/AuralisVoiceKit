@@ -97,6 +97,12 @@ class DocumentationTests(unittest.TestCase):
         self.assertIn("Integracion propietaria opcional con OpenAI", readme)
         self.assertIn("Integracion propietaria opcional: OpenAI", main_doc)
         self.assertIn("Integraciones propietarias opt-in", api_doc)
+        self.assertIn("v0.163.0", readme)
+        self.assertIn("v0.163.0", main_doc)
+        self.assertIn("v0.163.0", api_doc)
+        self.assertIn("Whisper local", readme)
+        self.assertIn("Whisper local", main_doc)
+        self.assertIn("Whisper local", api_doc)
         self.assertNotIn("usa `--backend whisper` o `--backend openai`", readme)
         self.assertNotIn("Local, API o adaptador personalizado", main_doc)
 

@@ -6,6 +6,17 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.163.0] - 2026-06-06
+
+### Mejorado
+
+- `tools/stability_gate.py`, `tools/beta_readiness.py` y `tools/transcription_pilot.py` ahora recomiendan Whisper local como ruta libre para pilotos reales de transcripcion.
+- Los mensajes de piloto mantienen OpenAI como integracion propietaria opt-in, sin presentarlo como camino libre/default.
+
+### Pruebas
+
+- `tests/test_stability_gate.py`, `tests/test_beta_readiness.py`, `tests/test_transcription_pilot.py` y `tests/test_docs.py` validan la nueva guia local-first.
+
 ## [0.162.0] - 2026-06-06
 
 ### Mejorado

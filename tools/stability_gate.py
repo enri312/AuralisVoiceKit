@@ -323,7 +323,10 @@ def _next_actions(stage: str, pilot_blockers: list[str]) -> list[str]:
         return [
             "Probar con microfono real en Windows, Ubuntu/Linux y macOS.",
             "Probar salida system con voces reales disponibles por sistema.",
-            "Probar transcripcion real con openai o whisper usando audio propio.",
+            (
+                "Probar transcripcion real con Whisper local usando audio propio; "
+                "usar OpenAI solo como integracion propietaria opt-in si el proyecto ya eligio esa API."
+            ),
             "Registrar hallazgos antes de declarar beta o version 1.0.",
         ]
     return [f"Completar check faltante: {name}" for name in pilot_blockers]

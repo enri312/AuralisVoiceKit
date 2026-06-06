@@ -166,6 +166,8 @@ Nota `v0.161.0`: `system_output_readiness_card`, `real-pilot-system-output-readi
 
 Nota `v0.162.0`: `real_pilot_command_pack` y `real-pilot-command-pack.md` tambien publican `system_output_no_pip_extra_contract`, de modo que el paquete de comandos copiables conserva el mismo contrato antes de ejecutar salida audible real.
 
+Nota `v0.163.0`: los mensajes de estabilidad, beta y pilotos de transcripcion recomiendan Whisper local como ruta libre para evidencia real y mantienen OpenAI solo como integracion propietaria opt-in.
+
 ## Fase 0 - Base del proyecto
 
 **Objetivo:** dejar una libreria instalable, importable y testeable.

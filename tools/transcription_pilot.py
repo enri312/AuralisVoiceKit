@@ -1267,7 +1267,10 @@ def _preflight_decision(
     elif failed_preflight_checks:
         decision = "blocked"
         blocking_reasons = failed_preflight_checks
-        next_action = "Fix the blocking preflight checks before using Whisper or OpenAI."
+        next_action = (
+            "Fix the blocking preflight checks before using the local Whisper path "
+            "or an optional proprietary API integration."
+        )
     elif not backend_ready:
         decision = "install_backend_then_retry_preflight"
         blocking_reasons = []
