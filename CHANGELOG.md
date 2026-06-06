@@ -6,6 +6,14 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.92.0] - 2026-06-06
+
+### Agregado
+
+- `tools/pilot_run.py` ahora genera `real-pilot-system-output-readiness.md`, una tarjeta segura para preparar la salida audible `system` antes de usar `--speak`.
+- El reporte `pilot-report.json` expone `system_output_readiness_card` y `real_pilot_system_output_readiness` con comandos dry-run/audible, artifacts esperados, estado del backend `system`, campos requeridos y condiciones de alto sin registrar audio, texto hablado, rutas locales, nombres de dispositivos ni identidad del operador.
+- README, `PILOTS.md`, roadmap, documentacion HTML y referencia API documentan la tarjeta de readiness de salida audible como preparacion publica que no cuenta como evidencia beta.
+
 ## [0.91.0] - 2026-06-06
 
 ### Agregado

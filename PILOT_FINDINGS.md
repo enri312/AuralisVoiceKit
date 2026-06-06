@@ -2,6 +2,37 @@
 
 Este documento resume hallazgos de pilotos reales o semi-manuales. No debe incluir audio, transcripciones privadas, rutas locales completas ni nombres reales de dispositivos.
 
+## 2026-06-06 - Windows salida system dry-run con tarjeta de readiness
+
+Comando ejecutado:
+
+```powershell
+python tools\output_pilot.py --output-dir pilot_runs\output\system-dry-run --json
+```
+
+Alcance:
+
+- Sistema: Windows.
+- Backend diagnosticado: `system`.
+- Audio reproducido: no.
+- Modo: dry-run.
+- Artifact de preparacion: `real-pilot-system-output-readiness.md` en el piloto seguro.
+- Texto completo guardado: no; comandos sanitizados con `<text-redacted>`.
+
+Resultado:
+
+- Piloto de salida: `passed=true`.
+- Real audio requested: `false`.
+- Operator confirmation status: `not-required`.
+- Spoken text privacy scan: `passed`.
+- Operator checklist ready for beta evidence: `false`, esperado porque no hubo audio real ni operador presente.
+
+Acciones siguientes:
+
+1. Revisar `real-pilot-system-output-readiness.md`, `output-operator-checklist.md` y `system-output-next-step.md`.
+2. Ejecutar audio real solo con operador presente y texto publico/no sensible.
+3. Mantener la beta bloqueada hasta que el piloto audible real use `--confirm-audible`, `--confirm-text-reviewed`, `--confirm-voice-reviewed`, `--require-output-backend-ready` y `--expected-system "Windows|Linux|Darwin"`.
+
 ## 2026-06-06 - Windows fixture MP3 sintetico con tarjeta de preflight
 
 Comando ejecutado:
