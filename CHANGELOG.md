@@ -6,6 +6,18 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.138.0] - 2026-06-06
+
+### Agregado
+
+- `tools/beta_readiness.py` ahora exige `capture_operator_gate` para aceptar evidencia beta de captura Windows/WASAPI, Ubuntu/Linux y macOS.
+- El contrato `--requirements` lista `capture_operator_gate.ready_for_beta_audit=true`, decision `ready_for_beta_audit`, contadores de faltantes en cero y flags de privacidad sin audio, bytes, dispositivos, rutas locales ni identidad del operador.
+- La auditoria de evidencias y el checklist beta rechazan reportes de captura con gate bloqueado, comandos no copiable o confirmaciones faltantes.
+
+### Pruebas
+
+- Nuevas pruebas cubren evidencia de captura con gate inseguro/bloqueado y validan que el contrato Markdown incluya los campos de `capture_operator_gate`.
+
 ## [0.137.0] - 2026-06-06
 
 ### Agregado

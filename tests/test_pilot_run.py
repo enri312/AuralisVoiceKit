@@ -1126,6 +1126,10 @@ class PilotRunTests(unittest.TestCase):
                         "Linux | Ubuntu/Linux | Ubuntu",
                         "pyaudio",
                     ),
+                    "capture_operator_gate": _capture_operator_gate(
+                        "ubuntu_linux_capture",
+                        "pyaudio",
+                    ),
                     "passed": True,
                 },
             )
@@ -1306,6 +1310,44 @@ def _manual_capture_command_card(blocker: str, evidence_system: str, backend: st
         "records_device_name": False,
         "records_local_paths": False,
         "next_action": "Audit this report with tools/beta_readiness.py --audit-evidence before closing beta.",
+    }
+
+
+def _capture_operator_gate(blocker: str, backend: str) -> dict:
+    command_card = _manual_capture_command_card(
+        blocker,
+        "Linux | Ubuntu/Linux | Ubuntu",
+        backend,
+    )
+    return {
+        "safe_to_share": True,
+        "decision": "ready_for_beta_audit",
+        "blocker": blocker,
+        "expected_artifact": "manual-pilot-report.json",
+        "ready_for_beta_audit": True,
+        "command_safe_to_copy": True,
+        "local_operator_required": True,
+        "confirmations": [
+            {
+                "id": "real_capture_explicitly_requested",
+                "required": True,
+                "confirmed": True,
+                "source": "capture_test_requested",
+                "instruction": "--capture-test was used for this evidence report.",
+            }
+        ],
+        "missing_confirmations": [],
+        "missing_confirmation_count": 0,
+        "missing_fields": [],
+        "missing_field_count": 0,
+        "real_capture_command_template": command_card["real_capture_command_template"],
+        "audit_command_template": command_card["audit_command_template"],
+        "next_action": "Run the strict beta evidence audit before closing this blocker.",
+        "records_audio": False,
+        "records_audio_bytes": False,
+        "records_device_name": False,
+        "records_local_paths": False,
+        "records_operator_identity": False,
     }
 
 

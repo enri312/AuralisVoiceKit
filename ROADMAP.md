@@ -116,6 +116,8 @@ Nota `v0.136.0`: `operator_gate.evidence_contract` agrega el contrato publico de
 
 Nota `v0.137.0`: `tools/manual_pilot.py` agrega `capture_operator_gate` para declarar si la captura manual esta lista para auditoria beta o bloqueada por confirmaciones humanas, guard de backend, plataforma esperada o evidencia faltante.
 
+Nota `v0.138.0`: `tools/beta_readiness.py` incorpora `capture_operator_gate` al contrato de evidencia beta de captura, bloqueando reportes manuales que no declaren `ready_for_beta_audit`.
+
 ## Fase 0 - Base del proyecto
 
 **Objetivo:** dejar una libreria instalable, importable y testeable.

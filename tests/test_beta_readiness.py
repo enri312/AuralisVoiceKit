@@ -845,6 +845,40 @@ class BetaReadinessTests(unittest.TestCase):
                 self.assertFalse(checks["ubuntu_linux_capture"]["ok"])
                 self.assertIn("ubuntu_linux_capture", report["blockers"])
 
+    def test_capture_evidence_requires_ready_operator_gate(self):
+        module = _load_beta_readiness()
+
+        unsafe_cases = [
+            ("safe_to_share", False),
+            ("decision", "blocked"),
+            ("ready_for_beta_audit", False),
+            ("command_safe_to_copy", False),
+            ("local_operator_required", False),
+            ("missing_confirmation_count", 1),
+            ("missing_confirmations", ["input_reviewed"]),
+            ("missing_field_count", 1),
+            ("missing_fields", ["input_review_confirmed"]),
+            ("records_audio", True),
+            ("records_audio_bytes", True),
+            ("records_device_name", True),
+            ("records_local_paths", True),
+            ("records_operator_identity", True),
+            ("real_capture_command_template", "python tools/manual_pilot.py --capture-test --json"),
+        ]
+        for field, value in unsafe_cases:
+            with self.subTest(field=field):
+                with tempfile.TemporaryDirectory() as tmpdir:
+                    evidence_path = Path(tmpdir) / "manual-pilot-report.json"
+                    evidence = _capture_evidence("Linux", "sounddevice")
+                    evidence["capture_operator_gate"][field] = value
+                    _write_json(evidence_path, evidence)
+
+                    report = module.build_beta_readiness_report(ROOT, evidence_paths=[evidence_path])
+                    checks = {check["name"]: check for check in report["checks"]}
+
+                self.assertFalse(checks["ubuntu_linux_capture"]["ok"])
+                self.assertIn("ubuntu_linux_capture", report["blockers"])
+
     def test_cli_evidence_allows_strict_beta_pass(self):
         module = _load_beta_readiness()
 
@@ -1142,6 +1176,22 @@ class BetaReadinessTests(unittest.TestCase):
             self.assertEqual(capture_fields["manual_capture_command_card.records_audio_bytes"], False)
             self.assertEqual(capture_fields["manual_capture_command_card.records_device_name"], False)
             self.assertEqual(capture_fields["manual_capture_command_card.records_local_paths"], False)
+            self.assertEqual(capture_fields["capture_operator_gate.safe_to_share"], True)
+            self.assertEqual(capture_fields["capture_operator_gate.decision"], "ready_for_beta_audit")
+            self.assertEqual(capture_fields["capture_operator_gate.blocker"], blocker)
+            self.assertEqual(capture_fields["capture_operator_gate.expected_artifact"], "manual-pilot-report.json")
+            self.assertEqual(capture_fields["capture_operator_gate.ready_for_beta_audit"], True)
+            self.assertEqual(capture_fields["capture_operator_gate.command_safe_to_copy"], True)
+            self.assertEqual(capture_fields["capture_operator_gate.local_operator_required"], True)
+            self.assertEqual(capture_fields["capture_operator_gate.missing_confirmation_count"], 0)
+            self.assertEqual(capture_fields["capture_operator_gate.missing_confirmations"], [])
+            self.assertEqual(capture_fields["capture_operator_gate.missing_field_count"], 0)
+            self.assertEqual(capture_fields["capture_operator_gate.missing_fields"], [])
+            self.assertEqual(capture_fields["capture_operator_gate.records_audio"], False)
+            self.assertEqual(capture_fields["capture_operator_gate.records_audio_bytes"], False)
+            self.assertEqual(capture_fields["capture_operator_gate.records_device_name"], False)
+            self.assertEqual(capture_fields["capture_operator_gate.records_local_paths"], False)
+            self.assertEqual(capture_fields["capture_operator_gate.records_operator_identity"], False)
 
     def test_cli_requirements_markdown_is_public_safe(self):
         module = _load_beta_readiness()
@@ -1165,6 +1215,9 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertIn("manual_capture_command_card.safe_to_share", content)
         self.assertIn("manual_capture_command_card.uses_placeholders", content)
         self.assertIn("manual_capture_command_card.records_audio_bytes", content)
+        self.assertIn("capture_operator_gate.ready_for_beta_audit", content)
+        self.assertIn("capture_operator_gate.missing_confirmation_count", content)
+        self.assertIn("capture_operator_gate.records_operator_identity", content)
         self.assertIn("system_output_command_card.safe_to_share", content)
         self.assertIn("system_output_command_card.uses_placeholders", content)
         self.assertIn("system_output_command_card.records_spoken_text", content)
@@ -1619,6 +1672,40 @@ def _manual_capture_command_card(system: str, backend: str) -> dict:
     }
 
 
+def _capture_operator_gate(system: str, backend: str) -> dict:
+    command_card = _manual_capture_command_card(system, backend)
+    return {
+        "safe_to_share": True,
+        "decision": "ready_for_beta_audit",
+        "blocker": command_card["blocker"],
+        "expected_artifact": "manual-pilot-report.json",
+        "ready_for_beta_audit": True,
+        "command_safe_to_copy": True,
+        "local_operator_required": True,
+        "confirmations": [
+            {
+                "id": "real_capture_explicitly_requested",
+                "required": True,
+                "confirmed": True,
+                "source": "capture_test_requested",
+                "instruction": "--capture-test was used for this evidence report.",
+            }
+        ],
+        "missing_confirmations": [],
+        "missing_confirmation_count": 0,
+        "missing_fields": [],
+        "missing_field_count": 0,
+        "real_capture_command_template": command_card["real_capture_command_template"],
+        "audit_command_template": command_card["audit_command_template"],
+        "next_action": "Run the strict beta evidence audit before closing this blocker.",
+        "records_audio": False,
+        "records_audio_bytes": False,
+        "records_device_name": False,
+        "records_local_paths": False,
+        "records_operator_identity": False,
+    }
+
+
 def _capture_evidence(system: str, backend: str) -> dict:
     return {
         "project": "AuralisVoiceKit",
@@ -1631,6 +1718,7 @@ def _capture_evidence(system: str, backend: str) -> dict:
         "input_review_confirmed": True,
         "capture_checklist": _capture_checklist(),
         "manual_capture_command_card": _manual_capture_command_card(system, backend),
+        "capture_operator_gate": _capture_operator_gate(system, backend),
         "passed": True,
     }
 

@@ -36,6 +36,22 @@ Este documento describe los campos JSON que pueden cerrar blockers de beta. No r
   - `manual_capture_command_card.records_audio_bytes` = `False`
   - `manual_capture_command_card.records_device_name` = `False`
   - `manual_capture_command_card.records_local_paths` = `False`
+  - `capture_operator_gate.safe_to_share` = `True`
+  - `capture_operator_gate.decision` = `ready_for_beta_audit`
+  - `capture_operator_gate.blocker` = `windows_wasapi_capture`
+  - `capture_operator_gate.expected_artifact` = `manual-pilot-report.json`
+  - `capture_operator_gate.ready_for_beta_audit` = `True`
+  - `capture_operator_gate.command_safe_to_copy` = `True`
+  - `capture_operator_gate.local_operator_required` = `True`
+  - `capture_operator_gate.missing_confirmation_count` = `0`
+  - `capture_operator_gate.missing_confirmations` = `[]`
+  - `capture_operator_gate.missing_field_count` = `0`
+  - `capture_operator_gate.missing_fields` = `[]`
+  - `capture_operator_gate.records_audio` = `False`
+  - `capture_operator_gate.records_audio_bytes` = `False`
+  - `capture_operator_gate.records_device_name` = `False`
+  - `capture_operator_gate.records_local_paths` = `False`
+  - `capture_operator_gate.records_operator_identity` = `False`
   - `passed` = `True`
 
 ### real_transcription_quality
@@ -179,6 +195,22 @@ Este documento describe los campos JSON que pueden cerrar blockers de beta. No r
   - `manual_capture_command_card.records_audio_bytes` = `False`
   - `manual_capture_command_card.records_device_name` = `False`
   - `manual_capture_command_card.records_local_paths` = `False`
+  - `capture_operator_gate.safe_to_share` = `True`
+  - `capture_operator_gate.decision` = `ready_for_beta_audit`
+  - `capture_operator_gate.blocker` = `ubuntu_linux_capture`
+  - `capture_operator_gate.expected_artifact` = `manual-pilot-report.json`
+  - `capture_operator_gate.ready_for_beta_audit` = `True`
+  - `capture_operator_gate.command_safe_to_copy` = `True`
+  - `capture_operator_gate.local_operator_required` = `True`
+  - `capture_operator_gate.missing_confirmation_count` = `0`
+  - `capture_operator_gate.missing_confirmations` = `[]`
+  - `capture_operator_gate.missing_field_count` = `0`
+  - `capture_operator_gate.missing_fields` = `[]`
+  - `capture_operator_gate.records_audio` = `False`
+  - `capture_operator_gate.records_audio_bytes` = `False`
+  - `capture_operator_gate.records_device_name` = `False`
+  - `capture_operator_gate.records_local_paths` = `False`
+  - `capture_operator_gate.records_operator_identity` = `False`
   - `passed` = `True`
 
 ### macos_capture
@@ -208,6 +240,22 @@ Este documento describe los campos JSON que pueden cerrar blockers de beta. No r
   - `manual_capture_command_card.records_audio_bytes` = `False`
   - `manual_capture_command_card.records_device_name` = `False`
   - `manual_capture_command_card.records_local_paths` = `False`
+  - `capture_operator_gate.safe_to_share` = `True`
+  - `capture_operator_gate.decision` = `ready_for_beta_audit`
+  - `capture_operator_gate.blocker` = `macos_capture`
+  - `capture_operator_gate.expected_artifact` = `manual-pilot-report.json`
+  - `capture_operator_gate.ready_for_beta_audit` = `True`
+  - `capture_operator_gate.command_safe_to_copy` = `True`
+  - `capture_operator_gate.local_operator_required` = `True`
+  - `capture_operator_gate.missing_confirmation_count` = `0`
+  - `capture_operator_gate.missing_confirmations` = `[]`
+  - `capture_operator_gate.missing_field_count` = `0`
+  - `capture_operator_gate.missing_fields` = `[]`
+  - `capture_operator_gate.records_audio` = `False`
+  - `capture_operator_gate.records_audio_bytes` = `False`
+  - `capture_operator_gate.records_device_name` = `False`
+  - `capture_operator_gate.records_local_paths` = `False`
+  - `capture_operator_gate.records_operator_identity` = `False`
   - `passed` = `True`
 
 ## Privacidad

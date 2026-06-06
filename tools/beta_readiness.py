@@ -57,6 +57,7 @@ def build_evidence_requirements_report() -> dict[str, Any]:
                     _required_field("capture_checklist.input_review_confirmed", True),
                     _required_field("capture_checklist.ready_for_beta_evidence", True),
                     *_manual_capture_command_card_required_fields("windows_wasapi_capture"),
+                    *_capture_operator_gate_required_fields("windows_wasapi_capture"),
                     _required_field("passed", True),
                 ],
             },
@@ -196,6 +197,7 @@ def build_evidence_requirements_report() -> dict[str, Any]:
                     _required_field("capture_checklist.input_review_confirmed", True),
                     _required_field("capture_checklist.ready_for_beta_evidence", True),
                     *_manual_capture_command_card_required_fields("ubuntu_linux_capture"),
+                    *_capture_operator_gate_required_fields("ubuntu_linux_capture"),
                     _required_field("passed", True),
                 ],
             },
@@ -221,6 +223,7 @@ def build_evidence_requirements_report() -> dict[str, Any]:
                     _required_field("capture_checklist.input_review_confirmed", True),
                     _required_field("capture_checklist.ready_for_beta_evidence", True),
                     *_manual_capture_command_card_required_fields("macos_capture"),
+                    *_capture_operator_gate_required_fields("macos_capture"),
                     _required_field("passed", True),
                 ],
             },
@@ -1027,6 +1030,27 @@ def _manual_capture_command_card_required_fields(blocker: str) -> list[dict[str,
     ]
 
 
+def _capture_operator_gate_required_fields(blocker: str) -> list[dict[str, Any]]:
+    return [
+        _required_field("capture_operator_gate.safe_to_share", True),
+        _required_field("capture_operator_gate.decision", "ready_for_beta_audit"),
+        _required_field("capture_operator_gate.blocker", blocker),
+        _required_field("capture_operator_gate.expected_artifact", "manual-pilot-report.json"),
+        _required_field("capture_operator_gate.ready_for_beta_audit", True),
+        _required_field("capture_operator_gate.command_safe_to_copy", True),
+        _required_field("capture_operator_gate.local_operator_required", True),
+        _required_field("capture_operator_gate.missing_confirmation_count", 0),
+        _required_field("capture_operator_gate.missing_confirmations", []),
+        _required_field("capture_operator_gate.missing_field_count", 0),
+        _required_field("capture_operator_gate.missing_fields", []),
+        _required_field("capture_operator_gate.records_audio", False),
+        _required_field("capture_operator_gate.records_audio_bytes", False),
+        _required_field("capture_operator_gate.records_device_name", False),
+        _required_field("capture_operator_gate.records_local_paths", False),
+        _required_field("capture_operator_gate.records_operator_identity", False),
+    ]
+
+
 def _system_output_command_card_required_fields() -> list[dict[str, Any]]:
     return [
         _required_field("system_output_command_card.artifact", "system-output-next-step.md"),
@@ -1581,6 +1605,7 @@ def _is_windows_wasapi_capture_evidence(report: dict[str, Any]) -> bool:
         and capture_checklist.get("input_review_confirmed") is True
         and capture_checklist.get("ready_for_beta_evidence") is True
         and _has_safe_manual_capture_command_card(report, "windows_wasapi_capture")
+        and _has_ready_capture_operator_gate(report, "windows_wasapi_capture")
         and report.get("passed") is True
     )
 
@@ -1606,6 +1631,35 @@ def _has_safe_manual_capture_command_card(report: dict[str, Any], blocker: str) 
         and card.get("records_audio_bytes") is False
         and card.get("records_device_name") is False
         and card.get("records_local_paths") is False
+        and all(isinstance(command, str) and "<pilot-output-dir>" in command for command in command_templates)
+    )
+
+
+def _has_ready_capture_operator_gate(report: dict[str, Any], blocker: str) -> bool:
+    gate = report.get("capture_operator_gate", {})
+    if not isinstance(gate, dict):
+        return False
+    command_templates = (
+        gate.get("real_capture_command_template"),
+        gate.get("audit_command_template"),
+    )
+    return (
+        gate.get("safe_to_share") is True
+        and gate.get("decision") == "ready_for_beta_audit"
+        and gate.get("blocker") == blocker
+        and gate.get("expected_artifact") == "manual-pilot-report.json"
+        and gate.get("ready_for_beta_audit") is True
+        and gate.get("command_safe_to_copy") is True
+        and gate.get("local_operator_required") is True
+        and gate.get("missing_confirmation_count") == 0
+        and gate.get("missing_confirmations") == []
+        and gate.get("missing_field_count") == 0
+        and gate.get("missing_fields") == []
+        and gate.get("records_audio") is False
+        and gate.get("records_audio_bytes") is False
+        and gate.get("records_device_name") is False
+        and gate.get("records_local_paths") is False
+        and gate.get("records_operator_identity") is False
         and all(isinstance(command, str) and "<pilot-output-dir>" in command for command in command_templates)
     )
 
@@ -1693,6 +1747,7 @@ def _is_ubuntu_linux_capture_evidence(report: dict[str, Any]) -> bool:
         and capture_checklist.get("input_review_confirmed") is True
         and capture_checklist.get("ready_for_beta_evidence") is True
         and _has_safe_manual_capture_command_card(report, "ubuntu_linux_capture")
+        and _has_ready_capture_operator_gate(report, "ubuntu_linux_capture")
         and report.get("passed") is True
     )
 
@@ -1716,6 +1771,7 @@ def _is_macos_capture_evidence(report: dict[str, Any]) -> bool:
         and capture_checklist.get("input_review_confirmed") is True
         and capture_checklist.get("ready_for_beta_evidence") is True
         and _has_safe_manual_capture_command_card(report, "macos_capture")
+        and _has_ready_capture_operator_gate(report, "macos_capture")
         and report.get("passed") is True
     )
 
