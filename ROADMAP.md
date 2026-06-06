@@ -146,6 +146,8 @@ Nota `v0.151.0`: `backend_inventory()` y `AuralisVoiceKit.backend_inventory()` e
 
 Nota `v0.152.0`: el inventario publico de backends incorpora `install_plan` con extra pip, comando de instalacion y estado `uses_pip_extra` para backends opcionales, manteniendo dependencias publicas y sin rutas locales.
 
+Nota `v0.153.0`: `target_backend.install_plan` en pilotos de transcripcion usa el mismo vocabulario publico (`uses_pip_extra`, `python_extra`, `pip_command`) que `backend_inventory()`, conservando `extra` por compatibilidad.
+
 ## Fase 0 - Base del proyecto
 
 **Objetivo:** dejar una libreria instalable, importable y testeable.

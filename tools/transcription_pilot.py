@@ -691,6 +691,8 @@ def _target_backend_install_plan(backend: str, dependencies: list[str]) -> dict[
     )
     return {
         "backend": backend,
+        "uses_pip_extra": extra is not None,
+        "python_extra": extra,
         "extra": extra,
         "pip_command": pip_command,
         "dependencies": dependencies,

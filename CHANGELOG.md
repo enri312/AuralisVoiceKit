@@ -6,6 +6,16 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.153.0] - 2026-06-06
+
+### Agregado
+
+- `tools/transcription_pilot.py` alinea `target_backend.install_plan` con el inventario publico agregando `uses_pip_extra` y `python_extra` sin quitar el campo historico `extra`.
+
+### Pruebas
+
+- Nuevas aserciones validan los alias publicos del plan de instalacion para Whisper, OpenAI y backends sin extra.
+
 ## [0.152.0] - 2026-06-06
 
 ### Agregado
