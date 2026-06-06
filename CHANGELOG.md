@@ -6,6 +6,18 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.148.0] - 2026-06-06
+
+### Agregado
+
+- `tools/pilot_run.py` ahora genera `real-pilot-final-go-no-go.md`, una tarjeta publica de decision local final antes de tocar hardware o ejecutar el comando real.
+- `real_pilot_final_go_no_go_card` resume condiciones GO/NO-GO, items de revision, soporte de run sheet, seguridad de copia, confirmaciones humanas y auditoria posterior.
+- `pilot-plan.md`, `real-pilot-handoff.md`, `real-pilot-audit-closure.md`, `real-pilot-evidence-package.md`, `real-pilot-operator-brief.md` y `real-pilot-run-sheet.md` enlazan la compuerta final.
+
+### Pruebas
+
+- Nuevas pruebas validan el artifact go/no-go final, sus flags de privacidad, salida CLI, fases de run sheet y presencia en reportes Markdown.
+
 ## [0.147.0] - 2026-06-06
 
 ### Agregado

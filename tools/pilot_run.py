@@ -224,6 +224,7 @@ def run_safe_pilot(
     evidence_package_path = output / "real-pilot-evidence-package.md"
     operator_brief_path = output / "real-pilot-operator-brief.md"
     run_sheet_path = output / "real-pilot-run-sheet.md"
+    final_go_no_go_path = output / "real-pilot-final-go-no-go.md"
     plan_path = output / "pilot-plan.md"
     report_path = output / "pilot-report.json"
     report["fixture_preflight_card"] = _real_pilot_fixture_preflight_card(report)
@@ -435,6 +436,7 @@ def run_safe_pilot(
     )
     report["real_pilot_operator_brief_card"] = _real_pilot_operator_brief_card(report, operator_brief_path)
     report["real_pilot_run_sheet_card"] = _real_pilot_run_sheet_card(report, run_sheet_path)
+    report["real_pilot_final_go_no_go_card"] = _real_pilot_final_go_no_go_card(report, final_go_no_go_path)
     artifacts["real_pilot_findings_template"] = str(findings_template_path)
     artifacts["real_pilot_handoff"] = str(handoff_path)
     artifacts["real_pilot_command_pack"] = str(command_pack_path)
@@ -454,6 +456,7 @@ def run_safe_pilot(
     artifacts["real_pilot_evidence_package_card"] = str(evidence_package_path)
     artifacts["real_pilot_operator_brief_card"] = str(operator_brief_path)
     artifacts["real_pilot_run_sheet_card"] = str(run_sheet_path)
+    artifacts["real_pilot_final_go_no_go_card"] = str(final_go_no_go_path)
     artifacts["pilot_plan"] = str(plan_path)
     artifacts["pilot_report"] = str(report_path)
     findings_template_path.write_text(_format_real_pilot_findings_template_markdown(report), encoding="utf-8")
@@ -478,6 +481,7 @@ def run_safe_pilot(
     evidence_package_path.write_text(_format_real_pilot_evidence_package_markdown(report), encoding="utf-8")
     operator_brief_path.write_text(_format_real_pilot_operator_brief_markdown(report), encoding="utf-8")
     run_sheet_path.write_text(_format_real_pilot_run_sheet_markdown(report), encoding="utf-8")
+    final_go_no_go_path.write_text(_format_real_pilot_final_go_no_go_markdown(report), encoding="utf-8")
     plan_path.write_text(_format_pilot_plan_markdown(report), encoding="utf-8")
     report_path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return report
@@ -2201,6 +2205,7 @@ def _real_pilot_evidence_package_card(report: dict[str, Any], artifact_path: Pat
     ]
     support_artifacts = [
         "real-pilot-run-sheet.md",
+        "real-pilot-final-go-no-go.md",
         "real-pilot-operator-brief.md",
         "real-pilot-rehearsal-card.md",
         "real-pilot-execution-card.md",
@@ -2317,6 +2322,7 @@ def _real_pilot_operator_brief_card(report: dict[str, Any], artifact_path: Path)
         "real-pilot-consent-card.md",
         "real-pilot-execution-card.md",
         "real-pilot-run-sheet.md",
+        "real-pilot-final-go-no-go.md",
     ]
     after_run_artifacts = [
         package["artifact"],
@@ -2463,6 +2469,15 @@ def _real_pilot_run_sheet_card(report: dict[str, Any], artifact_path: Path) -> d
             "copy_pending_ids": brief["copy_pending_ids"],
         },
         {
+            "id": "final_go_no_go_review",
+            "required": True,
+            "status": "pending_local_operator_review",
+            "requires_hardware": False,
+            "requires_local_operator": True,
+            "source": "real-pilot-final-go-no-go.md",
+            "go_no_go_required": True,
+        },
+        {
             "id": "real_execution",
             "required": True,
             "status": "pending_real_pilot",
@@ -2502,6 +2517,7 @@ def _real_pilot_run_sheet_card(report: dict[str, Any], artifact_path: Path) -> d
         "real-pilot-rehearsal-card.md",
         "real-pilot-consent-card.md",
         "real-pilot-execution-card.md",
+        "real-pilot-final-go-no-go.md",
     ]
     return {
         "artifact": artifact_path.name,
@@ -2528,6 +2544,153 @@ def _real_pilot_run_sheet_card(report: dict[str, Any], artifact_path: Path) -> d
         "phase_count": len(phases),
         "required_phase_count": len(pending_phase_ids),
         "pending_phase_ids": pending_phase_ids,
+        "requires_final_go_no_go": True,
+        "final_go_no_go_artifact": "real-pilot-final-go-no-go.md",
+        "hard_stop_conditions": report["pilot_decision_gate"]["hard_stop_conditions"],
+        "content_policy": {
+            "records_audio": False,
+            "records_transcripts": False,
+            "records_spoken_text": False,
+            "records_expected_text": False,
+            "records_local_paths": False,
+            "records_device_names": False,
+            "records_operator_identity": False,
+        },
+        "records_audio": False,
+        "records_transcripts": False,
+        "records_spoken_text": False,
+        "records_expected_text": False,
+        "records_local_paths": False,
+        "records_device_names": False,
+        "records_operator_identity": False,
+    }
+
+
+def _real_pilot_final_go_no_go_card(report: dict[str, Any], artifact_path: Path) -> dict[str, Any]:
+    """Build the final public-safe local go/no-go review before real hardware use."""
+
+    focus = report["beta_readiness"].get("next_evidence_focus", {})
+    execution = report["real_pilot_execution_card"]
+    gate = execution["operator_gate"]
+    sheet = report["real_pilot_run_sheet_card"]
+    brief = report["real_pilot_operator_brief_card"]
+    consent = report["real_pilot_consent_card"]
+    rehearsal = report["real_pilot_rehearsal_card"]
+    package = report["real_pilot_evidence_package_card"]
+    closure = report["real_pilot_audit_closure_card"]
+    command_audit = gate["command_audit"]
+    copy_safety = command_audit["copy_safety"]
+    review_items = [
+        {
+            "id": "hard_stop_conditions_checked",
+            "required": True,
+            "status": "pending_local_operator_review",
+            "source": "real-pilot-hard-stop-card.md",
+        },
+        {
+            "id": "run_sheet_phases_reviewed",
+            "required": True,
+            "status": "pending_local_operator_review",
+            "source": sheet["artifact"],
+        },
+        {
+            "id": "rehearsal_completed",
+            "required": True,
+            "status": rehearsal["rehearsal_status"],
+            "source": rehearsal["artifact"],
+        },
+        {
+            "id": "consent_scope_confirmed",
+            "required": True,
+            "status": consent["decision"],
+            "source": consent["artifact"],
+        },
+        {
+            "id": "command_template_safe",
+            "required": True,
+            "status": command_audit["status"],
+            "source": "operator_gate.command_audit",
+        },
+        {
+            "id": "copy_pending_items_reviewed_locally",
+            "required": True,
+            "status": copy_safety["status"],
+            "source": "operator_gate.command_audit.copy_safety",
+        },
+        {
+            "id": "human_confirmations_ready",
+            "required": True,
+            "status": "pending_local_operator_review",
+            "source": gate["human_confirmations"] or ["ninguno"],
+        },
+        {
+            "id": "sanitized_evidence_destination_ready",
+            "required": True,
+            "status": package["package_status"],
+            "source": package["artifact"],
+        },
+        {
+            "id": "strict_audit_planned",
+            "required": True,
+            "status": closure["closure_status"],
+            "source": closure["artifact"],
+        },
+    ]
+    pending_review_ids = [item["id"] for item in review_items if item["required"]]
+    go_conditions = [
+        "all_run_sheet_phases_reviewed_locally",
+        "no_hard_stop_condition_applies",
+        "local_placeholders_replaced_without_committing_private_values",
+        "required_human_confirmations_completed_before_confirm_flags",
+        "sanitized_json_destination_selected",
+        "strict_audit_and_beta_refresh_planned",
+    ]
+    no_go_conditions = [
+        "any_hard_stop_condition_applies",
+        "command_template_not_safe_to_copy",
+        "missing_required_confirmations",
+        "private_audio_transcript_text_path_device_or_identity_would_be_recorded",
+        "operator_cannot_run_strict_audit_after_execution",
+    ]
+    return {
+        "artifact": artifact_path.name,
+        "safe_to_share": True,
+        "source": "real_pilot_run_sheet_card + operator_gate.command_audit + real_pilot_consent_card",
+        "usable_as_beta_evidence": False,
+        "go_no_go_status": "ready_for_local_operator_review" if gate["allowed_to_run"] else "blocked",
+        "focus": gate["focus"],
+        "focus_title": focus.get("title") or "ninguno",
+        "focus_artifact": gate["focus_artifact"],
+        "local_run_allowed": gate["allowed_to_run"],
+        "command_safe_to_copy_for_local_operator": command_audit["safe_to_copy_for_local_operator"],
+        "copy_safety_status": copy_safety["status"],
+        "requires_local_operator_review": True,
+        "requires_final_operator_decision": True,
+        "can_execute_without_final_decision": False,
+        "decision_options": ["go_after_local_checks", "no_go_stop_and_fix"],
+        "local_command_template": focus.get("command") or "ninguno",
+        "support_artifacts": [
+            brief["artifact"],
+            sheet["artifact"],
+            "real-pilot-hard-stop-card.md",
+            rehearsal["artifact"],
+            consent["artifact"],
+            "real-pilot-execution-card.md",
+            package["artifact"],
+            closure["artifact"],
+        ],
+        "human_confirmations": gate["human_confirmations"],
+        "copy_pending_ids": brief["copy_pending_ids"],
+        "missing_required_flags": command_audit["missing_required_flags"],
+        "required_flags": command_audit["required_flags"],
+        "go_conditions": go_conditions,
+        "no_go_conditions": no_go_conditions,
+        "review_items": review_items,
+        "review_item_count": len(review_items),
+        "pending_review_ids": pending_review_ids,
+        "pending_review_count": len(pending_review_ids),
+        "strict_audit_command": closure["strict_audit_command"],
+        "refresh_checklist_command": closure["refresh_checklist_command"],
         "hard_stop_conditions": report["pilot_decision_gate"]["hard_stop_conditions"],
         "content_policy": {
             "records_audio": False,
@@ -2843,6 +3006,9 @@ def _format_pilot_plan_markdown(report: dict[str, Any]) -> str:
     run_sheet_name = Path(
         report["artifacts"].get("real_pilot_run_sheet_card", "real-pilot-run-sheet.md")
     ).name
+    final_go_no_go_name = Path(
+        report["artifacts"].get("real_pilot_final_go_no_go_card", "real-pilot-final-go-no-go.md")
+    ).name
     lines = [
         "# Plan de pilotos AuralisVoiceKit",
         "",
@@ -2880,6 +3046,7 @@ def _format_pilot_plan_markdown(report: dict[str, Any]) -> str:
         f"- Paquete de evidencia: `{evidence_package_name}`",
         f"- Brief del operador: `{operator_brief_name}`",
         f"- Run sheet: `{run_sheet_name}`",
+        f"- Go/no-go final: `{final_go_no_go_name}`",
         f"- Plantilla de hallazgos: `{findings_template_name}`",
         "",
         "## Checks seguros",
@@ -3023,6 +3190,15 @@ def _format_pilot_plan_markdown(report: dict[str, Any]) -> str:
             f"- Fases requeridas: `{report['real_pilot_run_sheet_card']['required_phase_count']}`",
             f"- Permitido ejecutar localmente: `{_format_bool(report['real_pilot_run_sheet_card']['local_run_allowed'])}`",
             f"- Usable como evidencia beta: `{_format_bool(report['real_pilot_run_sheet_card']['usable_as_beta_evidence'])}`",
+            "",
+            "## Go/no-go final del operador",
+            "",
+            f"- Artifact: `{final_go_no_go_name}`",
+            f"- Estado go/no-go: `{report['real_pilot_final_go_no_go_card']['go_no_go_status']}`",
+            f"- Requiere decision final: `{_format_bool(report['real_pilot_final_go_no_go_card']['requires_final_operator_decision'])}`",
+            f"- Puede ejecutar sin decision final: `{_format_bool(report['real_pilot_final_go_no_go_card']['can_execute_without_final_decision'])}`",
+            f"- Pendientes finales: `{report['real_pilot_final_go_no_go_card']['pending_review_count']}`",
+            f"- Usable como evidencia beta: `{_format_bool(report['real_pilot_final_go_no_go_card']['usable_as_beta_evidence'])}`",
             "",
             "## Preflight de fixture de transcripcion",
             "",
@@ -4550,6 +4726,9 @@ def _format_real_pilot_audit_closure_markdown(report: dict[str, Any]) -> str:
     run_sheet_name = Path(
         report["artifacts"].get("real_pilot_run_sheet_card", "real-pilot-run-sheet.md")
     ).name
+    final_go_no_go_name = Path(
+        report["artifacts"].get("real_pilot_final_go_no_go_card", "real-pilot-final-go-no-go.md")
+    ).name
     lines = [
         "# Cierre de auditoria para piloto real AuralisVoiceKit",
         "",
@@ -4586,6 +4765,7 @@ def _format_real_pilot_audit_closure_markdown(report: dict[str, Any]) -> str:
         f"- Paquete de evidencia: `{evidence_package_name}`",
         f"- Brief del operador: `{operator_brief_name}`",
         f"- Run sheet: `{run_sheet_name}`",
+        f"- Go/no-go final: `{final_go_no_go_name}`",
         f"- Ejecucion guiada: `{closure['execution_card']}`",
         f"- Consentimiento local: `{closure['consent_card']}`",
         f"- Ingesta de evidencia: `{closure['evidence_intake_card']}`",
@@ -4927,6 +5107,8 @@ def _format_real_pilot_run_sheet_markdown(report: dict[str, Any]) -> str:
             lines.append(f"- Comandos seguros: {_format_inline_list(phase['commands'])}")
         if phase.get("copy_pending_ids"):
             lines.append(f"- Pendientes de copia: {_format_inline_list(phase['copy_pending_ids'])}")
+        if phase.get("go_no_go_required"):
+            lines.append(f"- Requiere decision go/no-go local: `{_format_bool(phase['go_no_go_required'])}`")
         if phase.get("command"):
             lines.append(f"- Comando: `{phase['command']}`")
         if phase.get("human_confirmations"):
@@ -4978,6 +5160,98 @@ def _format_real_pilot_run_sheet_markdown(report: dict[str, Any]) -> str:
             "",
             "- Mantener fuera del repositorio audio, transcripciones, texto esperado completo, texto hablado real, rutas locales, dispositivos e identidad.",
             "- Esta hoja puede compartirse como guia operativa, pero no como evidencia beta.",
+            "",
+        ]
+    )
+    return "\n".join(lines)
+
+
+def _format_real_pilot_final_go_no_go_markdown(report: dict[str, Any]) -> str:
+    card = report["real_pilot_final_go_no_go_card"]
+    gate = report["pilot_decision_gate"]
+    lines = [
+        "# Go/no-go final del piloto real AuralisVoiceKit",
+        "",
+        "Esta tarjeta resume la ultima revision local antes de tocar hardware o ejecutar el comando real. No guarda audio, rutas, dispositivos, textos privados ni identidad del operador.",
+        "",
+        "## Estado",
+        "",
+        f"- Version: `{report['version']}`",
+        f"- Stage: `{report['stage']}`",
+        f"- Pilotos reales: `{gate['real_world_pilot']['decision']}`",
+        f"- Beta: `{gate['beta']['decision']}`",
+        f"- Foco: `{card['focus']}`",
+        f"- Artifact esperado: `{card['focus_artifact']}`",
+        f"- Estado go/no-go: `{card['go_no_go_status']}`",
+        f"- Permitido ejecutar localmente: `{_format_bool(card['local_run_allowed'])}`",
+        f"- Comando seguro para copia local: `{_format_bool(card['command_safe_to_copy_for_local_operator'])}`",
+        f"- Estado de seguridad de copia: `{card['copy_safety_status']}`",
+        f"- Requiere decision final del operador: `{_format_bool(card['requires_final_operator_decision'])}`",
+        f"- Puede ejecutar sin decision final: `{_format_bool(card['can_execute_without_final_decision'])}`",
+        f"- Usable como evidencia beta: `{_format_bool(card['usable_as_beta_evidence'])}`",
+        "",
+        "## Politica de contenido",
+        "",
+        f"- Seguro para compartir: `{_format_bool(card['safe_to_share'])}`",
+        f"- Registra audio: `{_format_bool(card['records_audio'])}`",
+        f"- Registra transcripciones: `{_format_bool(card['records_transcripts'])}`",
+        f"- Registra texto hablado: `{_format_bool(card['records_spoken_text'])}`",
+        f"- Registra texto esperado completo: `{_format_bool(card['records_expected_text'])}`",
+        f"- Registra rutas locales: `{_format_bool(card['records_local_paths'])}`",
+        f"- Registra nombres reales de dispositivos: `{_format_bool(card['records_device_names'])}`",
+        f"- Registra identidad del operador: `{_format_bool(card['records_operator_identity'])}`",
+        "",
+        "## Artifacts de apoyo",
+        "",
+    ]
+    for artifact in card["support_artifacts"]:
+        lines.append(f"- `{artifact}`")
+    lines.extend(["", "## Decision local", ""])
+    for option in card["decision_options"]:
+        lines.append(f"- `{option}`")
+    lines.extend(["", "## Condiciones GO", ""])
+    for item in card["go_conditions"]:
+        lines.append(f"- `{item}`")
+    lines.extend(["", "## Condiciones NO-GO", ""])
+    for item in card["no_go_conditions"]:
+        lines.append(f"- `{item}`")
+    lines.extend(["", "## Checklist final", ""])
+    for item in card["review_items"]:
+        lines.append(
+            f"- `{item['id']}` required={str(item['required']).lower()} "
+            f"status={item['status']} source={item['source']}"
+        )
+    lines.extend(["", "## Comando local", ""])
+    lines.extend(
+        [
+            f"- `{card['local_command_template']}`",
+            f"- Flags requeridos: {_format_inline_list(card['required_flags'])}",
+            f"- Flags faltantes: {_format_inline_list(card['missing_required_flags'])}",
+            f"- Confirmaciones humanas: {_format_inline_list(card['human_confirmations'])}",
+            f"- Pendientes de copia: {_format_inline_list(card['copy_pending_ids'])}",
+            "- Reemplazar placeholders solo en la maquina local del operador.",
+            "- No pasar flags `--confirm-*` hasta completar la revision humana correspondiente.",
+            "",
+            "## Auditoria posterior",
+            "",
+            f"- Auditoria estricta: `{card['strict_audit_command']}`",
+            f"- Refrescar checklist: `{card['refresh_checklist_command']}`",
+            "- Guardar solo JSON/Markdown sanitizados antes de auditar beta.",
+            "",
+            "## Condiciones de alto",
+            "",
+        ]
+    )
+    for item in card["hard_stop_conditions"]:
+        lines.append(f"- {item}")
+    lines.extend(
+        [
+            "",
+            "## Reglas",
+            "",
+            "- Decision `go_after_local_checks` solo si no queda ninguna condicion NO-GO.",
+            "- Decision `no_go_stop_and_fix` si aparece cualquier duda de privacidad, permisos, backend o auditoria.",
+            "- Esta tarjeta puede compartirse como guia operativa, pero no como evidencia beta.",
             "",
         ]
     )
@@ -5038,6 +5312,9 @@ def _format_real_pilot_handoff_markdown(report: dict[str, Any]) -> str:
     run_sheet_name = Path(
         report["artifacts"].get("real_pilot_run_sheet_card", "real-pilot-run-sheet.md")
     ).name
+    final_go_no_go_name = Path(
+        report["artifacts"].get("real_pilot_final_go_no_go_card", "real-pilot-final-go-no-go.md")
+    ).name
     lines = [
         "# Handoff de pilotos reales AuralisVoiceKit",
         "",
@@ -5068,6 +5345,7 @@ def _format_real_pilot_handoff_markdown(report: dict[str, Any]) -> str:
         f"- Ensayo local: `{rehearsal_card_name}`",
         f"- Brief del operador: `{operator_brief_name}`",
         f"- Run sheet: `{run_sheet_name}`",
+        f"- Go/no-go final: `{final_go_no_go_name}`",
         "",
         "## Politica de contenido",
         "",
@@ -5124,6 +5402,7 @@ def _format_real_pilot_handoff_markdown(report: dict[str, Any]) -> str:
             f"- Revisar `{evidence_package_name}` para reunir solo JSON/Markdown sanitizados antes de auditar beta.",
             f"- Revisar `{operator_brief_name}` como resumen de una pagina antes de ejecutar localmente.",
             f"- Seguir `{run_sheet_name}` como hoja local por fases durante la corrida real.",
+            f"- Revisar `{final_go_no_go_name}` como ultima decision local antes de tocar hardware.",
             "- Reemplazar `sample.mp3`, `<audio-path>`, `<expected-text-path>` y `<public-spoken-text>` solo localmente.",
             "- Usar audio propio no sensible y texto hablado publico/no sensible.",
             "- Revisar `manual-capture-checklist.md`, `transcription-review-checklist.md`, `real-transcription-next-step.md`, `output-operator-checklist.md` y `system-output-next-step.md` segun el piloto.",
