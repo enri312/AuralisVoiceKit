@@ -6,6 +6,18 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.147.0] - 2026-06-06
+
+### Agregado
+
+- `tools/pilot_run.py` ahora genera `real-pilot-run-sheet.md`, una hoja publica por fases para que el operador local ejecute el siguiente piloto real en orden.
+- `real_pilot_run_sheet_card` resume prerequisitos, ensayo, consentimiento/copia, ejecucion real, paquete de evidencia, auditoria estricta y refresco del checklist beta.
+- `pilot-plan.md`, `real-pilot-handoff.md`, `real-pilot-rehearsal-card.md`, `real-pilot-audit-closure.md`, `real-pilot-evidence-package.md` y `real-pilot-operator-brief.md` enlazan la run sheet.
+
+### Pruebas
+
+- Nuevas pruebas validan el artifact de run sheet, fases requeridas, flags de privacidad, salida CLI y presencia en reportes Markdown.
+
 ## [0.146.0] - 2026-06-06
 
 ### Agregado

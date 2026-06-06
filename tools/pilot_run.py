@@ -223,6 +223,7 @@ def run_safe_pilot(
     rehearsal_card_path = output / "real-pilot-rehearsal-card.md"
     evidence_package_path = output / "real-pilot-evidence-package.md"
     operator_brief_path = output / "real-pilot-operator-brief.md"
+    run_sheet_path = output / "real-pilot-run-sheet.md"
     plan_path = output / "pilot-plan.md"
     report_path = output / "pilot-report.json"
     report["fixture_preflight_card"] = _real_pilot_fixture_preflight_card(report)
@@ -433,6 +434,7 @@ def run_safe_pilot(
         evidence_package_path,
     )
     report["real_pilot_operator_brief_card"] = _real_pilot_operator_brief_card(report, operator_brief_path)
+    report["real_pilot_run_sheet_card"] = _real_pilot_run_sheet_card(report, run_sheet_path)
     artifacts["real_pilot_findings_template"] = str(findings_template_path)
     artifacts["real_pilot_handoff"] = str(handoff_path)
     artifacts["real_pilot_command_pack"] = str(command_pack_path)
@@ -451,6 +453,7 @@ def run_safe_pilot(
     artifacts["real_pilot_rehearsal_card"] = str(rehearsal_card_path)
     artifacts["real_pilot_evidence_package_card"] = str(evidence_package_path)
     artifacts["real_pilot_operator_brief_card"] = str(operator_brief_path)
+    artifacts["real_pilot_run_sheet_card"] = str(run_sheet_path)
     artifacts["pilot_plan"] = str(plan_path)
     artifacts["pilot_report"] = str(report_path)
     findings_template_path.write_text(_format_real_pilot_findings_template_markdown(report), encoding="utf-8")
@@ -474,6 +477,7 @@ def run_safe_pilot(
     rehearsal_card_path.write_text(_format_real_pilot_rehearsal_markdown(report), encoding="utf-8")
     evidence_package_path.write_text(_format_real_pilot_evidence_package_markdown(report), encoding="utf-8")
     operator_brief_path.write_text(_format_real_pilot_operator_brief_markdown(report), encoding="utf-8")
+    run_sheet_path.write_text(_format_real_pilot_run_sheet_markdown(report), encoding="utf-8")
     plan_path.write_text(_format_pilot_plan_markdown(report), encoding="utf-8")
     report_path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return report
@@ -2132,6 +2136,7 @@ def _real_pilot_rehearsal_card(report: dict[str, Any], artifact_path: Path) -> d
         "real-pilot-audit-closure.md",
         "real-pilot-evidence-package.md",
         "real-pilot-operator-brief.md",
+        "real-pilot-run-sheet.md",
     ]
     pending_rehearsal_ids = [item["id"] for item in rehearsal_items if item["required"]]
     return {
@@ -2195,6 +2200,7 @@ def _real_pilot_evidence_package_card(report: dict[str, Any], artifact_path: Pat
         "BETA_CHECKLIST.md",
     ]
     support_artifacts = [
+        "real-pilot-run-sheet.md",
         "real-pilot-operator-brief.md",
         "real-pilot-rehearsal-card.md",
         "real-pilot-execution-card.md",
@@ -2310,6 +2316,7 @@ def _real_pilot_operator_brief_card(report: dict[str, Any], artifact_path: Path)
         "real-pilot-rehearsal-card.md",
         "real-pilot-consent-card.md",
         "real-pilot-execution-card.md",
+        "real-pilot-run-sheet.md",
     ]
     after_run_artifacts = [
         package["artifact"],
@@ -2396,6 +2403,131 @@ def _real_pilot_operator_brief_card(report: dict[str, Any], artifact_path: Path)
         "brief_item_count": len(brief_items),
         "pending_brief_ids": pending_brief_ids,
         "pending_brief_count": len(pending_brief_ids),
+        "hard_stop_conditions": report["pilot_decision_gate"]["hard_stop_conditions"],
+        "content_policy": {
+            "records_audio": False,
+            "records_transcripts": False,
+            "records_spoken_text": False,
+            "records_expected_text": False,
+            "records_local_paths": False,
+            "records_device_names": False,
+            "records_operator_identity": False,
+        },
+        "records_audio": False,
+        "records_transcripts": False,
+        "records_spoken_text": False,
+        "records_expected_text": False,
+        "records_local_paths": False,
+        "records_device_names": False,
+        "records_operator_identity": False,
+    }
+
+
+def _real_pilot_run_sheet_card(report: dict[str, Any], artifact_path: Path) -> dict[str, Any]:
+    """Build a phase-by-phase local run sheet for the next real pilot."""
+
+    focus = report["beta_readiness"].get("next_evidence_focus", {})
+    execution = report["real_pilot_execution_card"]
+    gate = execution["operator_gate"]
+    consent = report["real_pilot_consent_card"]
+    rehearsal = report["real_pilot_rehearsal_card"]
+    package = report["real_pilot_evidence_package_card"]
+    brief = report["real_pilot_operator_brief_card"]
+    closure = report["real_pilot_audit_closure_card"]
+    phases = [
+        {
+            "id": "pre_run_review",
+            "required": True,
+            "status": "pending_local_operator_review",
+            "requires_hardware": False,
+            "requires_local_operator": True,
+            "source": brief["artifact"],
+            "artifacts": brief["before_run_artifacts"],
+        },
+        {
+            "id": "local_rehearsal",
+            "required": True,
+            "status": rehearsal["rehearsal_status"],
+            "requires_hardware": False,
+            "requires_local_operator": True,
+            "source": rehearsal["artifact"],
+            "commands": rehearsal["safe_rehearsal_commands"],
+        },
+        {
+            "id": "consent_and_copy_review",
+            "required": True,
+            "status": consent["decision"],
+            "requires_hardware": False,
+            "requires_local_operator": True,
+            "source": consent["artifact"],
+            "copy_pending_ids": brief["copy_pending_ids"],
+        },
+        {
+            "id": "real_execution",
+            "required": True,
+            "status": "pending_real_pilot",
+            "requires_hardware": True,
+            "requires_local_operator": True,
+            "source": "real-pilot-execution-card.md",
+            "command": focus.get("command") or "ninguno",
+            "human_confirmations": gate["human_confirmations"],
+        },
+        {
+            "id": "sanitized_evidence_package",
+            "required": True,
+            "status": package["package_status"],
+            "requires_hardware": False,
+            "requires_local_operator": True,
+            "source": package["artifact"],
+            "expected_artifacts": package["expected_artifacts"],
+            "required_json_fields": package["required_json_fields"],
+            "missing_json_fields": package["missing_json_fields"],
+        },
+        {
+            "id": "strict_audit_and_refresh",
+            "required": True,
+            "status": closure["closure_status"],
+            "requires_hardware": False,
+            "requires_local_operator": True,
+            "source": closure["artifact"],
+            "strict_audit_command": closure["strict_audit_command"],
+            "refresh_checklist_command": closure["refresh_checklist_command"],
+        },
+    ]
+    pending_phase_ids = [phase["id"] for phase in phases if phase["required"]]
+    prerequisite_artifacts = [
+        brief["artifact"],
+        "real-pilot-decision-gate.md",
+        "real-pilot-hard-stop-card.md",
+        "real-pilot-rehearsal-card.md",
+        "real-pilot-consent-card.md",
+        "real-pilot-execution-card.md",
+    ]
+    return {
+        "artifact": artifact_path.name,
+        "safe_to_share": True,
+        "source": "real_pilot_operator_brief_card + real_pilot_execution_card + real_pilot_audit_closure_card",
+        "usable_as_beta_evidence": False,
+        "sheet_status": "ready_for_local_operator_review" if gate["allowed_to_run"] else "blocked",
+        "focus": gate["focus"],
+        "focus_title": focus.get("title") or "ninguno",
+        "focus_artifact": gate["focus_artifact"],
+        "local_run_allowed": gate["allowed_to_run"],
+        "command_safe_to_copy_for_local_operator": gate["command_audit"]["safe_to_copy_for_local_operator"],
+        "requires_local_operator_review": gate["requires_local_operator_review"],
+        "local_command_template": focus.get("command") or "ninguno",
+        "prerequisite_artifacts": prerequisite_artifacts,
+        "human_confirmations": gate["human_confirmations"],
+        "copy_pending_ids": brief["copy_pending_ids"],
+        "suggested_roots": package["suggested_roots"],
+        "required_json_fields": package["required_json_fields"],
+        "missing_json_fields": package["missing_json_fields"],
+        "strict_audit_command": closure["strict_audit_command"],
+        "refresh_checklist_command": closure["refresh_checklist_command"],
+        "phases": phases,
+        "phase_count": len(phases),
+        "required_phase_count": len(pending_phase_ids),
+        "pending_phase_ids": pending_phase_ids,
         "hard_stop_conditions": report["pilot_decision_gate"]["hard_stop_conditions"],
         "content_policy": {
             "records_audio": False,
@@ -2708,6 +2840,9 @@ def _format_pilot_plan_markdown(report: dict[str, Any]) -> str:
     operator_brief_name = Path(
         report["artifacts"].get("real_pilot_operator_brief_card", "real-pilot-operator-brief.md")
     ).name
+    run_sheet_name = Path(
+        report["artifacts"].get("real_pilot_run_sheet_card", "real-pilot-run-sheet.md")
+    ).name
     lines = [
         "# Plan de pilotos AuralisVoiceKit",
         "",
@@ -2744,6 +2879,7 @@ def _format_pilot_plan_markdown(report: dict[str, Any]) -> str:
         f"- Ensayo local: `{rehearsal_card_name}`",
         f"- Paquete de evidencia: `{evidence_package_name}`",
         f"- Brief del operador: `{operator_brief_name}`",
+        f"- Run sheet: `{run_sheet_name}`",
         f"- Plantilla de hallazgos: `{findings_template_name}`",
         "",
         "## Checks seguros",
@@ -2879,6 +3015,14 @@ def _format_pilot_plan_markdown(report: dict[str, Any]) -> str:
             f"- Comando seguro para copia local: `{_format_bool(report['real_pilot_operator_brief_card']['command_safe_to_copy_for_local_operator'])}`",
             f"- Pendientes locales: `{report['real_pilot_operator_brief_card']['pending_brief_count']}`",
             f"- Usable como evidencia beta: `{_format_bool(report['real_pilot_operator_brief_card']['usable_as_beta_evidence'])}`",
+            "",
+            "## Run sheet del piloto real",
+            "",
+            f"- Artifact: `{run_sheet_name}`",
+            f"- Estado de la hoja: `{report['real_pilot_run_sheet_card']['sheet_status']}`",
+            f"- Fases requeridas: `{report['real_pilot_run_sheet_card']['required_phase_count']}`",
+            f"- Permitido ejecutar localmente: `{_format_bool(report['real_pilot_run_sheet_card']['local_run_allowed'])}`",
+            f"- Usable como evidencia beta: `{_format_bool(report['real_pilot_run_sheet_card']['usable_as_beta_evidence'])}`",
             "",
             "## Preflight de fixture de transcripcion",
             "",
@@ -4403,6 +4547,9 @@ def _format_real_pilot_audit_closure_markdown(report: dict[str, Any]) -> str:
     operator_brief_name = Path(
         report["artifacts"].get("real_pilot_operator_brief_card", "real-pilot-operator-brief.md")
     ).name
+    run_sheet_name = Path(
+        report["artifacts"].get("real_pilot_run_sheet_card", "real-pilot-run-sheet.md")
+    ).name
     lines = [
         "# Cierre de auditoria para piloto real AuralisVoiceKit",
         "",
@@ -4438,6 +4585,7 @@ def _format_real_pilot_audit_closure_markdown(report: dict[str, Any]) -> str:
         f"- Ensayo local: `{rehearsal_card_name}`",
         f"- Paquete de evidencia: `{evidence_package_name}`",
         f"- Brief del operador: `{operator_brief_name}`",
+        f"- Run sheet: `{run_sheet_name}`",
         f"- Ejecucion guiada: `{closure['execution_card']}`",
         f"- Consentimiento local: `{closure['consent_card']}`",
         f"- Ingesta de evidencia: `{closure['evidence_intake_card']}`",
@@ -4722,6 +4870,120 @@ def _format_real_pilot_operator_brief_markdown(report: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
+def _format_real_pilot_run_sheet_markdown(report: dict[str, Any]) -> str:
+    sheet = report["real_pilot_run_sheet_card"]
+    gate = report["pilot_decision_gate"]
+    lines = [
+        "# Run sheet del piloto real AuralisVoiceKit",
+        "",
+        "Esta hoja ordena la corrida local por fases. No ejecuta hardware, no copia valores privados y no cuenta como evidencia beta.",
+        "",
+        "## Estado",
+        "",
+        f"- Version: `{report['version']}`",
+        f"- Stage: `{report['stage']}`",
+        f"- Pilotos reales: `{gate['real_world_pilot']['decision']}`",
+        f"- Beta: `{gate['beta']['decision']}`",
+        f"- Foco: `{sheet['focus']}`",
+        f"- Artifact esperado: `{sheet['focus_artifact']}`",
+        f"- Estado de la hoja: `{sheet['sheet_status']}`",
+        f"- Permitido ejecutar localmente: `{_format_bool(sheet['local_run_allowed'])}`",
+        f"- Comando seguro para copia local: `{_format_bool(sheet['command_safe_to_copy_for_local_operator'])}`",
+        f"- Fases requeridas: `{sheet['required_phase_count']}`",
+        f"- Usable como evidencia beta: `{_format_bool(sheet['usable_as_beta_evidence'])}`",
+        "",
+        "## Politica de contenido",
+        "",
+        f"- Seguro para compartir: `{_format_bool(sheet['safe_to_share'])}`",
+        f"- Registra audio: `{_format_bool(sheet['records_audio'])}`",
+        f"- Registra transcripciones: `{_format_bool(sheet['records_transcripts'])}`",
+        f"- Registra texto hablado: `{_format_bool(sheet['records_spoken_text'])}`",
+        f"- Registra texto esperado completo: `{_format_bool(sheet['records_expected_text'])}`",
+        f"- Registra rutas locales: `{_format_bool(sheet['records_local_paths'])}`",
+        f"- Registra nombres reales de dispositivos: `{_format_bool(sheet['records_device_names'])}`",
+        f"- Registra identidad del operador: `{_format_bool(sheet['records_operator_identity'])}`",
+        "",
+        "## Artifacts previos",
+        "",
+    ]
+    for artifact in sheet["prerequisite_artifacts"]:
+        lines.append(f"- `{artifact}`")
+    lines.extend(["", "## Fases", ""])
+    for index, phase in enumerate(sheet["phases"], start=1):
+        lines.extend(
+            [
+                f"### {index}. {phase['id']}",
+                "",
+                f"- Estado: `{phase['status']}`",
+                f"- Requerida: `{_format_bool(phase['required'])}`",
+                f"- Requiere hardware: `{_format_bool(phase['requires_hardware'])}`",
+                f"- Requiere operador local: `{_format_bool(phase['requires_local_operator'])}`",
+                f"- Fuente: `{phase['source']}`",
+            ]
+        )
+        if phase.get("artifacts"):
+            lines.append(f"- Artifacts: {_format_inline_list(phase['artifacts'])}")
+        if phase.get("commands"):
+            lines.append(f"- Comandos seguros: {_format_inline_list(phase['commands'])}")
+        if phase.get("copy_pending_ids"):
+            lines.append(f"- Pendientes de copia: {_format_inline_list(phase['copy_pending_ids'])}")
+        if phase.get("command"):
+            lines.append(f"- Comando: `{phase['command']}`")
+        if phase.get("human_confirmations"):
+            lines.append(f"- Confirmaciones humanas: {_format_inline_list(phase['human_confirmations'])}")
+        if phase.get("expected_artifacts"):
+            lines.append(f"- Artifacts esperados: {_format_inline_list(phase['expected_artifacts'])}")
+        if phase.get("required_json_fields"):
+            lines.append(f"- Campos JSON requeridos: {_format_inline_list(phase['required_json_fields'])}")
+        if phase.get("missing_json_fields"):
+            lines.append(f"- Campos JSON faltantes actuales: {_format_inline_list(phase['missing_json_fields'])}")
+        if phase.get("strict_audit_command"):
+            lines.append(f"- Auditoria estricta: `{phase['strict_audit_command']}`")
+        if phase.get("refresh_checklist_command"):
+            lines.append(f"- Refrescar checklist: `{phase['refresh_checklist_command']}`")
+        lines.append("")
+    lines.extend(
+        [
+            "## Comando local",
+            "",
+            f"- `{sheet['local_command_template']}`",
+            "- Reemplazar placeholders solo en la maquina local del operador.",
+            "- No ejecutar si quedan fases previas sin revisar.",
+            "- No pasar flags `--confirm-*` hasta completar la revision humana correspondiente.",
+            "",
+            "## Evidencia sanitizada",
+            "",
+            f"- Artifact JSON esperado: `{sheet['focus_artifact']}`",
+            f"- Directorios sugeridos: {_format_inline_list(sheet['suggested_roots'])}",
+            f"- Campos requeridos: {_format_inline_list(sheet['required_json_fields'])}",
+            f"- Campos faltantes actuales: {_format_inline_list(sheet['missing_json_fields'])}",
+            "",
+            "## Auditoria y cierre",
+            "",
+            f"- Auditoria estricta: `{sheet['strict_audit_command']}`",
+            f"- Refrescar checklist: `{sheet['refresh_checklist_command']}`",
+            "- Guardar solo JSON/Markdown sanitizados antes de auditar beta.",
+            "- Si la auditoria falla, corregir artifacts sanitizados antes de refrescar beta.",
+            "",
+            "## Condiciones de alto",
+            "",
+        ]
+    )
+    for item in sheet["hard_stop_conditions"]:
+        lines.append(f"- {item}")
+    lines.extend(
+        [
+            "",
+            "## Reglas",
+            "",
+            "- Mantener fuera del repositorio audio, transcripciones, texto esperado completo, texto hablado real, rutas locales, dispositivos e identidad.",
+            "- Esta hoja puede compartirse como guia operativa, pero no como evidencia beta.",
+            "",
+        ]
+    )
+    return "\n".join(lines)
+
+
 def _format_real_pilot_handoff_markdown(report: dict[str, Any]) -> str:
     beta = report["beta_readiness"]
     policy = report["real_pilot_handoff"]["content_policy"]
@@ -4773,6 +5035,9 @@ def _format_real_pilot_handoff_markdown(report: dict[str, Any]) -> str:
     operator_brief_name = Path(
         report["artifacts"].get("real_pilot_operator_brief_card", "real-pilot-operator-brief.md")
     ).name
+    run_sheet_name = Path(
+        report["artifacts"].get("real_pilot_run_sheet_card", "real-pilot-run-sheet.md")
+    ).name
     lines = [
         "# Handoff de pilotos reales AuralisVoiceKit",
         "",
@@ -4802,6 +5067,7 @@ def _format_real_pilot_handoff_markdown(report: dict[str, Any]) -> str:
         f"- Cierre de auditoria: `{audit_closure_name}`",
         f"- Ensayo local: `{rehearsal_card_name}`",
         f"- Brief del operador: `{operator_brief_name}`",
+        f"- Run sheet: `{run_sheet_name}`",
         "",
         "## Politica de contenido",
         "",
@@ -4857,6 +5123,7 @@ def _format_real_pilot_handoff_markdown(report: dict[str, Any]) -> str:
             f"- Revisar `{audit_closure_name}` despues de generar el JSON real sanitizado.",
             f"- Revisar `{evidence_package_name}` para reunir solo JSON/Markdown sanitizados antes de auditar beta.",
             f"- Revisar `{operator_brief_name}` como resumen de una pagina antes de ejecutar localmente.",
+            f"- Seguir `{run_sheet_name}` como hoja local por fases durante la corrida real.",
             "- Reemplazar `sample.mp3`, `<audio-path>`, `<expected-text-path>` y `<public-spoken-text>` solo localmente.",
             "- Usar audio propio no sensible y texto hablado publico/no sensible.",
             "- Revisar `manual-capture-checklist.md`, `transcription-review-checklist.md`, `real-transcription-next-step.md`, `output-operator-checklist.md` y `system-output-next-step.md` segun el piloto.",
