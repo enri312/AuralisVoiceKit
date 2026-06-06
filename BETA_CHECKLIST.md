@@ -4,7 +4,7 @@ Este documento se genera con `tools\beta_readiness.py`. No debe incluir audio, t
 
 ## Estado
 
-- Version: `0.64.0`
+- Version: `0.65.0`
 - Estado: `pilot`
 - Listo para beta: `false`
 - Gate de pilotos reales: `true`
@@ -23,8 +23,8 @@ Este documento se genera con `tools\beta_readiness.py`. No debe incluir audio, t
 - [x] `stability_gate_pilot` (blocker) - Stability gate allows real-world pilots
 - [x] `windows_wasapi_capture` (blocker) - Windows WASAPI capture pilot
 - [ ] `real_transcription_quality` (blocker) - Real transcription quality pilot
-  - Accion: Run tools/transcription_pilot.py with --real-transcription, non-sensitive audio, --expected-text or --expected-text-file, a meaningful --min-word-accuracy, --min-audio-seconds/--max-audio-seconds duration guards and --confirm-audio-reviewed before model use plus --confirm-quality-reviewed after human review, then keep transcription-review-checklist.md.
-  - Evidencia faltante: `Real transcription requested: True`, `Audio review confirmed: True`, `Quality review confirmed: True`, `Transcription checklist ready for beta evidence: True`
+  - Accion: Run tools/transcription_pilot.py with --real-transcription, non-sensitive audio, --expected-text or --expected-text-file, a meaningful --min-word-accuracy, --min-audio-seconds/--max-audio-seconds duration guards and --confirm-audio-reviewed before model use plus --confirm-reference-reviewed before scoring and --confirm-quality-reviewed after human review, then keep transcription-review-checklist.md.
+  - Evidencia faltante: `Real transcription requested: True`, `Audio review confirmed: True`, `Reference review confirmed: True`, `Quality review confirmed: True`, `Transcription checklist ready for beta evidence: True`
 - [ ] `system_output_audible` (blocker) - Audible system output pilot
   - Accion: Run tools/output_pilot.py --speak --operator-present --confirm-audible --confirm-voice-reviewed --expected-system "Windows|Linux|Darwin" --output-dir pilot_runs/output/system-real with a human operator, then keep output-operator-checklist.md, system_guard.expected_system_matched=true, operator_checklist.expected_system_matched=true and only sanitized findings.
   - Evidencia faltante: `Real audio requested: True`, `Operator confirmation status: confirmed`, `Voice review confirmed: True`, `Operator checklist ready for beta evidence: True`
@@ -41,7 +41,7 @@ Este documento se genera con `tools\beta_readiness.py`. No debe incluir audio, t
 
 ## Siguientes acciones
 
-- Run tools/transcription_pilot.py with --real-transcription, non-sensitive audio, --expected-text or --expected-text-file, a meaningful --min-word-accuracy, --min-audio-seconds/--max-audio-seconds duration guards and --confirm-audio-reviewed before model use plus --confirm-quality-reviewed after human review, then keep transcription-review-checklist.md.
+- Run tools/transcription_pilot.py with --real-transcription, non-sensitive audio, --expected-text or --expected-text-file, a meaningful --min-word-accuracy, --min-audio-seconds/--max-audio-seconds duration guards and --confirm-audio-reviewed before model use plus --confirm-reference-reviewed before scoring and --confirm-quality-reviewed after human review, then keep transcription-review-checklist.md.
 - Run tools/output_pilot.py --speak --operator-present --confirm-audible --confirm-voice-reviewed --expected-system "Windows|Linux|Darwin" --output-dir pilot_runs/output/system-real with a human operator, then keep output-operator-checklist.md, system_guard.expected_system_matched=true, operator_checklist.expected_system_matched=true and only sanitized findings.
 - Run the manual capture pilot on Ubuntu/Linux with real hardware and --expected-system Linux --confirm-input-reviewed, then keep manual-capture-checklist.md, system_guard.expected_system_matched=true, input_review_confirmed=true, capture_checklist.input_review_confirmed=true and capture_checklist.ready_for_beta_evidence=true.
 - Run the manual capture pilot on macOS with real hardware and --expected-system Darwin --confirm-input-reviewed, then keep manual-capture-checklist.md, system_guard.expected_system_matched=true, input_review_confirmed=true, capture_checklist.input_review_confirmed=true and capture_checklist.ready_for_beta_evidence=true.

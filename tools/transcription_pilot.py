@@ -46,6 +46,7 @@ def run_transcription_pilot(
     real_transcription: bool = False,
     audio_confirmed_non_sensitive: bool = False,
     audio_review_confirmed: bool = False,
+    reference_review_confirmed: bool = False,
     quality_review_confirmed: bool = False,
     include_transcript_hash: bool = False,
     expected_text: str | None = None,
@@ -63,6 +64,7 @@ def run_transcription_pilot(
         expected_text_file=expected_text_file,
         min_word_accuracy=min_word_accuracy,
         preflight_only=preflight_only,
+        reference_review_confirmed=reference_review_confirmed,
     )
     _validate_quality_review_flags(
         quality_review_confirmed=quality_review_confirmed,
@@ -174,6 +176,7 @@ def run_transcription_pilot(
         "audio_file_extension": source_audio_path.suffix.lower(),
         "audio_confirmed_non_sensitive": audio_confirmed_non_sensitive,
         "audio_review_confirmed": audio_review_confirmed,
+        "reference_review_confirmed": reference_review_confirmed,
         "decoded": chunk is not None,
         "decoder": audio_decoder,
         "source_format": audio_source_format,
@@ -193,6 +196,7 @@ def run_transcription_pilot(
         transcript=result_payload,
         quality=quality_report,
         audio_review_confirmed=audio_review_confirmed,
+        reference_review_confirmed=reference_review_confirmed,
         quality_review_confirmed=quality_review_confirmed,
     )
 
@@ -210,6 +214,7 @@ def run_transcription_pilot(
         transcript=result_payload,
         quality=quality_report,
         audio_review_confirmed=audio_review_confirmed,
+        reference_review_confirmed=reference_review_confirmed,
         quality_review_confirmed=quality_review_confirmed,
         transcription_checklist=transcription_checklist,
         report_path=report_path,
@@ -232,6 +237,7 @@ def run_transcription_pilot(
         "real_transcription_requested": real_transcription,
         "audio_confirmed_non_sensitive": audio_confirmed_non_sensitive,
         "audio_review_confirmed": audio_review_confirmed,
+        "reference_review_confirmed": reference_review_confirmed,
         "quality_review_confirmed": quality_review_confirmed,
         "generated_synthetic_audio": generated_synthetic_audio,
         "normalize": normalize,
@@ -289,6 +295,11 @@ def main(argv: list[str] | None = None) -> int:
         help="confirm a human reviewed the supplied audio privacy before beta evidence",
     )
     parser.add_argument(
+        "--confirm-reference-reviewed",
+        action="store_true",
+        help="confirm a human reviewed the expected text privacy before beta evidence",
+    )
+    parser.add_argument(
         "--confirm-quality-reviewed",
         action="store_true",
         help="confirm a human reviewed redacted transcript quality before counting beta evidence",
@@ -341,6 +352,7 @@ def main(argv: list[str] | None = None) -> int:
             real_transcription=args.real_transcription,
             audio_confirmed_non_sensitive=args.audio_non_sensitive,
             audio_review_confirmed=args.confirm_audio_reviewed,
+            reference_review_confirmed=args.confirm_reference_reviewed,
             quality_review_confirmed=args.confirm_quality_reviewed,
             include_transcript_hash=args.include_transcript_hash,
             expected_text=args.expected_text,
@@ -402,6 +414,7 @@ def _validate_quality_flags(
     expected_text_file: str | Path | None,
     min_word_accuracy: float | None,
     preflight_only: bool,
+    reference_review_confirmed: bool,
 ) -> None:
     if preflight_only and (
         expected_text is not None or expected_text_file is not None or min_word_accuracy is not None
@@ -413,6 +426,8 @@ def _validate_quality_flags(
         raise ValueError("--min-word-accuracy must be between 0.0 and 1.0.")
     if min_word_accuracy is not None and expected_text is None and expected_text_file is None:
         raise ValueError("--min-word-accuracy requires --expected-text or --expected-text-file.")
+    if reference_review_confirmed and expected_text is None and expected_text_file is None:
+        raise ValueError("--confirm-reference-reviewed requires --expected-text or --expected-text-file.")
 
 
 def _validate_quality_review_flags(
@@ -657,6 +672,7 @@ def _transcription_checklist(
     transcript: dict[str, Any] | None,
     quality: dict[str, Any],
     audio_review_confirmed: bool,
+    reference_review_confirmed: bool,
     quality_review_confirmed: bool,
 ) -> dict[str, Any]:
     duration_gate = audio["duration_gate"]
@@ -679,6 +695,7 @@ def _transcription_checklist(
         and transcript_redacted
         and quality_ready
         and quality_review_confirmed
+        and reference_review_confirmed
         and not preflight_only
     )
     before = [
@@ -710,6 +727,12 @@ def _transcription_checklist(
             "reference_text_ready",
             "Provide --expected-text or --expected-text-file for redacted quality metrics.",
             ok=quality["enabled"],
+            required=True,
+        ),
+        _checklist_item(
+            "reference_review_confirmed",
+            "Use --confirm-reference-reviewed only after reviewing the expected text privacy locally.",
+            ok=reference_review_confirmed if quality["enabled"] else None,
             required=True,
         ),
         _checklist_item(
@@ -752,6 +775,7 @@ def _transcription_checklist(
         "redacts_transcript_text": True,
         "redacts_expected_text": True,
         "audio_review_confirmed": audio_review_confirmed,
+        "reference_review_confirmed": reference_review_confirmed,
         "quality_review_confirmed": quality_review_confirmed,
         "ready_for_real_transcription": ready_for_real_transcription,
         "ready_for_beta_evidence": ready_for_beta_evidence,
@@ -787,6 +811,7 @@ def _build_findings_markdown(
     transcript: dict[str, Any] | None,
     quality: dict[str, Any],
     audio_review_confirmed: bool,
+    reference_review_confirmed: bool,
     quality_review_confirmed: bool,
     transcription_checklist: dict[str, Any],
     report_path: Path,
@@ -815,6 +840,7 @@ def _build_findings_markdown(
         f"- Duration gate passed: {_format_optional(audio['duration_gate']['passed'])}",
         f"- Transcript characters: {transcript_characters}",
         f"- Quality reference provided: {quality['enabled']}",
+        f"- Reference review confirmed: {reference_review_confirmed}",
         f"- Quality gate passed: {_format_optional(quality['passed'])}",
         f"- Quality review confirmed: {quality_review_confirmed}",
         f"- Transcription checklist ready for beta evidence: {transcription_checklist['ready_for_beta_evidence']}",
@@ -894,6 +920,7 @@ def _build_transcription_checklist_markdown(
         f"- Redacts transcript text: {transcription_checklist['redacts_transcript_text']}",
         f"- Redacts expected text: {transcription_checklist['redacts_expected_text']}",
         f"- Audio review confirmed: {transcription_checklist['audio_review_confirmed']}",
+        f"- Reference review confirmed: {transcription_checklist['reference_review_confirmed']}",
         f"- Quality review confirmed: {transcription_checklist['quality_review_confirmed']}",
         f"- Ready for real transcription: {transcription_checklist['ready_for_real_transcription']}",
         f"- Ready for beta evidence: {transcription_checklist['ready_for_beta_evidence']}",
@@ -954,6 +981,7 @@ def _print_report(report: dict[str, Any]) -> None:
     print(f"Real transcription requested: {report['real_transcription_requested']}")
     print(f"Generated synthetic audio: {report['generated_synthetic_audio']}")
     print(f"Audio review confirmed: {report['audio_review_confirmed']}")
+    print(f"Reference review confirmed: {report['reference_review_confirmed']}")
     print(f"Quality review confirmed: {report['quality_review_confirmed']}")
     print(f"Passed: {report['passed']}")
     print(f"Transcript characters: {report['transcript']['text_characters'] if report['transcript'] else 0}")

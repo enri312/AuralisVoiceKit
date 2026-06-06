@@ -62,7 +62,8 @@ def build_evidence_requirements_report() -> dict[str, Any]:
                 "artifact": "transcription-pilot-report.json",
                 "command": (
                     "python tools/transcription_pilot.py --real-transcription --audio sample.mp3 "
-                    "--audio-non-sensitive --confirm-audio-reviewed --backend whisper --model base --normalize "
+                    "--audio-non-sensitive --confirm-audio-reviewed --confirm-reference-reviewed "
+                    "--backend whisper --model base --normalize "
                     "--expected-text \"Hola desde AuralisVoiceKit\" --min-word-accuracy 0.75 "
                     "--min-audio-seconds 0.2 --max-audio-seconds 60 "
                     "--confirm-quality-reviewed --json"
@@ -72,12 +73,14 @@ def build_evidence_requirements_report() -> dict[str, Any]:
                     _required_field("real_transcription_requested", True),
                     _required_field("audio_confirmed_non_sensitive", True),
                     _required_field("audio_review_confirmed", True),
+                    _required_field("reference_review_confirmed", True),
                     _required_field("quality_review_confirmed", True),
                     _required_field("passed", True),
                     _required_field("quality.enabled", True),
                     _required_field("quality.passed", True),
                     _required_field("quality.min_word_accuracy", f">= {BETA_MIN_WORD_ACCURACY}"),
                     _required_field("transcription_checklist.audio_review_confirmed", True),
+                    _required_field("transcription_checklist.reference_review_confirmed", True),
                     _required_field("transcription_checklist.quality_review_confirmed", True),
                     _required_field("transcription_checklist.ready_for_beta_evidence", True),
                 ],
@@ -242,6 +245,7 @@ def build_beta_readiness_report(
             required_terms=(
                 "Real transcription requested: True",
                 "Audio review confirmed: True",
+                "Reference review confirmed: True",
                 "Quality gate passed: `true`",
                 "Quality review confirmed: True",
                 "Transcription checklist ready for beta evidence: True",
@@ -250,7 +254,8 @@ def build_beta_readiness_report(
                 "Run tools/transcription_pilot.py with --real-transcription, non-sensitive audio, "
                 "--expected-text or --expected-text-file, a meaningful --min-word-accuracy, "
                 "--min-audio-seconds/--max-audio-seconds duration guards and "
-                "--confirm-audio-reviewed before model use plus --confirm-quality-reviewed after human review, "
+                "--confirm-audio-reviewed before model use plus --confirm-reference-reviewed before scoring "
+                "and --confirm-quality-reviewed after human review, "
                 "then keep transcription-review-checklist.md."
             ),
         ),
@@ -925,6 +930,7 @@ def _is_real_transcription_quality_evidence(report: dict[str, Any]) -> bool:
         report.get("real_transcription_requested") is True
         and report.get("audio_confirmed_non_sensitive") is True
         and report.get("audio_review_confirmed") is True
+        and report.get("reference_review_confirmed") is True
         and report.get("quality_review_confirmed") is True
         and report.get("passed") is True
         and isinstance(quality, dict)
@@ -933,6 +939,7 @@ def _is_real_transcription_quality_evidence(report: dict[str, Any]) -> bool:
         and float(quality.get("min_word_accuracy") or 0.0) >= BETA_MIN_WORD_ACCURACY
         and isinstance(transcription_checklist, dict)
         and transcription_checklist.get("audio_review_confirmed") is True
+        and transcription_checklist.get("reference_review_confirmed") is True
         and transcription_checklist.get("quality_review_confirmed") is True
         and transcription_checklist.get("ready_for_beta_evidence") is True
     )
