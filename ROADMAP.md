@@ -60,6 +60,8 @@ Nota `v0.108.0`: el piloto seguro propaga los `conditional_required_fields` del 
 
 Nota `v0.109.0`: el auditor beta reporta evidencias aceptadas/ignoradas con rutas relativas seguras al lote `--evidence`, evitando rutas absolutas y distinguiendo artifacts repetidos por plataforma.
 
+Nota `v0.110.0`: la auditoria de evidencias agrega `blocker_summaries` y un resumen por blocker con candidato mas cercano y campos faltantes, para orientar el siguiente piloto real sin inspeccionar cada JSON manualmente.
+
 ## Fase 0 - Base del proyecto
 
 **Objetivo:** dejar una libreria instalable, importable y testeable.

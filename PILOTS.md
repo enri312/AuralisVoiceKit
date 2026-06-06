@@ -16,6 +16,8 @@ Nota `v0.108.0`: `tools/pilot_run.py` conserva esos campos como `conditional_req
 
 Nota `v0.109.0`: `tools/beta_readiness.py` lista evidencias aceptadas con fuentes relativas al directorio `--evidence`, por ejemplo `linux/manual-pilot-report.json`, sin rutas absolutas. English: accepted and ignored evidence sources are relative, public-safe paths so duplicated artifact names can be traced by platform.
 
+Nota `v0.110.0`: `tools/beta_readiness.py --audit-evidence` agrega `blocker_summaries` y un `Resumen por blocker` en Markdown para mostrar candidato mas cercano y campos faltantes sin exponer contenido privado. English: evidence audits now summarize the closest candidate per beta blocker.
+
 ```powershell
 py tools\pilot_run.py --output-dir pilot_runs\safe --json
 py tools\pilot_run.py --output-dir pilot_runs\safe --evidence pilot_runs\manual --evidence pilot_runs\output --evidence pilot_runs\transcription --json

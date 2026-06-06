@@ -1034,6 +1034,22 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertFalse(field_checks["quality.min_word_accuracy"]["ok"])
         self.assertEqual(field_checks["quality.min_word_accuracy"]["actual"], 0.2)
 
+        summaries = {summary["name"]: summary for summary in report["blocker_summaries"]}
+        transcription_summary = summaries["real_transcription_quality"]
+        self.assertEqual(transcription_summary["status"], "pending")
+        self.assertEqual(transcription_summary["candidate_count"], 1)
+        self.assertEqual(
+            transcription_summary["closest_candidate"]["file"],
+            "transcription/transcription-pilot-report.json",
+        )
+        self.assertEqual(
+            transcription_summary["closest_candidate"]["missing_fields"],
+            ["quality.min_word_accuracy"],
+        )
+        output_summary = summaries["system_output_audible"]
+        self.assertEqual(output_summary["status"], "closed")
+        self.assertEqual(output_summary["accepted_sources"], ["output/output-pilot-report.json"])
+
     def test_cli_audit_evidence_markdown_is_public_safe(self):
         module = _load_beta_readiness()
 
@@ -1052,8 +1068,11 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertEqual(exit_code, 0)
         self.assertIn("Auditoria de evidencias beta", content)
         self.assertIn("Resumen de blockers", content)
+        self.assertIn("Resumen por blocker", content)
         self.assertIn("Listo para beta segun evidencias JSON", content)
         self.assertIn("ubuntu_linux_capture", content)
+        self.assertIn("Candidato mas cercano", content)
+        self.assertIn("Campos faltantes del candidato mas cercano", content)
         self.assertIn("Blockers cerrados", content)
         self.assertNotIn(str(tmpdir_path), content)
 
@@ -1071,6 +1090,8 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertEqual(payload["artifacts"], [])
         self.assertFalse(payload["ready_for_beta_by_evidence"])
         self.assertIn("real_transcription_quality", payload["missing_blockers"])
+        self.assertIn("blocker_summaries", payload)
+        self.assertEqual(payload["blocker_summaries"][0]["candidate_count"], 0)
 
     def test_cli_audit_evidence_can_fail_on_missing_blockers(self):
         module = _load_beta_readiness()

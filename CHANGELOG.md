@@ -6,6 +6,14 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.110.0] - 2026-06-06
+
+### Agregado
+
+- `tools/beta_readiness.py --audit-evidence` ahora incluye `blocker_summaries` con estado por blocker, fuentes que cierran evidencia, cantidad de candidatos y candidato mas cercano.
+- El Markdown de auditoria agrega `Resumen por blocker` para ver que artifact esta mas cerca de cerrar cada pendiente y que campos faltan, sin exponer rutas absolutas.
+- Nuevas pruebas cubren resumen por blocker, candidatos cercanos, campos faltantes y salida publica segura.
+
 ## [0.109.0] - 2026-06-06
 
 ### Agregado

@@ -238,6 +238,7 @@ def build_evidence_audit_report(
                 "candidates": candidates,
             }
         )
+    blocker_summaries = _evidence_blocker_summaries(requirements, artifacts)
     required_blockers = [requirement["name"] for requirement in requirements]
     satisfied_blockers = _ordered_unique(
         blocker for artifact in artifacts for blocker in artifact["satisfied_blockers"]
@@ -260,6 +261,7 @@ def build_evidence_audit_report(
         "required_blockers": required_blockers,
         "satisfied_blockers": satisfied_blockers,
         "missing_blockers": missing_blockers,
+        "blocker_summaries": blocker_summaries,
         "ready_for_beta_by_evidence": not missing_blockers,
         "artifacts": artifacts,
         "notes": (
@@ -526,6 +528,25 @@ def format_audit_markdown(report: dict[str, Any]) -> str:
         lines.extend(["## Evidencias ignoradas", ""])
         for item in report["ignored_details"]:
             lines.append(f"- `{item['file']}`: {item['message_es']} / {item['message_en']}.")
+        lines.append("")
+    lines.extend(["## Resumen por blocker", ""])
+    for blocker in report["blocker_summaries"]:
+        accepted_sources = _format_name_list(blocker["accepted_sources"]) if blocker["accepted_sources"] else "`ninguna`"
+        closest = blocker.get("closest_candidate")
+        lines.append(f"### {blocker['name']}")
+        lines.append("")
+        lines.append(f"- Estado: `{blocker['status']}`")
+        lines.append(f"- Artifact esperado: `{blocker['artifact']}`")
+        lines.append(f"- Fuentes que cierran: {accepted_sources}")
+        lines.append(f"- Candidatos evaluados: `{blocker['candidate_count']}`")
+        if closest is None:
+            lines.append("- Candidato mas cercano: `ninguno`")
+        else:
+            missing_fields = (
+                _format_name_list(closest["missing_fields"]) if closest["missing_fields"] else "`ninguno`"
+            )
+            lines.append(f"- Candidato mas cercano: `{closest['file']}`")
+            lines.append(f"- Campos faltantes del candidato mas cercano: {missing_fields}")
         lines.append("")
     lines.extend(["## Evidencias aceptadas", ""])
     if not report["artifacts"]:
@@ -900,6 +921,43 @@ def _audit_requirement(report: dict[str, Any], requirement: dict[str, Any]) -> d
         "ok": all(field["ok"] for field in fields),
         "fields": fields,
     }
+
+
+def _evidence_blocker_summaries(
+    requirements: list[dict[str, Any]],
+    artifacts: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    summaries: list[dict[str, Any]] = []
+    for requirement in requirements:
+        candidates = []
+        for artifact in artifacts:
+            for candidate in artifact["candidates"]:
+                if candidate["name"] != requirement["name"]:
+                    continue
+                missing_fields = [field["path"] for field in candidate["fields"] if not field["ok"]]
+                candidates.append(
+                    {
+                        "file": artifact["file"],
+                        "artifact": artifact["artifact"],
+                        "ok": candidate["ok"],
+                        "missing_count": len(missing_fields),
+                        "missing_fields": missing_fields,
+                    }
+                )
+        accepted_sources = [candidate["file"] for candidate in candidates if candidate["ok"]]
+        closest = min(candidates, key=lambda candidate: candidate["missing_count"]) if candidates else None
+        summaries.append(
+            {
+                "name": requirement["name"],
+                "title": requirement["title"],
+                "artifact": requirement["artifact"],
+                "status": "closed" if accepted_sources else "pending",
+                "accepted_sources": accepted_sources,
+                "candidate_count": len(candidates),
+                "closest_candidate": closest,
+            }
+        )
+    return summaries
 
 
 def _applicable_conditional_fields(report: dict[str, Any], requirement: dict[str, Any]) -> list[dict[str, Any]]:
