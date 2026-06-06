@@ -25,7 +25,7 @@ La meta no es competir con todos los motores de voz a la vez. La meta es constru
 | Modelos de audio | Inicial |
 | Eventos | Inicial |
 | Sesiones de voz | Inicial funcional con cancelacion |
-| CLI `doctor` | Inicial con test de captura, API publica e inventario JSON de backends |
+| CLI `doctor` | Inicial con test de captura, API publica, inventario JSON de backends y plan de instalacion de extras |
 | Backend `null` | Funcional |
 | Backend `wav` | Inicial funcional |
 | Backend `sounddevice` | Inicial funcional |
@@ -143,6 +143,8 @@ Nota `v0.149.0`: `tools/pilot_run.py` incorpora `real-pilot-local-receipt.md` y 
 Nota `v0.150.0`: `auralis backends --json` incorpora un inventario estructurado de backends registrados, disponibilidad, razones, dependencias publicas, politica de contenido y conteos por tipo para automatizar preflights de Windows, Ubuntu/Linux y macOS sin parsear salida humana ni publicar rutas locales.
 
 Nota `v0.151.0`: `backend_inventory()` y `AuralisVoiceKit.backend_inventory()` exponen ese mismo inventario seguro desde Python, reutilizando la politica publica de dependencias sin rutas locales ni credenciales.
+
+Nota `v0.152.0`: el inventario publico de backends incorpora `install_plan` con extra pip, comando de instalacion y estado `uses_pip_extra` para backends opcionales, manteniendo dependencias publicas y sin rutas locales.
 
 ## Fase 0 - Base del proyecto
 

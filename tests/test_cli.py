@@ -110,6 +110,9 @@ class CliTests(unittest.TestCase):
         backend_keys = {
             f"{backend['kind']}:{backend['name']}" for backend in payload["backends"]
         }
+        backends = {
+            f"{backend['kind']}:{backend['name']}": backend for backend in payload["backends"]
+        }
         self.assertEqual(exit_code, 0)
         self.assertEqual(payload["version"], __version__)
         self.assertIn("capture:null", backend_keys)
@@ -121,6 +124,13 @@ class CliTests(unittest.TestCase):
         self.assertEqual(payload["counts"]["total"], len(payload["backends"]))
         self.assertFalse(payload["content_policy"]["records_local_paths"])
         self.assertFalse(payload["content_policy"]["records_credentials"])
+        self.assertEqual(backends["transcription:openai"]["install_plan"]["python_extra"], "openai")
+        self.assertEqual(
+            backends["transcription:openai"]["install_plan"]["pip_command"],
+            'python -m pip install "auralisvoicekit[openai]"',
+        )
+        self.assertEqual(backends["capture:wasapi"]["install_plan"]["python_extra"], "sounddevice")
+        self.assertFalse(backends["capture:null"]["install_plan"]["uses_pip_extra"])
         for backend in payload["backends"]:
             for dependency in backend["dependencies"]:
                 self.assertNotIn("\\", dependency)

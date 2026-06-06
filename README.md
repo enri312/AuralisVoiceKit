@@ -620,7 +620,7 @@ auralis backends
 auralis backends --json
 ```
 
-`auralis backends --json` devuelve `version`, `backends[]`, `counts.total`, `counts.by_kind` y `content_policy`, con `available`, `reason` y dependencias publicas por backend sin rutas locales. English: backend inventory is machine-readable so pilots and CI can check optional extras without parsing text output or sharing local paths.
+`auralis backends --json` devuelve `version`, `backends[]`, `counts.total`, `counts.by_kind` y `content_policy`, con `available`, `reason`, dependencias publicas e `install_plan` por backend sin rutas locales. `install_plan` expone `uses_pip_extra`, `python_extra` y `pip_command`, por ejemplo `python -m pip install "auralisvoicekit[whisper]"`. English: backend inventory is machine-readable so pilots and CI can check optional extras without parsing text output or sharing local paths.
 
 Desde Python se puede usar la misma forma segura:
 

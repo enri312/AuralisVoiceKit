@@ -6,6 +6,17 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.152.0] - 2026-06-06
+
+### Agregado
+
+- `backend_inventory()` y `auralis backends --json` ahora incluyen `install_plan` por backend con `uses_pip_extra`, `python_extra` y `pip_command` cuando corresponde.
+- La salida textual de `auralis backends` muestra el comando pip del extra opcional para backends que lo usan.
+
+### Pruebas
+
+- Nuevas aserciones validan `install_plan` para `pyaudio`, `sounddevice`/`wasapi`, `whisper`, `openai` y backends incluidos sin extra.
+
 ## [0.151.0] - 2026-06-06
 
 ### Agregado

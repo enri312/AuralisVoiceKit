@@ -129,6 +129,9 @@ class AuralisVoiceKitTests(unittest.TestCase):
         backend_keys = {
             f"{backend['kind']}:{backend['name']}" for backend in inventory["backends"]
         }
+        backends = {
+            f"{backend['kind']}:{backend['name']}": backend for backend in inventory["backends"]
+        }
 
         self.assertEqual(inventory["version"], __version__)
         self.assertEqual(function_inventory["version"], __version__)
@@ -138,6 +141,14 @@ class AuralisVoiceKitTests(unittest.TestCase):
         self.assertEqual(inventory["counts"]["total"], len(inventory["backends"]))
         self.assertFalse(inventory["content_policy"]["records_local_paths"])
         self.assertFalse(inventory["content_policy"]["records_credentials"])
+        self.assertEqual(backends["capture:pyaudio"]["install_plan"]["python_extra"], "pyaudio")
+        self.assertEqual(backends["capture:wasapi"]["install_plan"]["python_extra"], "sounddevice")
+        self.assertEqual(backends["transcription:whisper"]["install_plan"]["python_extra"], "whisper")
+        self.assertEqual(
+            backends["transcription:whisper"]["install_plan"]["pip_command"],
+            'python -m pip install "auralisvoicekit[whisper]"',
+        )
+        self.assertFalse(backends["output:null"]["install_plan"]["uses_pip_extra"])
         for backend in inventory["backends"]:
             for dependency in backend["dependencies"]:
                 self.assertNotIn("\\", dependency)

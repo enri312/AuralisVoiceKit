@@ -226,7 +226,12 @@ def _print_backends(*, json_output: bool = False) -> int:
     for info in payload["backends"]:
         deps = ", ".join(info["dependencies"]) if info["dependencies"] else "none"
         status = "available" if info["available"] else "unavailable"
-        print(f"{info['kind']}:{info['name']} - {status} - deps: {deps}")
+        install = (
+            f" - install: {info['install_plan']['pip_command']}"
+            if info["install_plan"]["pip_command"]
+            else ""
+        )
+        print(f"{info['kind']}:{info['name']} - {status} - deps: {deps}{install}")
     return 0
 
 
