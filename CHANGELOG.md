@@ -6,6 +6,17 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.161.0] - 2026-06-06
+
+### Mejorado
+
+- `tools/pilot_run.py` agrega `no_pip_extra_contract` a `system_output_readiness_card` y lo imprime en `real-pilot-system-output-readiness.md`.
+- El paso `system-output-operator-checklist` y `platform_pilot_matrix` ahora muestran los campos de salida `system` para `python_extra=null`, `pip_command=null` y preflight sin audio antes del piloto audible real.
+
+### Pruebas
+
+- `tests/test_pilot_run.py` valida el contrato en JSON, Markdown, secuencia recomendada y matriz por plataforma.
+
 ## [0.160.0] - 2026-06-06
 
 ### Mejorado

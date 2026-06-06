@@ -27,6 +27,17 @@ from auralis_voicekit import (
 
 OPENAI_TRANSCRIPTION_MODEL = "gpt-4o-mini-transcribe"
 OPENAI_TIMEOUT_SECONDS = 30
+SYSTEM_OUTPUT_NO_PIP_EXTRA_CONTRACT = [
+    "target_output_backend.readiness_plan.uses_pip_extra=false",
+    "target_output_backend.readiness_plan.python_extra=null",
+    "target_output_backend.readiness_plan.pip_command=null",
+    "system_output_command_card.uses_pip_extra=false",
+    "system_output_command_card.python_extra=null",
+    "system_output_command_card.pip_command=null",
+    "system_output_command_card.system_dependency_plan.safe_to_share=true",
+    "system_output_command_card.system_dependency_plan.post_install_check_plays_audio=false",
+    "system_output_command_card.system_dependency_plan.records_local_paths=false",
+]
 
 
 def run_safe_pilot(
@@ -911,16 +922,25 @@ def _system_output_operator_checklist_step(order: int) -> dict[str, Any]:
         "title": "System output operator checklist",
         "command": "python tools/output_pilot.py --output-dir pilot_runs/output/system-dry-run --json",
         "artifact": "output-operator-checklist.md",
-            "required_fields": [
-                "target_output_backend.available",
-                "operator_checklist.records_operator_identity",
-                "operator_checklist.redacts_spoken_text",
-                "operator_checklist.ready_for_beta_evidence",
-                "system_output_command_card.safe_to_share",
-                "system_output_command_card.uses_placeholders",
-                "artifacts.operator_checklist",
-                "artifacts.system_output_next_step",
-            ],
+        "required_fields": [
+            "target_output_backend.available",
+            "target_output_backend.readiness_plan.uses_pip_extra",
+            "target_output_backend.readiness_plan.python_extra",
+            "target_output_backend.readiness_plan.pip_command",
+            "operator_checklist.records_operator_identity",
+            "operator_checklist.redacts_spoken_text",
+            "operator_checklist.ready_for_beta_evidence",
+            "system_output_command_card.safe_to_share",
+            "system_output_command_card.uses_placeholders",
+            "system_output_command_card.uses_pip_extra",
+            "system_output_command_card.python_extra",
+            "system_output_command_card.pip_command",
+            "system_output_command_card.system_dependency_plan.safe_to_share",
+            "system_output_command_card.system_dependency_plan.post_install_check_plays_audio",
+            "system_output_command_card.system_dependency_plan.records_local_paths",
+            "artifacts.operator_checklist",
+            "artifacts.system_output_next_step",
+        ],
         "requires_hardware": False,
         "requires_operator": False,
         "requires_non_sensitive_audio": False,
@@ -1016,11 +1036,9 @@ def _platform_pilot_matrix(blockers: list[str]) -> list[dict[str, Any]]:
             "notes": (
                 "Ejecutar solo con operador presente; confirmar privacidad del texto, audibilidad, "
                 "plataforma esperada, output_backend_ready_required=true, revision de voz "
-                "target_output_backend.readiness_plan.uses_pip_extra=false, "
+                f"{', '.join(SYSTEM_OUTPUT_NO_PIP_EXTRA_CONTRACT)}, "
                 "operator_checklist.redacts_spoken_text=true, "
                 "next_system_output.records_spoken_text=false, "
-                "system_output_command_card.uses_pip_extra=false, "
-                "system_output_command_card.system_dependency_plan.safe_to_share=true, "
                 "system_output_command_card.records_spoken_text=false y "
                 "system-output-next-step.md antes de beta."
             ),
@@ -1634,6 +1652,9 @@ def _real_pilot_system_output_readiness_card(report: dict[str, Any]) -> dict[str
             "required_fields": [
                 "system_guard.expected_system_matched",
                 "target_output_backend.available",
+                "target_output_backend.readiness_plan.uses_pip_extra",
+                "target_output_backend.readiness_plan.python_extra",
+                "target_output_backend.readiness_plan.pip_command",
                 "output_backend_ready_required",
                 "text_review_confirmed",
                 "spoken_text_privacy_scan.passed",
@@ -1648,6 +1669,12 @@ def _real_pilot_system_output_readiness_card(report: dict[str, Any]) -> dict[str
                 "next_system_output.records_operator_identity",
                 "system_output_command_card.safe_to_share",
                 "system_output_command_card.uses_placeholders",
+                "system_output_command_card.uses_pip_extra",
+                "system_output_command_card.python_extra",
+                "system_output_command_card.pip_command",
+                "system_output_command_card.system_dependency_plan.safe_to_share",
+                "system_output_command_card.system_dependency_plan.post_install_check_plays_audio",
+                "system_output_command_card.system_dependency_plan.records_local_paths",
                 "system_output_command_card.records_spoken_text",
                 "system_output_command_card.records_operator_identity",
             ],
@@ -1672,6 +1699,7 @@ def _real_pilot_system_output_readiness_card(report: dict[str, Any]) -> dict[str
         ],
         "required_fields": checklist_step["required_fields"],
         "audible_required_fields": audible_step["required_fields"],
+        "no_pip_extra_contract": SYSTEM_OUTPUT_NO_PIP_EXTRA_CONTRACT,
         "output_backend": {
             "status": output_backend["status"] if output_backend else "unknown",
             "ready": bool(output_backend["ready"]) if output_backend else False,
@@ -3904,9 +3932,18 @@ def _format_real_pilot_system_output_readiness_markdown(report: dict[str, Any]) 
         f"- Dry-run: {_format_inline_list(card['required_fields'])}",
         f"- Audible: {_format_inline_list(card['audible_required_fields'])}",
         "",
-        "## Acciones del operador",
+        "## Contrato sin extra pip",
         "",
     ]
+    for item in card["no_pip_extra_contract"]:
+        lines.append(f"- `{item}`")
+    lines.extend(
+        [
+            "",
+            "## Acciones del operador",
+            "",
+        ]
+    )
     for item in card["operator_actions"]:
         lines.append(f"- {item}")
     lines.extend(["", "## Condiciones de alto", ""])

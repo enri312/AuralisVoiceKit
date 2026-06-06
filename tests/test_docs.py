@@ -525,6 +525,25 @@ class DocumentationTests(unittest.TestCase):
         self.assertIn("System output command card pip command: not-set", API_DOC.read_text(encoding="utf-8"))
         self.assertIn("System output dependency post-install plays audio: False", API_DOC.read_text(encoding="utf-8"))
         self.assertIn("v0.160.0", API_DOC.read_text(encoding="utf-8"))
+        self.assertIn("no_pip_extra_contract", README.read_text(encoding="utf-8"))
+        self.assertIn("no_pip_extra_contract", MAIN_DOC.read_text(encoding="utf-8"))
+        self.assertIn("no_pip_extra_contract", API_DOC.read_text(encoding="utf-8"))
+        self.assertIn("system_output_command_card.python_extra=null", README.read_text(encoding="utf-8"))
+        self.assertIn("system_output_command_card.python_extra=null", MAIN_DOC.read_text(encoding="utf-8"))
+        self.assertIn("system_output_command_card.python_extra=null", API_DOC.read_text(encoding="utf-8"))
+        self.assertIn(
+            "system_output_command_card.system_dependency_plan.post_install_check_plays_audio=false",
+            README.read_text(encoding="utf-8"),
+        )
+        self.assertIn(
+            "system_output_command_card.system_dependency_plan.post_install_check_plays_audio=false",
+            MAIN_DOC.read_text(encoding="utf-8"),
+        )
+        self.assertIn(
+            "system_output_command_card.system_dependency_plan.post_install_check_plays_audio=false",
+            API_DOC.read_text(encoding="utf-8"),
+        )
+        self.assertIn("v0.161.0", API_DOC.read_text(encoding="utf-8"))
         self.assertIn("--target-system", API_DOC.read_text(encoding="utf-8"))
         self.assertIn("--require-capture-backend-ready", API_DOC.read_text(encoding="utf-8"))
         self.assertIn("target_capture_backend", API_DOC.read_text(encoding="utf-8"))

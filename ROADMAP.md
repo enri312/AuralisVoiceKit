@@ -162,6 +162,8 @@ Nota `v0.159.0`: `tools/beta_readiness.py` ahora incluye esos campos de readines
 
 Nota `v0.160.0`: `BETA_CHECKLIST.md` tambien muestra los campos faltantes de la command card de salida `system` para `python_extra=null`, `pip_command=null` y preflight sin audio.
 
+Nota `v0.161.0`: `system_output_readiness_card`, `real-pilot-system-output-readiness.md`, `system-output-operator-checklist` y `platform_pilot_matrix` publican `no_pip_extra_contract` para que el operador vea `python_extra=null`, `pip_command=null` y `post_install_check_plays_audio=false` antes del piloto audible real.
+
 ## Fase 0 - Base del proyecto
 
 **Objetivo:** dejar una libreria instalable, importable y testeable.

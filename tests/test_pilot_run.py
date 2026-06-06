@@ -128,6 +128,25 @@ class PilotRunTests(unittest.TestCase):
         self.assertIn("fixture_preflight_card", persisted)
         self.assertIn("transcription_readiness_card", persisted)
         self.assertIn("system_output_readiness_card", persisted)
+        self.assertIn(
+            "system_output_command_card.python_extra=null",
+            persisted["system_output_readiness_card"]["no_pip_extra_contract"],
+        )
+        self.assertIn(
+            "system_output_command_card.pip_command=null",
+            persisted["system_output_readiness_card"]["no_pip_extra_contract"],
+        )
+        self.assertIn(
+            "system_output_command_card.system_dependency_plan.post_install_check_plays_audio=false",
+            persisted["system_output_readiness_card"]["no_pip_extra_contract"],
+        )
+        self.assertIn("## Contrato sin extra pip", system_output_readiness)
+        self.assertIn("system_output_command_card.python_extra=null", system_output_readiness)
+        self.assertIn("system_output_command_card.pip_command=null", system_output_readiness)
+        self.assertIn(
+            "system_output_command_card.system_dependency_plan.post_install_check_plays_audio=false",
+            system_output_readiness,
+        )
         self.assertIn("pilot_decision_gate", persisted)
         self.assertIn("blocker_summaries", persisted["beta_readiness"])
         self.assertIn("blocker_summaries", persisted["evidence_manifest"])
@@ -1527,6 +1546,22 @@ class PilotRunTests(unittest.TestCase):
         self.assertFalse(report["system_output_readiness_card"]["usable_as_beta_evidence"])
         self.assertIn("output-pilot-report.json", report["system_output_readiness_card"]["expected_artifacts"])
         self.assertIn("operator_checklist.ready_for_beta_evidence", report["system_output_readiness_card"]["required_fields"])
+        self.assertIn(
+            "system_output_command_card.python_extra",
+            report["system_output_readiness_card"]["required_fields"],
+        )
+        self.assertIn(
+            "system_output_command_card.pip_command",
+            report["system_output_readiness_card"]["required_fields"],
+        )
+        self.assertIn(
+            "system_output_command_card.system_dependency_plan.post_install_check_plays_audio",
+            report["system_output_readiness_card"]["required_fields"],
+        )
+        self.assertIn(
+            "system_output_command_card.python_extra=null",
+            report["system_output_readiness_card"]["no_pip_extra_contract"],
+        )
         self.assertIn("target_output_backend.available", report["system_output_readiness_card"]["audible_required_fields"])
         self.assertIn(
             "operator_checklist.redacts_spoken_text",
@@ -1672,6 +1707,14 @@ class PilotRunTests(unittest.TestCase):
         self.assertFalse(checklist_step["requires_operator"])
         self.assertFalse(checklist_step["strict_backend_guard_required"])
         self.assertIn("operator_checklist.ready_for_beta_evidence", checklist_step["required_fields"])
+        self.assertIn("target_output_backend.readiness_plan.python_extra", checklist_step["required_fields"])
+        self.assertIn("target_output_backend.readiness_plan.pip_command", checklist_step["required_fields"])
+        self.assertIn("system_output_command_card.python_extra", checklist_step["required_fields"])
+        self.assertIn("system_output_command_card.pip_command", checklist_step["required_fields"])
+        self.assertIn(
+            "system_output_command_card.system_dependency_plan.post_install_check_plays_audio",
+            checklist_step["required_fields"],
+        )
         self.assertIn("artifacts.system_output_next_step", checklist_step["required_fields"])
         matrix = {row["name"]: row for row in report["platform_pilot_matrix"]}
         self.assertIn("--require-capture-backend-ready", matrix["windows-wasapi-capture"]["command"])
@@ -1741,9 +1784,23 @@ class PilotRunTests(unittest.TestCase):
             "target_output_backend.readiness_plan.uses_pip_extra=false",
             matrix["system-output-audible"]["notes"],
         )
+        self.assertIn(
+            "target_output_backend.readiness_plan.python_extra=null",
+            matrix["system-output-audible"]["notes"],
+        )
+        self.assertIn(
+            "target_output_backend.readiness_plan.pip_command=null",
+            matrix["system-output-audible"]["notes"],
+        )
         self.assertIn("operator_checklist.redacts_spoken_text=true", matrix["system-output-audible"]["notes"])
         self.assertIn("next_system_output.records_spoken_text=false", matrix["system-output-audible"]["notes"])
         self.assertIn("system_output_command_card.uses_pip_extra=false", matrix["system-output-audible"]["notes"])
+        self.assertIn("system_output_command_card.python_extra=null", matrix["system-output-audible"]["notes"])
+        self.assertIn("system_output_command_card.pip_command=null", matrix["system-output-audible"]["notes"])
+        self.assertIn(
+            "system_output_command_card.system_dependency_plan.post_install_check_plays_audio=false",
+            matrix["system-output-audible"]["notes"],
+        )
         self.assertIn("system_output_command_card.records_spoken_text=false", matrix["system-output-audible"]["notes"])
         self.assertIn("--fail-on-audit-gaps", report["beta_readiness"]["strict_audit_command"])
         self.assertIn("Campos condicionales", evidence_manifest)
