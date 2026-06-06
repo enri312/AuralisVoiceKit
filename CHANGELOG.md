@@ -6,6 +6,18 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.143.0] - 2026-06-06
+
+### Agregado
+
+- `tools/pilot_run.py` ahora genera `real-pilot-audit-closure.md`, una tarjeta publica para cerrar el piloto real despues del JSON sanitizado.
+- `real_pilot_audit_closure_card` lista auditoria estricta, refresco de `BETA_CHECKLIST.md`, plantilla de hallazgos, directorios sugeridos y checklist de cierre sin registrar audio, transcripciones, rutas, nombres de dispositivos ni identidad del operador.
+- `pilot-plan.md`, `real-pilot-handoff.md`, `real-pilot-decision-gate.md`, `real-pilot-hard-stop-card.md`, `real-pilot-evidence-intake-card.md`, `real-pilot-execution-card.md` y `real-pilot-consent-card.md` enlazan el cierre de auditoria.
+
+### Pruebas
+
+- Nuevas pruebas validan el artifact de cierre, sus flags de privacidad, su estado `waiting_for_real_evidence` y su presencia en CLI/reportes Markdown.
+
 ## [0.142.0] - 2026-06-06
 
 ### Agregado

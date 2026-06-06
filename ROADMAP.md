@@ -47,7 +47,7 @@ La meta no es competir con todos los motores de voz a la vez. La meta es constru
 | Asistente local con privacidad | Ejemplo offline inicial con logs sanitizados |
 | Backends de salida custom | Guia inicial y ejemplo en memoria |
 | Automatizacion de estabilidad | Gate inicial para pilotos reales |
-| Pilotos seguros | Runner automatizado, piloto manual guiado con checklist de captura, command card y operator gate de captura, piloto de salida system con checklist, command card y operator gate de operador, guard de plataforma, readiness por sistema operativo, scan de privacidad del texto hablado y revision de voz, piloto de transcripcion con checklist de revision, plan de instalacion de backend, comando dedicado de MP3/WAV/FLAC real, operator gate de transcripcion y confirmacion humana de calidad, consent card local, copy safety local, command pack por plataforma, checklist de entorno local, runbook, bundle doctor, analisis de bundles y checklist de beta |
+| Pilotos seguros | Runner automatizado, piloto manual guiado con checklist de captura, command card y operator gate de captura, piloto de salida system con checklist, command card y operator gate de operador, guard de plataforma, readiness por sistema operativo, scan de privacidad del texto hablado y revision de voz, piloto de transcripcion con checklist de revision, plan de instalacion de backend, comando dedicado de MP3/WAV/FLAC real, operator gate de transcripcion y confirmacion humana de calidad, consent card local, copy safety local, audit closure card, command pack por plataforma, checklist de entorno local, runbook, bundle doctor, analisis de bundles y checklist de beta |
 | Mensajes Windows audio | Helper inicial para errores comunes |
 
 Nota `v0.105.0`: el piloto seguro ya separa la ruta generica y la ruta OpenAI en tarjetas, matriz y command pack, con plantilla OpenAI segura (`--preflight-backend openai`, `gpt-4o-mini-transcribe`, timeout 30) sin red ni modelos durante preflight.
@@ -125,6 +125,8 @@ Nota `v0.140.0`: `tools/transcription_pilot.py` y `tools/beta_readiness.py` inco
 Nota `v0.141.0`: `tools/pilot_run.py` incorpora `real-pilot-consent-card.md`, una plantilla publica de consentimiento local enlazada desde las tarjetas de ejecucion, alto operativo, ingesta, handoff y go/no-go antes de usar hardware, audio real o flags `--confirm-*`.
 
 Nota `v0.142.0`: `operator_gate.command_audit` incorpora `copy_safety`, separando plantilla segura, razones de bloqueo y revisiones locales pendientes antes de copiar o ejecutar el comando del siguiente piloto real.
+
+Nota `v0.143.0`: `tools/pilot_run.py` incorpora `real-pilot-audit-closure.md` y `real_pilot_audit_closure_card` para ordenar auditoria estricta, refresco de checklist beta y hallazgos sanitizados despues de generar el JSON real.
 
 ## Fase 0 - Base del proyecto
 
