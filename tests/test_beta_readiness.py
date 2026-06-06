@@ -155,6 +155,21 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertFalse(checks["real_transcription_quality"]["ok"])
         self.assertIn("real_transcription_quality", report["blockers"])
 
+    def test_real_transcription_evidence_requires_target_backend_ready_guard(self):
+        module = _load_beta_readiness()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            evidence_path = Path(tmpdir) / "transcription-pilot-report.json"
+            evidence = _transcription_evidence()
+            evidence["target_backend_ready_required"] = False
+            _write_json(evidence_path, evidence)
+
+            report = module.build_beta_readiness_report(ROOT, evidence_paths=[evidence_path])
+            checks = {check["name"]: check for check in report["checks"]}
+
+        self.assertFalse(checks["real_transcription_quality"]["ok"])
+        self.assertIn("real_transcription_quality", report["blockers"])
+
     def test_real_transcription_evidence_requires_review_checklist(self):
         module = _load_beta_readiness()
 
@@ -296,6 +311,21 @@ class BetaReadinessTests(unittest.TestCase):
                     "passed": True,
                 },
             )
+
+            report = module.build_beta_readiness_report(ROOT, evidence_paths=[evidence_path])
+            checks = {check["name"]: check for check in report["checks"]}
+
+        self.assertFalse(checks["system_output_audible"]["ok"])
+        self.assertIn("system_output_audible", report["blockers"])
+
+    def test_system_output_evidence_requires_output_backend_ready_guard(self):
+        module = _load_beta_readiness()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            evidence_path = Path(tmpdir) / "output-pilot-report.json"
+            payload = _output_evidence()
+            payload["output_backend_ready_required"] = False
+            _write_json(evidence_path, payload)
 
             report = module.build_beta_readiness_report(ROOT, evidence_paths=[evidence_path])
             checks = {check["name"]: check for check in report["checks"]}
@@ -629,6 +659,7 @@ class BetaReadinessTests(unittest.TestCase):
         macos_fields = {field["path"]: field["expected"] for field in requirements["macos_capture"]["fields"]}
         self.assertEqual(transcription_fields["audio_confirmed_non_sensitive"], True)
         self.assertEqual(transcription_fields["target_backend.available"], True)
+        self.assertEqual(transcription_fields["target_backend_ready_required"], True)
         self.assertEqual(transcription_fields["audio.audio_file_name_redacted"], True)
         self.assertEqual(transcription_fields["audio_review_confirmed"], True)
         self.assertEqual(transcription_fields["reference_review_confirmed"], True)
@@ -647,6 +678,7 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertEqual(transcription_fields["transcription_checklist.ready_for_beta_evidence"], True)
         self.assertIn("system_guard.expected_system_matched", output_fields)
         self.assertIn("target_output_backend.available", output_fields)
+        self.assertIn("output_backend_ready_required", output_fields)
         self.assertIn("text_review_confirmed", output_fields)
         self.assertIn("spoken_text_privacy_scan.passed", output_fields)
         self.assertIn("voice_review_confirmed", output_fields)
@@ -679,6 +711,7 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertIn("capture_checklist.ready_for_beta_evidence", content)
         self.assertIn("quality.min_word_accuracy", content)
         self.assertIn("target_backend.available", content)
+        self.assertIn("target_backend_ready_required", content)
         self.assertIn("audio.audio_file_name_redacted", content)
         self.assertIn("audio_review_confirmed", content)
         self.assertIn("transcription_checklist.audio_review_confirmed", content)
@@ -691,6 +724,7 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertIn("quality_review_confirmed", content)
         self.assertIn("text_review_confirmed", content)
         self.assertIn("spoken_text_privacy_scan.passed", content)
+        self.assertIn("output_backend_ready_required", content)
         self.assertIn("voice_review_confirmed", content)
         self.assertIn("operator_checklist.expected_system_matched", content)
         self.assertIn("operator_checklist.text_review_confirmed", content)
@@ -977,6 +1011,7 @@ def _output_evidence() -> dict:
             "dependencies": ["test-tts"],
             "reason": None,
         },
+        "output_backend_ready_required": True,
         "system_guard": _system_guard(),
         "real_audio_requested": True,
         "operator_confirmation_status": "confirmed",
@@ -1010,6 +1045,7 @@ def _transcription_evidence(*, min_word_accuracy: float = 0.75, word_accuracy: f
             "dependencies": ["faster-whisper"],
             "reason": None,
         },
+        "target_backend_ready_required": True,
         "audio_confirmed_non_sensitive": True,
         "audio": {
             "audio_file_name": "<audio-file-redacted>",

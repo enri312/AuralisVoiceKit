@@ -6,6 +6,13 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.85.0] - 2026-06-06
+
+### Cambiado
+
+- `tools/beta_readiness.py` ahora exige `target_backend_ready_required=true` y `output_backend_ready_required=true` para cerrar evidencias beta reales con los guards estrictos de backend.
+- `tools/pilot_run.py` documenta esos guards estrictos en la matriz de pilotos reales.
+
 ## [0.84.0] - 2026-06-06
 
 ### Cambiado

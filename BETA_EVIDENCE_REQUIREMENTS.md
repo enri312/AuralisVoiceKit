@@ -33,6 +33,7 @@ Este documento describe los campos JSON que pueden cerrar blockers de beta. No r
   - `project` = `AuralisVoiceKit`
   - `real_transcription_requested` = `True`
   - `target_backend.available` = `True`
+  - `target_backend_ready_required` = `True`
   - `audio_confirmed_non_sensitive` = `True`
   - `audio.audio_file_name_redacted` = `True`
   - `audio_review_confirmed` = `True`
@@ -63,6 +64,7 @@ Este documento describe los campos JSON que pueden cerrar blockers de beta. No r
   - `backend` = `system`
   - `system_guard.expected_system_matched` = `True`
   - `target_output_backend.available` = `True`
+  - `output_backend_ready_required` = `True`
   - `real_audio_requested` = `True`
   - `operator_confirmation_status` = `confirmed`
   - `text_review_confirmed` = `True`

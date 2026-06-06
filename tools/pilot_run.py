@@ -572,7 +572,8 @@ def _platform_pilot_matrix(blockers: list[str]) -> list[dict[str, Any]]:
             "requires_non_sensitive_audio": False,
             "notes": (
                 "Ejecutar solo con operador presente; confirmar privacidad del texto, audibilidad, "
-                "plataforma esperada, revision de voz y system-output-next-step.md antes de beta."
+                "plataforma esperada, output_backend_ready_required=true, revision de voz "
+                "y system-output-next-step.md antes de beta."
             ),
         },
         {
@@ -626,8 +627,8 @@ def _platform_pilot_matrix(blockers: list[str]) -> list[dict[str, Any]]:
             "requires_non_sensitive_audio": True,
             "notes": (
                 "Usar un MP3 propio no sensible, revisar privacidad del audio y referencia, "
-                "confirmar target_backend.available=true, reference_privacy_scan.passed=true "
-                "y confirmar revision humana de calidad."
+                "confirmar target_backend.available=true, target_backend_ready_required=true, "
+                "reference_privacy_scan.passed=true y confirmar revision humana de calidad."
             ),
         },
     ]
