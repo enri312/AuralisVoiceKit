@@ -6,6 +6,14 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.97.0] - 2026-06-06
+
+### Agregado
+
+- `tools/manual_pilot.py` ahora reporta `target_capture_backend` y `capture_backend_ready_required` para revisar disponibilidad del backend de captura antes de abrir microfono.
+- Nuevo flag `--require-capture-backend-ready` para fallar temprano si falta `sounddevice`, `pyaudio` o el backend seleccionado, con error sanitizado que incluye setup y re-chequeo.
+- README, `PILOTS.md`, documentacion HTML y roadmap documentan el guard estricto de captura para pilotos Ubuntu/Linux, macOS y Windows.
+
 ## [0.96.0] - 2026-06-06
 
 ### Agregado

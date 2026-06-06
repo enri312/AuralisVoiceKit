@@ -13,7 +13,7 @@ Este documento describe los campos JSON que pueden cerrar blockers de beta. No r
 ### windows_wasapi_capture
 
 - Artifact: `manual-pilot-report.json`
-- Comando sugerido: `python tools/manual_pilot.py --capture-test --backend wasapi --device default --sample-rate 48000 --expected-system Windows --confirm-input-reviewed --json`
+- Comando sugerido: `python tools/manual_pilot.py --capture-test --backend wasapi --device default --sample-rate 48000 --expected-system Windows --confirm-input-reviewed --require-capture-backend-ready --json`
 - Campos requeridos:
   - `project` = `AuralisVoiceKit`
   - `system` = `Windows`
@@ -80,7 +80,7 @@ Este documento describe los campos JSON que pueden cerrar blockers de beta. No r
 ### ubuntu_linux_capture
 
 - Artifact: `manual-pilot-report.json`
-- Comando sugerido: `python tools/manual_pilot.py --capture-test --backend sounddevice --device default --expected-system Linux --confirm-input-reviewed --json`
+- Comando sugerido: `python tools/manual_pilot.py --capture-test --backend sounddevice --device default --expected-system Linux --confirm-input-reviewed --require-capture-backend-ready --json`
 - Nota: If PyAudio is the installed capture stack, use --backend pyaudio with the same flags.
 - Campos requeridos:
   - `project` = `AuralisVoiceKit`
@@ -96,7 +96,7 @@ Este documento describe los campos JSON que pueden cerrar blockers de beta. No r
 ### macos_capture
 
 - Artifact: `manual-pilot-report.json`
-- Comando sugerido: `python tools/manual_pilot.py --capture-test --backend sounddevice --device default --expected-system Darwin --confirm-input-reviewed --json`
+- Comando sugerido: `python tools/manual_pilot.py --capture-test --backend sounddevice --device default --expected-system Darwin --confirm-input-reviewed --require-capture-backend-ready --json`
 - Nota: If PyAudio is the installed capture stack, use --backend pyaudio with the same flags.
 - Campos requeridos:
   - `project` = `AuralisVoiceKit`

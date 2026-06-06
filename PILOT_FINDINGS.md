@@ -2,6 +2,39 @@
 
 Este documento resume hallazgos de pilotos reales o semi-manuales. No debe incluir audio, transcripciones privadas, rutas locales completas ni nombres reales de dispositivos.
 
+## 2026-06-06 - Windows dry-run de guard estricto para captura Ubuntu/Linux
+
+Comando ejecutado:
+
+```powershell
+python tools\manual_pilot.py --output-dir pilot_runs\manual\capture-backend-ready-linux --target-system Linux --require-capture-backend-ready --json
+```
+
+Alcance:
+
+- Sistema anfitrion: Windows.
+- Sistema objetivo para instrucciones: Ubuntu/Linux.
+- Version AuralisVoiceKit: `0.97.0`.
+- Microfono abierto: no.
+- Audio real guardado: no.
+- Guard estricto: `--require-capture-backend-ready`.
+
+Resultado:
+
+- Dry-run: `passed=true`.
+- `capture_backend`: `sounddevice`, elegido por defecto al usar `--target-system Linux`.
+- `target_capture_backend.available`: `true`.
+- `capture_backend_ready_required`: `true`.
+- `capture_readiness_plan.post_install_check`: incluye `--require-capture-backend-ready` y no abre microfono.
+- `capture_readiness_plan.real_capture_check_template`: conserva `--capture-test`, `--expected-system Linux`, `--confirm-input-reviewed` y `--require-capture-backend-ready`.
+- Evidencia beta: `false`; falta Ubuntu/Linux real, microfono real, revision de entrada y `capture_checklist.ready_for_beta_evidence=true`.
+
+Acciones siguientes:
+
+1. Ejecutar este mismo guard en Ubuntu/Linux real despues de instalar `auralisvoicekit[sounddevice]` y PortAudio.
+2. Abrir el microfono solo despues de que `target_capture_backend.available=true` y de revisar permisos/dispositivo/entorno.
+3. Repetir el mismo flujo con `--target-system Darwin` y `--backend sounddevice` o `--backend pyaudio` en macOS.
+
 ## 2026-06-06 - Windows dry-run de readiness para captura Ubuntu/Linux
 
 Comando ejecutado:

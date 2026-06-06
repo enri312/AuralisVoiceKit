@@ -21,6 +21,7 @@ from auralis_voicekit import (
     write_doctor_bundle,
     write_doctor_bundle_analysis,
 )
+from auralis_voicekit.backends import create_default_registry
 
 
 REAL_CAPTURE_BACKENDS = {"sounddevice", "wasapi", "pyaudio"}
@@ -38,6 +39,7 @@ def run_manual_pilot(
     sample_rate: int | None = None,
     expected_system: str | None = None,
     target_system: str | None = None,
+    require_capture_backend_ready: bool = False,
 ) -> dict[str, Any]:
     """Run a manual-pilot diagnostic pass and write shareable artifacts."""
 
@@ -50,6 +52,11 @@ def run_manual_pilot(
     readiness_system = target_system or expected_system or system
     backend = capture_backend or _default_capture_backend(readiness_system)
     capture_readiness_plan = _capture_readiness_plan(system=readiness_system, backend=backend)
+    target_capture_backend = _capture_backend_status(backend, capture_readiness_plan)
+    _validate_capture_backend_ready(
+        target_capture_backend=target_capture_backend,
+        required=require_capture_backend_ready,
+    )
     output = Path(output_dir) if output_dir is not None else workspace / "pilot_runs" / "manual" / _slug(timestamp)
     output = output.resolve()
     output.mkdir(parents=True, exist_ok=True)
@@ -91,6 +98,8 @@ def run_manual_pilot(
         system=system,
         system_guard=system_guard,
         backend=backend,
+        target_capture_backend=target_capture_backend,
+        require_capture_backend_ready=require_capture_backend_ready,
         capture_readiness_plan=capture_readiness_plan,
         capture_test=capture_test,
         input_review_confirmed=input_review_confirmed,
@@ -108,6 +117,8 @@ def run_manual_pilot(
         timestamp=timestamp,
         system=system,
         backend=backend,
+        target_capture_backend=target_capture_backend,
+        require_capture_backend_ready=require_capture_backend_ready,
         capture_readiness_plan=capture_readiness_plan,
         capture_checklist=capture_checklist,
     )
@@ -119,6 +130,8 @@ def run_manual_pilot(
         "system": system,
         "system_guard": system_guard,
         "capture_backend": backend,
+        "target_capture_backend": target_capture_backend,
+        "capture_backend_ready_required": require_capture_backend_ready,
         "capture_readiness_plan": capture_readiness_plan,
         "capture_test_requested": capture_test,
         "input_review_confirmed": input_review_confirmed,
@@ -181,23 +194,36 @@ def main(argv: list[str] | None = None) -> int:
             "does not override the actual doctor system"
         ),
     )
+    parser.add_argument(
+        "--require-capture-backend-ready",
+        action="store_true",
+        help="fail before microphone access when the selected capture backend is unavailable",
+    )
     parser.add_argument("--json", action="store_true", help="print JSON report")
     args = parser.parse_args(argv)
     if args.confirm_input_reviewed and not args.capture_test:
         parser.error("--confirm-input-reviewed requires --capture-test")
 
-    report = run_manual_pilot(
-        root=args.root,
-        output_dir=args.output_dir,
-        capture_backend=args.backend,
-        capture_test=args.capture_test,
-        input_review_confirmed=args.confirm_input_reviewed,
-        capture_seconds=args.capture_seconds,
-        capture_device=args.device,
-        sample_rate=args.sample_rate,
-        expected_system=args.expected_system,
-        target_system=args.target_system,
-    )
+    try:
+        report = run_manual_pilot(
+            root=args.root,
+            output_dir=args.output_dir,
+            capture_backend=args.backend,
+            capture_test=args.capture_test,
+            input_review_confirmed=args.confirm_input_reviewed,
+            capture_seconds=args.capture_seconds,
+            capture_device=args.device,
+            sample_rate=args.sample_rate,
+            expected_system=args.expected_system,
+            target_system=args.target_system,
+            require_capture_backend_ready=args.require_capture_backend_ready,
+        )
+    except ValueError as exc:
+        if args.json:
+            print(json.dumps({"error": str(exc)}, indent=2, sort_keys=True))
+        else:
+            print(str(exc))
+        return 1
     if args.json:
         print(json.dumps(report, indent=2, sort_keys=True))
     else:
@@ -262,13 +288,14 @@ def _capture_readiness_plan(*, system: str, backend: str) -> dict[str, Any]:
     system_arg = _quote_cli_argument(system)
     real_capture_command = (
         f"python tools/manual_pilot.py --capture-test --backend {normalized_backend} "
-        f"--device default --expected-system {system_arg} --confirm-input-reviewed --json"
+        f"--device default --expected-system {system_arg} --confirm-input-reviewed "
+        "--require-capture-backend-ready --json"
     )
     if normalized_backend == "wasapi":
         real_capture_command = (
             f"python tools/manual_pilot.py --capture-test --backend wasapi "
             f"--device default --sample-rate 48000 --expected-system {system_arg} "
-            "--confirm-input-reviewed --json"
+            "--confirm-input-reviewed --require-capture-backend-ready --json"
         )
 
     return {
@@ -279,7 +306,7 @@ def _capture_readiness_plan(*, system: str, backend: str) -> dict[str, Any]:
         "requires_package_manager": bool(setup_commands),
         "post_install_check": (
             f"python tools/manual_pilot.py --backend {normalized_backend} "
-            f"--target-system {system_arg} --json"
+            f"--target-system {system_arg} --require-capture-backend-ready --json"
         ),
         "post_install_check_uses_microphone": False,
         "real_capture_check_template": real_capture_command,
@@ -289,12 +316,61 @@ def _capture_readiness_plan(*, system: str, backend: str) -> dict[str, Any]:
     }
 
 
+def _capture_backend_status(backend: str, readiness_plan: dict[str, Any]) -> dict[str, Any]:
+    registry = create_default_registry()
+    infos = registry.backend_info()
+    info = next(
+        (candidate for candidate in infos if candidate.kind == "capture" and candidate.name == backend),
+        None,
+    )
+    if info is not None:
+        return {
+            "name": info.name,
+            "kind": info.kind,
+            "available": info.available,
+            "dependencies": list(info.dependencies),
+            "reason": info.reason,
+            "readiness_plan": readiness_plan,
+        }
+
+    capture_backends = sorted(candidate.name for candidate in infos if candidate.kind == "capture")
+    available = ", ".join(capture_backends) or "none"
+    return {
+        "name": backend,
+        "kind": "capture",
+        "available": False,
+        "dependencies": [],
+        "reason": f"Unknown capture backend {backend!r}. Available: {available}.",
+        "readiness_plan": readiness_plan,
+    }
+
+
+def _validate_capture_backend_ready(*, target_capture_backend: dict[str, Any], required: bool) -> None:
+    if not required or target_capture_backend["available"]:
+        return
+    dependencies = _format_list(target_capture_backend["dependencies"])
+    reason = target_capture_backend["reason"] or "capture backend dependency check failed"
+    readiness_plan = target_capture_backend.get("readiness_plan", {})
+    pip_command = readiness_plan.get("pip_command")
+    pip_hint = f" Install with: {pip_command}." if pip_command else ""
+    setup_commands = readiness_plan.get("setup_commands", [])
+    setup_hint = f" Setup commands: {_format_list(setup_commands)}." if setup_commands else ""
+    post_install_check = readiness_plan.get("post_install_check")
+    check_hint = f" Recheck with: {post_install_check}." if post_install_check else ""
+    raise ValueError(
+        f"Capture backend {target_capture_backend['name']!r} is not available. "
+        f"Dependencies: {dependencies}. Reason: {reason}.{pip_hint}{setup_hint}{check_hint}"
+    )
+
+
 def _build_findings_markdown(
     *,
     timestamp: str,
     system: str,
     system_guard: dict[str, Any],
     backend: str,
+    target_capture_backend: dict[str, Any],
+    require_capture_backend_ready: bool,
     capture_readiness_plan: dict[str, Any],
     capture_test: bool,
     input_review_confirmed: bool,
@@ -315,6 +391,9 @@ def _build_findings_markdown(
         f"- Expected system: {_format_nullable(system_guard['expected_system'])}",
         f"- Expected system matched: {_format_nullable(system_guard['expected_system_matched'])}",
         f"- Capture backend: {backend}",
+        f"- Target capture backend available: {target_capture_backend['available']}",
+        f"- Target capture backend dependencies: {_format_list(target_capture_backend['dependencies'])}",
+        f"- Capture backend readiness required: {require_capture_backend_ready}",
         f"- Capture readiness target system: {capture_readiness_plan['system']}",
         f"- Capture readiness pip command: {capture_readiness_plan['pip_command']}",
         f"- Capture readiness setup commands: {_format_list(capture_readiness_plan['setup_commands'])}",
@@ -484,6 +563,8 @@ def _build_capture_checklist_markdown(
     timestamp: str,
     system: str,
     backend: str,
+    target_capture_backend: dict[str, Any],
+    require_capture_backend_ready: bool,
     capture_readiness_plan: dict[str, Any],
     capture_checklist: dict[str, Any],
 ) -> str:
@@ -493,6 +574,9 @@ def _build_capture_checklist_markdown(
         f"- Created at: {timestamp}",
         f"- System: {system}",
         f"- Capture backend: {backend}",
+        f"- Target capture backend available: {target_capture_backend['available']}",
+        f"- Target capture backend dependencies: {_format_list(target_capture_backend['dependencies'])}",
+        f"- Capture backend readiness required: {require_capture_backend_ready}",
         f"- Readiness target system: {capture_readiness_plan['system']}",
         f"- Readiness pip command: `{capture_readiness_plan['pip_command']}`",
         f"- Readiness setup commands: {_format_list(capture_readiness_plan['setup_commands'])}",
@@ -625,6 +709,9 @@ def _print_report(report: dict[str, Any]) -> None:
     print("AuralisVoiceKit manual pilot")
     print(f"System: {report['system']}")
     print(f"Capture backend: {report['capture_backend']}")
+    target_capture_backend = report["target_capture_backend"]
+    print(f"Target capture backend available: {target_capture_backend['available']}")
+    print(f"Capture backend readiness required: {report['capture_backend_ready_required']}")
     readiness_plan = report["capture_readiness_plan"]
     print(f"Capture readiness target: {readiness_plan['system']}")
     print(f"Capture readiness pip: {readiness_plan['pip_command']}")

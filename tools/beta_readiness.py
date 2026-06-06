@@ -43,7 +43,7 @@ def build_evidence_requirements_report() -> dict[str, Any]:
                 "command": (
                     "python tools/manual_pilot.py --capture-test --backend wasapi "
                     "--device default --sample-rate 48000 --expected-system Windows "
-                    "--confirm-input-reviewed --json"
+                    "--confirm-input-reviewed --require-capture-backend-ready --json"
                 ),
                 "fields": [
                     _required_field("project", "AuralisVoiceKit"),
@@ -133,7 +133,8 @@ def build_evidence_requirements_report() -> dict[str, Any]:
                 "artifact": "manual-pilot-report.json",
                 "command": (
                     "python tools/manual_pilot.py --capture-test --backend sounddevice "
-                    "--device default --expected-system Linux --confirm-input-reviewed --json"
+                    "--device default --expected-system Linux --confirm-input-reviewed "
+                    "--require-capture-backend-ready --json"
                 ),
                 "notes": "If PyAudio is the installed capture stack, use --backend pyaudio with the same flags.",
                 "fields": [
@@ -154,7 +155,8 @@ def build_evidence_requirements_report() -> dict[str, Any]:
                 "artifact": "manual-pilot-report.json",
                 "command": (
                     "python tools/manual_pilot.py --capture-test --backend sounddevice "
-                    "--device default --expected-system Darwin --confirm-input-reviewed --json"
+                    "--device default --expected-system Darwin --confirm-input-reviewed "
+                    "--require-capture-backend-ready --json"
                 ),
                 "notes": "If PyAudio is the installed capture stack, use --backend pyaudio with the same flags.",
                 "fields": [
@@ -257,8 +259,8 @@ def build_beta_readiness_report(
             ),
             next_action=(
                 "Keep the passing Windows WASAPI pilot documented with sample rate and no stored audio; "
-                "future reruns should include --confirm-input-reviewed after checking permissions, input device "
-                "and room privacy."
+                "future reruns should include --confirm-input-reviewed and --require-capture-backend-ready "
+                "after checking permissions, input device and room privacy."
             ),
         ),
         _evidence_or_terms_check(
@@ -334,8 +336,9 @@ def build_beta_readiness_report(
             next_action=(
                 "Run the manual capture pilot on Ubuntu/Linux with real hardware and "
                 "--backend sounddevice or --backend pyaudio, --expected-system Linux "
-                "--confirm-input-reviewed, then keep manual-capture-checklist.md, "
+                "--confirm-input-reviewed and --require-capture-backend-ready, then keep manual-capture-checklist.md, "
                 "system_guard.expected_system_matched=true, capture_backend=sounddevice|pyaudio, "
+                "target_capture_backend.available=true, capture_backend_ready_required=true, "
                 "input_review_confirmed=true, "
                 "capture_checklist.input_review_confirmed=true and capture_checklist.ready_for_beta_evidence=true."
             ),
@@ -353,9 +356,11 @@ def build_beta_readiness_report(
             ),
             next_action=(
                 "Run the manual capture pilot on macOS with real hardware and --backend sounddevice "
-                "or --backend pyaudio, --expected-system Darwin --confirm-input-reviewed, then keep "
+                "or --backend pyaudio, --expected-system Darwin --confirm-input-reviewed and "
+                "--require-capture-backend-ready, then keep "
                 "manual-capture-checklist.md, system_guard.expected_system_matched=true, "
-                "capture_backend=sounddevice|pyaudio, input_review_confirmed=true, "
+                "capture_backend=sounddevice|pyaudio, target_capture_backend.available=true, "
+                "capture_backend_ready_required=true, input_review_confirmed=true, "
                 "capture_checklist.input_review_confirmed=true and capture_checklist.ready_for_beta_evidence=true."
             ),
         ),
