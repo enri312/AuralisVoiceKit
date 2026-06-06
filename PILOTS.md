@@ -6,6 +6,8 @@ Este documento define como ejecutar pilotos seguros antes de acercarse a beta o 
 
 Este piloto no abre microfono, no reproduce audio real, no usa red y no descarga modelos. Sirve para validar que el paquete esta listo para una prueba manual controlada.
 
+Nota `v0.105.0`: el piloto seguro separa la ruta generica y la ruta OpenAI en `fixture_preflight_card`, `transcription_readiness_card`, `platform_pilot_matrix` y `real-pilot-command-pack.md`. Los comandos OpenAI usan `--preflight-backend openai`, `gpt-4o-mini-transcribe` y timeout 30 como plantilla segura sin ejecutar red ni modelo durante el preflight.
+
 ```powershell
 py tools\pilot_run.py --output-dir pilot_runs\safe --json
 py tools\pilot_run.py --output-dir pilot_runs\safe --evidence pilot_runs\manual --evidence pilot_runs\output --evidence pilot_runs\transcription --json

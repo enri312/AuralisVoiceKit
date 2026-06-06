@@ -6,6 +6,14 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.105.0] - 2026-06-06
+
+### Agregado
+
+- `tools/pilot_run.py` ahora incluye comandos seguros especificos para OpenAI en `fixture_preflight_card`, `transcription_readiness_card`, `real-pilot-fixture-preflight.md`, `real-pilot-transcription-readiness.md` y `real-pilot-command-pack.md`.
+- El paquete de comandos de pilotos reales ahora separa el fixture/preflight generico de la ruta OpenAI con `--preflight-backend openai`, `--preflight-model gpt-4o-mini-transcribe` y `--preflight-timeout-seconds 30`.
+- Nuevas pruebas verifican que el piloto seguro publique la ruta OpenAI sin audio, sin red, sin modelos y con placeholders seguros.
+
 ## [0.104.0] - 2026-06-06
 
 ### Agregado

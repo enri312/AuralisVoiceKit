@@ -50,6 +50,8 @@ La meta no es competir con todos los motores de voz a la vez. La meta es constru
 | Pilotos seguros | Runner automatizado, piloto manual guiado con checklist de captura y revision confirmada de entrada, piloto de salida system con checklist de operador, guard de plataforma, readiness por sistema operativo, scan de privacidad del texto hablado y revision de voz, piloto de transcripcion con checklist de revision, plan de instalacion de backend y confirmacion humana de calidad, command pack por plataforma, checklist de entorno local, runbook, bundle doctor, analisis de bundles y checklist de beta |
 | Mensajes Windows audio | Helper inicial para errores comunes |
 
+Nota `v0.105.0`: el piloto seguro ya separa la ruta generica y la ruta OpenAI en tarjetas, matriz y command pack, con plantilla OpenAI segura (`--preflight-backend openai`, `gpt-4o-mini-transcribe`, timeout 30) sin red ni modelos durante preflight.
+
 ## Fase 0 - Base del proyecto
 
 **Objetivo:** dejar una libreria instalable, importable y testeable.

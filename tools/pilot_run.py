@@ -25,6 +25,10 @@ from auralis_voicekit import (
 )
 
 
+OPENAI_TRANSCRIPTION_MODEL = "gpt-4o-mini-transcribe"
+OPENAI_TIMEOUT_SECONDS = 30
+
+
 def run_safe_pilot(
     *,
     root: str | Path = ".",
@@ -592,6 +596,43 @@ def _transcription_audio_fixture_step(order: int) -> dict[str, Any]:
     }
 
 
+def _transcription_audio_fixture_openai_step(order: int) -> dict[str, Any]:
+    return {
+        "order": order,
+        "name": "transcription-audio-fixture-openai",
+        "title": "Transcription audio fixture for OpenAI",
+        "command": (
+            "python tools/pilot_audio_fixture.py --output-dir pilot_runs/transcription/fixture-openai "
+            "--format mp3 --duration 1.0 --sample-rate 16000 --run-preflight "
+            f"--preflight-backend openai --preflight-model {OPENAI_TRANSCRIPTION_MODEL} "
+            f"--preflight-timeout-seconds {OPENAI_TIMEOUT_SECONDS} "
+            "--min-audio-seconds 0.2 --max-audio-seconds 60 --json"
+        ),
+        "artifact": "pilot-audio-fixture-report.json",
+        "required_fields": [
+            "project",
+            "generated_public_fixture",
+            "contains_private_audio",
+            "usable_as_beta_evidence",
+            "files",
+            "preflight.backend",
+            "preflight.model",
+            "preflight.transcription_timeout_seconds",
+            "preflight.passed",
+            "passed",
+        ],
+        "requires_hardware": False,
+        "requires_operator": False,
+        "requires_non_sensitive_audio": False,
+        "review_required": False,
+        "reason": (
+            "Genera un MP3 sintetico publico y una plantilla OpenAI con timeout explicito "
+            "sin ejecutar red ni modelo."
+        ),
+        **_strict_backend_guard_metadata("transcription-audio-fixture-openai"),
+    }
+
+
 def _transcription_audio_preflight_step(order: int) -> dict[str, Any]:
     return {
         "order": order,
@@ -634,6 +675,63 @@ def _transcription_audio_preflight_step(order: int) -> dict[str, Any]:
         ),
         **_strict_backend_guard_metadata("transcription-audio-preflight"),
     }
+
+
+def _transcription_openai_audio_preflight_step(order: int) -> dict[str, Any]:
+    return {
+        "order": order,
+        "name": "transcription-openai-mp3-preflight",
+        "title": "OpenAI transcription MP3 preflight",
+        "command": (
+            "python tools/transcription_pilot.py --preflight-only --audio sample.mp3 "
+            "--audio-non-sensitive --backend openai "
+            f"--model {OPENAI_TRANSCRIPTION_MODEL} --normalize "
+            f"--timeout-seconds {OPENAI_TIMEOUT_SECONDS} "
+            "--min-audio-seconds 0.2 --max-audio-seconds 60 --json"
+        ),
+        "artifact": "transcription-pilot-report.json",
+        "required_fields": [
+            "project",
+            "preflight_only",
+            "backend",
+            "model",
+            "transcription_timeout_seconds",
+            "audio.decoded",
+            "audio.duration_gate.enabled",
+            "audio.duration_gate.passed",
+            "target_backend.available",
+            "preflight_decision.decision",
+            "preflight_decision.blocking_reasons",
+            "preflight_decision.backend_ready",
+            "preflight_decision.next_action",
+            "audio.audio_file_name_redacted",
+            "audio.audio_file_extension",
+            "audio.audio_confirmed_non_sensitive",
+            "artifacts.transcription_review_checklist",
+            "artifacts.real_transcription_next_step",
+        ],
+        "requires_hardware": False,
+        "requires_operator": False,
+        "requires_non_sensitive_audio": True,
+        "review_required": True,
+        "reason": (
+            "Prepara el MP3 propio para OpenAI sin ejecutar red ni modelo; confirma ffmpeg, "
+            "timeout, target_backend e instrucciones de instalacion antes de la transcripcion real."
+        ),
+        **_strict_backend_guard_metadata("transcription-openai-mp3-preflight"),
+    }
+
+
+def _real_openai_transcription_command() -> str:
+    return (
+        "python tools/transcription_pilot.py --real-transcription --audio sample.mp3 "
+        "--audio-non-sensitive --confirm-audio-reviewed --confirm-reference-reviewed "
+        f"--backend openai --model {OPENAI_TRANSCRIPTION_MODEL} "
+        f"--timeout-seconds {OPENAI_TIMEOUT_SECONDS} "
+        "--expected-text-file <expected-text-path> --min-word-accuracy 0.75 "
+        "--min-audio-seconds 0.2 --max-audio-seconds 60 "
+        "--confirm-quality-reviewed --require-target-backend-ready --json"
+    )
 
 
 def _system_output_operator_checklist_step(order: int) -> dict[str, Any]:
@@ -757,11 +855,28 @@ def _platform_pilot_matrix(blockers: list[str]) -> list[dict[str, Any]]:
                 "--run-preflight --min-audio-seconds 0.2 --max-audio-seconds 60 --json"
             ),
             "artifact": "pilot-audio-fixture-report.json",
+            "required_fields": _transcription_audio_fixture_step(1)["required_fields"],
             "requires_hardware": False,
             "requires_operator": False,
             "requires_non_sensitive_audio": False,
             **_strict_backend_guard_metadata("transcription-audio-fixture"),
             "notes": "Fixture sintetico y publico para validar ffmpeg; no cuenta como evidencia beta.",
+        },
+        {
+            "name": "transcription-audio-fixture-openai",
+            "platform": "Windows / Ubuntu/Linux / macOS",
+            "blocker": None,
+            "command": _transcription_audio_fixture_openai_step(1)["command"],
+            "artifact": "pilot-audio-fixture-report.json",
+            "required_fields": _transcription_audio_fixture_openai_step(1)["required_fields"],
+            "requires_hardware": False,
+            "requires_operator": False,
+            "requires_non_sensitive_audio": False,
+            **_strict_backend_guard_metadata("transcription-audio-fixture-openai"),
+            "notes": (
+                "Fixture sintetico y publico para preparar OpenAI con "
+                f"--preflight-timeout-seconds {OPENAI_TIMEOUT_SECONDS}; no usa red ni modelo y no cuenta como evidencia beta."
+            ),
         },
         {
             "name": "transcription-mp3-preflight",
@@ -773,6 +888,7 @@ def _platform_pilot_matrix(blockers: list[str]) -> list[dict[str, Any]]:
                 "--min-audio-seconds 0.2 --max-audio-seconds 60 --json"
             ),
             "artifact": "transcription-pilot-report.json",
+            "required_fields": _transcription_audio_preflight_step(1)["required_fields"],
             "requires_hardware": False,
             "requires_operator": False,
             "requires_non_sensitive_audio": True,
@@ -780,6 +896,23 @@ def _platform_pilot_matrix(blockers: list[str]) -> list[dict[str, Any]]:
             "notes": (
                 "Paso previo: valida ffmpeg y metadata, luego revisa "
                 "real-transcription-next-step.md antes de transcribir con un modelo."
+            ),
+        },
+        {
+            "name": "transcription-openai-mp3-preflight",
+            "platform": "Windows / Ubuntu/Linux / macOS",
+            "blocker": None,
+            "command": _transcription_openai_audio_preflight_step(1)["command"],
+            "artifact": "transcription-pilot-report.json",
+            "required_fields": _transcription_openai_audio_preflight_step(1)["required_fields"],
+            "requires_hardware": False,
+            "requires_operator": False,
+            "requires_non_sensitive_audio": True,
+            **_strict_backend_guard_metadata("transcription-openai-mp3-preflight"),
+            "notes": (
+                "Paso previo OpenAI: valida ffmpeg, guardas de duracion, "
+                f"modelo {OPENAI_TRANSCRIPTION_MODEL}, timeout {OPENAI_TIMEOUT_SECONDS}, "
+                "target_backend.available y real-transcription-next-step.md sin ejecutar red ni modelo."
             ),
         },
         {
@@ -1086,7 +1219,9 @@ def _real_pilot_fixture_preflight_card(report: dict[str, Any]) -> dict[str, Any]
 
     sequence = {step["name"]: step for step in report["recommended_pilot_sequence"]}
     fixture_step = sequence.get("transcription-audio-fixture", _transcription_audio_fixture_step(1))
+    openai_fixture_step = _transcription_audio_fixture_openai_step(1)
     own_audio_step = sequence.get("transcription-audio-preflight", _transcription_audio_preflight_step(2))
+    openai_own_audio_step = _transcription_openai_audio_preflight_step(2)
     environment = {row["name"]: row for row in report["environment_checklist"]}
     ffmpeg_check = environment.get("ffmpeg-compressed-audio")
     backend_checks = [
@@ -1100,8 +1235,12 @@ def _real_pilot_fixture_preflight_card(report: dict[str, Any]) -> dict[str, Any]
         "usable_as_beta_evidence": False,
         "fixture_command": fixture_step["command"],
         "fixture_artifact": fixture_step["artifact"],
+        "openai_fixture_command": openai_fixture_step["command"],
+        "openai_fixture_artifact": openai_fixture_step["artifact"],
         "own_audio_preflight_command": own_audio_step["command"],
         "own_audio_preflight_artifact": own_audio_step["artifact"],
+        "openai_own_audio_preflight_command": openai_own_audio_step["command"],
+        "openai_own_audio_preflight_artifact": openai_own_audio_step["artifact"],
         "expected_artifacts": [
             "pilot-audio-fixture-report.json",
             "pilot-audio-fixture-findings.md",
@@ -1109,7 +1248,9 @@ def _real_pilot_fixture_preflight_card(report: dict[str, Any]) -> dict[str, Any]
             "real-transcription-next-step.md",
         ],
         "required_fields": fixture_step["required_fields"],
+        "openai_fixture_required_fields": openai_fixture_step["required_fields"],
         "own_audio_required_fields": own_audio_step["required_fields"],
+        "openai_own_audio_required_fields": openai_own_audio_step["required_fields"],
         "ffmpeg": {
             "status": ffmpeg_check["status"] if ffmpeg_check else "unknown",
             "ready": bool(ffmpeg_check["ready"]) if ffmpeg_check else False,
@@ -1126,6 +1267,7 @@ def _real_pilot_fixture_preflight_card(report: dict[str, Any]) -> dict[str, Any]
         ],
         "operator_actions": [
             "Run the synthetic fixture command before using private or real audio.",
+            "Use the OpenAI fixture command when the real backend will be openai; it prepares timeout and model placeholders without network.",
             "Confirm the fixture report says generated_public_fixture=true and usable_as_beta_evidence=false.",
             "Review transcription-review-checklist.md and real-transcription-next-step.md from the preflight artifacts.",
             "Replace sample.mp3 with your own non-sensitive MP3 only after the synthetic preflight is understood.",
@@ -1153,7 +1295,9 @@ def _real_pilot_transcription_readiness_card(report: dict[str, Any]) -> dict[str
 
     sequence = {step["name"]: step for step in report["recommended_pilot_sequence"]}
     fixture_step = sequence.get("transcription-audio-fixture", _transcription_audio_fixture_step(1))
+    openai_fixture_step = _transcription_audio_fixture_openai_step(1)
     preflight_step = sequence.get("transcription-audio-preflight", _transcription_audio_preflight_step(2))
+    openai_preflight_step = _transcription_openai_audio_preflight_step(2)
     real_step = sequence.get(
         "real_transcription_quality",
         {
@@ -1200,10 +1344,16 @@ def _real_pilot_transcription_readiness_card(report: dict[str, Any]) -> dict[str
         "usable_as_beta_evidence": False,
         "fixture_command": fixture_step["command"],
         "fixture_artifact": fixture_step["artifact"],
+        "openai_fixture_command": openai_fixture_step["command"],
+        "openai_fixture_artifact": openai_fixture_step["artifact"],
         "preflight_command": preflight_step["command"],
         "preflight_artifact": preflight_step["artifact"],
+        "openai_preflight_command": openai_preflight_step["command"],
+        "openai_preflight_artifact": openai_preflight_step["artifact"],
         "real_command": real_step["command"],
         "real_artifact": real_step["artifact"],
+        "openai_real_command": _real_openai_transcription_command(),
+        "openai_real_artifact": "transcription-pilot-report.json",
         "expected_artifacts": [
             "pilot-audio-fixture-report.json",
             "transcription-pilot-report.json",
@@ -1212,7 +1362,9 @@ def _real_pilot_transcription_readiness_card(report: dict[str, Any]) -> dict[str
             "real-transcription-next-step.md",
         ],
         "fixture_required_fields": fixture_step["required_fields"],
+        "openai_fixture_required_fields": openai_fixture_step["required_fields"],
         "preflight_required_fields": preflight_step["required_fields"],
+        "openai_preflight_required_fields": openai_preflight_step["required_fields"],
         "real_required_fields": real_step["required_fields"],
         "ffmpeg": {
             "status": ffmpeg_check["status"] if ffmpeg_check else "unknown",
@@ -1239,6 +1391,7 @@ def _real_pilot_transcription_readiness_card(report: dict[str, Any]) -> dict[str
         ],
         "operator_actions": [
             "Run the synthetic fixture command first; it proves the path without private audio.",
+            "If the target backend is OpenAI, run the OpenAI fixture command and OpenAI preflight command before the real model call.",
             "Run the preflight with your own non-sensitive MP3 and review transcription-review-checklist.md.",
             "Use --require-target-backend-ready so the real pilot fails before model execution if the backend is missing.",
             "Use --timeout-seconds 30 when running the real pilot with --backend openai.",
@@ -1909,8 +2062,12 @@ def _format_real_pilot_fixture_preflight_markdown(report: dict[str, Any]) -> str
         "",
         f"- Fixture sintetico: `{card['fixture_command']}`",
         f"- Artifact fixture: `{card['fixture_artifact']}`",
+        f"- Fixture OpenAI: `{card['openai_fixture_command']}`",
+        f"- Artifact fixture OpenAI: `{card['openai_fixture_artifact']}`",
         f"- MP3 propio no sensible: `{card['own_audio_preflight_command']}`",
         f"- Artifact MP3 propio: `{card['own_audio_preflight_artifact']}`",
+        f"- MP3 propio OpenAI: `{card['openai_own_audio_preflight_command']}`",
+        f"- Artifact MP3 propio OpenAI: `{card['openai_own_audio_preflight_artifact']}`",
         f"- Artifacts esperados: {_format_inline_list(card['expected_artifacts'])}",
         "",
         "## Checks locales",
@@ -1987,10 +2144,16 @@ def _format_real_pilot_transcription_readiness_markdown(report: dict[str, Any]) 
         "",
         f"- Fixture sintetico: `{card['fixture_command']}`",
         f"- Artifact fixture: `{card['fixture_artifact']}`",
+        f"- Fixture OpenAI: `{card['openai_fixture_command']}`",
+        f"- Artifact fixture OpenAI: `{card['openai_fixture_artifact']}`",
         f"- Preflight MP3 propio: `{card['preflight_command']}`",
         f"- Artifact preflight: `{card['preflight_artifact']}`",
+        f"- Preflight MP3 propio OpenAI: `{card['openai_preflight_command']}`",
+        f"- Artifact preflight OpenAI: `{card['openai_preflight_artifact']}`",
         f"- Transcripcion real: `{card['real_command']}`",
         f"- Artifact real: `{card['real_artifact']}`",
+        f"- Transcripcion real OpenAI: `{card['openai_real_command']}`",
+        f"- Artifact real OpenAI: `{card['openai_real_artifact']}`",
         f"- Artifacts esperados: {_format_inline_list(card['expected_artifacts'])}",
         "",
         "## Checks locales",
@@ -2021,7 +2184,9 @@ def _format_real_pilot_transcription_readiness_markdown(report: dict[str, Any]) 
             "## Campos requeridos",
             "",
             f"- Fixture: {_format_inline_list(card['fixture_required_fields'])}",
+            f"- Fixture OpenAI: {_format_inline_list(card['openai_fixture_required_fields'])}",
             f"- Preflight: {_format_inline_list(card['preflight_required_fields'])}",
+            f"- Preflight OpenAI: {_format_inline_list(card['openai_preflight_required_fields'])}",
             f"- Real: {_format_inline_list(card['real_required_fields'])}",
             "",
             "## Acciones del operador",
@@ -2450,6 +2615,8 @@ def _format_real_pilot_handoff_markdown(report: dict[str, Any]) -> str:
 
 
 def _command_pack_required_fields(report: dict[str, Any], row: dict[str, Any]) -> list[str]:
+    if row.get("required_fields"):
+        return list(row["required_fields"])
     row_names = {row["name"]}
     blocker = row.get("blocker")
     if blocker:

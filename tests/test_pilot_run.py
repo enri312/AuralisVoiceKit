@@ -246,6 +246,12 @@ class PilotRunTests(unittest.TestCase):
         self.assertIn("macOS - macos-capture", command_pack)
         self.assertIn("Windows / Ubuntu/Linux / macOS - system-output-audible", command_pack)
         self.assertIn("Windows / Ubuntu/Linux / macOS - real-transcription-quality", command_pack)
+        self.assertIn("transcription-audio-fixture-openai", command_pack)
+        self.assertIn("transcription-openai-mp3-preflight", command_pack)
+        self.assertIn("--preflight-backend openai", command_pack)
+        self.assertIn("--preflight-timeout-seconds 30", command_pack)
+        self.assertIn("--backend openai", command_pack)
+        self.assertIn("gpt-4o-mini-transcribe", command_pack)
         self.assertIn("--confirm-input-reviewed", command_pack)
         self.assertIn("--confirm-text-reviewed", command_pack)
         self.assertIn("--confirm-voice-reviewed", command_pack)
@@ -286,6 +292,10 @@ class PilotRunTests(unittest.TestCase):
         self.assertIn("Prepara transcripcion real: `true`", fixture_preflight)
         self.assertIn("pilot_audio_fixture.py", fixture_preflight)
         self.assertIn("--run-preflight", fixture_preflight)
+        self.assertIn("Fixture OpenAI", fixture_preflight)
+        self.assertIn("MP3 propio OpenAI", fixture_preflight)
+        self.assertIn("--preflight-backend openai", fixture_preflight)
+        self.assertIn("--preflight-timeout-seconds 30", fixture_preflight)
         self.assertIn("transcription_pilot.py --preflight-only", fixture_preflight)
         self.assertIn("pilot-audio-fixture-report.json", fixture_preflight)
         self.assertIn("pilot-audio-fixture-findings.md", fixture_preflight)
@@ -298,6 +308,11 @@ class PilotRunTests(unittest.TestCase):
         self.assertIn("Usable como evidencia beta: `false`", transcription_readiness)
         self.assertIn("Prepara transcripcion real: `true`", transcription_readiness)
         self.assertIn("tools/transcription_pilot.py", transcription_readiness)
+        self.assertIn("Preflight MP3 propio OpenAI", transcription_readiness)
+        self.assertIn("Transcripcion real OpenAI", transcription_readiness)
+        self.assertIn("--backend openai", transcription_readiness)
+        self.assertIn("--timeout-seconds 30", transcription_readiness)
+        self.assertIn("gpt-4o-mini-transcribe", transcription_readiness)
         self.assertIn("transcription-review-checklist.md", transcription_readiness)
         self.assertIn("real-transcription-next-step.md", transcription_readiness)
         self.assertIn("--real-transcription", transcription_readiness)
@@ -458,12 +473,27 @@ class PilotRunTests(unittest.TestCase):
         self.assertFalse(report["fixture_preflight_card"]["usable_as_beta_evidence"])
         self.assertIn("pilot-audio-fixture-report.json", report["fixture_preflight_card"]["expected_artifacts"])
         self.assertIn("preflight.passed", report["fixture_preflight_card"]["required_fields"])
+        self.assertIn("--preflight-backend openai", report["fixture_preflight_card"]["openai_fixture_command"])
+        self.assertIn("--preflight-timeout-seconds 30", report["fixture_preflight_card"]["openai_fixture_command"])
+        self.assertIn("--backend openai", report["fixture_preflight_card"]["openai_own_audio_preflight_command"])
+        self.assertIn(
+            "preflight.transcription_timeout_seconds",
+            report["fixture_preflight_card"]["openai_fixture_required_fields"],
+        )
         self.assertIn("audio.decoded", report["fixture_preflight_card"]["own_audio_required_fields"])
+        self.assertIn(
+            "transcription_timeout_seconds",
+            report["fixture_preflight_card"]["openai_own_audio_required_fields"],
+        )
         self.assertIn("status", report["fixture_preflight_card"]["ffmpeg"])
         self.assertFalse(report["fixture_preflight_card"]["content_policy"]["records_audio"])
         self.assertEqual(report["transcription_readiness_card"]["status"], "recommended")
         self.assertFalse(report["transcription_readiness_card"]["usable_as_beta_evidence"])
         self.assertIn("transcription-pilot-report.json", report["transcription_readiness_card"]["expected_artifacts"])
+        self.assertIn("--preflight-backend openai", report["transcription_readiness_card"]["openai_fixture_command"])
+        self.assertIn("--backend openai", report["transcription_readiness_card"]["openai_preflight_command"])
+        self.assertIn("--backend openai", report["transcription_readiness_card"]["openai_real_command"])
+        self.assertIn("--timeout-seconds 30", report["transcription_readiness_card"]["openai_real_command"])
         self.assertIn("target_backend.available", report["transcription_readiness_card"]["real_required_fields"])
         self.assertIn("audio.generated_synthetic_audio", report["transcription_readiness_card"]["real_required_fields"])
         self.assertIn("audio.decoded", report["transcription_readiness_card"]["real_required_fields"])
@@ -603,7 +633,26 @@ class PilotRunTests(unittest.TestCase):
         self.assertEqual(matrix["ubuntu-linux-capture"]["status"], "pending")
         self.assertEqual(matrix["macos-capture"]["status"], "pending")
         self.assertEqual(matrix["transcription-audio-fixture"]["status"], "recommended")
+        self.assertEqual(matrix["transcription-audio-fixture-openai"]["status"], "recommended")
         self.assertEqual(matrix["transcription-mp3-preflight"]["status"], "recommended")
+        self.assertEqual(matrix["transcription-openai-mp3-preflight"]["status"], "recommended")
+        self.assertIn("--preflight-backend openai", matrix["transcription-audio-fixture-openai"]["command"])
+        self.assertIn("--preflight-timeout-seconds 30", matrix["transcription-audio-fixture-openai"]["command"])
+        self.assertIn("--backend openai", matrix["transcription-openai-mp3-preflight"]["command"])
+        self.assertIn("--timeout-seconds 30", matrix["transcription-openai-mp3-preflight"]["command"])
+        self.assertIn("preflight.passed", matrix["transcription-audio-fixture"]["required_fields"])
+        self.assertNotIn("preflight.model", matrix["transcription-audio-fixture"]["required_fields"])
+        self.assertIn("preflight.model", matrix["transcription-audio-fixture-openai"]["required_fields"])
+        self.assertIn(
+            "preflight.transcription_timeout_seconds",
+            matrix["transcription-audio-fixture-openai"]["required_fields"],
+        )
+        self.assertNotIn("model", matrix["transcription-mp3-preflight"]["required_fields"])
+        self.assertIn("model", matrix["transcription-openai-mp3-preflight"]["required_fields"])
+        self.assertIn(
+            "transcription_timeout_seconds",
+            matrix["transcription-openai-mp3-preflight"]["required_fields"],
+        )
         preflight_step = {
             step["name"]: step for step in report["recommended_pilot_sequence"]
         }["transcription-audio-preflight"]
