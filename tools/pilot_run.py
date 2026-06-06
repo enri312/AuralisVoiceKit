@@ -178,6 +178,7 @@ def run_safe_pilot(
             "blocker_summaries": beta_audit["blocker_summaries"],
             "next_evidence_focus": beta_audit["next_evidence_focus"],
             "privacy_audit": beta_audit["privacy_audit"],
+            "privacy_remediation_plan": beta_audit["privacy_remediation_plan"],
             "accepted_json_artifacts": _pilot_plan_artifact_summary(beta_audit["artifacts"]),
             "ignored_json_artifacts": beta_audit["ignored_details"],
             "strict_audit_command": (
@@ -1273,6 +1274,7 @@ def _real_pilot_evidence_manifest(
         "blocker_summaries": beta_audit["blocker_summaries"],
         "next_evidence_focus": beta_audit["next_evidence_focus"],
         "privacy_audit": beta_audit["privacy_audit"],
+        "privacy_remediation_plan": beta_audit["privacy_remediation_plan"],
         "accepted_json_artifacts": _pilot_plan_artifact_summary(beta_audit["artifacts"]),
         "ignored_json_artifacts": beta_audit["ignored_details"],
         "pending_count": len(beta_readiness["blockers"]),
@@ -1679,6 +1681,7 @@ def _real_pilot_decision_gate(report: dict[str, Any]) -> dict[str, Any]:
         },
         "next_evidence_focus": report["beta_readiness"].get("next_evidence_focus", {}),
         "privacy_audit": privacy_audit,
+        "privacy_remediation_plan": report["beta_readiness"].get("privacy_remediation_plan", {}),
         "local_environment_warnings": local_warnings,
         "target_system_checks": target_system_checks,
         "operator_actions": [
@@ -1854,6 +1857,8 @@ def _format_pilot_plan_markdown(report: dict[str, Any]) -> str:
         lines.append("")
     lines.extend(["## Escaneo de privacidad", ""])
     _append_privacy_audit_lines(lines, beta.get("privacy_audit", {}))
+    lines.extend(["## Plan de remediacion de privacidad", ""])
+    _append_privacy_remediation_plan_lines(lines, beta.get("privacy_remediation_plan", {}))
     lines.extend(["## Resumen por blocker", ""])
     _append_blocker_summary_lines(lines, beta.get("blocker_summaries", []))
     lines.extend(
@@ -2557,6 +2562,8 @@ def _format_real_pilot_evidence_manifest_markdown(report: dict[str, Any]) -> str
     _append_blocker_summary_lines(lines, manifest.get("blocker_summaries", []))
     lines.extend(["## Escaneo de privacidad", ""])
     _append_privacy_audit_lines(lines, manifest.get("privacy_audit", {}))
+    lines.extend(["## Plan de remediacion de privacidad", ""])
+    _append_privacy_remediation_plan_lines(lines, manifest.get("privacy_remediation_plan", {}))
     lines.extend(["## Siguiente foco de evidencia", ""])
     _append_next_evidence_focus_lines(lines, manifest.get("next_evidence_focus", {}))
     lines.extend(
@@ -2631,6 +2638,7 @@ def _format_real_pilot_decision_gate_markdown(report: dict[str, Any]) -> str:
     artifact_policy = report["real_pilot_decision_gate"]
     next_step = gate["next_recommended_step"]
     privacy_audit = gate.get("privacy_audit", {})
+    privacy_remediation_plan = gate.get("privacy_remediation_plan", {})
     lines = [
         "# Compuerta go/no-go para pilotos reales AuralisVoiceKit",
         "",
@@ -2677,6 +2685,8 @@ def _format_real_pilot_decision_gate_markdown(report: dict[str, Any]) -> str:
         "",
     ]
     _append_privacy_audit_lines(lines, privacy_audit)
+    lines.extend(["## Plan de remediacion de privacidad", ""])
+    _append_privacy_remediation_plan_lines(lines, privacy_remediation_plan)
     lines.extend(
         [
         "## Siguiente foco de evidencia",
@@ -3046,6 +3056,32 @@ def _append_privacy_audit_lines(lines: list[str], privacy_audit: dict[str, Any])
         lines.append(
             f"- `{finding['file']}` campo `{finding['field']}`: `{finding['reason']}`. "
             f"Accion: {finding.get('action_es', 'Revisar y redactar el campo localmente.')}"
+        )
+    lines.append("")
+
+
+def _append_privacy_remediation_plan_lines(lines: list[str], plan: dict[str, Any]) -> None:
+    if not plan:
+        lines.extend(["- Plan de remediacion no disponible.", ""])
+        return
+    lines.extend(
+        [
+            f"- Estado: `{plan.get('status', 'unknown')}`",
+            f"- Pasos: `{plan.get('step_count', 0)}`",
+            f"- Seguro para compartir: `{_format_bool(bool(plan.get('safe_to_share', False)))}`",
+            f"- Registra valores privados: `{_format_bool(bool(plan.get('records_private_values', True)))}`",
+            f"- Siguiente accion: {plan.get('next_action_es', 'Revisar la auditoria localmente.')}",
+        ]
+    )
+    steps = plan.get("steps", [])
+    if not steps:
+        lines.append("- No hay pasos de remediacion pendientes.")
+        lines.append("")
+        return
+    for step in steps:
+        lines.append(
+            f"- {step['order']}. `{step['file']}` campo `{step['field']}`: "
+            f"{step['action_es']} Reemplazo seguro: `{step['safe_replacement']}`."
         )
     lines.append("")
 

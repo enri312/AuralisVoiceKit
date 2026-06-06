@@ -100,6 +100,8 @@ Nota `v0.128.0`: el piloto seguro propaga `privacy_audit` a `pilot-report.json`,
 
 Nota `v0.129.0`: los hallazgos de `privacy_audit` ahora incluyen `action_es`, `action_en` y `safe_replacement`, para que el operador sepa como reemplazar texto, rutas, nombres o credenciales crudas por placeholders sin ver ni compartir valores privados.
 
+Nota `v0.130.0`: `privacy_remediation_plan` agrupa esos hallazgos en pasos ordenados por artifact y campo, con `safe_to_share=true` y `records_private_values=false`, y el piloto seguro lo muestra en el plan, manifiesto y compuerta go/no-go.
+
 ## Fase 0 - Base del proyecto
 
 **Objetivo:** dejar una libreria instalable, importable y testeable.

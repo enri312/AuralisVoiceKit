@@ -294,6 +294,7 @@ def build_evidence_audit_report(
         "findings": privacy_findings,
         "blocking": bool(privacy_findings),
     }
+    privacy_remediation_plan = _privacy_remediation_plan(privacy_audit)
 
     return {
         "project": "AuralisVoiceKit",
@@ -314,6 +315,7 @@ def build_evidence_audit_report(
         "blocker_summaries": blocker_summaries,
         "next_evidence_focus": next_evidence_focus,
         "privacy_audit": privacy_audit,
+        "privacy_remediation_plan": privacy_remediation_plan,
         "ready_for_beta_by_evidence": not missing_blockers and not privacy_findings,
         "artifacts": artifacts,
         "notes": (
@@ -619,6 +621,8 @@ def format_audit_markdown(report: dict[str, Any]) -> str:
     else:
         lines.append("- No se detectaron campos crudos sospechosos.")
     lines.append("")
+    lines.extend(["## Plan de remediacion de privacidad", ""])
+    _append_privacy_remediation_plan_lines(lines, report.get("privacy_remediation_plan", {}))
     lines.extend(["## Resumen por blocker", ""])
     for blocker in report["blocker_summaries"]:
         accepted_sources = _format_name_list(blocker["accepted_sources"]) if blocker["accepted_sources"] else "`ninguna`"
@@ -1209,6 +1213,69 @@ def _privacy_finding_remediation(reason: str) -> dict[str, str]:
         "action_en": "Review the field locally and replace it with public metadata or a placeholder.",
         "safe_replacement": "<redacted>",
     }
+
+
+def _privacy_remediation_plan(privacy_audit: dict[str, Any]) -> dict[str, Any]:
+    findings = list(privacy_audit.get("findings", []))
+    steps = [
+        {
+            "order": index,
+            "file": finding["file"],
+            "artifact": finding["artifact"],
+            "field": finding["field"],
+            "reason": finding["reason"],
+            "action_es": finding["action_es"],
+            "action_en": finding["action_en"],
+            "safe_replacement": finding["safe_replacement"],
+            "safe_to_share": True,
+            "records_private_values": False,
+        }
+        for index, finding in enumerate(findings, start=1)
+    ]
+    return {
+        "status": "required" if steps else "not_required",
+        "blocking": bool(steps),
+        "step_count": len(steps),
+        "safe_to_share": True,
+        "records_private_values": False,
+        "steps": steps,
+        "next_action_es": (
+            "Corregir los campos listados y repetir la auditoria estricta antes de usar la evidencia para beta."
+            if steps
+            else "No hay remediacion de privacidad pendiente."
+        ),
+        "next_action_en": (
+            "Fix the listed fields and rerun the strict audit before using the evidence for beta."
+            if steps
+            else "No privacy remediation is pending."
+        ),
+    }
+
+
+def _append_privacy_remediation_plan_lines(lines: list[str], plan: dict[str, Any]) -> None:
+    if not plan:
+        lines.extend(["- Plan de remediacion no disponible.", ""])
+        return
+    lines.extend(
+        [
+            f"- Estado: `{plan.get('status', 'unknown')}`",
+            f"- Pasos: `{plan.get('step_count', 0)}`",
+            f"- Seguro para compartir: `{str(bool(plan.get('safe_to_share', False))).lower()}`",
+            f"- Registra valores privados: `{str(bool(plan.get('records_private_values', True))).lower()}`",
+            f"- Siguiente accion: {plan.get('next_action_es', 'Revisar la auditoria localmente.')}",
+        ]
+    )
+    steps = plan.get("steps", [])
+    if not steps:
+        lines.append("- No hay pasos de remediacion pendientes.")
+        lines.append("")
+        return
+    for step in steps:
+        lines.append(
+            f"- {step['order']}. `{step['file']}` campo `{step['field']}`: "
+            f"{step['action_es']} Reemplazo seguro: `{step['safe_replacement']}`."
+        )
+    lines.append("")
 
 
 def _is_safe_placeholder_value(value: str) -> bool:

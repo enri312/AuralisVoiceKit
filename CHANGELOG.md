@@ -6,6 +6,18 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.130.0] - 2026-06-06
+
+### Agregado
+
+- `tools/beta_readiness.py --audit-evidence` ahora genera `privacy_remediation_plan` con pasos ordenados por archivo/campo cuando `privacy_audit` encuentra contenido crudo.
+- El plan marca `safe_to_share=true`, `records_private_values=false`, `status`, `step_count`, `next_action_es` y `next_action_en`.
+- `tools/pilot_run.py` propaga ese plan a `pilot-report.json`, `pilot-plan.md`, `real-pilot-evidence-manifest.md` y `real-pilot-decision-gate.md`.
+
+### Pruebas
+
+- Nuevas pruebas validan el plan cuando no hay hallazgos y cuando una evidencia contiene texto/rutas crudas, manteniendo fuera los valores privados.
+
 ## [0.129.0] - 2026-06-06
 
 ### Cambiado

@@ -50,6 +50,8 @@ Nota `v0.128.0`: `tools/pilot_run.py` muestra `privacy_audit` en `pilot-report.j
 
 Nota `v0.129.0`: cada hallazgo de `privacy_audit` incluye `action_es`, `action_en` y `safe_replacement`, por ejemplo `<text-redacted>` o `<path-redacted>`, para reparar evidencias sin copiar valores privados. English: privacy audit findings now include safe remediation hints.
 
+Nota `v0.130.0`: `privacy_remediation_plan` ordena esos hallazgos en pasos por artifact/campo y confirma `records_private_values=false`; `tools/pilot_run.py` lo muestra en el plan, manifiesto y compuerta. English: privacy remediation is now an ordered public-safe plan.
+
 ```powershell
 py tools\pilot_run.py --output-dir pilot_runs\safe --json
 py tools\pilot_run.py --output-dir pilot_runs\safe --evidence pilot_runs\manual --evidence pilot_runs\output --evidence pilot_runs\transcription --json
