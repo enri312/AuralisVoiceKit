@@ -166,6 +166,21 @@ Este documento describe los campos JSON que pueden cerrar blockers de beta. No r
   - `system_output_command_card.records_spoken_text` = `False`
   - `system_output_command_card.records_operator_identity` = `False`
   - `system_output_command_card.records_local_paths` = `False`
+  - `system_output_operator_gate.safe_to_share` = `True`
+  - `system_output_operator_gate.decision` = `ready_for_beta_audit`
+  - `system_output_operator_gate.blocker` = `system_output_audible`
+  - `system_output_operator_gate.expected_artifact` = `output-pilot-report.json`
+  - `system_output_operator_gate.ready_for_beta_audit` = `True`
+  - `system_output_operator_gate.command_safe_to_copy` = `True`
+  - `system_output_operator_gate.local_operator_required` = `True`
+  - `system_output_operator_gate.missing_confirmation_count` = `0`
+  - `system_output_operator_gate.missing_confirmations` = `[]`
+  - `system_output_operator_gate.missing_field_count` = `0`
+  - `system_output_operator_gate.missing_fields` = `[]`
+  - `system_output_operator_gate.records_audio` = `False`
+  - `system_output_operator_gate.records_spoken_text` = `False`
+  - `system_output_operator_gate.records_operator_identity` = `False`
+  - `system_output_operator_gate.records_local_paths` = `False`
   - `passed` = `True`
 
 ### ubuntu_linux_capture

@@ -172,6 +172,7 @@ def build_evidence_requirements_report() -> dict[str, Any]:
                     _required_field("next_system_output.records_spoken_text", False),
                     _required_field("next_system_output.records_operator_identity", False),
                     *_system_output_command_card_required_fields(),
+                    *_system_output_operator_gate_required_fields(),
                     _required_field("passed", True),
                 ],
             },
@@ -436,6 +437,7 @@ def build_beta_readiness_report(
                 "Ready for real audio: True",
                 "Operator checklist ready for beta evidence: True",
                 "System output command card ready for beta evidence: True",
+                "System output operator gate ready for beta audit: True",
             ),
             next_action=(
                 "Run tools/output_pilot.py --speak --operator-present --confirm-audible "
@@ -456,6 +458,12 @@ def build_beta_readiness_report(
                 "system_output_command_card.uses_placeholders=true, "
                 "system_output_command_card.records_spoken_text=false, "
                 "system_output_command_card.records_operator_identity=false, "
+                "system_output_operator_gate.ready_for_beta_audit=true, "
+                "system_output_operator_gate.command_safe_to_copy=true, "
+                "system_output_operator_gate.missing_confirmation_count=0, "
+                "system_output_operator_gate.missing_field_count=0, "
+                "system_output_operator_gate.records_spoken_text=false, "
+                "system_output_operator_gate.records_operator_identity=false, "
                 "and only sanitized findings."
             ),
         ),
@@ -1064,6 +1072,26 @@ def _system_output_command_card_required_fields() -> list[dict[str, Any]]:
         _required_field("system_output_command_card.records_spoken_text", False),
         _required_field("system_output_command_card.records_operator_identity", False),
         _required_field("system_output_command_card.records_local_paths", False),
+    ]
+
+
+def _system_output_operator_gate_required_fields() -> list[dict[str, Any]]:
+    return [
+        _required_field("system_output_operator_gate.safe_to_share", True),
+        _required_field("system_output_operator_gate.decision", "ready_for_beta_audit"),
+        _required_field("system_output_operator_gate.blocker", "system_output_audible"),
+        _required_field("system_output_operator_gate.expected_artifact", "output-pilot-report.json"),
+        _required_field("system_output_operator_gate.ready_for_beta_audit", True),
+        _required_field("system_output_operator_gate.command_safe_to_copy", True),
+        _required_field("system_output_operator_gate.local_operator_required", True),
+        _required_field("system_output_operator_gate.missing_confirmation_count", 0),
+        _required_field("system_output_operator_gate.missing_confirmations", []),
+        _required_field("system_output_operator_gate.missing_field_count", 0),
+        _required_field("system_output_operator_gate.missing_fields", []),
+        _required_field("system_output_operator_gate.records_audio", False),
+        _required_field("system_output_operator_gate.records_spoken_text", False),
+        _required_field("system_output_operator_gate.records_operator_identity", False),
+        _required_field("system_output_operator_gate.records_local_paths", False),
     ]
 
 
@@ -1691,6 +1719,37 @@ def _has_safe_system_output_command_card(report: dict[str, Any]) -> bool:
     )
 
 
+def _has_ready_system_output_operator_gate(report: dict[str, Any]) -> bool:
+    gate = report.get("system_output_operator_gate", {})
+    if not isinstance(gate, dict):
+        return False
+    command_templates = (
+        gate.get("preflight_command_template"),
+        gate.get("real_output_command_template"),
+        gate.get("audit_command_template"),
+    )
+    return (
+        gate.get("safe_to_share") is True
+        and gate.get("decision") == "ready_for_beta_audit"
+        and gate.get("blocker") == "system_output_audible"
+        and gate.get("expected_artifact") == "output-pilot-report.json"
+        and gate.get("ready_for_beta_audit") is True
+        and gate.get("command_safe_to_copy") is True
+        and gate.get("local_operator_required") is True
+        and gate.get("missing_confirmation_count") == 0
+        and gate.get("missing_confirmations") == []
+        and gate.get("missing_field_count") == 0
+        and gate.get("missing_fields") == []
+        and gate.get("records_audio") is False
+        and gate.get("records_spoken_text") is False
+        and gate.get("records_operator_identity") is False
+        and gate.get("records_local_paths") is False
+        and all(isinstance(command, str) and "<pilot-output-dir>" in command for command in command_templates)
+        and isinstance(gate.get("real_output_command_template"), str)
+        and "<public-spoken-text>" in gate["real_output_command_template"]
+    )
+
+
 def _has_safe_real_transcription_command_card(report: dict[str, Any]) -> bool:
     card = report.get("real_transcription_command_card", {})
     if not isinstance(card, dict):
@@ -1800,6 +1859,7 @@ def _is_system_output_audible_evidence(report: dict[str, Any]) -> bool:
         and next_system_output.get("records_spoken_text") is False
         and next_system_output.get("records_operator_identity") is False
         and _has_safe_system_output_command_card(report)
+        and _has_ready_system_output_operator_gate(report)
         and isinstance(operator_checklist, dict)
         and operator_checklist.get("expected_system_matched") is True
         and operator_checklist.get("records_operator_identity") is False

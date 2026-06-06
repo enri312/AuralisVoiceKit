@@ -118,6 +118,8 @@ Nota `v0.137.0`: `tools/manual_pilot.py` agrega `capture_operator_gate` para dec
 
 Nota `v0.138.0`: `tools/beta_readiness.py` incorpora `capture_operator_gate` al contrato de evidencia beta de captura, bloqueando reportes manuales que no declaren `ready_for_beta_audit`.
 
+Nota `v0.139.0`: `tools/output_pilot.py` y `tools/beta_readiness.py` incorporan `system_output_operator_gate`, exigiendo decision `ready_for_beta_audit`, comando seguro con placeholders y cero confirmaciones/campos faltantes antes de aceptar evidencia beta de salida audible.
+
 ## Fase 0 - Base del proyecto
 
 **Objetivo:** dejar una libreria instalable, importable y testeable.

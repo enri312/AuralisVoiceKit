@@ -162,6 +162,19 @@ def run_output_pilot(
         next_system_output=next_system_output,
         system_output_command_card=system_output_command_card,
     )
+    system_output_operator_gate = _system_output_operator_gate(
+        system_guard=system_guard,
+        target_output_backend=target_output_backend,
+        require_output_backend_ready=require_output_backend_ready,
+        speak=speak,
+        confirmation_status=confirmation_status,
+        text_review_confirmed=text_review_confirmed,
+        spoken_text_privacy_scan=spoken_text_privacy_scan,
+        voice_review_confirmed=voice_review_confirmed,
+        operator_checklist=operator_checklist,
+        beta_evidence_gap=beta_evidence_gap,
+        system_output_command_card=system_output_command_card,
+    )
     findings = _build_findings_markdown(
         timestamp=timestamp,
         system=system_name,
@@ -179,6 +192,7 @@ def run_output_pilot(
         operator_checklist=operator_checklist,
         beta_evidence_gap=beta_evidence_gap,
         system_output_command_card=system_output_command_card,
+        system_output_operator_gate=system_output_operator_gate,
         report_path=report_path,
         checklist_path=checklist_path,
         next_step_path=next_step_path,
@@ -187,6 +201,7 @@ def run_output_pilot(
         timestamp=timestamp,
         system=system_name,
         operator_checklist=operator_checklist,
+        system_output_operator_gate=system_output_operator_gate,
     )
     next_step = _build_system_output_next_step_markdown(
         timestamp=timestamp,
@@ -203,6 +218,7 @@ def run_output_pilot(
         operator_checklist=operator_checklist,
         beta_evidence_gap=beta_evidence_gap,
         system_output_command_card=system_output_command_card,
+        system_output_operator_gate=system_output_operator_gate,
         command_template=command_template,
         checklist_path=checklist_path,
     )
@@ -240,6 +256,7 @@ def run_output_pilot(
         "beta_evidence_gap": beta_evidence_gap,
         "next_system_output": next_system_output,
         "system_output_command_card": system_output_command_card,
+        "system_output_operator_gate": system_output_operator_gate,
         "output": sanitized_payload,
         "artifacts": {
             "operator_checklist": str(checklist_path),
@@ -852,6 +869,136 @@ def _output_beta_evidence_gap_next_action(missing_fields: list[str]) -> str:
     return "Complete the missing operator confirmations and rerun the beta evidence audit."
 
 
+def _system_output_operator_gate(
+    *,
+    system_guard: dict[str, Any],
+    target_output_backend: dict[str, Any],
+    require_output_backend_ready: bool,
+    speak: bool,
+    confirmation_status: str,
+    text_review_confirmed: bool,
+    spoken_text_privacy_scan: dict[str, Any],
+    voice_review_confirmed: bool,
+    operator_checklist: dict[str, Any],
+    beta_evidence_gap: dict[str, Any],
+    system_output_command_card: dict[str, Any],
+) -> dict[str, Any]:
+    confirmations = [
+        _operator_gate_confirmation(
+            "real_output_explicitly_requested",
+            "--speak was used for this evidence report.",
+            confirmed=speak,
+            source="real_audio_requested",
+        ),
+        _operator_gate_confirmation(
+            "operator_confirmed_audible",
+            "The local operator confirmed audible output.",
+            confirmed=confirmation_status == "confirmed",
+            source="--confirm-audible",
+        ),
+        _operator_gate_confirmation(
+            "text_reviewed",
+            "Spoken text was reviewed locally and the public privacy scan passed.",
+            confirmed=(
+                text_review_confirmed
+                and operator_checklist["text_review_confirmed"]
+                and spoken_text_privacy_scan["passed"] is True
+                and operator_checklist["spoken_text_privacy_scan_passed"] is True
+            ),
+            source="--confirm-text-reviewed + spoken_text_privacy_scan.passed",
+        ),
+        _operator_gate_confirmation(
+            "voice_reviewed",
+            "Voice, volume and pronunciation were reviewed after playback.",
+            confirmed=voice_review_confirmed and operator_checklist["voice_review_confirmed"],
+            source="--confirm-voice-reviewed",
+        ),
+        _operator_gate_confirmation(
+            "expected_system_matched",
+            "--expected-system matched the actual platform.",
+            confirmed=system_guard["expected_system_matched"] is True,
+            source="system_guard.expected_system_matched",
+        ),
+        _operator_gate_confirmation(
+            "output_backend_ready_guarded",
+            "The system output backend was available and --require-output-backend-ready was used.",
+            confirmed=target_output_backend["available"] is True and require_output_backend_ready,
+            source="target_output_backend.available + output_backend_ready_required",
+        ),
+        _operator_gate_confirmation(
+            "operator_checklist_beta_ready",
+            "The output operator checklist marked the audible run as beta-ready.",
+            confirmed=operator_checklist["ready_for_beta_evidence"],
+            source="operator_checklist.ready_for_beta_evidence",
+        ),
+    ]
+    missing_confirmations = [item["id"] for item in confirmations if item["confirmed"] is not True]
+    command_templates = (
+        system_output_command_card["preflight_command_template"],
+        system_output_command_card["real_output_command_template"],
+        system_output_command_card["audit_command_template"],
+    )
+    command_safe_to_copy = bool(
+        system_output_command_card["safe_to_share"]
+        and system_output_command_card["uses_placeholders"]
+        and system_output_command_card["preflight_plays_audio"] is False
+        and system_output_command_card["real_output_requires_operator"] is True
+        and system_output_command_card["records_audio"] is False
+        and system_output_command_card["records_spoken_text"] is False
+        and system_output_command_card["records_operator_identity"] is False
+        and system_output_command_card["records_local_paths"] is False
+        and all(isinstance(command, str) and "<pilot-output-dir>" in command for command in command_templates)
+        and "<public-spoken-text>" in system_output_command_card["real_output_command_template"]
+    )
+    ready_for_beta_audit = bool(
+        beta_evidence_gap["ready_for_beta_evidence"]
+        and command_safe_to_copy
+        and not missing_confirmations
+    )
+    return {
+        "safe_to_share": True,
+        "decision": "ready_for_beta_audit" if ready_for_beta_audit else "blocked",
+        "blocker": beta_evidence_gap["blocker"],
+        "expected_artifact": "output-pilot-report.json",
+        "ready_for_beta_audit": ready_for_beta_audit,
+        "command_safe_to_copy": command_safe_to_copy,
+        "local_operator_required": True,
+        "confirmations": confirmations,
+        "missing_confirmations": missing_confirmations,
+        "missing_confirmation_count": len(missing_confirmations),
+        "missing_fields": list(beta_evidence_gap["missing_fields"]),
+        "missing_field_count": beta_evidence_gap["missing_count"],
+        "preflight_command_template": system_output_command_card["preflight_command_template"],
+        "real_output_command_template": system_output_command_card["real_output_command_template"],
+        "audit_command_template": system_output_command_card["audit_command_template"],
+        "next_action": (
+            "Run the strict beta evidence audit before closing this blocker."
+            if ready_for_beta_audit
+            else beta_evidence_gap["next_action"]
+        ),
+        "records_audio": False,
+        "records_spoken_text": False,
+        "records_operator_identity": False,
+        "records_local_paths": False,
+    }
+
+
+def _operator_gate_confirmation(
+    confirmation_id: str,
+    instruction: str,
+    *,
+    confirmed: bool,
+    source: str,
+) -> dict[str, Any]:
+    return {
+        "id": confirmation_id,
+        "required": True,
+        "confirmed": bool(confirmed),
+        "source": source,
+        "instruction": instruction,
+    }
+
+
 def _build_findings_markdown(
     *,
     timestamp: str,
@@ -870,6 +1017,7 @@ def _build_findings_markdown(
     operator_checklist: dict[str, Any],
     beta_evidence_gap: dict[str, Any],
     system_output_command_card: dict[str, Any],
+    system_output_operator_gate: dict[str, Any],
     report_path: Path,
     checklist_path: Path,
     next_step_path: Path,
@@ -902,6 +1050,9 @@ def _build_findings_markdown(
         f"- Commands observed: {len(payload.get('commands', []))}",
         f"- Operator checklist ready for beta evidence: {operator_checklist['ready_for_beta_evidence']}",
         f"- System output command card ready for beta evidence: {system_output_command_card['ready_for_beta_evidence']}",
+        f"- System output operator gate decision: {system_output_operator_gate['decision']}",
+        f"- System output operator gate ready for beta audit: {system_output_operator_gate['ready_for_beta_audit']}",
+        f"- System output operator gate missing confirmations: {system_output_operator_gate['missing_confirmation_count']}",
         f"- Beta evidence gap ready: {beta_evidence_gap['ready_for_beta_evidence']}",
         f"- Beta evidence gap missing count: {beta_evidence_gap['missing_count']}",
         f"- Beta evidence gap next action: {beta_evidence_gap['next_action']}",
@@ -926,6 +1077,15 @@ def _build_findings_markdown(
         f"- Blocker: `{beta_evidence_gap['blocker']}`",
         f"- Ready for beta evidence: `{beta_evidence_gap['ready_for_beta_evidence']}`",
         f"- Missing fields: {_format_list(beta_evidence_gap['missing_fields'])}",
+        "",
+        "## System Output Operator Gate",
+        "",
+        f"- Decision: `{system_output_operator_gate['decision']}`",
+        f"- Ready for beta audit: `{system_output_operator_gate['ready_for_beta_audit']}`",
+        f"- Command safe to copy: `{system_output_operator_gate['command_safe_to_copy']}`",
+        f"- Missing confirmations: {_format_list(system_output_operator_gate['missing_confirmations'])}",
+        f"- Missing fields: {_format_list(system_output_operator_gate['missing_fields'])}",
+        f"- Next action: {system_output_operator_gate['next_action']}",
         "",
         "## Follow-up",
         "",
@@ -1026,6 +1186,7 @@ def _build_system_output_next_step_markdown(
     operator_checklist: dict[str, Any],
     beta_evidence_gap: dict[str, Any],
     system_output_command_card: dict[str, Any],
+    system_output_operator_gate: dict[str, Any],
     command_template: str,
     checklist_path: Path,
 ) -> str:
@@ -1063,6 +1224,10 @@ def _build_system_output_next_step_markdown(
         f"- Command card records spoken text: {system_output_command_card['records_spoken_text']}",
         f"- Command card records operator identity: {system_output_command_card['records_operator_identity']}",
         f"- Command card records local paths: {system_output_command_card['records_local_paths']}",
+        f"- Operator gate decision: {system_output_operator_gate['decision']}",
+        f"- Operator gate ready for beta audit: {system_output_operator_gate['ready_for_beta_audit']}",
+        f"- Operator gate command safe to copy: {system_output_operator_gate['command_safe_to_copy']}",
+        f"- Operator gate missing confirmations: {system_output_operator_gate['missing_confirmation_count']}",
         f"- Beta evidence gap ready: {beta_evidence_gap['ready_for_beta_evidence']}",
         f"- Beta evidence gap missing count: {beta_evidence_gap['missing_count']}",
         f"- Beta evidence gap next action: {beta_evidence_gap['next_action']}",
@@ -1094,6 +1259,14 @@ def _build_system_output_next_step_markdown(
         f"- Ready for beta evidence: `{beta_evidence_gap['ready_for_beta_evidence']}`",
         f"- Missing fields: {_format_list(beta_evidence_gap['missing_fields'])}",
         "",
+        "## System Output Operator Gate",
+        "",
+        f"- Decision: `{system_output_operator_gate['decision']}`",
+        f"- Ready for beta audit: `{system_output_operator_gate['ready_for_beta_audit']}`",
+        f"- Command safe to copy: `{system_output_operator_gate['command_safe_to_copy']}`",
+        f"- Missing confirmations: {_format_list(system_output_operator_gate['missing_confirmations'])}",
+        f"- Missing fields: {_format_list(system_output_operator_gate['missing_fields'])}",
+        "",
         "## Required Review",
         "",
         "- Review `output-operator-checklist.md` before enabling `--speak`.",
@@ -1106,6 +1279,7 @@ def _build_system_output_next_step_markdown(
         "- Confirm `operator_checklist.text_review_confirmed=true`.",
         "- Confirm `operator_checklist.voice_review_confirmed=true` after hearing the output.",
         "- Confirm `operator_checklist.ready_for_beta_evidence=true` only after audible output and human review.",
+        "- Confirm `system_output_operator_gate.ready_for_beta_audit=true` only after the sanitized command card and all confirmations are complete.",
         "",
     ]
     return "\n".join(lines)
@@ -1116,6 +1290,7 @@ def _build_operator_checklist_markdown(
     timestamp: str,
     system: str,
     operator_checklist: dict[str, Any],
+    system_output_operator_gate: dict[str, Any],
 ) -> str:
     lines = [
         "# System output operator checklist",
@@ -1133,6 +1308,10 @@ def _build_operator_checklist_markdown(
         f"- Commands available: {operator_checklist['commands_available']}",
         f"- Ready for real audio: {operator_checklist['ready_for_real_audio']}",
         f"- Ready for beta evidence: {operator_checklist['ready_for_beta_evidence']}",
+        f"- Operator gate decision: {system_output_operator_gate['decision']}",
+        f"- Operator gate ready for beta audit: {system_output_operator_gate['ready_for_beta_audit']}",
+        f"- Operator gate command safe to copy: {system_output_operator_gate['command_safe_to_copy']}",
+        f"- Operator gate missing confirmations: {system_output_operator_gate['missing_confirmation_count']}",
         "",
         "## Before Playback",
         "",
@@ -1148,6 +1327,17 @@ def _build_operator_checklist_markdown(
     )
     for item in operator_checklist["after_playback"]:
         lines.append(_format_checklist_item(item))
+    lines.extend(
+        [
+            "",
+            "## System Output Operator Gate",
+            "",
+            f"- Decision: `{system_output_operator_gate['decision']}`",
+            f"- Ready for beta audit: `{system_output_operator_gate['ready_for_beta_audit']}`",
+            f"- Missing confirmations: {_format_list(system_output_operator_gate['missing_confirmations'])}",
+            f"- Missing fields: {_format_list(system_output_operator_gate['missing_fields'])}",
+        ]
+    )
     lines.extend(
         [
             "",
