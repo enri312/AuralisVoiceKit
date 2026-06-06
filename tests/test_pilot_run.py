@@ -252,6 +252,10 @@ class PilotRunTests(unittest.TestCase):
         self.assertIn("--preflight-timeout-seconds 30", command_pack)
         self.assertIn("--backend openai", command_pack)
         self.assertIn("--require-openai-api-key", command_pack)
+        self.assertIn("Campos condicionales", command_pack)
+        self.assertIn("target_backend.name", command_pack)
+        self.assertIn("credentials.checked", command_pack)
+        self.assertIn("credentials.openai_api_key_required", command_pack)
         self.assertIn("credentials.openai_api_key_present", command_pack)
         self.assertIn("credentials.records_openai_api_key", command_pack)
         self.assertIn("gpt-4o-mini-transcribe", command_pack)
@@ -444,6 +448,18 @@ class PilotRunTests(unittest.TestCase):
             "transcription_checklist.redacts_transcript_text",
             manifest_rows["real_transcription_quality"]["required_fields"],
         )
+        self.assertEqual(
+            manifest_rows["real_transcription_quality"]["conditional_required_fields"][0]["when"]["path"],
+            "target_backend.name",
+        )
+        self.assertIn(
+            "credentials.checked",
+            manifest_rows["real_transcription_quality"]["conditional_required_fields"][0]["fields"],
+        )
+        self.assertIn(
+            "credentials.openai_api_key_required",
+            manifest_rows["real_transcription_quality"]["conditional_required_fields"][0]["fields"],
+        )
         self.assertTrue(manifest_rows["real_transcription_quality"]["strict_backend_guard_required"])
         self.assertEqual(
             manifest_rows["real_transcription_quality"]["strict_backend_guard_flag"],
@@ -491,6 +507,10 @@ class PilotRunTests(unittest.TestCase):
             report["fixture_preflight_card"]["openai_own_audio_required_fields"],
         )
         self.assertIn(
+            "credentials.checked",
+            report["fixture_preflight_card"]["openai_own_audio_required_fields"],
+        )
+        self.assertIn(
             "credentials.openai_api_key_present",
             report["fixture_preflight_card"]["openai_own_audio_required_fields"],
         )
@@ -528,6 +548,13 @@ class PilotRunTests(unittest.TestCase):
             "reference_privacy_scan.passed",
             report["transcription_readiness_card"]["real_required_fields"],
         )
+        real_conditional_fields = report["transcription_readiness_card"]["real_conditional_required_fields"]
+        self.assertEqual(real_conditional_fields[0]["when"]["path"], "target_backend.name")
+        self.assertEqual(real_conditional_fields[0]["when"]["expected"], "openai")
+        self.assertIn("credentials.checked", real_conditional_fields[0]["fields"])
+        self.assertIn("credentials.openai_api_key_required", real_conditional_fields[0]["fields"])
+        self.assertIn("credentials.openai_api_key_present", real_conditional_fields[0]["fields"])
+        self.assertIn("credentials.records_openai_api_key", real_conditional_fields[0]["fields"])
         self.assertIn("status", report["transcription_readiness_card"]["ffmpeg"])
         self.assertIn("status", report["transcription_readiness_card"]["local_transcription"])
         self.assertFalse(report["transcription_readiness_card"]["content_policy"]["records_audio"])
@@ -616,6 +643,9 @@ class PilotRunTests(unittest.TestCase):
         self.assertIn("transcription_checklist.reference_review_confirmed", transcription_step["required_fields"])
         self.assertIn("transcription_checklist.reference_privacy_scan_passed", transcription_step["required_fields"])
         self.assertIn("transcription_checklist.quality_review_confirmed", transcription_step["required_fields"])
+        self.assertEqual(transcription_step["conditional_required_fields"][0]["when"]["path"], "target_backend.name")
+        self.assertIn("credentials.checked", transcription_step["conditional_required_fields"][0]["fields"])
+        self.assertIn("credentials.openai_api_key_required", transcription_step["conditional_required_fields"][0]["fields"])
         self.assertIn("--confirm-voice-reviewed", output_step["command"])
         self.assertIn("--confirm-text-reviewed", output_step["command"])
         self.assertIn("--require-output-backend-ready", output_step["command"])
@@ -673,6 +703,10 @@ class PilotRunTests(unittest.TestCase):
             matrix["transcription-openai-mp3-preflight"]["required_fields"],
         )
         self.assertIn(
+            "credentials.checked",
+            matrix["transcription-openai-mp3-preflight"]["required_fields"],
+        )
+        self.assertIn(
             "credentials.openai_api_key_present",
             matrix["transcription-openai-mp3-preflight"]["required_fields"],
         )
@@ -706,6 +740,10 @@ class PilotRunTests(unittest.TestCase):
         self.assertIn("operator_checklist.redacts_spoken_text=true", matrix["system-output-audible"]["notes"])
         self.assertIn("next_system_output.records_spoken_text=false", matrix["system-output-audible"]["notes"])
         self.assertIn("--fail-on-audit-gaps", report["beta_readiness"]["strict_audit_command"])
+        self.assertIn("Campos condicionales", evidence_manifest)
+        self.assertIn("target_backend.name", evidence_manifest)
+        self.assertIn("credentials.checked", evidence_manifest)
+        self.assertIn("credentials.openai_api_key_required", evidence_manifest)
         environment_rows = {row["name"]: row for row in report["environment_checklist"]}
         self.assertIn("python-runtime", environment_rows)
         self.assertIn("ffmpeg-compressed-audio", environment_rows)

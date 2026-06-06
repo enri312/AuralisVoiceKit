@@ -466,11 +466,28 @@ def _next_beta_evidence_steps(beta_module: Any, blockers: list[str]) -> list[dic
                 "artifact": requirement["artifact"],
                 "command": requirement["command"],
                 "required_fields": [field["path"] for field in requirement["fields"]],
+                "conditional_required_fields": _conditional_required_fields(requirement),
                 "reason": "Evidencia real requerida antes de beta publica.",
                 **_strict_backend_guard_metadata(blocker),
             }
         )
     return steps
+
+
+def _conditional_required_fields(requirement: dict[str, Any]) -> list[dict[str, Any]]:
+    fields = []
+    for conditional in requirement.get("conditional_fields", []):
+        condition = conditional["when"]
+        fields.append(
+            {
+                "when": {
+                    "path": condition["path"],
+                    "expected": condition["expected"],
+                },
+                "fields": [field["path"] for field in conditional["fields"]],
+            }
+        )
+    return fields
 
 
 def _strict_backend_guard_metadata(step_name: str) -> dict[str, Any]:
@@ -514,6 +531,7 @@ def _recommended_pilot_sequence(
                 "command": step["command"],
                 "artifact": step["artifact"],
                 "required_fields": step["required_fields"],
+                "conditional_required_fields": step.get("conditional_required_fields", []),
                 "requires_hardware": step["name"] in hardware_required_blockers,
                 "requires_operator": step["name"] == "system_output_audible",
                 "requires_non_sensitive_audio": step["name"] == "real_transcription_quality",
@@ -697,6 +715,7 @@ def _transcription_openai_audio_preflight_step(order: int) -> dict[str, Any]:
             "backend",
             "model",
             "transcription_timeout_seconds",
+            "credentials.checked",
             "credentials.openai_api_key_required",
             "credentials.openai_api_key_present",
             "credentials.records_openai_api_key",
@@ -1164,6 +1183,7 @@ def _real_pilot_evidence_manifest(
                 "artifact": step["artifact"],
                 "command": step["command"],
                 "required_fields": step["required_fields"],
+                "conditional_required_fields": step.get("conditional_required_fields", []),
                 "accepted_json_artifact": None,
                 "review_state": "real-evidence-required",
                 **_strict_backend_guard_metadata(step["name"]),
@@ -1181,6 +1201,7 @@ def _real_pilot_evidence_manifest(
                 "artifact": closed.get("artifact", "unknown"),
                 "command": None,
                 "required_fields": closed.get("required_fields", []),
+                "conditional_required_fields": [],
                 "accepted_json_artifact": closed.get("file"),
                 "review_state": "closed-by-accepted-json",
                 **_strict_backend_guard_metadata(blocker),
@@ -1372,6 +1393,7 @@ def _real_pilot_transcription_readiness_card(report: dict[str, Any]) -> dict[str
         "preflight_required_fields": preflight_step["required_fields"],
         "openai_preflight_required_fields": openai_preflight_step["required_fields"],
         "real_required_fields": real_step["required_fields"],
+        "real_conditional_required_fields": real_step.get("conditional_required_fields", []),
         "ffmpeg": {
             "status": ffmpeg_check["status"] if ffmpeg_check else "unknown",
             "ready": bool(ffmpeg_check["ready"]) if ffmpeg_check else False,
@@ -1779,6 +1801,7 @@ def _format_pilot_plan_markdown(report: dict[str, Any]) -> str:
                 f"- Revision requerida: `{_format_bool(step['review_required'])}`",
             ]
         )
+        _append_conditional_required_field_lines(lines, step)
         _append_strict_backend_guard_lines(lines, step)
         lines.extend([f"- Motivo: {step['reason']}", ""])
     lines.extend(
@@ -1799,6 +1822,7 @@ def _format_pilot_plan_markdown(report: dict[str, Any]) -> str:
                     f"- Campos requeridos: {_format_inline_list(step['required_fields'])}",
                 ]
             )
+            _append_conditional_required_field_lines(lines, step)
             _append_strict_backend_guard_lines(lines, step)
             lines.extend([f"- Motivo: {step['reason']}", ""])
     else:
@@ -1997,6 +2021,7 @@ def _format_real_pilot_command_pack_markdown(report: dict[str, Any]) -> str:
     ]
     for row in report["platform_pilot_matrix"]:
         required_fields = _command_pack_required_fields(report, row)
+        conditional_required_fields = _command_pack_conditional_required_fields(report, row)
         lines.extend(
             [
                 f"### {row['platform']} - {row['name']}",
@@ -2011,6 +2036,7 @@ def _format_real_pilot_command_pack_markdown(report: dict[str, Any]) -> str:
                 f"- Requiere audio no sensible: `{_format_bool(row['requires_non_sensitive_audio'])}`",
             ]
         )
+        _append_conditional_required_field_lines(lines, {"conditional_required_fields": conditional_required_fields})
         _append_strict_backend_guard_lines(lines, row)
         lines.extend([f"- Nota: {row['notes']}", ""])
     lines.extend(
@@ -2195,6 +2221,7 @@ def _format_real_pilot_transcription_readiness_markdown(report: dict[str, Any]) 
             f"- Preflight: {_format_inline_list(card['preflight_required_fields'])}",
             f"- Preflight OpenAI: {_format_inline_list(card['openai_preflight_required_fields'])}",
             f"- Real: {_format_inline_list(card['real_required_fields'])}",
+            f"- Real condicional: {_format_conditional_required_fields_inline(card['real_conditional_required_fields'])}",
             "",
             "## Acciones del operador",
             "",
@@ -2405,6 +2432,7 @@ def _format_real_pilot_evidence_manifest_markdown(report: dict[str, Any]) -> str
                 f"- Revision: `{row['review_state']}`",
             ]
         )
+        _append_conditional_required_field_lines(lines, row)
         _append_strict_backend_guard_lines(lines, row)
         lines.append("")
     lines.extend(["## Evidencias aceptadas", ""])
@@ -2593,6 +2621,7 @@ def _format_real_pilot_handoff_markdown(report: dict[str, Any]) -> str:
                 f"- Revision requerida: `{_format_bool(step['review_required'])}`",
             ]
         )
+        _append_conditional_required_field_lines(lines, step)
         _append_strict_backend_guard_lines(lines, step)
         lines.append("")
     lines.extend(
@@ -2640,14 +2669,59 @@ def _command_pack_required_fields(report: dict[str, Any], row: dict[str, Any]) -
     return []
 
 
+def _command_pack_conditional_required_fields(report: dict[str, Any], row: dict[str, Any]) -> list[dict[str, Any]]:
+    if row.get("conditional_required_fields"):
+        return list(row["conditional_required_fields"])
+    row_names = {row["name"]}
+    blocker = row.get("blocker")
+    if blocker:
+        row_names.add(str(blocker))
+        row_names.add(str(blocker).replace("_", "-"))
+    for step in report["recommended_pilot_sequence"]:
+        step_names = {step["name"], step["name"].replace("_", "-")}
+        if row_names & step_names:
+            return list(step.get("conditional_required_fields", []))
+    for step in report["next_beta_evidence_steps"]:
+        step_names = {step["name"], step["name"].replace("_", "-")}
+        if row_names & step_names:
+            return list(step.get("conditional_required_fields", []))
+    return []
+
+
 def _format_inline_list(values: list[str]) -> str:
     if not values:
         return "`ninguno`"
     return ", ".join(f"`{value}`" for value in values)
 
 
+def _format_conditional_required_fields_inline(conditional_fields: list[dict[str, Any]]) -> str:
+    if not conditional_fields:
+        return "`ninguno`"
+    parts = []
+    for item in conditional_fields:
+        condition = item["when"]
+        parts.append(
+            f"si `{condition['path']}` = `{condition['expected']}`: "
+            f"{_format_inline_list(item['fields'])}"
+        )
+    return "; ".join(parts)
+
+
 def _format_bool(value: bool) -> str:
     return str(value).lower()
+
+
+def _append_conditional_required_field_lines(lines: list[str], item: dict[str, Any]) -> None:
+    conditional_fields = item.get("conditional_required_fields") or []
+    if not conditional_fields:
+        return
+    lines.append("- Campos condicionales:")
+    for conditional in conditional_fields:
+        condition = conditional["when"]
+        lines.append(
+            f"  - Si `{condition['path']}` = `{condition['expected']}`: "
+            f"{_format_inline_list(conditional['fields'])}"
+        )
 
 
 def _append_strict_backend_guard_lines(lines: list[str], item: dict[str, Any]) -> None:

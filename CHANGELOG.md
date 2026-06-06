@@ -6,6 +6,14 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.108.0] - 2026-06-06
+
+### Agregado
+
+- `tools/pilot_run.py` ahora propaga `conditional_required_fields` desde el contrato beta hacia `next_beta_evidence_steps`, `recommended_pilot_sequence` y `evidence_manifest`.
+- `real-pilot-command-pack.md`, `real-pilot-handoff.md`, `pilot-plan.md` y `real-pilot-evidence-manifest.md` muestran los campos condicionales OpenAI que aplican cuando `target_backend.name=openai`.
+- El preflight OpenAI del piloto seguro lista `credentials.checked` junto con presencia/requerimiento de `OPENAI_API_KEY` y la garantia `records_openai_api_key=false`.
+
 ## [0.107.0] - 2026-06-06
 
 ### Agregado

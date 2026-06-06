@@ -56,6 +56,8 @@ Nota `v0.106.0`: el piloto de transcripcion agrega `--require-openai-api-key` pa
 
 Nota `v0.107.0`: el auditor beta ahora exige esos campos sanitizados de credencial cuando la evidencia real declara `target_backend.name=openai`, sin aceptar ni registrar el valor de `OPENAI_API_KEY`.
 
+Nota `v0.108.0`: el piloto seguro propaga los `conditional_required_fields` del contrato beta a la secuencia recomendada, manifiesto de evidencias, handoff y command pack, incluyendo `credentials.checked` para la ruta OpenAI.
+
 ## Fase 0 - Base del proyecto
 
 **Objetivo:** dejar una libreria instalable, importable y testeable.

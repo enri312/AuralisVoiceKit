@@ -12,6 +12,8 @@ Nota `v0.106.0`: para OpenAI, agrega `--require-openai-api-key`; el reporte solo
 
 Nota `v0.107.0`: la evidencia beta de transcripcion con backend `openai` debe conservar `credentials.checked=true`, `credentials.openai_api_key_required=true`, `credentials.openai_api_key_present=true` y `credentials.records_openai_api_key=false`; el valor de `OPENAI_API_KEY` sigue fuera de artifacts.
 
+Nota `v0.108.0`: `tools/pilot_run.py` conserva esos campos como `conditional_required_fields` en el JSON y los muestra en `pilot-plan.md`, `real-pilot-command-pack.md`, `real-pilot-handoff.md` y `real-pilot-evidence-manifest.md` para que la ruta OpenAI no se ejecute sin evidencia sanitizada de credencial.
+
 ```powershell
 py tools\pilot_run.py --output-dir pilot_runs\safe --json
 py tools\pilot_run.py --output-dir pilot_runs\safe --evidence pilot_runs\manual --evidence pilot_runs\output --evidence pilot_runs\transcription --json
