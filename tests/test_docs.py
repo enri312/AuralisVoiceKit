@@ -79,6 +79,9 @@ class DocumentationTests(unittest.TestCase):
             self.assertIn("--timeout-seconds", content)
             self.assertIn("--preflight-backend", content)
             self.assertIn("--preflight-timeout-seconds", content)
+            self.assertIn("--require-openai-api-key", content)
+            self.assertIn("credentials.openai_api_key_present", content)
+            self.assertIn("credentials.records_openai_api_key", content)
 
     def test_pyaudio_optional_backend_is_documented(self):
         readme = README.read_text(encoding="utf-8")

@@ -6,6 +6,14 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.106.0] - 2026-06-06
+
+### Agregado
+
+- `tools/transcription_pilot.py` ahora acepta `--require-openai-api-key` para validar presencia de `OPENAI_API_KEY` sin guardar el valor de la credencial.
+- Los artifacts de transcripcion reportan `credentials.openai_api_key_present`, `credentials.openai_api_key_required` y `credentials.records_openai_api_key=false`.
+- La ruta OpenAI del piloto seguro y las plantillas de transcripcion real agregan la guarda de credencial antes de llamadas reales a la API.
+
 ## [0.105.0] - 2026-06-06
 
 ### Agregado

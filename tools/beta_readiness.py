@@ -314,6 +314,7 @@ def build_beta_readiness_report(
                 "preflight_decision.decision=ready_for_real_transcription or a repeated preflight after backend install, "
                 "--require-target-backend-ready before model execution, "
                 "--timeout-seconds 30 when using --backend openai, "
+                "--require-openai-api-key when using --backend openai, "
                 "and --confirm-quality-reviewed after human review, "
                 "then keep target_backend.available=true, target_backend_ready_required=true, "
                 "transcription-review-checklist.md and real-transcription-next-step.md."

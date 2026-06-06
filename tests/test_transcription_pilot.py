@@ -2,9 +2,11 @@ import contextlib
 import importlib.util
 import io
 import json
+import os
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from auralis_voicekit import AudioChunk, AudioFormat, write_wav
 
@@ -158,6 +160,7 @@ class TranscriptionPilotTests(unittest.TestCase):
         self.assertIn("--backend openai", command)
         self.assertIn("--model gpt-4o-mini-transcribe", command)
         self.assertIn("--timeout-seconds 30", command)
+        self.assertIn("--require-openai-api-key", command)
 
     def test_transcription_pilot_template_formats_integer_float_values(self):
         module = _load_transcription_pilot()
@@ -468,6 +471,82 @@ class TranscriptionPilotTests(unittest.TestCase):
         self.assertFalse(report["next_real_transcription"]["records_audio_file_name"])
         self.assertFalse(report["transcription_checklist"]["ready_for_beta_evidence"])
         self.assertIn("Ready for beta evidence: False", checklist)
+
+    def test_transcription_pilot_openai_preflight_requires_sanitized_api_key(self):
+        module = _load_transcription_pilot()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            audio_path = Path(tmpdir) / "private-meeting.wav"
+            write_wav(
+                str(audio_path),
+                [AudioChunk(data=b"\x00\x00" * 800, format=AudioFormat(sample_rate=8000, channels=1))],
+            )
+            with patch.dict(os.environ, {}, clear=True):
+                report = module.run_transcription_pilot(
+                    root=ROOT,
+                    output_dir=Path(tmpdir) / "pilot",
+                    audio=audio_path,
+                    backend="openai",
+                    model="gpt-4o-mini-transcribe",
+                    preflight_only=True,
+                    require_openai_api_key=True,
+                    audio_confirmed_non_sensitive=True,
+                    min_audio_seconds=0.05,
+                    max_audio_seconds=1.0,
+                    timeout_seconds=30,
+                    sample_rate=8000,
+                )
+            report_text = Path(report["artifacts"]["transcription_pilot_report"]).read_text(encoding="utf-8")
+            findings = Path(report["artifacts"]["pilot_findings"]).read_text(encoding="utf-8")
+            checklist = Path(report["artifacts"]["transcription_review_checklist"]).read_text(encoding="utf-8")
+            next_step = Path(report["artifacts"]["real_transcription_next_step"]).read_text(encoding="utf-8")
+
+        self.assertFalse(report["passed"])
+        self.assertEqual(report["credentials"]["status"], "missing_required")
+        self.assertTrue(report["credentials"]["checked"])
+        self.assertTrue(report["credentials"]["openai_api_key_required"])
+        self.assertFalse(report["credentials"]["openai_api_key_present"])
+        self.assertFalse(report["credentials"]["records_openai_api_key"])
+        self.assertIn("openai_api_key_present", report["preflight_decision"]["blocking_reasons"])
+        self.assertIn("openai_api_key_present", [item["id"] for item in report["preflight_decision"]["checks"]])
+        self.assertIn("OpenAI API key present: False", findings)
+        self.assertIn("Records OpenAI API key: False", checklist)
+        self.assertIn("OPENAI_API_KEY", next_step)
+        self.assertIn("--require-openai-api-key", next_step)
+        self.assertNotIn(str(audio_path), report_text)
+        self.assertNotIn("private-meeting.wav", report_text)
+
+    def test_transcription_pilot_openai_preflight_records_key_presence_without_secret(self):
+        module = _load_transcription_pilot()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            audio_path = Path(tmpdir) / "public-sample.wav"
+            write_wav(
+                str(audio_path),
+                [AudioChunk(data=b"\x00\x00" * 800, format=AudioFormat(sample_rate=8000, channels=1))],
+            )
+            with patch.dict(os.environ, {"OPENAI_API_KEY": "sk-test-secret-value-123456"}, clear=True):
+                report = module.run_transcription_pilot(
+                    root=ROOT,
+                    output_dir=Path(tmpdir) / "pilot",
+                    audio=audio_path,
+                    backend="openai",
+                    preflight_only=True,
+                    require_openai_api_key=True,
+                    audio_confirmed_non_sensitive=True,
+                    min_audio_seconds=0.05,
+                    max_audio_seconds=1.0,
+                    sample_rate=8000,
+                )
+            report_text = Path(report["artifacts"]["transcription_pilot_report"]).read_text(encoding="utf-8")
+            findings = Path(report["artifacts"]["pilot_findings"]).read_text(encoding="utf-8")
+
+        self.assertEqual(report["credentials"]["status"], "present")
+        self.assertTrue(report["credentials"]["openai_api_key_present"])
+        self.assertFalse(report["credentials"]["records_openai_api_key"])
+        self.assertNotIn("sk-test-secret-value-123456", report_text)
+        self.assertNotIn("sk-test-secret-value-123456", findings)
+        self.assertIn("OpenAI API key present: True", findings)
 
     def test_transcription_pilot_preflight_decision_blocks_without_duration_gate(self):
         module = _load_transcription_pilot()

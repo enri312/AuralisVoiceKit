@@ -687,6 +687,7 @@ def _transcription_openai_audio_preflight_step(order: int) -> dict[str, Any]:
             "--audio-non-sensitive --backend openai "
             f"--model {OPENAI_TRANSCRIPTION_MODEL} --normalize "
             f"--timeout-seconds {OPENAI_TIMEOUT_SECONDS} "
+            "--require-openai-api-key "
             "--min-audio-seconds 0.2 --max-audio-seconds 60 --json"
         ),
         "artifact": "transcription-pilot-report.json",
@@ -696,6 +697,9 @@ def _transcription_openai_audio_preflight_step(order: int) -> dict[str, Any]:
             "backend",
             "model",
             "transcription_timeout_seconds",
+            "credentials.openai_api_key_required",
+            "credentials.openai_api_key_present",
+            "credentials.records_openai_api_key",
             "audio.decoded",
             "audio.duration_gate.enabled",
             "audio.duration_gate.passed",
@@ -716,7 +720,8 @@ def _transcription_openai_audio_preflight_step(order: int) -> dict[str, Any]:
         "review_required": True,
         "reason": (
             "Prepara el MP3 propio para OpenAI sin ejecutar red ni modelo; confirma ffmpeg, "
-            "timeout, target_backend e instrucciones de instalacion antes de la transcripcion real."
+            "timeout, presencia sanitizada de OPENAI_API_KEY, target_backend e instrucciones de instalacion "
+            "antes de la transcripcion real."
         ),
         **_strict_backend_guard_metadata("transcription-openai-mp3-preflight"),
     }
@@ -730,7 +735,7 @@ def _real_openai_transcription_command() -> str:
         f"--timeout-seconds {OPENAI_TIMEOUT_SECONDS} "
         "--expected-text-file <expected-text-path> --min-word-accuracy 0.75 "
         "--min-audio-seconds 0.2 --max-audio-seconds 60 "
-        "--confirm-quality-reviewed --require-target-backend-ready --json"
+        "--confirm-quality-reviewed --require-target-backend-ready --require-openai-api-key --json"
     )
 
 
@@ -1268,6 +1273,7 @@ def _real_pilot_fixture_preflight_card(report: dict[str, Any]) -> dict[str, Any]
         "operator_actions": [
             "Run the synthetic fixture command before using private or real audio.",
             "Use the OpenAI fixture command when the real backend will be openai; it prepares timeout and model placeholders without network.",
+            "Use the OpenAI MP3 preflight with --require-openai-api-key to check credential presence without recording the key.",
             "Confirm the fixture report says generated_public_fixture=true and usable_as_beta_evidence=false.",
             "Review transcription-review-checklist.md and real-transcription-next-step.md from the preflight artifacts.",
             "Replace sample.mp3 with your own non-sensitive MP3 only after the synthetic preflight is understood.",
@@ -1395,6 +1401,7 @@ def _real_pilot_transcription_readiness_card(report: dict[str, Any]) -> dict[str
             "Run the preflight with your own non-sensitive MP3 and review transcription-review-checklist.md.",
             "Use --require-target-backend-ready so the real pilot fails before model execution if the backend is missing.",
             "Use --timeout-seconds 30 when running the real pilot with --backend openai.",
+            "Use --require-openai-api-key with --backend openai; artifacts only record credential presence.",
             "Pass --confirm-audio-reviewed only after privacy review of the audio is complete.",
             "Pass --confirm-reference-reviewed only after the expected text or expected text file is public-safe.",
             "Pass --confirm-quality-reviewed only after local human review of quality metrics and redacted artifacts.",

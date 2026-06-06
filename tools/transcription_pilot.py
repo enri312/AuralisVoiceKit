@@ -11,6 +11,7 @@ import argparse
 from datetime import datetime, timezone
 import hashlib
 import json
+import os
 from pathlib import Path
 import platform
 import re
@@ -65,6 +66,7 @@ def run_transcription_pilot(
     preflight_only: bool = False,
     real_transcription: bool = False,
     require_target_backend_ready: bool = False,
+    require_openai_api_key: bool = False,
     audio_confirmed_non_sensitive: bool = False,
     audio_review_confirmed: bool = False,
     reference_review_confirmed: bool = False,
@@ -106,6 +108,10 @@ def run_transcription_pilot(
         target_backend=target_backend,
         required=require_target_backend_ready,
     )
+    credentials = _openai_credentials_status(
+        backend=backend,
+        required=require_openai_api_key,
+    )
     _validate_duration_limits(
         min_audio_seconds=min_audio_seconds,
         max_audio_seconds=max_audio_seconds,
@@ -141,7 +147,7 @@ def run_transcription_pilot(
         privacy_mode=True,
     )
     result = None
-    error = None
+    error = _openai_credentials_error(credentials)
     chunk = None
     duration_gate = _audio_duration_gate(
         None,
@@ -164,7 +170,7 @@ def run_transcription_pilot(
             raise ValueError(duration_gate["message"])
         if normalize:
             chunk = normalize_pcm16(chunk)
-        if not preflight_only:
+        if not preflight_only and error is None:
             result = AuralisVoiceKit(config).transcribe(chunk)
     except (AudioSourceError, BackendNotAvailable, TranscriptionError, ValueError) as exc:
         error = str(exc)
@@ -222,6 +228,7 @@ def run_transcription_pilot(
     }
     transcription_checklist = _transcription_checklist(
         backend=backend,
+        credentials=credentials,
         preflight_only=preflight_only,
         real_transcription=real_transcription,
         passed=passed,
@@ -236,6 +243,7 @@ def run_transcription_pilot(
     preflight_decision = _preflight_decision(
         preflight_only=preflight_only,
         target_backend=target_backend,
+        credentials=credentials,
         audio=audio_payload,
     )
 
@@ -269,6 +277,7 @@ def run_transcription_pilot(
         timeout_seconds=timeout_seconds,
         transcription_checklist=transcription_checklist,
         preflight_decision=preflight_decision,
+        credentials=credentials,
         report_path=report_path,
         checklist_path=checklist_path,
         next_step_path=next_step_path,
@@ -286,6 +295,7 @@ def run_transcription_pilot(
         preflight_only=preflight_only,
         real_transcription=real_transcription,
         require_target_backend_ready=require_target_backend_ready,
+        credentials=credentials,
         timeout_seconds=timeout_seconds,
         audio=audio_payload,
         quality=quality_report,
@@ -308,6 +318,7 @@ def run_transcription_pilot(
         "preflight_only": preflight_only,
         "real_transcription_requested": real_transcription,
         "target_backend_ready_required": require_target_backend_ready,
+        "credentials": credentials,
         "audio_confirmed_non_sensitive": audio_confirmed_non_sensitive,
         "audio_review_confirmed": audio_review_confirmed,
         "reference_review_confirmed": reference_review_confirmed,
@@ -381,6 +392,11 @@ def main(argv: list[str] | None = None) -> int:
         help="fail before audio/model work when the selected transcription backend dependency is missing",
     )
     parser.add_argument(
+        "--require-openai-api-key",
+        action="store_true",
+        help="for --backend openai, require OPENAI_API_KEY presence without storing the secret value",
+    )
+    parser.add_argument(
         "--audio-non-sensitive",
         action="store_true",
         help="confirm the supplied audio is safe to process and summarize",
@@ -448,6 +464,7 @@ def main(argv: list[str] | None = None) -> int:
             preflight_only=args.preflight_only,
             real_transcription=args.real_transcription,
             require_target_backend_ready=args.require_target_backend_ready,
+            require_openai_api_key=args.require_openai_api_key,
             audio_confirmed_non_sensitive=args.audio_non_sensitive,
             audio_review_confirmed=args.confirm_audio_reviewed,
             reference_review_confirmed=args.confirm_reference_reviewed,
@@ -572,7 +589,8 @@ def _target_backend_install_plan(backend: str, dependencies: list[str]) -> dict[
     post_install_check = (
         "python tools/transcription_pilot.py --preflight-only "
         "--audio <audio-path> --audio-non-sensitive "
-        f"--backend {backend} --require-target-backend-ready --json"
+        f"--backend {backend} --require-target-backend-ready"
+        f"{' --require-openai-api-key' if backend == 'openai' else ''} --json"
     )
     return {
         "backend": backend,
@@ -588,6 +606,42 @@ def _target_backend_install_plan(backend: str, dependencies: list[str]) -> dict[
         ],
         "post_install_check": post_install_check,
     }
+
+
+def _openai_credentials_status(*, backend: str, required: bool) -> dict[str, Any]:
+    checked = backend == "openai"
+    present = bool(os.environ.get("OPENAI_API_KEY", "").strip()) if checked else None
+    required_for_run = bool(checked and required)
+    if not checked:
+        status = "not_applicable"
+        action = "No OpenAI credential check is needed for this backend."
+    elif present:
+        status = "present"
+        action = "OPENAI_API_KEY is present; the value is not recorded."
+    elif required_for_run:
+        status = "missing_required"
+        action = "Set OPENAI_API_KEY locally before the OpenAI pilot; do not write the value into artifacts."
+    else:
+        status = "missing_optional"
+        action = "Set OPENAI_API_KEY locally before the real OpenAI model call."
+    return {
+        "checked": checked,
+        "backend": backend,
+        "env_var": "OPENAI_API_KEY" if checked else None,
+        "openai_api_key_required": required_for_run,
+        "openai_api_key_present": present,
+        "records_openai_api_key": False,
+        "records_secret_value": False,
+        "safe_to_share": True,
+        "status": status,
+        "action": action,
+    }
+
+
+def _openai_credentials_error(credentials: dict[str, Any]) -> str | None:
+    if credentials["openai_api_key_required"] and credentials["openai_api_key_present"] is not True:
+        return "OPENAI_API_KEY is required for this OpenAI pilot but was not present."
+    return None
 
 
 def _validate_target_backend_ready(*, target_backend: dict[str, Any], required: bool) -> None:
@@ -866,6 +920,7 @@ def _error_rate(errors: int, reference_count: int, hypothesis_count: int) -> flo
 def _transcription_checklist(
     *,
     backend: str,
+    credentials: dict[str, Any] | None = None,
     preflight_only: bool,
     real_transcription: bool,
     passed: bool,
@@ -877,6 +932,8 @@ def _transcription_checklist(
     reference_review_confirmed: bool,
     quality_review_confirmed: bool,
 ) -> dict[str, Any]:
+    if credentials is None:
+        credentials = _openai_credentials_status(backend=backend, required=False)
     duration_gate = audio["duration_gate"]
     meaningful_quality_threshold = quality["min_word_accuracy"] is not None and float(
         quality["min_word_accuracy"]
@@ -887,6 +944,7 @@ def _transcription_checklist(
     ready_for_real_transcription = bool(
         real_transcription
         and backend != "null"
+        and (not credentials["openai_api_key_required"] or credentials["openai_api_key_present"] is True)
         and audio["audio_confirmed_non_sensitive"]
         and audio_review_confirmed
         and audio["decoded"]
@@ -952,6 +1010,15 @@ def _transcription_checklist(
             required=True,
         ),
     ]
+    if credentials["checked"]:
+        before.append(
+            _checklist_item(
+                "openai_api_key_present",
+                "Set OPENAI_API_KEY locally for OpenAI; artifacts must record only presence, never the value.",
+                ok=credentials["openai_api_key_present"],
+                required=credentials["openai_api_key_required"],
+            )
+        )
     after = [
         _checklist_item(
             "transcript_redacted",
@@ -984,8 +1051,12 @@ def _transcription_checklist(
         "records_transcript_text": False,
         "records_expected_text": False,
         "records_expected_text_file_name": False,
+        "records_openai_api_key": False,
         "redacts_transcript_text": True,
         "redacts_expected_text": True,
+        "openai_api_key_checked": credentials["checked"],
+        "openai_api_key_required": credentials["openai_api_key_required"],
+        "openai_api_key_present": credentials["openai_api_key_present"],
         "audio_review_confirmed": audio_review_confirmed,
         "reference_review_confirmed": reference_review_confirmed,
         "reference_privacy_scan_passed": reference_privacy_scan["passed"],
@@ -1018,6 +1089,7 @@ def _preflight_decision(
     *,
     preflight_only: bool,
     target_backend: dict[str, Any],
+    credentials: dict[str, Any],
     audio: dict[str, Any],
 ) -> dict[str, Any]:
     checks = [
@@ -1064,7 +1136,20 @@ def _preflight_decision(
             required=True,
         ),
     ]
-    failed_preflight_checks = [item["id"] for item in checks[:-1] if item["ok"] is not True]
+    if credentials["checked"]:
+        checks.append(
+            _checklist_item(
+                "openai_api_key_present",
+                "Set OPENAI_API_KEY locally before the OpenAI pilot; artifacts record only presence.",
+                ok=credentials["openai_api_key_present"],
+                required=credentials["openai_api_key_required"],
+            )
+        )
+    failed_preflight_checks = [
+        item["id"]
+        for item in checks
+        if item["id"] != "target_backend_available" and item["required"] and item["ok"] is not True
+    ]
     backend_ready = target_backend["available"] is True
     if not preflight_only:
         decision = "not_applicable"
@@ -1117,6 +1202,7 @@ def _build_findings_markdown(
     timeout_seconds: float | None,
     transcription_checklist: dict[str, Any],
     preflight_decision: dict[str, Any],
+    credentials: dict[str, Any],
     report_path: Path,
     checklist_path: Path,
     next_step_path: Path,
@@ -1132,6 +1218,10 @@ def _build_findings_markdown(
         f"- Target backend reason: {_format_optional(target_backend['reason'])}",
         f"- Target backend install command: {_format_optional(target_backend['install_command'])}",
         f"- Target backend post-install check: {target_backend['install_plan']['post_install_check']}",
+        f"- OpenAI API key check: {credentials['status']}",
+        f"- OpenAI API key required: {credentials['openai_api_key_required']}",
+        f"- OpenAI API key present: {_format_optional(credentials['openai_api_key_present'])}",
+        f"- Records OpenAI API key: {credentials['records_openai_api_key']}",
         f"- Preflight only: {preflight_only}",
         f"- Real transcription requested: {real_transcription}",
         f"- Transcription timeout seconds: {_format_optional(timeout_seconds)}",
@@ -1170,6 +1260,7 @@ def _build_findings_markdown(
         "- The full audio path is not written to findings.",
         "- User audio and reference file names are redacted in shared artifacts.",
         "- Reference privacy scanning reports only risk types and counts, not matched text.",
+        "- OpenAI credential checks report only whether OPENAI_API_KEY is present; the key value is never written.",
         "- Prompt-like metadata is redacted.",
         "",
         "## Quality",
@@ -1250,6 +1341,7 @@ def _real_transcription_command_template(
         if effective_timeout_seconds is not None
         else ""
     )
+    credential_flag = " --require-openai-api-key" if real_backend == "openai" else ""
     return (
         "python tools/transcription_pilot.py --real-transcription "
         "--audio <audio-path> --audio-non-sensitive --confirm-audio-reviewed "
@@ -1258,7 +1350,7 @@ def _real_transcription_command_template(
         "--expected-text-file <expected-text-path> --min-word-accuracy 0.75 "
         f"--min-audio-seconds {_format_cli_number(min_seconds)} "
         f"--max-audio-seconds {_format_cli_number(max_seconds)} "
-        "--confirm-quality-reviewed --require-target-backend-ready --json"
+        f"--confirm-quality-reviewed --require-target-backend-ready{credential_flag} --json"
     )
 
 
@@ -1277,6 +1369,7 @@ def _build_real_transcription_next_step_markdown(
     preflight_only: bool,
     real_transcription: bool,
     require_target_backend_ready: bool,
+    credentials: dict[str, Any],
     timeout_seconds: float | None,
     audio: dict[str, Any],
     quality: dict[str, Any],
@@ -1300,6 +1393,10 @@ def _build_real_transcription_next_step_markdown(
         f"- Target backend reason: {_format_optional(target_backend['reason'])}",
         f"- Target backend install command: {_format_optional(target_backend['install_command'])}",
         f"- Target backend post-install check: {target_backend['install_plan']['post_install_check']}",
+        f"- OpenAI API key check: {credentials['status']}",
+        f"- OpenAI API key required: {credentials['openai_api_key_required']}",
+        f"- OpenAI API key present: {_format_optional(credentials['openai_api_key_present'])}",
+        f"- Records OpenAI API key: {credentials['records_openai_api_key']}",
         f"- Model from current run: {_format_optional(model)}",
         f"- Preflight only: {preflight_only}",
         f"- Real transcription requested: {real_transcription}",
@@ -1333,6 +1430,7 @@ def _build_real_transcription_next_step_markdown(
         "- Replace `<expected-text-path>` locally or use `--expected-text` only with public/non-sensitive text.",
         "- If the backend is unavailable, install only the optional extra shown in `target_backend.install_plan.pip_command`.",
         "- Run the `target_backend.install_plan.post_install_check` command before removing `--preflight-only`.",
+        "- For OpenAI, set `OPENAI_API_KEY` locally and keep `--require-openai-api-key`; never paste the key into artifacts.",
         "- Confirm `audio.audio_file_name_redacted=true` in `transcription-pilot-report.json`.",
         "- Confirm `target_backend.available=true` before running without `--preflight-only`.",
         "- Confirm `transcription_checklist.records_audio_file_name=false`.",
@@ -1361,8 +1459,12 @@ def _build_transcription_checklist_markdown(
         f"- Records transcript text: {transcription_checklist['records_transcript_text']}",
         f"- Records expected text: {transcription_checklist['records_expected_text']}",
         f"- Records expected text file name: {transcription_checklist['records_expected_text_file_name']}",
+        f"- Records OpenAI API key: {transcription_checklist['records_openai_api_key']}",
         f"- Redacts transcript text: {transcription_checklist['redacts_transcript_text']}",
         f"- Redacts expected text: {transcription_checklist['redacts_expected_text']}",
+        f"- OpenAI API key checked: {transcription_checklist['openai_api_key_checked']}",
+        f"- OpenAI API key required: {transcription_checklist['openai_api_key_required']}",
+        f"- OpenAI API key present: {_format_optional(transcription_checklist['openai_api_key_present'])}",
         f"- Audio review confirmed: {transcription_checklist['audio_review_confirmed']}",
         f"- Reference review confirmed: {transcription_checklist['reference_review_confirmed']}",
         f"- Reference privacy scan passed: {_format_optional(transcription_checklist['reference_privacy_scan_passed'])}",
@@ -1392,6 +1494,7 @@ def _build_transcription_checklist_markdown(
             "## Notes",
             "",
             "- Do not write private audio paths, full transcripts or full expected text in shared findings.",
+            "- Do not write OpenAI API keys or other secrets in shared findings.",
             "- Use real-transcription-next-step.md for a sanitized command template after preflight.",
             "- A preflight checklist is preparation only; beta evidence requires a real backend and quality gate.",
             "",
@@ -1432,6 +1535,9 @@ def _print_report(report: dict[str, Any]) -> None:
     print(f"Target backend available: {report['target_backend']['available']}")
     print(f"Target backend install command: {_format_optional(report['target_backend']['install_command'])}")
     print(f"Transcription timeout seconds: {_format_optional(report['transcription_timeout_seconds'])}")
+    print(f"OpenAI API key check: {report['credentials']['status']}")
+    print(f"OpenAI API key present: {_format_optional(report['credentials']['openai_api_key_present'])}")
+    print(f"Records OpenAI API key: {report['credentials']['records_openai_api_key']}")
     print(f"Preflight only: {report['preflight_only']}")
     print(f"Real transcription requested: {report['real_transcription_requested']}")
     print(f"Generated synthetic audio: {report['generated_synthetic_audio']}")
