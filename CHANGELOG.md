@@ -6,6 +6,17 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.71.0] - 2026-06-06
+
+### Agregado
+
+- Artifact `real-pilot-handoff.md` en `tools/pilot_run.py` con orden recomendado, auditoria estricta y politica de contenido segura para el operador del piloto real.
+- Bloque JSON `real_pilot_handoff` con `content_policy` para declarar que la tarjeta no registra audio, transcripciones, texto hablado, rutas locales ni identidad del operador.
+
+### Cambiado
+
+- README, `PILOTS.md`, docs HTML, roadmap y gate de estabilidad documentan el handoff seguro de pilotos reales.
+
 ## [0.70.0] - 2026-06-06
 
 ### Agregado

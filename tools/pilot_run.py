@@ -185,10 +185,27 @@ def run_safe_pilot(
         "platform_pilot_matrix": platform_pilot_matrix,
         "artifacts": artifacts,
     }
+    handoff_path = output / "real-pilot-handoff.md"
     plan_path = output / "pilot-plan.md"
     report_path = output / "pilot-report.json"
+    report["real_pilot_handoff"] = {
+        "artifact": str(handoff_path),
+        "safe_to_share": True,
+        "pending_blockers": beta_readiness["blockers"],
+        "strict_audit_command": report["beta_readiness"]["strict_audit_command"],
+        "content_policy": {
+            "uses_placeholders": True,
+            "records_audio": False,
+            "records_transcripts": False,
+            "records_spoken_text": False,
+            "records_local_paths": False,
+            "records_operator_identity": False,
+        },
+    }
+    artifacts["real_pilot_handoff"] = str(handoff_path)
     artifacts["pilot_plan"] = str(plan_path)
     artifacts["pilot_report"] = str(report_path)
+    handoff_path.write_text(_format_real_pilot_handoff_markdown(report), encoding="utf-8")
     plan_path.write_text(_format_pilot_plan_markdown(report), encoding="utf-8")
     report_path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return report
@@ -615,6 +632,7 @@ def _pilot_plan_artifact_summary(artifacts: list[dict[str, Any]]) -> list[dict[s
 
 def _format_pilot_plan_markdown(report: dict[str, Any]) -> str:
     beta = report["beta_readiness"]
+    handoff_name = Path(report["artifacts"].get("real_pilot_handoff", "real-pilot-handoff.md")).name
     lines = [
         "# Plan de pilotos AuralisVoiceKit",
         "",
@@ -632,6 +650,7 @@ def _format_pilot_plan_markdown(report: dict[str, Any]) -> str:
         f"- Blockers beta: {_format_inline_list(beta['blockers'])}",
         f"- Blockers cerrados por JSON: {_format_inline_list(beta['satisfied_json_blockers'])}",
         f"- Blockers JSON pendientes: {_format_inline_list(beta['missing_json_blockers'])}",
+        f"- Handoff seguro: `{handoff_name}`",
         "",
         "## Checks seguros",
         "",
@@ -763,6 +782,72 @@ def _format_pilot_plan_markdown(report: dict[str, Any]) -> str:
             "- Este plan usa nombres de artifacts y campos estructurados.",
             "- No copia audio, transcripciones, texto esperado real completo, rutas locales completas ni nombres reales de dispositivos.",
             "- Reemplaza `sample.mp3` por un archivo propio no sensible antes de ejecutar transcripcion real.",
+            "",
+        ]
+    )
+    return "\n".join(lines)
+
+
+def _format_real_pilot_handoff_markdown(report: dict[str, Any]) -> str:
+    beta = report["beta_readiness"]
+    policy = report["real_pilot_handoff"]["content_policy"]
+    lines = [
+        "# Handoff de pilotos reales AuralisVoiceKit",
+        "",
+        "Este artefacto es seguro para compartir: usa placeholders y no incluye audio, transcripciones, texto hablado real, rutas locales completas, nombres reales de dispositivos ni identidad del operador.",
+        "",
+        "## Estado",
+        "",
+        f"- Version: `{report['version']}`",
+        f"- Stage: `{report['stage']}`",
+        f"- Piloto seguro paso: `{_format_bool(report['safe_automated_pilot']['passed'])}`",
+        f"- Listo para pilotos reales: `{_format_bool(report['gate']['ready_for_real_world_pilots'])}`",
+        f"- Listo para beta: `{_format_bool(beta['ready_for_beta'])}`",
+        f"- Blockers pendientes: {_format_inline_list(beta['blockers'])}",
+        f"- Blockers cerrados por JSON: {_format_inline_list(beta['satisfied_json_blockers'])}",
+        "",
+        "## Politica de contenido",
+        "",
+        f"- Usa placeholders: `{_format_bool(policy['uses_placeholders'])}`",
+        f"- Registra audio: `{_format_bool(policy['records_audio'])}`",
+        f"- Registra transcripciones: `{_format_bool(policy['records_transcripts'])}`",
+        f"- Registra texto hablado: `{_format_bool(policy['records_spoken_text'])}`",
+        f"- Registra rutas locales: `{_format_bool(policy['records_local_paths'])}`",
+        f"- Registra identidad del operador: `{_format_bool(policy['records_operator_identity'])}`",
+        "",
+        "## Orden recomendado",
+        "",
+    ]
+    for step in report["recommended_pilot_sequence"]:
+        lines.extend(
+            [
+                f"### {step['order']}. {step['name']}",
+                "",
+                f"- Titulo: {step['title']}",
+                f"- Comando: `{step['command']}`",
+                f"- Artifact esperado: `{step['artifact']}`",
+                f"- Campos requeridos: {_format_inline_list(step['required_fields'])}",
+                f"- Requiere hardware: `{_format_bool(step['requires_hardware'])}`",
+                f"- Requiere operador: `{_format_bool(step['requires_operator'])}`",
+                f"- Requiere audio no sensible: `{_format_bool(step['requires_non_sensitive_audio'])}`",
+                f"- Revision requerida: `{_format_bool(step['review_required'])}`",
+                "",
+            ]
+        )
+    lines.extend(
+        [
+            "## Auditoria",
+            "",
+            f"- Comando estricto: `{beta['strict_audit_command']}`",
+            "- Guardar solo artifacts JSON/Markdown sanitizados generados por las herramientas.",
+            "- Ejecutar el refresco de `BETA_CHECKLIST.md` despues de auditar evidencias reales.",
+            "",
+            "## Antes de ejecutar",
+            "",
+            "- Reemplazar `sample.mp3`, `<audio-path>`, `<expected-text-path>` y `<public-spoken-text>` solo localmente.",
+            "- Usar audio propio no sensible y texto hablado publico/no sensible.",
+            "- Revisar `manual-capture-checklist.md`, `transcription-review-checklist.md`, `real-transcription-next-step.md`, `output-operator-checklist.md` y `system-output-next-step.md` segun el piloto.",
+            "- No pegar audio, transcripciones completas, texto esperado completo, texto hablado real, rutas locales ni nombres reales de dispositivos en reportes publicos.",
             "",
         ]
     )

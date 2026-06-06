@@ -49,6 +49,8 @@ PILOT_CHECKS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
             "system-output-next-step.md",
             "accepted_json_artifacts",
             "ignored_json_artifacts",
+            "real_pilot_handoff",
+            "real-pilot-handoff.md",
             "pilot-plan.md",
             "Secuencia recomendada",
             "Matriz por plataforma",
