@@ -111,7 +111,11 @@ def run_output_pilot(
 
     findings_path = output / "output-pilot-findings.md"
     checklist_path = output / "output-operator-checklist.md"
+    next_step_path = output / "system-output-next-step.md"
     report_path = output / "output-pilot-report.json"
+    command_template = _system_output_command_template(
+        expected_system=expected_system,
+    )
     findings = _build_findings_markdown(
         timestamp=timestamp,
         system=system_name,
@@ -128,11 +132,26 @@ def run_output_pilot(
         operator_checklist=operator_checklist,
         report_path=report_path,
         checklist_path=checklist_path,
+        next_step_path=next_step_path,
     )
     checklist = _build_operator_checklist_markdown(
         timestamp=timestamp,
         system=system_name,
         operator_checklist=operator_checklist,
+    )
+    next_step = _build_system_output_next_step_markdown(
+        timestamp=timestamp,
+        system=system_name,
+        system_guard=system_guard,
+        speak=speak,
+        operator_present=operator_present,
+        operator_confirmed_audio=operator_confirmed_audio,
+        text_review_confirmed=text_review_confirmed,
+        voice_review_confirmed=voice_review_confirmed,
+        spoken_text_privacy_scan=spoken_text_privacy_scan,
+        operator_checklist=operator_checklist,
+        command_template=command_template,
+        checklist_path=checklist_path,
     )
 
     report: dict[str, Any] = {
@@ -162,15 +181,25 @@ def run_output_pilot(
         "commands_count": len(payload.get("commands", [])),
         "notes": _pilot_notes(speak),
         "operator_checklist": operator_checklist,
+        "next_system_output": {
+            "artifact": str(next_step_path),
+            "command_template": command_template,
+            "uses_placeholders": True,
+            "records_spoken_text": False,
+            "records_operator_identity": False,
+            "requires_operator": True,
+        },
         "output": sanitized_payload,
         "artifacts": {
             "operator_checklist": str(checklist_path),
+            "system_output_next_step": str(next_step_path),
             "pilot_findings": str(findings_path),
             "output_pilot_report": str(report_path),
         },
     }
     findings_path.write_text(findings, encoding="utf-8")
     checklist_path.write_text(checklist, encoding="utf-8")
+    next_step_path.write_text(next_step, encoding="utf-8")
     report_path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return report
 
@@ -469,6 +498,7 @@ def _build_findings_markdown(
     operator_checklist: dict[str, Any],
     report_path: Path,
     checklist_path: Path,
+    next_step_path: Path,
 ) -> str:
     lines = [
         "# System output pilot findings",
@@ -494,6 +524,7 @@ def _build_findings_markdown(
         f"- Operator checklist ready for beta evidence: {operator_checklist['ready_for_beta_evidence']}",
         f"- Report: {report_path.name}",
         f"- Operator checklist: {checklist_path.name}",
+        f"- System output next step: {next_step_path.name}",
         "",
         "## Privacy",
         "",
@@ -519,6 +550,77 @@ def _build_findings_markdown(
         lines.append("- Re-run with --speak --operator-present only when a human is ready to hear real audio.")
     lines.append("- Record any platform-specific voice or command failures in PILOT_FINDINGS.md.")
     lines.append("")
+    return "\n".join(lines)
+
+
+def _system_output_command_template(*, expected_system: str | None) -> str:
+    expected = expected_system or "Windows|Linux|Darwin"
+    return (
+        "python tools/output_pilot.py --speak --operator-present --confirm-audible "
+        "--confirm-text-reviewed --confirm-voice-reviewed "
+        f"--expected-system \"{expected}\" --output-dir pilot_runs/output/system-real "
+        "--text <public-spoken-text> --json"
+    )
+
+
+def _build_system_output_next_step_markdown(
+    *,
+    timestamp: str,
+    system: str,
+    system_guard: dict[str, Any],
+    speak: bool,
+    operator_present: bool,
+    operator_confirmed_audio: bool,
+    text_review_confirmed: bool,
+    voice_review_confirmed: bool,
+    spoken_text_privacy_scan: dict[str, Any],
+    operator_checklist: dict[str, Any],
+    command_template: str,
+    checklist_path: Path,
+) -> str:
+    lines = [
+        "# System output next step",
+        "",
+        "This artifact is safe to share: it uses placeholders and does not include spoken text, operator identity or local paths.",
+        "",
+        "## Status",
+        "",
+        f"- Created at: {timestamp}",
+        f"- System from current run: {system}",
+        f"- Expected system: {_format_nullable(system_guard['expected_system'])}",
+        f"- Expected system matched: {_format_nullable(system_guard['expected_system_matched'])}",
+        f"- Dry run: {not speak}",
+        f"- Real audio requested: {speak}",
+        f"- Operator present: {operator_present}",
+        f"- Operator confirmed audio: {operator_confirmed_audio}",
+        f"- Text review confirmed: {text_review_confirmed}",
+        f"- Spoken text privacy scan passed: {_format_nullable(spoken_text_privacy_scan['passed'])}",
+        f"- Spoken text privacy risk count: {spoken_text_privacy_scan['risk_count']}",
+        f"- Spoken text privacy risk types: {_format_list(spoken_text_privacy_scan['risk_types'])}",
+        f"- Voice review confirmed: {voice_review_confirmed}",
+        f"- Ready for real audio: {operator_checklist['ready_for_real_audio']}",
+        f"- Ready for beta evidence: {operator_checklist['ready_for_beta_evidence']}",
+        f"- Operator checklist: {checklist_path.name}",
+        "",
+        "## Command Template",
+        "",
+        "Replace `<public-spoken-text>` locally after confirming the text is public/non-sensitive:",
+        "",
+        "```powershell",
+        command_template,
+        "```",
+        "",
+        "## Required Review",
+        "",
+        "- Review `output-operator-checklist.md` before enabling `--speak`.",
+        "- Keep the spoken text public/non-sensitive; do not paste private text into public findings.",
+        "- Confirm `spoken_text_privacy_scan.passed=true` before playback.",
+        "- Confirm `system_guard.expected_system_matched=true` on the target OS.",
+        "- Confirm `operator_checklist.text_review_confirmed=true`.",
+        "- Confirm `operator_checklist.voice_review_confirmed=true` after hearing the output.",
+        "- Confirm `operator_checklist.ready_for_beta_evidence=true` only after audible output and human review.",
+        "",
+    ]
     return "\n".join(lines)
 
 
@@ -565,6 +667,7 @@ def _build_operator_checklist_markdown(
             "## Notes",
             "",
             "- Do not write private spoken text, operator names or local paths in shared findings.",
+            "- Use system-output-next-step.md for a sanitized real-audio command template.",
             "- A dry-run checklist is preparation only; beta evidence requires real audio with --confirm-audible.",
             "",
         ]

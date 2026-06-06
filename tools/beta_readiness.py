@@ -296,7 +296,8 @@ def build_beta_readiness_report(
                 "Run tools/output_pilot.py --speak --operator-present --confirm-audible "
                 "--confirm-text-reviewed --confirm-voice-reviewed --expected-system \"Windows|Linux|Darwin\" "
                 "--output-dir pilot_runs/output/system-real with a human operator, then keep "
-                "output-operator-checklist.md, system_guard.expected_system_matched=true, "
+                "output-operator-checklist.md, system-output-next-step.md, "
+                "system_guard.expected_system_matched=true, "
                 "operator_checklist.expected_system_matched=true, spoken_text_privacy_scan.passed=true "
                 "and only sanitized findings."
             ),

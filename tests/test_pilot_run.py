@@ -67,6 +67,7 @@ class PilotRunTests(unittest.TestCase):
         self.assertIn("transcription_checklist.quality_review_confirmed", plan)
         self.assertIn("transcription_checklist.ready_for_beta_evidence", plan)
         self.assertIn("output-operator-checklist.md", plan)
+        self.assertIn("system-output-next-step.md", plan)
         self.assertIn("--confirm-text-reviewed", plan)
         self.assertIn("text_review_confirmed", plan)
         self.assertIn("spoken_text_privacy_scan.passed", plan)
@@ -146,6 +147,7 @@ class PilotRunTests(unittest.TestCase):
         self.assertFalse(checklist_step["requires_hardware"])
         self.assertFalse(checklist_step["requires_operator"])
         self.assertIn("operator_checklist.ready_for_beta_evidence", checklist_step["required_fields"])
+        self.assertIn("artifacts.system_output_next_step", checklist_step["required_fields"])
         matrix = {row["name"]: row for row in report["platform_pilot_matrix"]}
         self.assertIn("--confirm-input-reviewed", matrix["ubuntu-linux-capture"]["command"])
         self.assertIn("--confirm-input-reviewed", matrix["macos-capture"]["command"])

@@ -6,6 +6,18 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.70.0] - 2026-06-06
+
+### Agregado
+
+- Artifact `system-output-next-step.md` en `tools/output_pilot.py` con comando plantilla sanitizado para pasar del dry-run al piloto audible real.
+- Bloque JSON `next_system_output` con `command_template`, `uses_placeholders` y garantias de no registrar texto hablado ni identidad del operador.
+- `tools/pilot_run.py` ahora exige `artifacts.system_output_next_step` en la preparacion de salida audible.
+
+### Cambiado
+
+- README, `PILOTS.md`, docs HTML, roadmap, checklist beta y gate de estabilidad documentan la tarjeta segura previa a salida audible.
+
 ## [0.69.0] - 2026-06-06
 
 ### Agregado

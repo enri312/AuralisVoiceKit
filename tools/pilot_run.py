@@ -448,12 +448,16 @@ def _system_output_operator_checklist_step(order: int) -> dict[str, Any]:
             "operator_checklist.redacts_spoken_text",
             "operator_checklist.ready_for_beta_evidence",
             "artifacts.operator_checklist",
+            "artifacts.system_output_next_step",
         ],
         "requires_hardware": False,
         "requires_operator": False,
         "requires_non_sensitive_audio": False,
         "review_required": True,
-        "reason": "Prepara el checklist redactado antes de ejecutar salida audible real con operador presente.",
+        "reason": (
+            "Prepara el checklist redactado y system-output-next-step.md antes de ejecutar "
+            "salida audible real con operador presente."
+        ),
     }
 
 
@@ -529,7 +533,7 @@ def _platform_pilot_matrix(blockers: list[str]) -> list[dict[str, Any]]:
             "requires_non_sensitive_audio": False,
             "notes": (
                 "Ejecutar solo con operador presente; confirmar privacidad del texto, audibilidad, "
-                "plataforma esperada y revision de voz antes de beta."
+                "plataforma esperada, revision de voz y system-output-next-step.md antes de beta."
             ),
         },
         {
