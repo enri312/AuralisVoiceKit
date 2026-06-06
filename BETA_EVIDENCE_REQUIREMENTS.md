@@ -32,6 +32,7 @@ Este documento describe los campos JSON que pueden cerrar blockers de beta. No r
 - Campos requeridos:
   - `project` = `AuralisVoiceKit`
   - `real_transcription_requested` = `True`
+  - `target_backend.available` = `True`
   - `audio_confirmed_non_sensitive` = `True`
   - `audio.audio_file_name_redacted` = `True`
   - `audio_review_confirmed` = `True`

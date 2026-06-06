@@ -449,6 +449,7 @@ def _transcription_audio_preflight_step(order: int) -> dict[str, Any]:
             "preflight_only",
             "audio.decoded",
             "audio.duration_gate.passed",
+            "target_backend.available",
             "audio.audio_file_name_redacted",
             "audio.audio_file_extension",
             "audio.audio_confirmed_non_sensitive",
@@ -625,7 +626,8 @@ def _platform_pilot_matrix(blockers: list[str]) -> list[dict[str, Any]]:
             "requires_non_sensitive_audio": True,
             "notes": (
                 "Usar un MP3 propio no sensible, revisar privacidad del audio y referencia, "
-                "confirmar reference_privacy_scan.passed=true y confirmar revision humana de calidad."
+                "confirmar target_backend.available=true, reference_privacy_scan.passed=true "
+                "y confirmar revision humana de calidad."
             ),
         },
     ]

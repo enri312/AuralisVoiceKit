@@ -139,6 +139,22 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertFalse(checks["real_transcription_quality"]["ok"])
         self.assertIn("real_transcription_quality", report["blockers"])
 
+    def test_real_transcription_evidence_requires_target_backend_available(self):
+        module = _load_beta_readiness()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            evidence_path = Path(tmpdir) / "transcription-pilot-report.json"
+            evidence = _transcription_evidence()
+            evidence["target_backend"]["available"] = False
+            evidence["target_backend"]["reason"] = "missing optional backend"
+            _write_json(evidence_path, evidence)
+
+            report = module.build_beta_readiness_report(ROOT, evidence_paths=[evidence_path])
+            checks = {check["name"]: check for check in report["checks"]}
+
+        self.assertFalse(checks["real_transcription_quality"]["ok"])
+        self.assertIn("real_transcription_quality", report["blockers"])
+
     def test_real_transcription_evidence_requires_review_checklist(self):
         module = _load_beta_readiness()
 
@@ -612,6 +628,7 @@ class BetaReadinessTests(unittest.TestCase):
         }
         macos_fields = {field["path"]: field["expected"] for field in requirements["macos_capture"]["fields"]}
         self.assertEqual(transcription_fields["audio_confirmed_non_sensitive"], True)
+        self.assertEqual(transcription_fields["target_backend.available"], True)
         self.assertEqual(transcription_fields["audio.audio_file_name_redacted"], True)
         self.assertEqual(transcription_fields["audio_review_confirmed"], True)
         self.assertEqual(transcription_fields["reference_review_confirmed"], True)
@@ -661,6 +678,7 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertIn("capture_checklist.input_review_confirmed", content)
         self.assertIn("capture_checklist.ready_for_beta_evidence", content)
         self.assertIn("quality.min_word_accuracy", content)
+        self.assertIn("target_backend.available", content)
         self.assertIn("audio.audio_file_name_redacted", content)
         self.assertIn("audio_review_confirmed", content)
         self.assertIn("transcription_checklist.audio_review_confirmed", content)
@@ -985,6 +1003,13 @@ def _transcription_evidence(*, min_word_accuracy: float = 0.75, word_accuracy: f
     return {
         "project": "AuralisVoiceKit",
         "real_transcription_requested": True,
+        "target_backend": {
+            "name": "whisper",
+            "kind": "transcription",
+            "available": True,
+            "dependencies": ["faster-whisper"],
+            "reason": None,
+        },
         "audio_confirmed_non_sensitive": True,
         "audio": {
             "audio_file_name": "<audio-file-redacted>",

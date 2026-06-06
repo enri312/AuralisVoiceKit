@@ -6,6 +6,13 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.84.0] - 2026-06-06
+
+### Cambiado
+
+- `tools/beta_readiness.py` ahora exige `target_backend.available=true` para que una evidencia real de transcripcion pueda cerrar el blocker `real_transcription_quality`.
+- `tools/pilot_run.py` agrega `target_backend.available` al preflight recomendado de transcripcion y a la matriz de pilotos reales.
+
 ## [0.83.0] - 2026-06-06
 
 ### Agregado

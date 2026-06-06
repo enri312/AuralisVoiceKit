@@ -72,6 +72,7 @@ def build_evidence_requirements_report() -> dict[str, Any]:
                 "fields": [
                     _required_field("project", "AuralisVoiceKit"),
                     _required_field("real_transcription_requested", True),
+                    _required_field("target_backend.available", True),
                     _required_field("audio_confirmed_non_sensitive", True),
                     _required_field("audio.audio_file_name_redacted", True),
                     _required_field("audio_review_confirmed", True),
@@ -267,6 +268,7 @@ def build_beta_readiness_report(
             evidence_predicate=_is_real_transcription_quality_evidence,
             required_terms=(
                 "Real transcription requested: True",
+                "Target backend available: True",
                 "Audio review confirmed: True",
                 "Reference review confirmed: True",
                 "Reference privacy scan passed: True",
@@ -282,7 +284,8 @@ def build_beta_readiness_report(
                 "with reference_privacy_scan.passed=true, "
                 "--require-target-backend-ready before model execution, "
                 "and --confirm-quality-reviewed after human review, "
-                "then keep transcription-review-checklist.md and real-transcription-next-step.md."
+                "then keep target_backend.available=true, transcription-review-checklist.md "
+                "and real-transcription-next-step.md."
             ),
         ),
         _evidence_or_terms_check(
@@ -979,9 +982,12 @@ def _is_real_transcription_quality_evidence(report: dict[str, Any]) -> bool:
     audio = report.get("audio", {})
     quality = report.get("quality", {})
     reference_privacy_scan = report.get("reference_privacy_scan", {})
+    target_backend = report.get("target_backend", {})
     transcription_checklist = report.get("transcription_checklist", {})
     return (
         report.get("real_transcription_requested") is True
+        and isinstance(target_backend, dict)
+        and target_backend.get("available") is True
         and report.get("audio_confirmed_non_sensitive") is True
         and isinstance(audio, dict)
         and audio.get("audio_file_name_redacted") is True

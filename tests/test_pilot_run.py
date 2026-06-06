@@ -166,6 +166,10 @@ class PilotRunTests(unittest.TestCase):
             "audio.audio_file_name_redacted",
             report["recommended_pilot_sequence"][1]["required_fields"],
         )
+        self.assertIn(
+            "target_backend.available",
+            report["recommended_pilot_sequence"][1]["required_fields"],
+        )
         checklist_step = {
             step["name"]: step for step in report["recommended_pilot_sequence"]
         }["system-output-operator-checklist"]
@@ -179,6 +183,7 @@ class PilotRunTests(unittest.TestCase):
         self.assertIn("--confirm-audio-reviewed", transcription_step["command"])
         self.assertIn("--confirm-reference-reviewed", transcription_step["command"])
         self.assertIn("--require-target-backend-ready", transcription_step["command"])
+        self.assertIn("target_backend.available", transcription_step["required_fields"])
         self.assertIn("transcription_checklist.audio_review_confirmed", transcription_step["required_fields"])
         self.assertIn("audio.audio_file_name_redacted", transcription_step["required_fields"])
         self.assertIn("transcription_checklist.records_audio_file_name", transcription_step["required_fields"])
@@ -210,6 +215,7 @@ class PilotRunTests(unittest.TestCase):
         self.assertEqual(matrix["macos-capture"]["status"], "pending")
         self.assertEqual(matrix["transcription-audio-fixture"]["status"], "recommended")
         self.assertEqual(matrix["transcription-mp3-preflight"]["status"], "recommended")
+        self.assertIn("target_backend.available=true", matrix["real-transcription-quality"]["notes"])
         self.assertTrue(matrix["system-output-audible"]["requires_operator"])
         self.assertIn("--confirm-voice-reviewed", matrix["system-output-audible"]["command"])
         self.assertIn("--confirm-text-reviewed", matrix["system-output-audible"]["command"])
