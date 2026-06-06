@@ -60,6 +60,8 @@ Nota `v0.133.0`: el piloto seguro escribe `real-pilot-execution-card.md` con el 
 
 Nota `v0.134.0`: `real_pilot_execution_card.operator_gate` declara `allowed_to_run`, revisiones previas, confirmaciones humanas, guard backend estricto y cierre de auditoria antes de que un operador local ejecute el piloto real. English: the execution card now includes a structured operator gate.
 
+Nota `v0.135.0`: `operator_gate.command_audit` revisa que el comando local incluya plataforma esperada, confirmaciones humanas y guard backend estricto antes de marcarlo seguro para copiar. English: operator gates now audit required command flags before real-pilot execution.
+
 ```powershell
 py tools\pilot_run.py --output-dir pilot_runs\safe --json
 py tools\pilot_run.py --output-dir pilot_runs\safe --evidence pilot_runs\manual --evidence pilot_runs\output --evidence pilot_runs\transcription --json

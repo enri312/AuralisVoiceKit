@@ -6,6 +6,18 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.135.0] - 2026-06-06
+
+### Agregado
+
+- `real_pilot_execution_card.operator_gate` ahora incluye `command_audit` para validar el comando local antes de que el operador lo copie.
+- La auditoria confirma flags obligatorios como `--expected-system`, `--confirm-*` y guards estrictos de backend; si falta alguno, la compuerta queda bloqueada con `operator_command_audit_failed`.
+- `real-pilot-execution-card.md` muestra estado, flags requeridos, presentes y faltantes sin registrar valores privados.
+
+### Pruebas
+
+- Nuevas pruebas validan que el comando del foco Windows/WASAPI conserva flags humanos, plataforma esperada y guard estricto antes de quedar listo para operador local.
+
 ## [0.134.0] - 2026-06-06
 
 ### Agregado

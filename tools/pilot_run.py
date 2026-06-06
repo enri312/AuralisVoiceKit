@@ -1793,6 +1793,8 @@ def _real_pilot_execution_operator_gate(report: dict[str, Any]) -> dict[str, Any
         bool(step.get("review_required") or step.get("requires_hardware") or step.get("requires_operator"))
         for step in sequence
     )
+    human_confirmations = _operator_gate_human_confirmations(focus_command, focus, sequence)
+    command_audit = _operator_gate_command_audit(focus_command, human_confirmations, sequence)
     blocking_reasons: list[str] = []
     if gate["real_world_pilot"]["decision"] != "go":
         blocking_reasons.append("real_world_pilot_gate_blocked")
@@ -1804,9 +1806,10 @@ def _real_pilot_execution_operator_gate(report: dict[str, Any]) -> dict[str, Any
         blocking_reasons.append("next_evidence_focus_complete")
     if not sequence:
         blocking_reasons.append("no_preparation_sequence")
+    if command_audit["status"] != "passed":
+        blocking_reasons.append("operator_command_audit_failed")
     allowed_to_run = not blocking_reasons
 
-    human_confirmations = _operator_gate_human_confirmations(focus_command, focus, sequence)
     return {
         "decision": "ready_for_local_operator" if allowed_to_run else "blocked",
         "allowed_to_run": allowed_to_run,
@@ -1825,6 +1828,7 @@ def _real_pilot_execution_operator_gate(report: dict[str, Any]) -> dict[str, Any
         ],
         "human_confirmations": human_confirmations,
         "strict_backend_guard_required": strict_guard_required,
+        "command_audit": command_audit,
         "audit_closure": {
             "required": True,
             "strict_audit_command": report["evidence_manifest"]["strict_audit_command"],
@@ -1875,6 +1879,45 @@ def _operator_gate_human_confirmations(
     if any(step.get("strict_backend_guard_required") for step in sequence):
         confirmations.append("strict_backend_guard_enabled")
     return confirmations
+
+
+def _operator_gate_command_audit(
+    command: str,
+    human_confirmations: list[str],
+    sequence: list[dict[str, Any]],
+) -> dict[str, Any]:
+    required_flags: list[str] = []
+    for confirmation, flag in [
+        ("expected_system_review", "--expected-system"),
+        ("input_review_confirmed", "--confirm-input-reviewed"),
+        ("operator_present", "--operator-present"),
+        ("audible_output_confirmed", "--confirm-audible"),
+        ("spoken_text_reviewed", "--confirm-text-reviewed"),
+        ("voice_reviewed", "--confirm-voice-reviewed"),
+        ("audio_privacy_reviewed", "--confirm-audio-reviewed"),
+        ("reference_reviewed", "--confirm-reference-reviewed"),
+        ("quality_reviewed", "--confirm-quality-reviewed"),
+        ("non_sensitive_audio_confirmed", "--audio-non-sensitive"),
+    ]:
+        if confirmation in human_confirmations and flag not in required_flags:
+            required_flags.append(flag)
+    for step in sequence:
+        flag = step.get("strict_backend_guard_flag")
+        if step.get("strict_backend_guard_required") and flag and flag not in required_flags:
+            required_flags.append(flag)
+
+    present_flags = [flag for flag in required_flags if flag in command]
+    missing_flags = [flag for flag in required_flags if flag not in command]
+    status = "passed" if command and not missing_flags else "failed"
+    return {
+        "status": status,
+        "safe_to_copy_for_local_operator": status == "passed",
+        "command": command,
+        "required_flags": required_flags,
+        "present_required_flags": present_flags,
+        "missing_required_flags": missing_flags,
+        "records_private_values": False,
+    }
 
 
 def _pilot_plan_artifact_summary(artifacts: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -3297,6 +3340,15 @@ def _format_real_pilot_execution_card_markdown(report: dict[str, Any]) -> str:
         lines.append("- `ninguno`")
     lines.extend(
         [
+            "",
+            "## Auditoria del comando local",
+            "",
+            f"- Estado: `{operator_gate['command_audit']['status']}`",
+            f"- Seguro para copiar por operador local: `{_format_bool(operator_gate['command_audit']['safe_to_copy_for_local_operator'])}`",
+            f"- Flags requeridos: {_format_inline_list(operator_gate['command_audit']['required_flags'])}",
+            f"- Flags presentes: {_format_inline_list(operator_gate['command_audit']['present_required_flags'])}",
+            f"- Flags faltantes: {_format_inline_list(operator_gate['command_audit']['missing_required_flags'])}",
+            f"- Registra valores privados: `{_format_bool(operator_gate['command_audit']['records_private_values'])}`",
             "",
             "## Artifacts de apoyo",
             "",
