@@ -6,6 +6,14 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.91.0] - 2026-06-06
+
+### Agregado
+
+- `tools/pilot_run.py` ahora genera `real-pilot-fixture-preflight.md`, una tarjeta segura para preparar el fixture sintetico de transcripcion y el siguiente preflight con MP3 propio no sensible.
+- El reporte `pilot-report.json` expone `fixture_preflight_card` y `real_pilot_fixture_preflight` con comandos, artifacts esperados, estado de ffmpeg, checks de backend y condiciones de alto sin registrar audio, transcripciones, texto esperado, rutas locales ni identidad del operador.
+- README, `PILOTS.md`, roadmap, documentacion HTML y referencia API documentan la tarjeta de preflight de fixture como preparacion publica que no cuenta como evidencia beta.
+
 ## [0.90.0] - 2026-06-06
 
 ### Agregado

@@ -2,6 +2,37 @@
 
 Este documento resume hallazgos de pilotos reales o semi-manuales. No debe incluir audio, transcripciones privadas, rutas locales completas ni nombres reales de dispositivos.
 
+## 2026-06-06 - Windows fixture MP3 sintetico con tarjeta de preflight
+
+Comando ejecutado:
+
+```powershell
+python tools\pilot_audio_fixture.py --output-dir pilot_runs\transcription\fixture --format wav --format mp3 --duration 1.0 --sample-rate 16000 --run-preflight --min-audio-seconds 0.2 --max-audio-seconds 60 --json
+```
+
+Alcance:
+
+- Sistema: Windows.
+- Audio usado: sintetico publico generado por el runner.
+- Audio privado: no.
+- Red/modelos reales: no.
+- Artifact de preparacion: `real-pilot-fixture-preflight.md` en el piloto seguro.
+
+Resultado:
+
+- Fixture WAV/MP3: `passed=true`.
+- Preflight: `passed=true`.
+- Audio decoded: `true`.
+- Duration gate passed: `true`.
+- Generated public fixture: `true`.
+- Usable as beta evidence: `false`.
+
+Acciones siguientes:
+
+1. Revisar `real-pilot-fixture-preflight.md` antes de reemplazar `pilot-sample.mp3`.
+2. Ejecutar `python tools\transcription_pilot.py --preflight-only --audio sample.mp3 --audio-non-sensitive --backend whisper --normalize --min-audio-seconds 0.2 --max-audio-seconds 60 --json` con MP3 propio no sensible.
+3. Mantener la beta bloqueada hasta tener transcripcion real revisada con `--confirm-audio-reviewed`, `--confirm-reference-reviewed`, `reference_privacy_scan.passed=true` y `--confirm-quality-reviewed`.
+
 ## 2026-06-05 - Windows fixture MP3 sintetico con checklist de transcripcion
 
 Comando ejecutado:
