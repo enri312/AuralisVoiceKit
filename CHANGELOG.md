@@ -6,6 +6,18 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.125.0] - 2026-06-06
+
+### Cambiado
+
+- `tools/output_pilot.py` ahora agrega `system_output_command_card` al reporte de salida audible.
+- La evidencia beta de `system_output_audible` exige una tarjeta segura con placeholders, preflight sin audio, operador requerido para salida real y flags que prueban que no se guardan audio, texto hablado, identidad del operador ni rutas locales.
+- `tools/pilot_run.py`, `BETA_EVIDENCE_REQUIREMENTS.md`, README y docs HTML reflejan el nuevo contrato de salida audible.
+
+### Pruebas
+
+- Nuevas pruebas rechazan evidencia de salida audible si la tarjeta de comandos no es segura, no usa placeholders o registra contenido privado.
+
 ## [0.124.0] - 2026-06-06
 
 ### Cambiado

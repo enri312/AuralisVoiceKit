@@ -168,6 +168,7 @@ def build_evidence_requirements_report() -> dict[str, Any]:
                     _required_field("next_system_output.uses_placeholders", True),
                     _required_field("next_system_output.records_spoken_text", False),
                     _required_field("next_system_output.records_operator_identity", False),
+                    *_system_output_command_card_required_fields(),
                     _required_field("passed", True),
                 ],
             },
@@ -230,6 +231,7 @@ def build_evidence_requirements_report() -> dict[str, Any]:
             "Reference privacy scans expose only pass/fail, risk counts and risk types.",
             "Spoken text privacy scans expose only pass/fail, risk counts and risk types.",
             "Manual capture command cards must use placeholders and must not record audio, device names or local paths.",
+            "System output command cards must use placeholders and must not record audio, spoken text, operator identity or local paths.",
             "Only structured fields and sanitized artifact names are used.",
         ],
     }
@@ -401,6 +403,7 @@ def build_beta_readiness_report(
                 "Commands available: True",
                 "Ready for real audio: True",
                 "Operator checklist ready for beta evidence: True",
+                "System output command card ready for beta evidence: True",
             ),
             next_action=(
                 "Run tools/output_pilot.py --speak --operator-present --confirm-audible "
@@ -416,7 +419,11 @@ def build_beta_readiness_report(
                 "operator_checklist.records_operator_identity=false, "
                 "operator_checklist.commands_available=true, "
                 "operator_checklist.ready_for_real_audio=true, "
-                "next_system_output.records_spoken_text=false "
+                "next_system_output.records_spoken_text=false, "
+                "system_output_command_card.safe_to_share=true, "
+                "system_output_command_card.uses_placeholders=true, "
+                "system_output_command_card.records_spoken_text=false, "
+                "system_output_command_card.records_operator_identity=false, "
                 "and only sanitized findings."
             ),
         ),
@@ -973,6 +980,22 @@ def _manual_capture_command_card_required_fields(blocker: str) -> list[dict[str,
     ]
 
 
+def _system_output_command_card_required_fields() -> list[dict[str, Any]]:
+    return [
+        _required_field("system_output_command_card.artifact", "system-output-next-step.md"),
+        _required_field("system_output_command_card.blocker", "system_output_audible"),
+        _required_field("system_output_command_card.ready_for_beta_evidence", True),
+        _required_field("system_output_command_card.safe_to_share", True),
+        _required_field("system_output_command_card.uses_placeholders", True),
+        _required_field("system_output_command_card.preflight_plays_audio", False),
+        _required_field("system_output_command_card.real_output_requires_operator", True),
+        _required_field("system_output_command_card.records_audio", False),
+        _required_field("system_output_command_card.records_spoken_text", False),
+        _required_field("system_output_command_card.records_operator_identity", False),
+        _required_field("system_output_command_card.records_local_paths", False),
+    ]
+
+
 def _audit_requirement(report: dict[str, Any], requirement: dict[str, Any]) -> dict[str, Any]:
     required_fields = list(requirement["fields"]) + _applicable_conditional_fields(report, requirement)
     fields = [_audit_field(report, field) for field in required_fields]
@@ -1307,6 +1330,33 @@ def _has_safe_manual_capture_command_card(report: dict[str, Any], blocker: str) 
     )
 
 
+def _has_safe_system_output_command_card(report: dict[str, Any]) -> bool:
+    card = report.get("system_output_command_card", {})
+    if not isinstance(card, dict):
+        return False
+    command_templates = (
+        card.get("preflight_command_template"),
+        card.get("real_output_command_template"),
+        card.get("audit_command_template"),
+    )
+    return (
+        card.get("artifact") == "system-output-next-step.md"
+        and card.get("blocker") == "system_output_audible"
+        and card.get("ready_for_beta_evidence") is True
+        and card.get("safe_to_share") is True
+        and card.get("uses_placeholders") is True
+        and card.get("preflight_plays_audio") is False
+        and card.get("real_output_requires_operator") is True
+        and card.get("records_audio") is False
+        and card.get("records_spoken_text") is False
+        and card.get("records_operator_identity") is False
+        and card.get("records_local_paths") is False
+        and all(isinstance(command, str) and "<pilot-output-dir>" in command for command in command_templates)
+        and isinstance(card.get("real_output_command_template"), str)
+        and "<public-spoken-text>" in card["real_output_command_template"]
+    )
+
+
 def _is_cross_platform_capture_backend(value: object) -> bool:
     return str(value).casefold() in CROSS_PLATFORM_CAPTURE_BACKENDS
 
@@ -1380,6 +1430,7 @@ def _is_system_output_audible_evidence(report: dict[str, Any]) -> bool:
         and next_system_output.get("uses_placeholders") is True
         and next_system_output.get("records_spoken_text") is False
         and next_system_output.get("records_operator_identity") is False
+        and _has_safe_system_output_command_card(report)
         and isinstance(operator_checklist, dict)
         and operator_checklist.get("expected_system_matched") is True
         and operator_checklist.get("records_operator_identity") is False

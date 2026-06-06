@@ -525,6 +525,10 @@ class PilotRunTests(unittest.TestCase):
             "next_system_output.records_spoken_text",
             manifest_rows["system_output_audible"]["required_fields"],
         )
+        self.assertIn(
+            "system_output_command_card.safe_to_share",
+            manifest_rows["system_output_audible"]["required_fields"],
+        )
         self.assertTrue(manifest_rows["system_output_audible"]["strict_backend_guard_required"])
         self.assertEqual(
             manifest_rows["system_output_audible"]["strict_backend_guard_flag"],
@@ -627,6 +631,10 @@ class PilotRunTests(unittest.TestCase):
             "next_system_output.records_spoken_text",
             report["system_output_readiness_card"]["audible_required_fields"],
         )
+        self.assertIn(
+            "system_output_command_card.records_spoken_text",
+            report["system_output_readiness_card"]["audible_required_fields"],
+        )
         self.assertIn("status", report["system_output_readiness_card"]["output_backend"])
         self.assertFalse(report["system_output_readiness_card"]["content_policy"]["records_spoken_text"])
         decision_environment_rows = {row["name"]: row for row in report["environment_checklist"]}
@@ -725,6 +733,10 @@ class PilotRunTests(unittest.TestCase):
         self.assertIn("next_system_output.uses_placeholders", output_step["required_fields"])
         self.assertIn("next_system_output.records_spoken_text", output_step["required_fields"])
         self.assertIn("next_system_output.records_operator_identity", output_step["required_fields"])
+        self.assertIn("system_output_command_card.safe_to_share", output_step["required_fields"])
+        self.assertIn("system_output_command_card.uses_placeholders", output_step["required_fields"])
+        self.assertIn("system_output_command_card.records_spoken_text", output_step["required_fields"])
+        self.assertIn("system_output_command_card.records_operator_identity", output_step["required_fields"])
         self.assertFalse(checklist_step["requires_hardware"])
         self.assertFalse(checklist_step["requires_operator"])
         self.assertFalse(checklist_step["strict_backend_guard_required"])
@@ -796,6 +808,7 @@ class PilotRunTests(unittest.TestCase):
         self.assertIn("output_backend_ready_required=true", matrix["system-output-audible"]["notes"])
         self.assertIn("operator_checklist.redacts_spoken_text=true", matrix["system-output-audible"]["notes"])
         self.assertIn("next_system_output.records_spoken_text=false", matrix["system-output-audible"]["notes"])
+        self.assertIn("system_output_command_card.records_spoken_text=false", matrix["system-output-audible"]["notes"])
         self.assertIn("--fail-on-audit-gaps", report["beta_readiness"]["strict_audit_command"])
         self.assertIn("Campos condicionales", evidence_manifest)
         self.assertIn("target_backend.name", evidence_manifest)

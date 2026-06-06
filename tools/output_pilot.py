@@ -128,11 +128,25 @@ def run_output_pilot(
         "artifact": str(next_step_path),
         "command_template": command_template,
         "target_output_backend": target_output_backend,
+        "safe_to_share": True,
         "uses_placeholders": True,
         "records_spoken_text": False,
         "records_operator_identity": False,
+        "records_local_paths": False,
         "requires_operator": True,
     }
+    system_output_command_card = _system_output_command_card(
+        command_template=command_template,
+        target_output_backend=target_output_backend,
+        require_output_backend_ready=require_output_backend_ready,
+        speak=speak,
+        confirmation_status=confirmation_status,
+        text_review_confirmed=text_review_confirmed,
+        spoken_text_privacy_scan=spoken_text_privacy_scan,
+        voice_review_confirmed=voice_review_confirmed,
+        operator_checklist=operator_checklist,
+        passed=passed,
+    )
     beta_evidence_gap = _output_beta_evidence_gap(
         backend="system",
         system_guard=system_guard,
@@ -146,6 +160,7 @@ def run_output_pilot(
         passed=passed,
         operator_checklist=operator_checklist,
         next_system_output=next_system_output,
+        system_output_command_card=system_output_command_card,
     )
     findings = _build_findings_markdown(
         timestamp=timestamp,
@@ -163,6 +178,7 @@ def run_output_pilot(
         payload=sanitized_payload,
         operator_checklist=operator_checklist,
         beta_evidence_gap=beta_evidence_gap,
+        system_output_command_card=system_output_command_card,
         report_path=report_path,
         checklist_path=checklist_path,
         next_step_path=next_step_path,
@@ -186,6 +202,7 @@ def run_output_pilot(
         spoken_text_privacy_scan=spoken_text_privacy_scan,
         operator_checklist=operator_checklist,
         beta_evidence_gap=beta_evidence_gap,
+        system_output_command_card=system_output_command_card,
         command_template=command_template,
         checklist_path=checklist_path,
     )
@@ -222,6 +239,7 @@ def run_output_pilot(
         "operator_checklist": operator_checklist,
         "beta_evidence_gap": beta_evidence_gap,
         "next_system_output": next_system_output,
+        "system_output_command_card": system_output_command_card,
         "output": sanitized_payload,
         "artifacts": {
             "operator_checklist": str(checklist_path),
@@ -434,7 +452,8 @@ def _output_backend_readiness_plan(system: str, dependencies: list[str]) -> dict
     audible_check = (
         "python tools/output_pilot.py --speak --operator-present --confirm-audible "
         "--confirm-text-reviewed --confirm-voice-reviewed --require-output-backend-ready "
-        f"--expected-system \"{system}\" --text <public-spoken-text> --json"
+        f"--expected-system \"{system}\" --output-dir <pilot-output-dir> "
+        "--text <public-spoken-text> --json"
     )
     return {
         "backend": "system",
@@ -612,6 +631,7 @@ def _output_beta_evidence_gap(
     passed: bool,
     operator_checklist: dict[str, Any],
     next_system_output: dict[str, Any],
+    system_output_command_card: dict[str, Any],
 ) -> dict[str, Any]:
     """Summarize why this output report does or does not close beta evidence."""
 
@@ -722,6 +742,72 @@ def _output_beta_evidence_gap(
             next_system_output["records_operator_identity"],
             next_system_output["records_operator_identity"] is False,
         ),
+        _beta_gap_check(
+            "system_output_command_card.artifact",
+            "system-output-next-step.md",
+            system_output_command_card["artifact"],
+            system_output_command_card["artifact"] == "system-output-next-step.md",
+        ),
+        _beta_gap_check(
+            "system_output_command_card.blocker",
+            "system_output_audible",
+            system_output_command_card["blocker"],
+            system_output_command_card["blocker"] == "system_output_audible",
+        ),
+        _beta_gap_check(
+            "system_output_command_card.ready_for_beta_evidence",
+            True,
+            system_output_command_card["ready_for_beta_evidence"],
+            system_output_command_card["ready_for_beta_evidence"] is True,
+        ),
+        _beta_gap_check(
+            "system_output_command_card.safe_to_share",
+            True,
+            system_output_command_card["safe_to_share"],
+            system_output_command_card["safe_to_share"] is True,
+        ),
+        _beta_gap_check(
+            "system_output_command_card.uses_placeholders",
+            True,
+            system_output_command_card["uses_placeholders"],
+            system_output_command_card["uses_placeholders"] is True,
+        ),
+        _beta_gap_check(
+            "system_output_command_card.preflight_plays_audio",
+            False,
+            system_output_command_card["preflight_plays_audio"],
+            system_output_command_card["preflight_plays_audio"] is False,
+        ),
+        _beta_gap_check(
+            "system_output_command_card.real_output_requires_operator",
+            True,
+            system_output_command_card["real_output_requires_operator"],
+            system_output_command_card["real_output_requires_operator"] is True,
+        ),
+        _beta_gap_check(
+            "system_output_command_card.records_audio",
+            False,
+            system_output_command_card["records_audio"],
+            system_output_command_card["records_audio"] is False,
+        ),
+        _beta_gap_check(
+            "system_output_command_card.records_spoken_text",
+            False,
+            system_output_command_card["records_spoken_text"],
+            system_output_command_card["records_spoken_text"] is False,
+        ),
+        _beta_gap_check(
+            "system_output_command_card.records_operator_identity",
+            False,
+            system_output_command_card["records_operator_identity"],
+            system_output_command_card["records_operator_identity"] is False,
+        ),
+        _beta_gap_check(
+            "system_output_command_card.records_local_paths",
+            False,
+            system_output_command_card["records_local_paths"],
+            system_output_command_card["records_local_paths"] is False,
+        ),
         _beta_gap_check("passed", True, passed, passed),
     ]
     missing_fields = [item["path"] for item in checks if item["ok"] is not True]
@@ -783,6 +869,7 @@ def _build_findings_markdown(
     payload: dict[str, Any],
     operator_checklist: dict[str, Any],
     beta_evidence_gap: dict[str, Any],
+    system_output_command_card: dict[str, Any],
     report_path: Path,
     checklist_path: Path,
     next_step_path: Path,
@@ -814,6 +901,7 @@ def _build_findings_markdown(
         f"- Voices reported: {len(payload.get('voices', []))}",
         f"- Commands observed: {len(payload.get('commands', []))}",
         f"- Operator checklist ready for beta evidence: {operator_checklist['ready_for_beta_evidence']}",
+        f"- System output command card ready for beta evidence: {system_output_command_card['ready_for_beta_evidence']}",
         f"- Beta evidence gap ready: {beta_evidence_gap['ready_for_beta_evidence']}",
         f"- Beta evidence gap missing count: {beta_evidence_gap['missing_count']}",
         f"- Beta evidence gap next action: {beta_evidence_gap['next_action']}",
@@ -859,9 +947,67 @@ def _system_output_command_template(*, expected_system: str | None) -> str:
     return (
         "python tools/output_pilot.py --speak --operator-present --confirm-audible "
         "--confirm-text-reviewed --confirm-voice-reviewed --require-output-backend-ready "
-        f"--expected-system \"{expected}\" --output-dir pilot_runs/output/system-real "
+        f"--expected-system \"{expected}\" --output-dir <pilot-output-dir> "
         "--text <public-spoken-text> --json"
     )
+
+
+def _system_output_command_card(
+    *,
+    command_template: str,
+    target_output_backend: dict[str, Any],
+    require_output_backend_ready: bool,
+    speak: bool,
+    confirmation_status: str,
+    text_review_confirmed: bool,
+    spoken_text_privacy_scan: dict[str, Any],
+    voice_review_confirmed: bool,
+    operator_checklist: dict[str, Any],
+    passed: bool,
+) -> dict[str, Any]:
+    preflight_command = _append_output_dir_placeholder(
+        target_output_backend["readiness_plan"]["post_install_check"]
+    )
+    ready = (
+        target_output_backend["available"] is True
+        and require_output_backend_ready
+        and speak
+        and confirmation_status == "confirmed"
+        and text_review_confirmed
+        and spoken_text_privacy_scan["passed"] is True
+        and voice_review_confirmed
+        and operator_checklist["ready_for_beta_evidence"] is True
+        and passed
+    )
+    return {
+        "artifact": "system-output-next-step.md",
+        "safe_to_share": True,
+        "uses_placeholders": True,
+        "blocker": "system_output_audible",
+        "ready_for_beta_evidence": ready,
+        "target_backend_available": target_output_backend["available"],
+        "output_backend_ready_required": require_output_backend_ready,
+        "preflight_command_template": preflight_command,
+        "preflight_plays_audio": target_output_backend["readiness_plan"]["post_install_check_plays_audio"],
+        "real_output_command_template": command_template,
+        "real_output_requires_operator": True,
+        "audit_command_template": (
+            "python tools/beta_readiness.py --audit-evidence --evidence <pilot-output-dir> --json"
+        ),
+        "records_audio": False,
+        "records_spoken_text": False,
+        "records_operator_identity": False,
+        "records_local_paths": False,
+        "next_action": (
+            "Audit this report with tools/beta_readiness.py --audit-evidence before closing beta."
+            if ready
+            else "Complete the audible output checklist and rerun before beta evidence audit."
+        ),
+    }
+
+
+def _append_output_dir_placeholder(command: str) -> str:
+    return f"{command} --output-dir <pilot-output-dir>"
 
 
 def _build_system_output_next_step_markdown(
@@ -879,6 +1025,7 @@ def _build_system_output_next_step_markdown(
     spoken_text_privacy_scan: dict[str, Any],
     operator_checklist: dict[str, Any],
     beta_evidence_gap: dict[str, Any],
+    system_output_command_card: dict[str, Any],
     command_template: str,
     checklist_path: Path,
 ) -> str:
@@ -910,6 +1057,12 @@ def _build_system_output_next_step_markdown(
         f"- Voice review confirmed: {voice_review_confirmed}",
         f"- Ready for real audio: {operator_checklist['ready_for_real_audio']}",
         f"- Ready for beta evidence: {operator_checklist['ready_for_beta_evidence']}",
+        f"- Command card ready for beta evidence: {system_output_command_card['ready_for_beta_evidence']}",
+        f"- Command card safe to share: {system_output_command_card['safe_to_share']}",
+        f"- Command card uses placeholders: {system_output_command_card['uses_placeholders']}",
+        f"- Command card records spoken text: {system_output_command_card['records_spoken_text']}",
+        f"- Command card records operator identity: {system_output_command_card['records_operator_identity']}",
+        f"- Command card records local paths: {system_output_command_card['records_local_paths']}",
         f"- Beta evidence gap ready: {beta_evidence_gap['ready_for_beta_evidence']}",
         f"- Beta evidence gap missing count: {beta_evidence_gap['missing_count']}",
         f"- Beta evidence gap next action: {beta_evidence_gap['next_action']}",
@@ -917,10 +1070,22 @@ def _build_system_output_next_step_markdown(
         "",
         "## Command Template",
         "",
+        "Run the preflight command first. It does not play audio:",
+        "",
+        "```powershell",
+        system_output_command_card["preflight_command_template"],
+        "```",
+        "",
         "Replace `<public-spoken-text>` locally after confirming the text is public/non-sensitive:",
         "",
         "```powershell",
-        command_template,
+        system_output_command_card["real_output_command_template"],
+        "```",
+        "",
+        "Audit only the sanitized output directory:",
+        "",
+        "```powershell",
+        system_output_command_card["audit_command_template"],
         "```",
         "",
         "## Beta Evidence Gap",

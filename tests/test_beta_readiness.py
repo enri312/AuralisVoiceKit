@@ -580,6 +580,50 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertFalse(checks["system_output_audible"]["ok"])
         self.assertIn("system_output_audible", report["blockers"])
 
+    def test_system_output_evidence_requires_safe_command_card(self):
+        module = _load_beta_readiness()
+
+        unsafe_cases = [
+            ("safe_to_share", False),
+            ("uses_placeholders", False),
+            ("preflight_plays_audio", True),
+            ("real_output_requires_operator", False),
+            ("records_audio", True),
+            ("records_spoken_text", True),
+            ("records_operator_identity", True),
+            ("records_local_paths", True),
+        ]
+        for field, value in unsafe_cases:
+            with self.subTest(field=field):
+                with tempfile.TemporaryDirectory() as tmpdir:
+                    evidence_path = Path(tmpdir) / "output-pilot-report.json"
+                    payload = _output_evidence()
+                    payload["system_output_command_card"][field] = value
+                    _write_json(evidence_path, payload)
+
+                    report = module.build_beta_readiness_report(ROOT, evidence_paths=[evidence_path])
+                    checks = {check["name"]: check for check in report["checks"]}
+
+                self.assertFalse(checks["system_output_audible"]["ok"])
+                self.assertIn("system_output_audible", report["blockers"])
+
+    def test_system_output_evidence_requires_command_card_placeholders(self):
+        module = _load_beta_readiness()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            evidence_path = Path(tmpdir) / "output-pilot-report.json"
+            payload = _output_evidence()
+            payload["system_output_command_card"]["real_output_command_template"] = (
+                "python tools/output_pilot.py --speak --text Hola --json"
+            )
+            _write_json(evidence_path, payload)
+
+            report = module.build_beta_readiness_report(ROOT, evidence_paths=[evidence_path])
+            checks = {check["name"]: check for check in report["checks"]}
+
+        self.assertFalse(checks["system_output_audible"]["ok"])
+        self.assertIn("system_output_audible", report["blockers"])
+
     def test_system_output_evidence_requires_real_audio_readiness(self):
         module = _load_beta_readiness()
 
@@ -987,6 +1031,17 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertEqual(output_fields["next_system_output.uses_placeholders"], True)
         self.assertEqual(output_fields["next_system_output.records_spoken_text"], False)
         self.assertEqual(output_fields["next_system_output.records_operator_identity"], False)
+        self.assertEqual(output_fields["system_output_command_card.artifact"], "system-output-next-step.md")
+        self.assertEqual(output_fields["system_output_command_card.blocker"], "system_output_audible")
+        self.assertEqual(output_fields["system_output_command_card.ready_for_beta_evidence"], True)
+        self.assertEqual(output_fields["system_output_command_card.safe_to_share"], True)
+        self.assertEqual(output_fields["system_output_command_card.uses_placeholders"], True)
+        self.assertEqual(output_fields["system_output_command_card.preflight_plays_audio"], False)
+        self.assertEqual(output_fields["system_output_command_card.real_output_requires_operator"], True)
+        self.assertEqual(output_fields["system_output_command_card.records_audio"], False)
+        self.assertEqual(output_fields["system_output_command_card.records_spoken_text"], False)
+        self.assertEqual(output_fields["system_output_command_card.records_operator_identity"], False)
+        self.assertEqual(output_fields["system_output_command_card.records_local_paths"], False)
         self.assertEqual(windows_fields["target_capture_backend.available"], True)
         self.assertEqual(windows_fields["capture_backend_ready_required"], True)
         self.assertIn("system_guard.expected_system_matched", linux_fields)
@@ -1038,6 +1093,9 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertIn("manual_capture_command_card.safe_to_share", content)
         self.assertIn("manual_capture_command_card.uses_placeholders", content)
         self.assertIn("manual_capture_command_card.records_audio_bytes", content)
+        self.assertIn("system_output_command_card.safe_to_share", content)
+        self.assertIn("system_output_command_card.uses_placeholders", content)
+        self.assertIn("system_output_command_card.records_spoken_text", content)
         self.assertIn("manual_capture_command_card.records_device_name", content)
         self.assertIn("manual_capture_command_card.records_local_paths", content)
         self.assertIn("quality.min_word_accuracy", content)
@@ -1426,7 +1484,37 @@ def _output_evidence() -> dict:
             "records_spoken_text": False,
             "records_operator_identity": False,
         },
+        "system_output_command_card": _system_output_command_card(),
         "passed": True,
+    }
+
+
+def _system_output_command_card() -> dict:
+    return {
+        "artifact": "system-output-next-step.md",
+        "safe_to_share": True,
+        "uses_placeholders": True,
+        "blocker": "system_output_audible",
+        "ready_for_beta_evidence": True,
+        "preflight_command_template": (
+            "python tools/output_pilot.py --system Linux --require-output-backend-ready "
+            "--json --output-dir <pilot-output-dir>"
+        ),
+        "preflight_plays_audio": False,
+        "real_output_command_template": (
+            "python tools/output_pilot.py --speak --operator-present --confirm-audible "
+            "--confirm-text-reviewed --confirm-voice-reviewed --require-output-backend-ready "
+            "--expected-system \"Windows|Linux|Darwin\" --output-dir <pilot-output-dir> "
+            "--text <public-spoken-text> --json"
+        ),
+        "real_output_requires_operator": True,
+        "audit_command_template": (
+            "python tools/beta_readiness.py --audit-evidence --evidence <pilot-output-dir> --json"
+        ),
+        "records_audio": False,
+        "records_spoken_text": False,
+        "records_operator_identity": False,
+        "records_local_paths": False,
     }
 
 

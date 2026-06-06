@@ -124,6 +124,17 @@ Este documento describe los campos JSON que pueden cerrar blockers de beta. No r
   - `next_system_output.uses_placeholders` = `True`
   - `next_system_output.records_spoken_text` = `False`
   - `next_system_output.records_operator_identity` = `False`
+  - `system_output_command_card.artifact` = `system-output-next-step.md`
+  - `system_output_command_card.blocker` = `system_output_audible`
+  - `system_output_command_card.ready_for_beta_evidence` = `True`
+  - `system_output_command_card.safe_to_share` = `True`
+  - `system_output_command_card.uses_placeholders` = `True`
+  - `system_output_command_card.preflight_plays_audio` = `False`
+  - `system_output_command_card.real_output_requires_operator` = `True`
+  - `system_output_command_card.records_audio` = `False`
+  - `system_output_command_card.records_spoken_text` = `False`
+  - `system_output_command_card.records_operator_identity` = `False`
+  - `system_output_command_card.records_local_paths` = `False`
   - `passed` = `True`
 
 ### ubuntu_linux_capture
@@ -193,4 +204,5 @@ Este documento describe los campos JSON que pueden cerrar blockers de beta. No r
 - Reference privacy scans expose only pass/fail, risk counts and risk types.
 - Spoken text privacy scans expose only pass/fail, risk counts and risk types.
 - Manual capture command cards must use placeholders and must not record audio, device names or local paths.
+- System output command cards must use placeholders and must not record audio, spoken text, operator identity or local paths.
 - Only structured fields and sanitized artifact names are used.
