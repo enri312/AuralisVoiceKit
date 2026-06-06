@@ -121,6 +121,25 @@ Este documento describe los campos JSON que pueden cerrar blockers de beta. No r
   - `real_transcription_command_card.records_expected_text` = `False`
   - `real_transcription_command_card.records_expected_text_file_name` = `False`
   - `real_transcription_command_card.records_local_paths` = `False`
+  - `real_transcription_operator_gate.safe_to_share` = `True`
+  - `real_transcription_operator_gate.decision` = `ready_for_beta_audit`
+  - `real_transcription_operator_gate.blocker` = `real_transcription_quality`
+  - `real_transcription_operator_gate.expected_artifact` = `transcription-pilot-report.json`
+  - `real_transcription_operator_gate.ready_for_beta_audit` = `True`
+  - `real_transcription_operator_gate.command_safe_to_copy` = `True`
+  - `real_transcription_operator_gate.local_operator_required` = `True`
+  - `real_transcription_operator_gate.missing_confirmation_count` = `0`
+  - `real_transcription_operator_gate.missing_confirmations` = `[]`
+  - `real_transcription_operator_gate.missing_field_count` = `0`
+  - `real_transcription_operator_gate.missing_fields` = `[]`
+  - `real_transcription_operator_gate.records_audio` = `False`
+  - `real_transcription_operator_gate.records_audio_path` = `False`
+  - `real_transcription_operator_gate.records_audio_file_name` = `False`
+  - `real_transcription_operator_gate.records_transcript_text` = `False`
+  - `real_transcription_operator_gate.records_expected_text` = `False`
+  - `real_transcription_operator_gate.records_expected_text_file_name` = `False`
+  - `real_transcription_operator_gate.records_local_paths` = `False`
+  - `real_transcription_operator_gate.records_operator_identity` = `False`
 - Campos condicionales:
   - Si `target_backend.name` = `openai`:
     - `credentials.checked` = `True`
@@ -283,6 +302,7 @@ Este documento describe los campos JSON que pueden cerrar blockers de beta. No r
 - Spoken text privacy scans expose only pass/fail, risk counts and risk types.
 - Manual capture command cards must use placeholders and must not record audio, device names or local paths.
 - Real transcription command cards must use placeholders and must not record audio, transcripts, expected text, file names or local paths.
+- Real transcription operator gates must use placeholders and must not record audio, transcripts, expected text, file names, local paths or operator identity.
 - System output command cards must use placeholders and must not record audio, spoken text, operator identity or local paths.
 - Evidence audits flag suspicious raw fields by path only; they do not print private values.
 - Only structured fields and sanitized artifact names are used.

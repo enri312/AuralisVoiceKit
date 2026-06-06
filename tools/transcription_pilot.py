@@ -289,6 +289,27 @@ def run_transcription_pilot(
         transcription_checklist=transcription_checklist,
         preflight_readiness=preflight_readiness,
     )
+    command_card_payload = _real_transcription_command_card(
+        beta_evidence_gap=beta_evidence_gap,
+        preflight_command_template=preflight_command_template,
+        command_template=command_template,
+        audit_command_template=audit_command_template,
+    )
+    operator_gate = _real_transcription_operator_gate(
+        real_transcription=real_transcription,
+        require_target_backend_ready=require_target_backend_ready,
+        target_backend=target_backend,
+        credentials=credentials,
+        audio=audio_payload,
+        audio_review_confirmed=audio_review_confirmed,
+        reference_review_confirmed=reference_review_confirmed,
+        quality_review_confirmed=quality_review_confirmed,
+        reference_privacy_scan=reference_privacy_scan,
+        transcription_checklist=transcription_checklist,
+        preflight_readiness=preflight_readiness,
+        beta_evidence_gap=beta_evidence_gap,
+        real_transcription_command_card=command_card_payload,
+    )
 
     findings_path = output / "transcription-pilot-findings.md"
     checklist_path = output / "transcription-review-checklist.md"
@@ -315,6 +336,7 @@ def run_transcription_pilot(
         preflight_decision=preflight_decision,
         preflight_readiness=preflight_readiness,
         beta_evidence_gap=beta_evidence_gap,
+        real_transcription_operator_gate=operator_gate,
         credentials=credentials,
         report_path=report_path,
         checklist_path=checklist_path,
@@ -325,6 +347,7 @@ def run_transcription_pilot(
         timestamp=timestamp,
         backend=backend,
         transcription_checklist=transcription_checklist,
+        real_transcription_operator_gate=operator_gate,
     )
     next_step = _build_real_transcription_next_step_markdown(
         timestamp=timestamp,
@@ -343,6 +366,7 @@ def run_transcription_pilot(
         preflight_decision=preflight_decision,
         preflight_readiness=preflight_readiness,
         beta_evidence_gap=beta_evidence_gap,
+        real_transcription_operator_gate=operator_gate,
         preflight_command_template=preflight_command_template,
         command_template=command_template,
         audit_command_template=audit_command_template,
@@ -356,12 +380,7 @@ def run_transcription_pilot(
         credentials=credentials,
         preflight_readiness=preflight_readiness,
         beta_evidence_gap=beta_evidence_gap,
-        preflight_command_template=preflight_command_template,
-        command_template=command_template,
-        audit_command_template=audit_command_template,
-    )
-    command_card_payload = _real_transcription_command_card(
-        beta_evidence_gap=beta_evidence_gap,
+        real_transcription_operator_gate=operator_gate,
         preflight_command_template=preflight_command_template,
         command_template=command_template,
         audit_command_template=audit_command_template,
@@ -414,8 +433,10 @@ def run_transcription_pilot(
             "records_expected_text": False,
             "records_expected_text_file_name": False,
             "records_local_paths": False,
+            "operator_gate": operator_gate,
         },
         "real_transcription_command_card": command_card_payload,
+        "real_transcription_operator_gate": operator_gate,
         "notes": _pilot_notes(real_transcription, preflight_only),
         "artifacts": {
             "pilot_findings": str(findings_path),
@@ -1463,6 +1484,7 @@ def _build_findings_markdown(
     preflight_decision: dict[str, Any],
     preflight_readiness: dict[str, Any],
     beta_evidence_gap: dict[str, Any],
+    real_transcription_operator_gate: dict[str, Any],
     credentials: dict[str, Any],
     report_path: Path,
     checklist_path: Path,
@@ -1518,6 +1540,10 @@ def _build_findings_markdown(
         f"- Beta evidence gap ready: {beta_evidence_gap['ready_for_beta_evidence']}",
         f"- Beta evidence gap missing count: {beta_evidence_gap['missing_count']}",
         f"- Beta evidence gap next action: {beta_evidence_gap['next_action']}",
+        f"- Real transcription operator gate decision: {real_transcription_operator_gate['decision']}",
+        f"- Real transcription operator gate ready for beta audit: {real_transcription_operator_gate['ready_for_beta_audit']}",
+        f"- Real transcription operator gate command safe to copy: {real_transcription_operator_gate['command_safe_to_copy']}",
+        f"- Real transcription operator gate missing confirmations: {real_transcription_operator_gate['missing_confirmation_count']}",
         f"- Report: {report_path.name}",
         f"- Review checklist: {checklist_path.name}",
         f"- Real transcription next step: {next_step_path.name}",
@@ -1569,6 +1595,15 @@ def _build_findings_markdown(
         f"- Blocker: `{beta_evidence_gap['blocker']}`",
         f"- Ready for beta evidence: `{beta_evidence_gap['ready_for_beta_evidence']}`",
         f"- Missing fields: {_format_list(beta_evidence_gap['missing_fields'])}",
+        "",
+        "## Real Transcription Operator Gate",
+        "",
+        f"- Decision: `{real_transcription_operator_gate['decision']}`",
+        f"- Ready for beta audit: `{real_transcription_operator_gate['ready_for_beta_audit']}`",
+        f"- Command safe to copy: `{real_transcription_operator_gate['command_safe_to_copy']}`",
+        f"- Missing confirmations: {_format_list(real_transcription_operator_gate['missing_confirmations'])}",
+        f"- Missing fields: {_format_list(real_transcription_operator_gate['missing_fields'])}",
+        f"- Next action: {real_transcription_operator_gate['next_action']}",
         "",
         "## Follow-up",
         "",
@@ -1703,6 +1738,174 @@ def _real_transcription_command_card(
     }
 
 
+def _real_transcription_operator_gate(
+    *,
+    real_transcription: bool,
+    require_target_backend_ready: bool,
+    target_backend: dict[str, Any],
+    credentials: dict[str, Any],
+    audio: dict[str, Any],
+    audio_review_confirmed: bool,
+    reference_review_confirmed: bool,
+    quality_review_confirmed: bool,
+    reference_privacy_scan: dict[str, Any],
+    transcription_checklist: dict[str, Any],
+    preflight_readiness: dict[str, Any],
+    beta_evidence_gap: dict[str, Any],
+    real_transcription_command_card: dict[str, Any],
+) -> dict[str, Any]:
+    confirmations = [
+        _operator_gate_confirmation(
+            "real_transcription_explicitly_requested",
+            "--real-transcription was used for this evidence report.",
+            confirmed=real_transcription,
+            source="real_transcription_requested",
+        ),
+        _operator_gate_confirmation(
+            "audio_reviewed",
+            "The local operator reviewed audio privacy before model use.",
+            confirmed=audio_review_confirmed and transcription_checklist["audio_review_confirmed"],
+            source="--confirm-audio-reviewed",
+        ),
+        _operator_gate_confirmation(
+            "reference_reviewed",
+            "Expected text privacy was reviewed locally and the reference scan passed.",
+            confirmed=(
+                reference_review_confirmed
+                and transcription_checklist["reference_review_confirmed"]
+                and reference_privacy_scan["passed"] is True
+                and transcription_checklist["reference_privacy_scan_passed"] is True
+            ),
+            source="--confirm-reference-reviewed + reference_privacy_scan.passed",
+        ),
+        _operator_gate_confirmation(
+            "quality_reviewed",
+            "A human reviewed redacted transcript quality before beta evidence.",
+            confirmed=quality_review_confirmed and transcription_checklist["quality_review_confirmed"],
+            source="--confirm-quality-reviewed",
+        ),
+        _operator_gate_confirmation(
+            "target_backend_ready_guarded",
+            "The target transcription backend was available and --require-target-backend-ready was used.",
+            confirmed=target_backend["available"] is True and require_target_backend_ready,
+            source="target_backend.available + target_backend_ready_required",
+        ),
+        _operator_gate_confirmation(
+            "preflight_ready",
+            "The guarded preflight state was ready for the real model run.",
+            confirmed=(
+                preflight_readiness["status"] == "ready"
+                and preflight_readiness["decision"] == "ready_for_real_transcription"
+                and preflight_readiness["ready_for_model_run"] is True
+                and preflight_readiness["must_rerun_preflight"] is False
+            ),
+            source="preflight_readiness",
+        ),
+        _operator_gate_confirmation(
+            "duration_gate_passed",
+            "The decoded audio duration stayed inside the configured safe bounds.",
+            confirmed=audio["duration_gate"]["enabled"] is True and audio["duration_gate"]["passed"] is True,
+            source="audio.duration_gate",
+        ),
+        _operator_gate_confirmation(
+            "credential_presence_recorded",
+            "OpenAI credential presence was recorded without storing the API key when required.",
+            confirmed=(
+                target_backend["name"] != "openai"
+                or (
+                    credentials["checked"]
+                    and credentials["openai_api_key_required"]
+                    and credentials["openai_api_key_present"] is True
+                    and credentials["records_openai_api_key"] is False
+                )
+            ),
+            source="credentials.openai_api_key_present",
+        ),
+        _operator_gate_confirmation(
+            "transcription_checklist_beta_ready",
+            "The transcription checklist marked the real run as beta-ready.",
+            confirmed=transcription_checklist["ready_for_beta_evidence"],
+            source="transcription_checklist.ready_for_beta_evidence",
+        ),
+    ]
+    missing_confirmations = [item["id"] for item in confirmations if item["confirmed"] is not True]
+    preflight_command = real_transcription_command_card["preflight_command_template"]
+    real_command = real_transcription_command_card["real_transcription_command_template"]
+    audit_command = real_transcription_command_card["audit_command_template"]
+    command_templates = (preflight_command, real_command, audit_command)
+    command_safe_to_copy = bool(
+        real_transcription_command_card["safe_to_share"]
+        and real_transcription_command_card["uses_placeholders"]
+        and real_transcription_command_card["preflight_runs_model"] is False
+        and real_transcription_command_card["real_transcription_requires_user_audio"] is True
+        and real_transcription_command_card["real_transcription_requires_quality_review"] is True
+        and real_transcription_command_card["records_audio"] is False
+        and real_transcription_command_card["records_audio_path"] is False
+        and real_transcription_command_card["records_audio_file_name"] is False
+        and real_transcription_command_card["records_transcript_text"] is False
+        and real_transcription_command_card["records_expected_text"] is False
+        and real_transcription_command_card["records_expected_text_file_name"] is False
+        and real_transcription_command_card["records_local_paths"] is False
+        and all(isinstance(command, str) and "<pilot-output-dir>" in command for command in command_templates)
+        and isinstance(preflight_command, str)
+        and "<audio-path>" in preflight_command
+        and isinstance(real_command, str)
+        and "<audio-path>" in real_command
+        and "<expected-text-path>" in real_command
+    )
+    ready_for_beta_audit = bool(
+        beta_evidence_gap["ready_for_beta_evidence"]
+        and command_safe_to_copy
+        and not missing_confirmations
+    )
+    return {
+        "safe_to_share": True,
+        "decision": "ready_for_beta_audit" if ready_for_beta_audit else "blocked",
+        "blocker": beta_evidence_gap["blocker"],
+        "expected_artifact": "transcription-pilot-report.json",
+        "ready_for_beta_audit": ready_for_beta_audit,
+        "command_safe_to_copy": command_safe_to_copy,
+        "local_operator_required": True,
+        "confirmations": confirmations,
+        "missing_confirmations": missing_confirmations,
+        "missing_confirmation_count": len(missing_confirmations),
+        "missing_fields": list(beta_evidence_gap["missing_fields"]),
+        "missing_field_count": beta_evidence_gap["missing_count"],
+        "preflight_command_template": preflight_command,
+        "real_transcription_command_template": real_command,
+        "audit_command_template": audit_command,
+        "next_action": (
+            "Run the strict beta evidence audit before closing this blocker."
+            if ready_for_beta_audit
+            else beta_evidence_gap["next_action"]
+        ),
+        "records_audio": False,
+        "records_audio_path": False,
+        "records_audio_file_name": False,
+        "records_transcript_text": False,
+        "records_expected_text": False,
+        "records_expected_text_file_name": False,
+        "records_local_paths": False,
+        "records_operator_identity": False,
+    }
+
+
+def _operator_gate_confirmation(
+    confirmation_id: str,
+    instruction: str,
+    *,
+    confirmed: bool,
+    source: str,
+) -> dict[str, Any]:
+    return {
+        "id": confirmation_id,
+        "required": True,
+        "confirmed": bool(confirmed),
+        "source": source,
+        "instruction": instruction,
+    }
+
+
 def _format_cli_number(value: float | int) -> str:
     if isinstance(value, float) and value.is_integer():
         return str(int(value))
@@ -1717,6 +1920,7 @@ def _build_real_transcription_command_markdown(
     credentials: dict[str, Any],
     preflight_readiness: dict[str, Any],
     beta_evidence_gap: dict[str, Any],
+    real_transcription_operator_gate: dict[str, Any],
     preflight_command_template: str,
     command_template: str,
     audit_command_template: str,
@@ -1744,6 +1948,10 @@ def _build_real_transcription_command_markdown(
         f"- Beta evidence gap ready: {beta_evidence_gap['ready_for_beta_evidence']}",
         f"- Beta evidence gap missing count: {beta_evidence_gap['missing_count']}",
         f"- Beta evidence gap next action: {beta_evidence_gap['next_action']}",
+        f"- Operator gate decision: {real_transcription_operator_gate['decision']}",
+        f"- Operator gate ready for beta audit: {real_transcription_operator_gate['ready_for_beta_audit']}",
+        f"- Operator gate command safe to copy: {real_transcription_operator_gate['command_safe_to_copy']}",
+        f"- Operator gate missing confirmations: {real_transcription_operator_gate['missing_confirmation_count']}",
         "",
         "## 1. Preflight MP3/WAV/FLAC",
         "",
@@ -1791,6 +1999,15 @@ def _build_real_transcription_command_markdown(
         f"- Ready for beta evidence: `{beta_evidence_gap['ready_for_beta_evidence']}`",
         f"- Missing fields: {_format_list(beta_evidence_gap['missing_fields'])}",
         "",
+        "## Operator Gate",
+        "",
+        f"- Decision: `{real_transcription_operator_gate['decision']}`",
+        f"- Ready for beta audit: `{real_transcription_operator_gate['ready_for_beta_audit']}`",
+        f"- Command safe to copy: `{real_transcription_operator_gate['command_safe_to_copy']}`",
+        f"- Missing confirmations: {_format_list(real_transcription_operator_gate['missing_confirmations'])}",
+        f"- Missing fields: {_format_list(real_transcription_operator_gate['missing_fields'])}",
+        f"- Next action: {real_transcription_operator_gate['next_action']}",
+        "",
         "## Privacy Contract",
         "",
         "- Records audio bytes: `False`",
@@ -1822,6 +2039,7 @@ def _build_real_transcription_next_step_markdown(
     preflight_decision: dict[str, Any],
     preflight_readiness: dict[str, Any],
     beta_evidence_gap: dict[str, Any],
+    real_transcription_operator_gate: dict[str, Any],
     preflight_command_template: str,
     command_template: str,
     audit_command_template: str,
@@ -1869,6 +2087,11 @@ def _build_real_transcription_next_step_markdown(
         f"- Beta evidence gap ready: {beta_evidence_gap['ready_for_beta_evidence']}",
         f"- Beta evidence gap missing count: {beta_evidence_gap['missing_count']}",
         f"- Beta evidence gap next action: {beta_evidence_gap['next_action']}",
+        f"- Operator gate decision: {real_transcription_operator_gate['decision']}",
+        f"- Operator gate ready for beta audit: {real_transcription_operator_gate['ready_for_beta_audit']}",
+        f"- Operator gate command safe to copy: {real_transcription_operator_gate['command_safe_to_copy']}",
+        f"- Operator gate missing confirmations: {real_transcription_operator_gate['missing_confirmation_count']}",
+        f"- Operator gate missing fields: {real_transcription_operator_gate['missing_field_count']}",
         f"- Review checklist: {checklist_path.name}",
         f"- Command card: {command_path.name}",
         "",
@@ -1902,6 +2125,15 @@ def _build_real_transcription_next_step_markdown(
         f"- Ready for beta evidence: `{beta_evidence_gap['ready_for_beta_evidence']}`",
         f"- Missing fields: {_format_list(beta_evidence_gap['missing_fields'])}",
         "",
+        "## Operator Gate",
+        "",
+        f"- Decision: `{real_transcription_operator_gate['decision']}`",
+        f"- Ready for beta audit: `{real_transcription_operator_gate['ready_for_beta_audit']}`",
+        f"- Command safe to copy: `{real_transcription_operator_gate['command_safe_to_copy']}`",
+        f"- Missing confirmations: {_format_list(real_transcription_operator_gate['missing_confirmations'])}",
+        f"- Missing fields: {_format_list(real_transcription_operator_gate['missing_fields'])}",
+        f"- Next action: {real_transcription_operator_gate['next_action']}",
+        "",
         "## Required Review",
         "",
         "- Replace `<audio-path>` locally; do not paste the real path into public findings.",
@@ -1916,6 +2148,9 @@ def _build_real_transcription_next_step_markdown(
         "- Confirm `preflight_decision.decision=ready_for_real_transcription` or rerun the preflight after installing the backend.",
         "- Confirm `reference_privacy_scan.passed=true` before accepting beta evidence.",
         "- Confirm `transcription_checklist.ready_for_beta_evidence=true` only after human quality review.",
+        "- Confirm `real_transcription_operator_gate.ready_for_beta_audit=true` before closing beta evidence.",
+        "- Confirm `real_transcription_operator_gate.command_safe_to_copy=true` before sharing commands.",
+        "- Confirm `real_transcription_operator_gate.missing_confirmation_count=0` and `missing_field_count=0`.",
         "",
     ]
     return "\n".join(lines)
@@ -1926,6 +2161,7 @@ def _build_transcription_checklist_markdown(
     timestamp: str,
     backend: str,
     transcription_checklist: dict[str, Any],
+    real_transcription_operator_gate: dict[str, Any],
 ) -> str:
     lines = [
         "# Transcription review checklist",
@@ -1951,6 +2187,11 @@ def _build_transcription_checklist_markdown(
         f"- Quality review confirmed: {transcription_checklist['quality_review_confirmed']}",
         f"- Ready for real transcription: {transcription_checklist['ready_for_real_transcription']}",
         f"- Ready for beta evidence: {transcription_checklist['ready_for_beta_evidence']}",
+        f"- Operator gate decision: {real_transcription_operator_gate['decision']}",
+        f"- Operator gate ready for beta audit: {real_transcription_operator_gate['ready_for_beta_audit']}",
+        f"- Operator gate command safe to copy: {real_transcription_operator_gate['command_safe_to_copy']}",
+        f"- Operator gate missing confirmations: {real_transcription_operator_gate['missing_confirmation_count']}",
+        f"- Operator gate missing fields: {real_transcription_operator_gate['missing_field_count']}",
         "",
         "## Before Transcription",
         "",
@@ -1966,6 +2207,28 @@ def _build_transcription_checklist_markdown(
     )
     for item in transcription_checklist["after_transcription"]:
         lines.append(_format_checklist_item(item))
+    lines.extend(
+        [
+            "",
+            "## Real Transcription Operator Gate",
+            "",
+            f"- Decision: `{real_transcription_operator_gate['decision']}`",
+            f"- Ready for beta audit: `{real_transcription_operator_gate['ready_for_beta_audit']}`",
+            f"- Command safe to copy: `{real_transcription_operator_gate['command_safe_to_copy']}`",
+            f"- Missing confirmations: {_format_list(real_transcription_operator_gate['missing_confirmations'])}",
+            f"- Missing fields: {_format_list(real_transcription_operator_gate['missing_fields'])}",
+            f"- Next action: {real_transcription_operator_gate['next_action']}",
+            "",
+            "### Confirmations",
+            "",
+        ]
+    )
+    for item in real_transcription_operator_gate["confirmations"]:
+        marker = "x" if item["confirmed"] is True else " "
+        lines.append(
+            f"- [{marker}] `{item['id']}` confirmed={str(item['confirmed']).lower()} "
+            f"source={item['source']} - {item['instruction']}"
+        )
     lines.extend(
         [
             "",

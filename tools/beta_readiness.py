@@ -123,6 +123,7 @@ def build_evidence_requirements_report() -> dict[str, Any]:
                     _required_field("transcription_checklist.quality_review_confirmed", True),
                     _required_field("transcription_checklist.ready_for_beta_evidence", True),
                     *_real_transcription_command_card_required_fields(),
+                    *_real_transcription_operator_gate_required_fields(),
                 ],
                 "conditional_fields": [
                     {
@@ -238,6 +239,7 @@ def build_evidence_requirements_report() -> dict[str, Any]:
             "Spoken text privacy scans expose only pass/fail, risk counts and risk types.",
             "Manual capture command cards must use placeholders and must not record audio, device names or local paths.",
             "Real transcription command cards must use placeholders and must not record audio, transcripts, expected text, file names or local paths.",
+            "Real transcription operator gates must use placeholders and must not record audio, transcripts, expected text, file names, local paths or operator identity.",
             "System output command cards must use placeholders and must not record audio, spoken text, operator identity or local paths.",
             "Evidence audits flag suspicious raw fields by path only; they do not print private values.",
             "Only structured fields and sanitized artifact names are used.",
@@ -391,6 +393,7 @@ def build_beta_readiness_report(
                 "Quality review confirmed: True",
                 "Transcription checklist ready for beta evidence: True",
                 "Real transcription command card ready for beta evidence: True",
+                "Real transcription operator gate ready for beta audit: True",
             ),
             next_action=(
                 "Run tools/transcription_pilot.py with --real-transcription, non-sensitive audio, "
@@ -414,7 +417,17 @@ def build_beta_readiness_report(
                 "real_transcription_requires_user_audio=true, real_transcription_requires_quality_review=true, "
                 "records_audio=false, records_audio_path=false, records_audio_file_name=false, "
                 "records_transcript_text=false, records_expected_text=false, "
-                "records_expected_text_file_name=false and records_local_paths=false."
+                "records_expected_text_file_name=false and records_local_paths=false. "
+                "Also keep real_transcription_operator_gate.ready_for_beta_audit=true, "
+                "real_transcription_operator_gate.command_safe_to_copy=true, "
+                "real_transcription_operator_gate.missing_confirmation_count=0, "
+                "real_transcription_operator_gate.missing_field_count=0, "
+                "real_transcription_operator_gate.records_audio=false, "
+                "real_transcription_operator_gate.records_transcript_text=false, "
+                "real_transcription_operator_gate.records_expected_text=false, "
+                "real_transcription_operator_gate.records_expected_text_file_name=false, "
+                "real_transcription_operator_gate.records_local_paths=false and "
+                "real_transcription_operator_gate.records_operator_identity=false."
             ),
         ),
         _evidence_or_terms_check(
@@ -1115,6 +1128,30 @@ def _real_transcription_command_card_required_fields() -> list[dict[str, Any]]:
     ]
 
 
+def _real_transcription_operator_gate_required_fields() -> list[dict[str, Any]]:
+    return [
+        _required_field("real_transcription_operator_gate.safe_to_share", True),
+        _required_field("real_transcription_operator_gate.decision", "ready_for_beta_audit"),
+        _required_field("real_transcription_operator_gate.blocker", "real_transcription_quality"),
+        _required_field("real_transcription_operator_gate.expected_artifact", "transcription-pilot-report.json"),
+        _required_field("real_transcription_operator_gate.ready_for_beta_audit", True),
+        _required_field("real_transcription_operator_gate.command_safe_to_copy", True),
+        _required_field("real_transcription_operator_gate.local_operator_required", True),
+        _required_field("real_transcription_operator_gate.missing_confirmation_count", 0),
+        _required_field("real_transcription_operator_gate.missing_confirmations", []),
+        _required_field("real_transcription_operator_gate.missing_field_count", 0),
+        _required_field("real_transcription_operator_gate.missing_fields", []),
+        _required_field("real_transcription_operator_gate.records_audio", False),
+        _required_field("real_transcription_operator_gate.records_audio_path", False),
+        _required_field("real_transcription_operator_gate.records_audio_file_name", False),
+        _required_field("real_transcription_operator_gate.records_transcript_text", False),
+        _required_field("real_transcription_operator_gate.records_expected_text", False),
+        _required_field("real_transcription_operator_gate.records_expected_text_file_name", False),
+        _required_field("real_transcription_operator_gate.records_local_paths", False),
+        _required_field("real_transcription_operator_gate.records_operator_identity", False),
+    ]
+
+
 def _audit_requirement(report: dict[str, Any], requirement: dict[str, Any]) -> dict[str, Any]:
     required_fields = list(requirement["fields"]) + _applicable_conditional_fields(report, requirement)
     fields = [_audit_field(report, field) for field in required_fields]
@@ -1783,6 +1820,43 @@ def _has_safe_real_transcription_command_card(report: dict[str, Any]) -> bool:
     )
 
 
+def _has_ready_real_transcription_operator_gate(report: dict[str, Any]) -> bool:
+    gate = report.get("real_transcription_operator_gate", {})
+    if not isinstance(gate, dict):
+        return False
+    preflight_command = gate.get("preflight_command_template")
+    real_command = gate.get("real_transcription_command_template")
+    audit_command = gate.get("audit_command_template")
+    command_templates = (preflight_command, real_command, audit_command)
+    return (
+        gate.get("safe_to_share") is True
+        and gate.get("decision") == "ready_for_beta_audit"
+        and gate.get("blocker") == "real_transcription_quality"
+        and gate.get("expected_artifact") == "transcription-pilot-report.json"
+        and gate.get("ready_for_beta_audit") is True
+        and gate.get("command_safe_to_copy") is True
+        and gate.get("local_operator_required") is True
+        and gate.get("missing_confirmation_count") == 0
+        and gate.get("missing_confirmations") == []
+        and gate.get("missing_field_count") == 0
+        and gate.get("missing_fields") == []
+        and gate.get("records_audio") is False
+        and gate.get("records_audio_path") is False
+        and gate.get("records_audio_file_name") is False
+        and gate.get("records_transcript_text") is False
+        and gate.get("records_expected_text") is False
+        and gate.get("records_expected_text_file_name") is False
+        and gate.get("records_local_paths") is False
+        and gate.get("records_operator_identity") is False
+        and all(isinstance(command, str) and "<pilot-output-dir>" in command for command in command_templates)
+        and isinstance(preflight_command, str)
+        and "<audio-path>" in preflight_command
+        and isinstance(real_command, str)
+        and "<audio-path>" in real_command
+        and "<expected-text-path>" in real_command
+    )
+
+
 def _is_cross_platform_capture_backend(value: object) -> bool:
     return str(value).casefold() in CROSS_PLATFORM_CAPTURE_BACKENDS
 
@@ -1938,6 +2012,7 @@ def _is_real_transcription_quality_evidence(report: dict[str, Any]) -> bool:
         and transcription_checklist.get("quality_review_confirmed") is True
         and transcription_checklist.get("ready_for_beta_evidence") is True
         and _has_safe_real_transcription_command_card(report)
+        and _has_ready_real_transcription_operator_gate(report)
         and _openai_credential_evidence_ok(report, target_backend)
     )
 

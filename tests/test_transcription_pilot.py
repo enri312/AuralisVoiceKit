@@ -32,6 +32,40 @@ def _reference_privacy_scan(*, passed: bool = True) -> dict:
     }
 
 
+def _ready_real_transcription_operator_gate() -> dict:
+    confirmation_ids = [
+        "real_transcription_explicitly_requested",
+        "audio_reviewed",
+        "reference_reviewed",
+        "quality_reviewed",
+        "target_backend_ready_guarded",
+        "preflight_ready",
+        "duration_gate_passed",
+        "credential_presence_recorded",
+        "transcription_checklist_beta_ready",
+    ]
+    return {
+        "decision": "ready_for_beta_audit",
+        "ready_for_beta_audit": True,
+        "command_safe_to_copy": True,
+        "missing_confirmation_count": 0,
+        "missing_field_count": 0,
+        "missing_confirmations": [],
+        "missing_fields": [],
+        "next_action": "Run the strict beta evidence audit before closing this blocker.",
+        "confirmations": [
+            {
+                "id": confirmation_id,
+                "required": True,
+                "confirmed": True,
+                "source": "test",
+                "instruction": "Confirmed by fixture.",
+            }
+            for confirmation_id in confirmation_ids
+        ],
+    }
+
+
 class TranscriptionPilotTests(unittest.TestCase):
     def test_transcription_pilot_writes_sanitized_synthetic_report(self):
         module = _load_transcription_pilot()
@@ -104,6 +138,33 @@ class TranscriptionPilotTests(unittest.TestCase):
         self.assertIn("<audio-path>", command_card_payload["real_transcription_command_template"])
         self.assertIn("<expected-text-path>", command_card_payload["real_transcription_command_template"])
         self.assertIn("<pilot-output-dir>", command_card_payload["audit_command_template"])
+        operator_gate = payload["real_transcription_operator_gate"]
+        self.assertEqual(operator_gate["decision"], "blocked")
+        self.assertEqual(operator_gate["blocker"], "real_transcription_quality")
+        self.assertEqual(operator_gate["expected_artifact"], "transcription-pilot-report.json")
+        self.assertFalse(operator_gate["ready_for_beta_audit"])
+        self.assertTrue(operator_gate["command_safe_to_copy"])
+        self.assertTrue(operator_gate["local_operator_required"])
+        self.assertIn("real_transcription_explicitly_requested", operator_gate["missing_confirmations"])
+        self.assertIn("audio_reviewed", operator_gate["missing_confirmations"])
+        self.assertIn("reference_reviewed", operator_gate["missing_confirmations"])
+        self.assertIn("quality_reviewed", operator_gate["missing_confirmations"])
+        self.assertIn("transcription_checklist_beta_ready", operator_gate["missing_confirmations"])
+        self.assertIn("real_transcription_requested", operator_gate["missing_fields"])
+        self.assertFalse(operator_gate["records_audio"])
+        self.assertFalse(operator_gate["records_audio_path"])
+        self.assertFalse(operator_gate["records_audio_file_name"])
+        self.assertFalse(operator_gate["records_transcript_text"])
+        self.assertFalse(operator_gate["records_expected_text"])
+        self.assertFalse(operator_gate["records_expected_text_file_name"])
+        self.assertFalse(operator_gate["records_local_paths"])
+        self.assertFalse(operator_gate["records_operator_identity"])
+        self.assertIn("<pilot-output-dir>", operator_gate["preflight_command_template"])
+        self.assertIn("<audio-path>", operator_gate["preflight_command_template"])
+        self.assertIn("<pilot-output-dir>", operator_gate["real_transcription_command_template"])
+        self.assertIn("<audio-path>", operator_gate["real_transcription_command_template"])
+        self.assertIn("<expected-text-path>", operator_gate["real_transcription_command_template"])
+        self.assertIn("<pilot-output-dir>", operator_gate["audit_command_template"])
         self.assertFalse(payload["transcription_checklist"]["records_audio_path"])
         self.assertFalse(payload["transcription_checklist"]["records_audio_file_name"])
         self.assertFalse(payload["transcription_checklist"]["records_transcript_text"])
@@ -120,18 +181,25 @@ class TranscriptionPilotTests(unittest.TestCase):
         self.assertIn("Real transcription command: real-transcription-command.md", findings)
         self.assertIn("Transcription checklist ready for beta evidence: False", findings)
         self.assertIn("Beta evidence gap ready: False", findings)
+        self.assertIn("Real transcription operator gate decision: blocked", findings)
+        self.assertIn("Real Transcription Operator Gate", findings)
         self.assertIn("Transcription review checklist", checklist)
         self.assertIn("Records transcript text: False", checklist)
+        self.assertIn("Operator gate decision: blocked", checklist)
+        self.assertIn("Real Transcription Operator Gate", checklist)
         self.assertIn("real-transcription-next-step.md", checklist)
         self.assertIn("--audio <audio-path>", next_step)
         self.assertIn("--expected-text-file <expected-text-path>", next_step)
         self.assertIn("Beta Evidence Gap", next_step)
+        self.assertIn("Operator gate decision: blocked", next_step)
+        self.assertIn("real_transcription_operator_gate.ready_for_beta_audit=true", next_step)
         self.assertIn("Real transcription command", command_card)
         self.assertIn("Preflight MP3/WAV/FLAC", command_card)
         self.assertIn("--preflight-only", command_card)
         self.assertIn("--audio <audio-path>", command_card)
         self.assertIn("--output-dir <pilot-output-dir>", command_card)
         self.assertIn("--evidence <pilot-output-dir>", command_card)
+        self.assertIn("Operator Gate", command_card)
         self.assertNotIn(str(command_path.parent), command_card)
 
     def test_transcription_pilot_cli_outputs_json(self):
@@ -671,11 +739,22 @@ class TranscriptionPilotTests(unittest.TestCase):
         self.assertEqual(report["next_real_transcription"]["beta_evidence_gap"], report["beta_evidence_gap"])
         self.assertIn("real_transcription_command", report["artifacts"])
         self.assertIn("--evidence <pilot-output-dir>", report["next_real_transcription"]["audit_command_template"])
+        self.assertEqual(report["next_real_transcription"]["operator_gate"], report["real_transcription_operator_gate"])
+        self.assertEqual(report["real_transcription_operator_gate"]["decision"], "ready_for_beta_audit")
+        self.assertTrue(report["real_transcription_operator_gate"]["ready_for_beta_audit"])
+        self.assertTrue(report["real_transcription_operator_gate"]["command_safe_to_copy"])
+        self.assertEqual(report["real_transcription_operator_gate"]["missing_confirmations"], [])
+        self.assertEqual(report["real_transcription_operator_gate"]["missing_fields"], [])
+        self.assertFalse(report["real_transcription_operator_gate"]["records_transcript_text"])
+        self.assertFalse(report["real_transcription_operator_gate"]["records_expected_text"])
+        self.assertFalse(report["real_transcription_operator_gate"]["records_operator_identity"])
         self.assertFalse(report["beta_evidence_gap"]["records_audio_file_name"])
         self.assertFalse(report["beta_evidence_gap"]["records_local_paths"])
         self.assertIn("Ready for beta evidence: True", next_step)
         self.assertIn("Beta evidence gap ready: True", next_step)
+        self.assertIn("Operator gate ready for beta audit: True", next_step)
         self.assertIn("Ready for beta evidence: `True`", command_card)
+        self.assertIn("Ready for beta audit: `True`", command_card)
         self.assertIn("Missing fields: none", command_card)
 
     def test_transcription_pilot_openai_preflight_requires_sanitized_api_key(self):
@@ -977,6 +1056,7 @@ class TranscriptionPilotTests(unittest.TestCase):
             timestamp="2026-06-05T00:00:00+00:00",
             backend="whisper",
             transcription_checklist=checklist,
+            real_transcription_operator_gate=_ready_real_transcription_operator_gate(),
         )
 
         self.assertTrue(checklist["ready_for_real_transcription"])

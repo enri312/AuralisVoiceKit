@@ -491,6 +491,58 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertFalse(checks["real_transcription_quality"]["ok"])
         self.assertIn("real_transcription_quality", report["blockers"])
 
+    def test_real_transcription_evidence_requires_ready_operator_gate(self):
+        module = _load_beta_readiness()
+
+        unsafe_cases = [
+            ("decision", "blocked"),
+            ("ready_for_beta_audit", False),
+            ("command_safe_to_copy", False),
+            ("local_operator_required", False),
+            ("missing_confirmation_count", 1),
+            ("missing_confirmations", ["quality_reviewed"]),
+            ("missing_field_count", 1),
+            ("missing_fields", ["passed"]),
+            ("records_audio", True),
+            ("records_audio_path", True),
+            ("records_audio_file_name", True),
+            ("records_transcript_text", True),
+            ("records_expected_text", True),
+            ("records_expected_text_file_name", True),
+            ("records_local_paths", True),
+            ("records_operator_identity", True),
+        ]
+        for field, value in unsafe_cases:
+            with self.subTest(field=field):
+                with tempfile.TemporaryDirectory() as tmpdir:
+                    evidence_path = Path(tmpdir) / "transcription-pilot-report.json"
+                    payload = _transcription_evidence()
+                    payload["real_transcription_operator_gate"][field] = value
+                    _write_json(evidence_path, payload)
+
+                    report = module.build_beta_readiness_report(ROOT, evidence_paths=[evidence_path])
+                    checks = {check["name"]: check for check in report["checks"]}
+
+                self.assertFalse(checks["real_transcription_quality"]["ok"])
+                self.assertIn("real_transcription_quality", report["blockers"])
+
+    def test_real_transcription_evidence_requires_operator_gate_placeholders(self):
+        module = _load_beta_readiness()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            evidence_path = Path(tmpdir) / "transcription-pilot-report.json"
+            payload = _transcription_evidence()
+            payload["real_transcription_operator_gate"]["real_transcription_command_template"] = (
+                "python tools/transcription_pilot.py --real-transcription --audio sample.mp3 --json"
+            )
+            _write_json(evidence_path, payload)
+
+            report = module.build_beta_readiness_report(ROOT, evidence_paths=[evidence_path])
+            checks = {check["name"]: check for check in report["checks"]}
+
+        self.assertFalse(checks["real_transcription_quality"]["ok"])
+        self.assertIn("real_transcription_quality", report["blockers"])
+
     def test_system_output_evidence_requires_operator_checklist(self):
         module = _load_beta_readiness()
 
@@ -1163,6 +1215,31 @@ class BetaReadinessTests(unittest.TestCase):
             False,
         )
         self.assertEqual(transcription_fields["real_transcription_command_card.records_local_paths"], False)
+        self.assertEqual(transcription_fields["real_transcription_operator_gate.safe_to_share"], True)
+        self.assertEqual(transcription_fields["real_transcription_operator_gate.decision"], "ready_for_beta_audit")
+        self.assertEqual(transcription_fields["real_transcription_operator_gate.blocker"], "real_transcription_quality")
+        self.assertEqual(
+            transcription_fields["real_transcription_operator_gate.expected_artifact"],
+            "transcription-pilot-report.json",
+        )
+        self.assertEqual(transcription_fields["real_transcription_operator_gate.ready_for_beta_audit"], True)
+        self.assertEqual(transcription_fields["real_transcription_operator_gate.command_safe_to_copy"], True)
+        self.assertEqual(transcription_fields["real_transcription_operator_gate.local_operator_required"], True)
+        self.assertEqual(transcription_fields["real_transcription_operator_gate.missing_confirmation_count"], 0)
+        self.assertEqual(transcription_fields["real_transcription_operator_gate.missing_confirmations"], [])
+        self.assertEqual(transcription_fields["real_transcription_operator_gate.missing_field_count"], 0)
+        self.assertEqual(transcription_fields["real_transcription_operator_gate.missing_fields"], [])
+        self.assertEqual(transcription_fields["real_transcription_operator_gate.records_audio"], False)
+        self.assertEqual(transcription_fields["real_transcription_operator_gate.records_audio_path"], False)
+        self.assertEqual(transcription_fields["real_transcription_operator_gate.records_audio_file_name"], False)
+        self.assertEqual(transcription_fields["real_transcription_operator_gate.records_transcript_text"], False)
+        self.assertEqual(transcription_fields["real_transcription_operator_gate.records_expected_text"], False)
+        self.assertEqual(
+            transcription_fields["real_transcription_operator_gate.records_expected_text_file_name"],
+            False,
+        )
+        self.assertEqual(transcription_fields["real_transcription_operator_gate.records_local_paths"], False)
+        self.assertEqual(transcription_fields["real_transcription_operator_gate.records_operator_identity"], False)
         self.assertEqual(transcription_conditional_fields["credentials.checked"], True)
         self.assertEqual(transcription_conditional_fields["credentials.openai_api_key_required"], True)
         self.assertEqual(transcription_conditional_fields["credentials.openai_api_key_present"], True)
@@ -1319,6 +1396,10 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertIn("real_transcription_command_card.records_transcript_text", content)
         self.assertIn("real_transcription_command_card.records_expected_text_file_name", content)
         self.assertIn("real_transcription_command_card.records_local_paths", content)
+        self.assertIn("real_transcription_operator_gate.ready_for_beta_audit", content)
+        self.assertIn("real_transcription_operator_gate.command_safe_to_copy", content)
+        self.assertIn("real_transcription_operator_gate.missing_confirmation_count", content)
+        self.assertIn("real_transcription_operator_gate.records_operator_identity", content)
         self.assertIn("quality_review_confirmed", content)
         self.assertIn("text_review_confirmed", content)
         self.assertIn("spoken_text_privacy_scan.passed", content)
@@ -1934,6 +2015,46 @@ def _real_transcription_command_card() -> dict:
     }
 
 
+def _real_transcription_operator_gate() -> dict:
+    return {
+        "safe_to_share": True,
+        "decision": "ready_for_beta_audit",
+        "blocker": "real_transcription_quality",
+        "expected_artifact": "transcription-pilot-report.json",
+        "ready_for_beta_audit": True,
+        "command_safe_to_copy": True,
+        "local_operator_required": True,
+        "confirmations": [],
+        "missing_confirmations": [],
+        "missing_confirmation_count": 0,
+        "missing_fields": [],
+        "missing_field_count": 0,
+        "preflight_command_template": (
+            "python tools/transcription_pilot.py --preflight-only --audio <audio-path> "
+            "--audio-non-sensitive --confirm-audio-reviewed --backend whisper --model base "
+            "--require-target-backend-ready --output-dir <pilot-output-dir> --json"
+        ),
+        "real_transcription_command_template": (
+            "python tools/transcription_pilot.py --real-transcription --audio <audio-path> "
+            "--audio-non-sensitive --confirm-audio-reviewed --confirm-reference-reviewed "
+            "--backend whisper --model base --expected-text-file <expected-text-path> "
+            "--min-word-accuracy 0.75 --confirm-quality-reviewed "
+            "--require-target-backend-ready --output-dir <pilot-output-dir> --json"
+        ),
+        "audit_command_template": (
+            "python tools/beta_readiness.py --audit-evidence --evidence <pilot-output-dir> --json"
+        ),
+        "records_audio": False,
+        "records_audio_path": False,
+        "records_audio_file_name": False,
+        "records_transcript_text": False,
+        "records_expected_text": False,
+        "records_expected_text_file_name": False,
+        "records_local_paths": False,
+        "records_operator_identity": False,
+    }
+
+
 def _transcription_evidence(
     *, min_word_accuracy: float = 0.75, word_accuracy: float = 0.92, backend: str = "whisper"
 ) -> dict:
@@ -2018,6 +2139,7 @@ def _transcription_evidence(
             "ready_for_beta_evidence": True,
         },
         "real_transcription_command_card": _real_transcription_command_card(),
+        "real_transcription_operator_gate": _real_transcription_operator_gate(),
     }
     if backend == "openai":
         evidence["credentials"] = {

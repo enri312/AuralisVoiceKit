@@ -6,6 +6,18 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.140.0] - 2026-06-06
+
+### Agregado
+
+- `tools/transcription_pilot.py` ahora incluye `real_transcription_operator_gate`, una compuerta publica para decidir si una transcripcion real esta lista para auditoria beta o sigue bloqueada.
+- El gate lista confirmaciones de operador, comando seguro con placeholders, campos faltantes del contrato beta y flags de privacidad sin audio, rutas, transcripciones, texto esperado ni identidad del operador.
+- `tools/beta_readiness.py` exige `real_transcription_operator_gate.ready_for_beta_audit=true`, contadores de faltantes en cero y comando seguro para aceptar evidencia beta de `real_transcription_quality`.
+
+### Pruebas
+
+- Nuevas pruebas cubren el gate bloqueado en dry-run, el gate listo con transcripcion real simulada y el rechazo de evidencia beta de transcripcion real con gate inseguro o sin placeholders.
+
 ## [0.139.0] - 2026-06-06
 
 ### Agregado
