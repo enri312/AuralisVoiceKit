@@ -21,6 +21,15 @@ def _load_transcription_pilot():
     return module
 
 
+def _reference_privacy_scan(*, passed: bool = True) -> dict:
+    return {
+        "enabled": True,
+        "passed": passed,
+        "risk_count": 0 if passed else 1,
+        "risk_types": [] if passed else ["email"],
+    }
+
+
 class TranscriptionPilotTests(unittest.TestCase):
     def test_transcription_pilot_writes_sanitized_synthetic_report(self):
         module = _load_transcription_pilot()
@@ -51,8 +60,11 @@ class TranscriptionPilotTests(unittest.TestCase):
         self.assertTrue(payload["transcript"]["text_redacted"])
         self.assertFalse(payload["audio_review_confirmed"])
         self.assertFalse(payload["reference_review_confirmed"])
+        self.assertFalse(payload["reference_privacy_scan"]["enabled"])
+        self.assertIsNone(payload["reference_privacy_scan"]["passed"])
         self.assertFalse(payload["transcription_checklist"]["audio_review_confirmed"])
         self.assertFalse(payload["transcription_checklist"]["reference_review_confirmed"])
+        self.assertIsNone(payload["transcription_checklist"]["reference_privacy_scan_passed"])
         self.assertFalse(payload["quality_review_confirmed"])
         self.assertFalse(payload["transcription_checklist"]["quality_review_confirmed"])
         self.assertFalse(payload["transcription_checklist"]["records_audio_path"])
@@ -93,6 +105,7 @@ class TranscriptionPilotTests(unittest.TestCase):
         self.assertFalse(payload["real_transcription_requested"])
         self.assertFalse(payload["audio_review_confirmed"])
         self.assertFalse(payload["reference_review_confirmed"])
+        self.assertFalse(payload["reference_privacy_scan"]["enabled"])
         self.assertFalse(payload["quality_review_confirmed"])
         self.assertIn("transcription_review_checklist", payload["artifacts"])
         self.assertFalse(payload["transcription_checklist"]["ready_for_beta_evidence"])
@@ -154,14 +167,51 @@ class TranscriptionPilotTests(unittest.TestCase):
         self.assertTrue(report["passed"])
         self.assertTrue(report["quality"]["enabled"])
         self.assertTrue(report["quality"]["expected_text_redacted"])
+        self.assertTrue(report["reference_privacy_scan"]["passed"])
+        self.assertEqual(report["reference_privacy_scan"]["risk_count"], 0)
         self.assertEqual(report["quality"]["expected_text_source"], "argument")
         self.assertEqual(report["quality"]["word_accuracy"], 0.0)
         self.assertEqual(report["quality"]["word_error_rate"], 1.0)
         self.assertTrue(report["quality"]["passed"])
         self.assertNotIn("Hola desde AuralisVoiceKit", report_text)
         self.assertIn("Quality reference provided: True", findings)
+        self.assertIn("Reference privacy scan passed: True", findings)
         self.assertIn("Word accuracy: 0.0", findings)
+        self.assertIn("Reference privacy scan passed: True", checklist)
         self.assertIn("quality_review_confirmed", checklist)
+
+    def test_transcription_pilot_blocks_beta_reference_with_sensitive_patterns(self):
+        module = _load_transcription_pilot()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            reference = "Contactar a persona@example.com con el codigo 123456789."
+            report = module.run_transcription_pilot(
+                root=ROOT,
+                output_dir=tmpdir,
+                expected_text=reference,
+                min_word_accuracy=0.0,
+                duration_seconds=0.3,
+                sample_rate=8000,
+            )
+            report_path = Path(report["artifacts"]["transcription_pilot_report"])
+            findings_path = Path(report["artifacts"]["pilot_findings"])
+            checklist_path = Path(report["artifacts"]["transcription_review_checklist"])
+            report_text = report_path.read_text(encoding="utf-8")
+            findings = findings_path.read_text(encoding="utf-8")
+            checklist = checklist_path.read_text(encoding="utf-8")
+
+        self.assertFalse(report["passed"])
+        self.assertTrue(report["reference_privacy_scan"]["enabled"])
+        self.assertFalse(report["reference_privacy_scan"]["passed"])
+        self.assertIn("email", report["reference_privacy_scan"]["risk_types"])
+        self.assertIn("long_number", report["reference_privacy_scan"]["risk_types"])
+        self.assertFalse(report["transcription_checklist"]["reference_privacy_scan_passed"])
+        self.assertFalse(report["transcription_checklist"]["ready_for_beta_evidence"])
+        self.assertNotIn("persona@example.com", report_text)
+        self.assertNotIn("123456789", report_text)
+        self.assertIn("Reference privacy scan passed: False", findings)
+        self.assertIn("Reference privacy risk types: email", findings)
+        self.assertIn("reference_privacy_scan_passed", checklist)
 
     def test_transcription_pilot_quality_gate_can_fail(self):
         module = _load_transcription_pilot()
@@ -335,6 +385,7 @@ class TranscriptionPilotTests(unittest.TestCase):
                 "passed": True,
                 "min_word_accuracy": 0.75,
             },
+            reference_privacy_scan=_reference_privacy_scan(),
             audio_review_confirmed=True,
             reference_review_confirmed=True,
         )
@@ -348,12 +399,14 @@ class TranscriptionPilotTests(unittest.TestCase):
         self.assertTrue(checklist["ready_for_beta_evidence"])
         self.assertTrue(checklist["audio_review_confirmed"])
         self.assertTrue(checklist["reference_review_confirmed"])
+        self.assertTrue(checklist["reference_privacy_scan_passed"])
         self.assertTrue(checklist["quality_review_confirmed"])
         self.assertFalse(checklist["records_transcript_text"])
         self.assertFalse(checklist["records_expected_text"])
         self.assertIn("Quality review confirmed: True", markdown)
         self.assertIn("Audio review confirmed: True", markdown)
         self.assertIn("Reference review confirmed: True", markdown)
+        self.assertIn("Reference privacy scan passed: True", markdown)
         self.assertIn("Ready for beta evidence: True", markdown)
 
     def test_transcription_checklist_requires_audio_review_confirmation_for_beta(self):
@@ -378,6 +431,7 @@ class TranscriptionPilotTests(unittest.TestCase):
                 "passed": True,
                 "min_word_accuracy": 0.75,
             },
+            reference_privacy_scan=_reference_privacy_scan(),
             audio_review_confirmed=False,
             reference_review_confirmed=True,
         )
@@ -409,6 +463,7 @@ class TranscriptionPilotTests(unittest.TestCase):
                 "passed": True,
                 "min_word_accuracy": 0.75,
             },
+            reference_privacy_scan=_reference_privacy_scan(),
             audio_review_confirmed=True,
             reference_review_confirmed=False,
         )
@@ -416,6 +471,37 @@ class TranscriptionPilotTests(unittest.TestCase):
         self.assertTrue(checklist["ready_for_real_transcription"])
         self.assertFalse(checklist["ready_for_beta_evidence"])
         self.assertFalse(checklist["reference_review_confirmed"])
+
+    def test_transcription_checklist_requires_reference_privacy_scan_for_beta(self):
+        module = _load_transcription_pilot()
+
+        checklist = module._transcription_checklist(
+            backend="whisper",
+            preflight_only=False,
+            real_transcription=True,
+            quality_review_confirmed=True,
+            passed=True,
+            audio={
+                "generated_synthetic_audio": False,
+                "audio_confirmed_non_sensitive": True,
+                "audio_review_confirmed": True,
+                "decoded": True,
+                "duration_gate": {"enabled": True, "passed": True},
+            },
+            transcript={"text_redacted": True, "text_characters": 26},
+            quality={
+                "enabled": True,
+                "passed": True,
+                "min_word_accuracy": 0.75,
+            },
+            reference_privacy_scan=_reference_privacy_scan(passed=False),
+            audio_review_confirmed=True,
+            reference_review_confirmed=True,
+        )
+
+        self.assertTrue(checklist["ready_for_real_transcription"])
+        self.assertFalse(checklist["ready_for_beta_evidence"])
+        self.assertFalse(checklist["reference_privacy_scan_passed"])
 
     def test_transcription_checklist_requires_quality_review_confirmation_for_beta(self):
         module = _load_transcription_pilot()
@@ -438,6 +524,7 @@ class TranscriptionPilotTests(unittest.TestCase):
                 "passed": True,
                 "min_word_accuracy": 0.75,
             },
+            reference_privacy_scan=_reference_privacy_scan(),
             audio_review_confirmed=True,
             reference_review_confirmed=True,
             quality_review_confirmed=False,

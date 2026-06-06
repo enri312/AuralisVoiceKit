@@ -6,6 +6,19 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.66.0] - 2026-06-05
+
+### Agregado
+
+- Escaneo local y redactado `reference_privacy_scan` en `tools/transcription_pilot.py` para detectar patrones sensibles en el texto esperado sin guardar coincidencias.
+- Campos JSON `reference_privacy_scan.passed`, `reference_privacy_scan.risk_count`, `reference_privacy_scan.risk_types` y `transcription_checklist.reference_privacy_scan_passed`.
+- Pruebas para bloquear evidencia beta de transcripcion cuando la referencia contiene patrones sensibles aunque la revision humana este confirmada.
+
+### Cambiado
+
+- `transcription_checklist.ready_for_beta_evidence` ahora exige que el scan de privacidad de referencia pase antes de cerrar `real_transcription_quality`.
+- `tools/beta_readiness.py --requirements`, auditoria de evidencias, `tools/pilot_run.py`, README, `PILOTS.md`, docs HTML, roadmap y gate de estabilidad documentan el nuevo requisito.
+
 ## [0.65.0] - 2026-06-05
 
 ### Agregado

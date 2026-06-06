@@ -255,7 +255,10 @@ def _manual_pilot_steps() -> list[dict[str, str]]:
                 "--min-audio-seconds 0.2 --max-audio-seconds 60 "
                 "--confirm-quality-reviewed --json"
             ),
-            "reason": "Uses a real non-sensitive audio file and requires audio, reference and quality review before beta evidence.",
+            "reason": (
+                "Uses a real non-sensitive audio file and requires audio review, reference review, "
+                "a passing reference privacy scan and quality review before beta evidence."
+            ),
         },
         {
             "name": "record-findings",
@@ -570,7 +573,10 @@ def _platform_pilot_matrix(blockers: list[str]) -> list[dict[str, Any]]:
             "requires_hardware": False,
             "requires_operator": False,
             "requires_non_sensitive_audio": True,
-            "notes": "Usar un MP3 propio no sensible, revisar privacidad del audio y referencia, y confirmar revision humana de calidad.",
+            "notes": (
+                "Usar un MP3 propio no sensible, revisar privacidad del audio y referencia, "
+                "confirmar reference_privacy_scan.passed=true y confirmar revision humana de calidad."
+            ),
         },
     ]
     for row in rows:

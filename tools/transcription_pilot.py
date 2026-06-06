@@ -13,6 +13,7 @@ import hashlib
 import json
 from pathlib import Path
 import platform
+import re
 import sys
 from typing import Any
 import unicodedata
@@ -29,6 +30,21 @@ from auralis_voicekit.exceptions import AudioSourceError, BackendNotAvailable, T
 
 
 BETA_MIN_WORD_ACCURACY = 0.75
+REFERENCE_PRIVACY_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
+    ("email", re.compile(r"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b", re.IGNORECASE)),
+    ("url", re.compile(r"\b(?:https?://|www\.)\S+\b", re.IGNORECASE)),
+    ("ip_address", re.compile(r"\b(?:\d{1,3}\.){3}\d{1,3}\b")),
+    (
+        "credential_keyword",
+        re.compile(r"\b(?:api[_-]?key|bearer|password|passwd|secret|token)\b\s*[:=]", re.IGNORECASE),
+    ),
+    (
+        "secret_token",
+        re.compile(r"\b(?:sk|pk|rk|ghp|gho|ghu|github_pat|hf)[_-][A-Za-z0-9_-]{12,}\b"),
+    ),
+    ("long_number", re.compile(r"\b\d{8,}\b")),
+    ("phone_like_number", re.compile(r"(?<!\w)\+?\d[\d\s().-]{7,}\d(?!\w)")),
+)
 
 
 def run_transcription_pilot(
@@ -104,6 +120,7 @@ def run_transcription_pilot(
         source_audio_path = Path(audio).resolve()
 
     expected_reference = _load_expected_reference(expected_text, expected_text_file)
+    reference_privacy_scan = _reference_privacy_scan(expected_reference)
     config = VoiceKitConfig(
         transcription_backend=backend,
         transcription_model=model or "auto",
@@ -154,6 +171,8 @@ def run_transcription_pilot(
     quality_gate_passed = quality_report["passed"]
     if quality_gate_passed is False:
         passed = False
+    if reference_privacy_scan["passed"] is False:
+        passed = False
     audio_decoder = _audio_metadata_value(chunk, "decoder") if chunk is not None else None
     audio_source_format = _audio_metadata_value(chunk, "source_format") if chunk is not None else None
     if audio_source_format is None and source_audio_path.suffix:
@@ -195,6 +214,7 @@ def run_transcription_pilot(
         audio=audio_payload,
         transcript=result_payload,
         quality=quality_report,
+        reference_privacy_scan=reference_privacy_scan,
         audio_review_confirmed=audio_review_confirmed,
         reference_review_confirmed=reference_review_confirmed,
         quality_review_confirmed=quality_review_confirmed,
@@ -213,6 +233,7 @@ def run_transcription_pilot(
         audio=audio_payload,
         transcript=result_payload,
         quality=quality_report,
+        reference_privacy_scan=reference_privacy_scan,
         audio_review_confirmed=audio_review_confirmed,
         reference_review_confirmed=reference_review_confirmed,
         quality_review_confirmed=quality_review_confirmed,
@@ -246,6 +267,7 @@ def run_transcription_pilot(
         "audio": audio_payload,
         "transcript": result_payload,
         "quality": quality_report,
+        "reference_privacy_scan": reference_privacy_scan,
         "transcription_checklist": transcription_checklist,
         "notes": _pilot_notes(real_transcription, preflight_only),
         "artifacts": {
@@ -486,6 +508,37 @@ def _load_expected_reference(
     }
 
 
+def _reference_privacy_scan(expected_reference: dict[str, Any] | None) -> dict[str, Any]:
+    if expected_reference is None:
+        return {
+            "enabled": False,
+            "passed": None,
+            "status": "not_provided",
+            "text_redacted": True,
+            "risk_count": 0,
+            "risk_types": [],
+        }
+
+    text = str(expected_reference["text"])
+    risk_types: list[str] = []
+    risk_count = 0
+    for risk_type, pattern in REFERENCE_PRIVACY_PATTERNS:
+        matches = pattern.findall(text)
+        if matches:
+            risk_types.append(risk_type)
+            risk_count += len(matches)
+
+    passed = risk_count == 0
+    return {
+        "enabled": True,
+        "passed": passed,
+        "status": "passed" if passed else "blocked",
+        "text_redacted": True,
+        "risk_count": risk_count,
+        "risk_types": risk_types,
+    }
+
+
 def _sanitize_metadata(value: Any) -> Any:
     if isinstance(value, dict):
         sanitized = {}
@@ -671,6 +724,7 @@ def _transcription_checklist(
     audio: dict[str, Any],
     transcript: dict[str, Any] | None,
     quality: dict[str, Any],
+    reference_privacy_scan: dict[str, Any],
     audio_review_confirmed: bool,
     reference_review_confirmed: bool,
     quality_review_confirmed: bool,
@@ -680,6 +734,7 @@ def _transcription_checklist(
         quality["min_word_accuracy"]
     ) >= BETA_MIN_WORD_ACCURACY
     quality_ready = bool(quality["enabled"] and quality["passed"] is True and meaningful_quality_threshold)
+    reference_privacy_ready = bool(reference_privacy_scan["enabled"] and reference_privacy_scan["passed"] is True)
     transcript_redacted = transcript is not None and transcript.get("text_redacted") is True
     ready_for_real_transcription = bool(
         real_transcription
@@ -694,6 +749,7 @@ def _transcription_checklist(
         and passed
         and transcript_redacted
         and quality_ready
+        and reference_privacy_ready
         and quality_review_confirmed
         and reference_review_confirmed
         and not preflight_only
@@ -733,6 +789,12 @@ def _transcription_checklist(
             "reference_review_confirmed",
             "Use --confirm-reference-reviewed only after reviewing the expected text privacy locally.",
             ok=reference_review_confirmed if quality["enabled"] else None,
+            required=True,
+        ),
+        _checklist_item(
+            "reference_privacy_scan_passed",
+            "Use only public/non-sensitive expected text; review risk types locally if this scan blocks beta evidence.",
+            ok=reference_privacy_scan["passed"] if reference_privacy_scan["enabled"] else None,
             required=True,
         ),
         _checklist_item(
@@ -776,6 +838,9 @@ def _transcription_checklist(
         "redacts_expected_text": True,
         "audio_review_confirmed": audio_review_confirmed,
         "reference_review_confirmed": reference_review_confirmed,
+        "reference_privacy_scan_passed": reference_privacy_scan["passed"],
+        "reference_privacy_risk_count": reference_privacy_scan["risk_count"],
+        "reference_privacy_risk_types": reference_privacy_scan["risk_types"],
         "quality_review_confirmed": quality_review_confirmed,
         "ready_for_real_transcription": ready_for_real_transcription,
         "ready_for_beta_evidence": ready_for_beta_evidence,
@@ -810,6 +875,7 @@ def _build_findings_markdown(
     audio: dict[str, Any],
     transcript: dict[str, Any] | None,
     quality: dict[str, Any],
+    reference_privacy_scan: dict[str, Any],
     audio_review_confirmed: bool,
     reference_review_confirmed: bool,
     quality_review_confirmed: bool,
@@ -841,6 +907,9 @@ def _build_findings_markdown(
         f"- Transcript characters: {transcript_characters}",
         f"- Quality reference provided: {quality['enabled']}",
         f"- Reference review confirmed: {reference_review_confirmed}",
+        f"- Reference privacy scan passed: {_format_optional(reference_privacy_scan['passed'])}",
+        f"- Reference privacy risk count: {reference_privacy_scan['risk_count']}",
+        f"- Reference privacy risk types: {_format_list(reference_privacy_scan['risk_types'])}",
         f"- Quality gate passed: {_format_optional(quality['passed'])}",
         f"- Quality review confirmed: {quality_review_confirmed}",
         f"- Transcription checklist ready for beta evidence: {transcription_checklist['ready_for_beta_evidence']}",
@@ -851,6 +920,7 @@ def _build_findings_markdown(
         "",
         "- The full transcript is not written to findings or JSON artifacts.",
         "- The full audio path is not written to findings.",
+        "- Reference privacy scanning reports only risk types and counts, not matched text.",
         "- Prompt-like metadata is redacted.",
         "",
         "## Quality",
@@ -921,6 +991,9 @@ def _build_transcription_checklist_markdown(
         f"- Redacts expected text: {transcription_checklist['redacts_expected_text']}",
         f"- Audio review confirmed: {transcription_checklist['audio_review_confirmed']}",
         f"- Reference review confirmed: {transcription_checklist['reference_review_confirmed']}",
+        f"- Reference privacy scan passed: {_format_optional(transcription_checklist['reference_privacy_scan_passed'])}",
+        f"- Reference privacy risk count: {transcription_checklist['reference_privacy_risk_count']}",
+        f"- Reference privacy risk types: {_format_list(transcription_checklist['reference_privacy_risk_types'])}",
         f"- Quality review confirmed: {transcription_checklist['quality_review_confirmed']}",
         f"- Ready for real transcription: {transcription_checklist['ready_for_real_transcription']}",
         f"- Ready for beta evidence: {transcription_checklist['ready_for_beta_evidence']}",
@@ -970,6 +1043,10 @@ def _format_optional(value: object | None) -> str:
     return "none" if value in (None, "") else str(value)
 
 
+def _format_list(values: list[str]) -> str:
+    return ", ".join(values) if values else "none"
+
+
 def _slug(value: str) -> str:
     return value.replace(":", "").replace("-", "").replace("+", "z")
 
@@ -982,6 +1059,8 @@ def _print_report(report: dict[str, Any]) -> None:
     print(f"Generated synthetic audio: {report['generated_synthetic_audio']}")
     print(f"Audio review confirmed: {report['audio_review_confirmed']}")
     print(f"Reference review confirmed: {report['reference_review_confirmed']}")
+    print(f"Reference privacy scan passed: {report['reference_privacy_scan']['passed']}")
+    print(f"Reference privacy risk count: {report['reference_privacy_scan']['risk_count']}")
     print(f"Quality review confirmed: {report['quality_review_confirmed']}")
     print(f"Passed: {report['passed']}")
     print(f"Transcript characters: {report['transcript']['text_characters'] if report['transcript'] else 0}")

@@ -74,6 +74,7 @@ def build_evidence_requirements_report() -> dict[str, Any]:
                     _required_field("audio_confirmed_non_sensitive", True),
                     _required_field("audio_review_confirmed", True),
                     _required_field("reference_review_confirmed", True),
+                    _required_field("reference_privacy_scan.passed", True),
                     _required_field("quality_review_confirmed", True),
                     _required_field("passed", True),
                     _required_field("quality.enabled", True),
@@ -81,6 +82,7 @@ def build_evidence_requirements_report() -> dict[str, Any]:
                     _required_field("quality.min_word_accuracy", f">= {BETA_MIN_WORD_ACCURACY}"),
                     _required_field("transcription_checklist.audio_review_confirmed", True),
                     _required_field("transcription_checklist.reference_review_confirmed", True),
+                    _required_field("transcription_checklist.reference_privacy_scan_passed", True),
                     _required_field("transcription_checklist.quality_review_confirmed", True),
                     _required_field("transcription_checklist.ready_for_beta_evidence", True),
                 ],
@@ -150,6 +152,7 @@ def build_evidence_requirements_report() -> dict[str, Any]:
         "privacy": [
             "No audio bytes are required in beta evidence.",
             "No full transcript or expected text is required in beta readiness evidence.",
+            "Reference privacy scans expose only pass/fail, risk counts and risk types.",
             "Only structured fields and sanitized artifact names are used.",
         ],
     }
@@ -246,6 +249,7 @@ def build_beta_readiness_report(
                 "Real transcription requested: True",
                 "Audio review confirmed: True",
                 "Reference review confirmed: True",
+                "Reference privacy scan passed: True",
                 "Quality gate passed: `true`",
                 "Quality review confirmed: True",
                 "Transcription checklist ready for beta evidence: True",
@@ -255,6 +259,7 @@ def build_beta_readiness_report(
                 "--expected-text or --expected-text-file, a meaningful --min-word-accuracy, "
                 "--min-audio-seconds/--max-audio-seconds duration guards and "
                 "--confirm-audio-reviewed before model use plus --confirm-reference-reviewed before scoring "
+                "with reference_privacy_scan.passed=true, "
                 "and --confirm-quality-reviewed after human review, "
                 "then keep transcription-review-checklist.md."
             ),
@@ -925,12 +930,15 @@ def _is_system_output_audible_evidence(report: dict[str, Any]) -> bool:
 
 def _is_real_transcription_quality_evidence(report: dict[str, Any]) -> bool:
     quality = report.get("quality", {})
+    reference_privacy_scan = report.get("reference_privacy_scan", {})
     transcription_checklist = report.get("transcription_checklist", {})
     return (
         report.get("real_transcription_requested") is True
         and report.get("audio_confirmed_non_sensitive") is True
         and report.get("audio_review_confirmed") is True
         and report.get("reference_review_confirmed") is True
+        and isinstance(reference_privacy_scan, dict)
+        and reference_privacy_scan.get("passed") is True
         and report.get("quality_review_confirmed") is True
         and report.get("passed") is True
         and isinstance(quality, dict)
@@ -940,6 +948,7 @@ def _is_real_transcription_quality_evidence(report: dict[str, Any]) -> bool:
         and isinstance(transcription_checklist, dict)
         and transcription_checklist.get("audio_review_confirmed") is True
         and transcription_checklist.get("reference_review_confirmed") is True
+        and transcription_checklist.get("reference_privacy_scan_passed") is True
         and transcription_checklist.get("quality_review_confirmed") is True
         and transcription_checklist.get("ready_for_beta_evidence") is True
     )

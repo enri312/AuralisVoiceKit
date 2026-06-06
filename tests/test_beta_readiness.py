@@ -228,6 +228,25 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertFalse(checks["real_transcription_quality"]["ok"])
         self.assertIn("real_transcription_quality", report["blockers"])
 
+    def test_real_transcription_evidence_requires_reference_privacy_scan(self):
+        module = _load_beta_readiness()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            evidence_path = Path(tmpdir) / "transcription-pilot-report.json"
+            evidence = _transcription_evidence()
+            evidence["reference_privacy_scan"]["passed"] = False
+            evidence["reference_privacy_scan"]["risk_count"] = 1
+            evidence["reference_privacy_scan"]["risk_types"] = ["email"]
+            evidence["transcription_checklist"]["reference_privacy_scan_passed"] = False
+            evidence["transcription_checklist"]["ready_for_beta_evidence"] = False
+            _write_json(evidence_path, evidence)
+
+            report = module.build_beta_readiness_report(ROOT, evidence_paths=[evidence_path])
+            checks = {check["name"]: check for check in report["checks"]}
+
+        self.assertFalse(checks["real_transcription_quality"]["ok"])
+        self.assertIn("real_transcription_quality", report["blockers"])
+
     def test_system_output_evidence_requires_operator_checklist(self):
         module = _load_beta_readiness()
 
@@ -521,10 +540,12 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertEqual(transcription_fields["audio_confirmed_non_sensitive"], True)
         self.assertEqual(transcription_fields["audio_review_confirmed"], True)
         self.assertEqual(transcription_fields["reference_review_confirmed"], True)
+        self.assertEqual(transcription_fields["reference_privacy_scan.passed"], True)
         self.assertEqual(transcription_fields["quality.min_word_accuracy"], ">= 0.75")
         self.assertEqual(transcription_fields["quality_review_confirmed"], True)
         self.assertEqual(transcription_fields["transcription_checklist.audio_review_confirmed"], True)
         self.assertEqual(transcription_fields["transcription_checklist.reference_review_confirmed"], True)
+        self.assertEqual(transcription_fields["transcription_checklist.reference_privacy_scan_passed"], True)
         self.assertEqual(transcription_fields["transcription_checklist.quality_review_confirmed"], True)
         self.assertEqual(transcription_fields["transcription_checklist.ready_for_beta_evidence"], True)
         self.assertIn("system_guard.expected_system_matched", output_fields)
@@ -556,7 +577,9 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertIn("audio_review_confirmed", content)
         self.assertIn("transcription_checklist.audio_review_confirmed", content)
         self.assertIn("reference_review_confirmed", content)
+        self.assertIn("reference_privacy_scan.passed", content)
         self.assertIn("transcription_checklist.reference_review_confirmed", content)
+        self.assertIn("transcription_checklist.reference_privacy_scan_passed", content)
         self.assertIn("quality_review_confirmed", content)
         self.assertIn("voice_review_confirmed", content)
         self.assertIn("operator_checklist.expected_system_matched", content)
@@ -850,6 +873,12 @@ def _transcription_evidence(*, min_word_accuracy: float = 0.75, word_accuracy: f
         "audio_confirmed_non_sensitive": True,
         "audio_review_confirmed": True,
         "reference_review_confirmed": True,
+        "reference_privacy_scan": {
+            "enabled": True,
+            "passed": True,
+            "risk_count": 0,
+            "risk_types": [],
+        },
         "quality_review_confirmed": True,
         "passed": True,
         "quality": {
@@ -861,6 +890,7 @@ def _transcription_evidence(*, min_word_accuracy: float = 0.75, word_accuracy: f
         "transcription_checklist": {
             "audio_review_confirmed": True,
             "reference_review_confirmed": True,
+            "reference_privacy_scan_passed": True,
             "quality_review_confirmed": True,
             "ready_for_beta_evidence": True,
         },
