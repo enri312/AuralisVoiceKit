@@ -1049,6 +1049,13 @@ class BetaReadinessTests(unittest.TestCase):
         output_summary = summaries["system_output_audible"]
         self.assertEqual(output_summary["status"], "closed")
         self.assertEqual(output_summary["accepted_sources"], ["output/output-pilot-report.json"])
+        focus = report["next_evidence_focus"]
+        self.assertEqual(focus["status"], "pending")
+        self.assertEqual(focus["name"], "real_transcription_quality")
+        self.assertEqual(focus["artifact"], "transcription-pilot-report.json")
+        self.assertEqual(focus["closest_candidate"]["file"], "transcription/transcription-pilot-report.json")
+        self.assertEqual(focus["missing_fields"], ["quality.min_word_accuracy"])
+        self.assertIn("quality.min_word_accuracy", focus["required_fields"])
 
     def test_cli_audit_evidence_markdown_is_public_safe(self):
         module = _load_beta_readiness()
@@ -1069,6 +1076,7 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertIn("Auditoria de evidencias beta", content)
         self.assertIn("Resumen de blockers", content)
         self.assertIn("Resumen por blocker", content)
+        self.assertIn("Siguiente foco de evidencia", content)
         self.assertIn("Listo para beta segun evidencias JSON", content)
         self.assertIn("ubuntu_linux_capture", content)
         self.assertIn("Candidato mas cercano", content)
@@ -1092,6 +1100,9 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertIn("real_transcription_quality", payload["missing_blockers"])
         self.assertIn("blocker_summaries", payload)
         self.assertEqual(payload["blocker_summaries"][0]["candidate_count"], 0)
+        self.assertEqual(payload["next_evidence_focus"]["status"], "pending")
+        self.assertEqual(payload["next_evidence_focus"]["name"], "real_transcription_quality")
+        self.assertIn("real_transcription_requested", payload["next_evidence_focus"]["missing_fields"])
 
     def test_cli_audit_evidence_can_fail_on_missing_blockers(self):
         module = _load_beta_readiness()

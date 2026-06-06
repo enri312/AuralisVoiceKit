@@ -64,6 +64,8 @@ Nota `v0.110.0`: la auditoria de evidencias agrega `blocker_summaries` y un resu
 
 Nota `v0.111.0`: el piloto seguro propaga esos `blocker_summaries` a `pilot-report.json`, `pilot-plan.md` y `real-pilot-evidence-manifest.md`, manteniendo fuentes relativas y campos faltantes publicos.
 
+Nota `v0.112.0`: la auditoria beta y el piloto seguro agregan `next_evidence_focus` para apuntar al primer blocker beta activo, con comando base, campos faltantes y candidato mas cercano publicos.
+
 ## Fase 0 - Base del proyecto
 
 **Objetivo:** dejar una libreria instalable, importable y testeable.

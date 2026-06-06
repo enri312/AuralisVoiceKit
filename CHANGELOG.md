@@ -6,6 +6,14 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.112.0] - 2026-06-06
+
+### Agregado
+
+- `tools/beta_readiness.py --audit-evidence` ahora expone `next_evidence_focus`, elegido desde los blockers beta activos y con campos faltantes publicos.
+- `tools/pilot_run.py` propaga ese foco a `beta_readiness`, `evidence_manifest`, `pilot_decision_gate`, `pilot-plan.md`, `real-pilot-evidence-manifest.md` y `real-pilot-decision-gate.md`.
+- Nuevas pruebas verifican el foco de evidencia en auditoria JSON/Markdown y en artifacts del piloto seguro.
+
 ## [0.111.0] - 2026-06-06
 
 ### Agregado

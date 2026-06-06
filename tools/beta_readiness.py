@@ -244,6 +244,15 @@ def build_evidence_audit_report(
         blocker for artifact in artifacts for blocker in artifact["satisfied_blockers"]
     )
     missing_blockers = [blocker for blocker in required_blockers if blocker not in satisfied_blockers]
+    focus_blockers = missing_blockers
+    active_beta_blockers = [
+        blocker
+        for blocker in build_beta_readiness_report(workspace, evidence_paths=evidence_paths or [])["blockers"]
+        if blocker in missing_blockers
+    ]
+    if active_beta_blockers:
+        focus_blockers = active_beta_blockers
+    next_evidence_focus = _next_evidence_focus(requirements, blocker_summaries, focus_blockers)
 
     return {
         "project": "AuralisVoiceKit",
@@ -262,6 +271,7 @@ def build_evidence_audit_report(
         "satisfied_blockers": satisfied_blockers,
         "missing_blockers": missing_blockers,
         "blocker_summaries": blocker_summaries,
+        "next_evidence_focus": next_evidence_focus,
         "ready_for_beta_by_evidence": not missing_blockers,
         "artifacts": artifacts,
         "notes": (
@@ -548,6 +558,8 @@ def format_audit_markdown(report: dict[str, Any]) -> str:
             lines.append(f"- Candidato mas cercano: `{closest['file']}`")
             lines.append(f"- Campos faltantes del candidato mas cercano: {missing_fields}")
         lines.append("")
+    lines.extend(["## Siguiente foco de evidencia", ""])
+    _append_next_evidence_focus_lines(lines, report.get("next_evidence_focus", {}))
     lines.extend(["## Evidencias aceptadas", ""])
     if not report["artifacts"]:
         lines.append("- Ninguna.")
@@ -960,6 +972,87 @@ def _evidence_blocker_summaries(
     return summaries
 
 
+def _next_evidence_focus(
+    requirements: list[dict[str, Any]],
+    blocker_summaries: list[dict[str, Any]],
+    missing_blockers: list[str],
+) -> dict[str, Any]:
+    """Choose the next beta evidence blocker to close with public-safe details."""
+
+    if not missing_blockers:
+        return {
+            "status": "complete",
+            "name": None,
+            "title": None,
+            "artifact": None,
+            "command": None,
+            "candidate_count": 0,
+            "closest_candidate": None,
+            "missing_fields": [],
+            "required_fields": [],
+            "conditional_required_fields": [],
+            "reason_es": "Todas las evidencias JSON requeridas para beta estan cerradas.",
+            "reason_en": "All JSON evidence required for beta is closed.",
+        }
+
+    requirements_by_name = {requirement["name"]: requirement for requirement in requirements}
+    summary_by_name = {summary["name"]: summary for summary in blocker_summaries}
+    missing_order = {name: index for index, name in enumerate(missing_blockers)}
+    pending_summaries = [
+        summary_by_name[name]
+        for name in missing_blockers
+        if name in summary_by_name and summary_by_name[name].get("status") != "closed"
+    ]
+    if not pending_summaries:
+        pending_summaries = [
+            summary
+            for summary in blocker_summaries
+            if summary["name"] in missing_order and summary.get("status") != "closed"
+        ]
+    selected = pending_summaries[0]
+
+    requirement = requirements_by_name[selected["name"]]
+    closest = selected.get("closest_candidate")
+    required_fields = [field["path"] for field in requirement["fields"]]
+    missing_fields = closest["missing_fields"] if closest is not None else required_fields
+    return {
+        "status": "pending",
+        "name": selected["name"],
+        "title": selected["title"],
+        "artifact": selected["artifact"],
+        "command": requirement["command"],
+        "candidate_count": selected["candidate_count"],
+        "closest_candidate": closest,
+        "missing_fields": missing_fields,
+        "required_fields": required_fields,
+        "conditional_required_fields": _conditional_required_fields_for_focus(requirement),
+        "reason_es": (
+            "Prioriza el primer blocker pendiente del checklist beta activo "
+            "y muestra su candidato mas cercano cuando existe."
+        ),
+        "reason_en": (
+            "Prioritizes the first pending blocker from the active beta checklist "
+            "and shows its closest candidate when available."
+        ),
+    }
+
+
+def _conditional_required_fields_for_focus(requirement: dict[str, Any]) -> list[dict[str, Any]]:
+    conditional_fields: list[dict[str, Any]] = []
+    for conditional in requirement.get("conditional_fields", []):
+        condition = conditional["when"]
+        conditional_fields.append(
+            {
+                "when": {
+                    "path": condition["path"],
+                    "expected": condition["expected"],
+                },
+                "fields": [field["path"] for field in conditional["fields"]],
+            }
+        )
+    return conditional_fields
+
+
 def _applicable_conditional_fields(report: dict[str, Any], requirement: dict[str, Any]) -> list[dict[str, Any]]:
     fields: list[dict[str, Any]] = []
     for conditional in requirement.get("conditional_fields", []):
@@ -1022,6 +1115,44 @@ def _ordered_unique(values) -> list[str]:
 
 def _format_name_list(names: list[str]) -> str:
     return ", ".join(f"`{name}`" for name in names)
+
+
+def _append_next_evidence_focus_lines(lines: list[str], focus: dict[str, Any]) -> None:
+    if not focus:
+        lines.extend(["- No hay foco de evidencia disponible.", ""])
+        return
+    lines.append(f"- Estado: `{focus['status']}`")
+    if focus["status"] == "complete":
+        lines.append(f"- Motivo: {focus['reason_es']} / {focus['reason_en']}.")
+        lines.append("")
+        return
+    closest = focus.get("closest_candidate")
+    missing_fields = _format_name_list(focus.get("missing_fields", [])) if focus.get("missing_fields") else "`ninguno`"
+    required_fields = _format_name_list(focus.get("required_fields", [])) if focus.get("required_fields") else "`ninguno`"
+    lines.extend(
+        [
+            f"- Blocker: `{focus['name']}`",
+            f"- Titulo: {focus['title']}",
+            f"- Artifact esperado: `{focus['artifact']}`",
+            f"- Comando base: `{focus['command']}`",
+            f"- Candidatos evaluados: `{focus['candidate_count']}`",
+            f"- Campos faltantes a cerrar: {missing_fields}",
+            f"- Campos requeridos base: {required_fields}",
+        ]
+    )
+    if closest is None:
+        lines.append("- Candidato mas cercano: `ninguno`")
+    else:
+        lines.append(f"- Candidato mas cercano: `{closest['file']}`")
+    conditional_fields = focus.get("conditional_required_fields") or []
+    if conditional_fields:
+        lines.append("- Campos condicionales:")
+        for item in conditional_fields:
+            condition = item["when"]
+            fields = _format_name_list(item["fields"]) if item["fields"] else "`ninguno`"
+            lines.append(f"  - Si `{condition['path']}` = `{condition['expected']}`: {fields}")
+    lines.append(f"- Motivo: {focus['reason_es']} / {focus['reason_en']}.")
+    lines.append("")
 
 
 def _ignored_evidence(public_source: str, reason: str) -> dict[str, str]:

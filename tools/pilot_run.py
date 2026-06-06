@@ -176,6 +176,7 @@ def run_safe_pilot(
             "satisfied_json_blockers": beta_audit["satisfied_blockers"],
             "missing_json_blockers": beta_audit["missing_blockers"],
             "blocker_summaries": beta_audit["blocker_summaries"],
+            "next_evidence_focus": beta_audit["next_evidence_focus"],
             "accepted_json_artifacts": _pilot_plan_artifact_summary(beta_audit["artifacts"]),
             "ignored_json_artifacts": beta_audit["ignored_details"],
             "strict_audit_command": (
@@ -1216,6 +1217,7 @@ def _real_pilot_evidence_manifest(
         "missing_json_blockers": beta_audit["missing_blockers"],
         "closed_blockers": beta_audit["satisfied_blockers"],
         "blocker_summaries": beta_audit["blocker_summaries"],
+        "next_evidence_focus": beta_audit["next_evidence_focus"],
         "accepted_json_artifacts": _pilot_plan_artifact_summary(beta_audit["artifacts"]),
         "ignored_json_artifacts": beta_audit["ignored_details"],
         "pending_count": len(beta_readiness["blockers"]),
@@ -1600,6 +1602,7 @@ def _real_pilot_decision_gate(report: dict[str, Any]) -> dict[str, Any]:
             "requires_operator": recommended["requires_operator"] if recommended else False,
             "requires_non_sensitive_audio": recommended["requires_non_sensitive_audio"] if recommended else False,
         },
+        "next_evidence_focus": report["beta_readiness"].get("next_evidence_focus", {}),
         "local_environment_warnings": local_warnings,
         "target_system_checks": target_system_checks,
         "operator_actions": [
@@ -1733,6 +1736,13 @@ def _format_pilot_plan_markdown(report: dict[str, Any]) -> str:
         lines.append("")
     lines.extend(["## Resumen por blocker", ""])
     _append_blocker_summary_lines(lines, beta.get("blocker_summaries", []))
+    lines.extend(
+        [
+            "## Siguiente foco de evidencia",
+            "",
+        ]
+    )
+    _append_next_evidence_focus_lines(lines, beta.get("next_evidence_focus", {}))
     lines.extend(
         [
             "## Manifiesto de evidencias",
@@ -2421,6 +2431,8 @@ def _format_real_pilot_evidence_manifest_markdown(report: dict[str, Any]) -> str
         "",
     ]
     _append_blocker_summary_lines(lines, manifest.get("blocker_summaries", []))
+    lines.extend(["## Siguiente foco de evidencia", ""])
+    _append_next_evidence_focus_lines(lines, manifest.get("next_evidence_focus", {}))
     lines.extend(
         [
             "## Tabla de evidencias",
@@ -2531,9 +2543,16 @@ def _format_real_pilot_decision_gate_markdown(report: dict[str, Any]) -> str:
         f"- Requiere operador: `{_format_bool(next_step['requires_operator'])}`",
         f"- Requiere audio no sensible: `{_format_bool(next_step['requires_non_sensitive_audio'])}`",
         "",
-        "## Alcance permitido",
+        "## Siguiente foco de evidencia",
         "",
     ]
+    _append_next_evidence_focus_lines(lines, gate.get("next_evidence_focus", {}))
+    lines.extend(
+        [
+            "## Alcance permitido",
+            "",
+        ]
+    )
     for item in gate["real_world_pilot"]["allowed_scope"]:
         lines.append(f"- {item}")
     lines.extend(["", "## Acciones del operador", ""])
@@ -2746,6 +2765,46 @@ def _append_blocker_summary_lines(lines: list[str], summaries: list[dict[str, An
             lines.append(f"- Candidato mas cercano: `{closest['file']}`")
             lines.append(f"- Campos faltantes del candidato mas cercano: {missing_fields}")
         lines.append("")
+
+
+def _append_next_evidence_focus_lines(lines: list[str], focus: dict[str, Any]) -> None:
+    if not focus:
+        lines.extend(["- No hay foco de evidencia disponible.", ""])
+        return
+    lines.append(f"- Estado: `{focus['status']}`")
+    if focus["status"] == "complete":
+        lines.append(f"- Motivo: {focus['reason_es']} / {focus['reason_en']}.")
+        lines.append("")
+        return
+    closest = focus.get("closest_candidate")
+    missing_fields = _format_inline_list(focus.get("missing_fields", []))
+    required_fields = _format_inline_list(focus.get("required_fields", []))
+    lines.extend(
+        [
+            f"- Blocker: `{focus['name']}`",
+            f"- Titulo: {focus['title']}",
+            f"- Artifact esperado: `{focus['artifact']}`",
+            f"- Comando base: `{focus['command']}`",
+            f"- Candidatos evaluados: `{focus['candidate_count']}`",
+            f"- Campos faltantes a cerrar: {missing_fields}",
+            f"- Campos requeridos base: {required_fields}",
+        ]
+    )
+    if closest is None:
+        lines.append("- Candidato mas cercano: `ninguno`")
+    else:
+        lines.append(f"- Candidato mas cercano: `{closest['file']}`")
+    conditional_fields = focus.get("conditional_required_fields") or []
+    if conditional_fields:
+        lines.append("- Campos condicionales:")
+        for item in conditional_fields:
+            condition = item["when"]
+            lines.append(
+                f"  - Si `{condition['path']}` = `{condition['expected']}`: "
+                f"{_format_inline_list(item['fields'])}"
+            )
+    lines.append(f"- Motivo: {focus['reason_es']} / {focus['reason_en']}.")
+    lines.append("")
 
 
 def _append_conditional_required_field_lines(lines: list[str], item: dict[str, Any]) -> None:

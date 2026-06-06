@@ -856,6 +856,11 @@ class PilotRunTests(unittest.TestCase):
         self.assertEqual(summaries["ubuntu_linux_capture"]["status"], "closed")
         self.assertEqual(summaries["ubuntu_linux_capture"]["accepted_sources"], ["linux/manual-pilot-report.json"])
         self.assertEqual(report["evidence_manifest"]["blocker_summaries"], report["beta_readiness"]["blocker_summaries"])
+        focus = report["beta_readiness"]["next_evidence_focus"]
+        self.assertEqual(focus["status"], "pending")
+        self.assertEqual(focus["name"], "real_transcription_quality")
+        self.assertEqual(report["evidence_manifest"]["next_evidence_focus"], focus)
+        self.assertEqual(report["pilot_decision_gate"]["next_evidence_focus"], focus)
         self.assertNotIn("ubuntu_linux_capture", report["beta_readiness"]["blockers"])
         self.assertNotIn("ubuntu_linux_capture", {step["name"] for step in report["next_beta_evidence_steps"]})
         sequence_names = {step["name"] for step in report["recommended_pilot_sequence"]}
@@ -864,6 +869,8 @@ class PilotRunTests(unittest.TestCase):
         self.assertIn("refresh-beta-checklist", sequence_names)
         self.assertIn("Evidencias JSON", plan)
         self.assertIn("Resumen por blocker", plan)
+        self.assertIn("Siguiente foco de evidencia", plan)
+        self.assertIn("Blocker: `real_transcription_quality`", plan)
         self.assertIn("Fuentes que cierran: `linux/manual-pilot-report.json`", plan)
         self.assertIn("Secuencia recomendada", plan)
         self.assertIn("Matriz por plataforma", plan)
@@ -882,10 +889,12 @@ class PilotRunTests(unittest.TestCase):
         self.assertIn("missing_project", evidence_manifest)
         self.assertIn("ubuntu_linux_capture", evidence_manifest)
         self.assertIn("Resumen por blocker", evidence_manifest)
+        self.assertIn("Siguiente foco de evidencia", evidence_manifest)
         self.assertIn("Fuentes que cierran: `linux/manual-pilot-report.json`", evidence_manifest)
         self.assertIn("closed-by-accepted-json", evidence_manifest)
         self.assertNotIn(str(evidence_root), evidence_manifest)
         self.assertIn("Compuerta go/no-go", decision_gate)
+        self.assertIn("Siguiente foco de evidencia", decision_gate)
         self.assertIn("Beta: `blocked`", decision_gate)
         self.assertNotIn(str(evidence_root), decision_gate)
         matrix = {row["name"]: row for row in report["platform_pilot_matrix"]}
