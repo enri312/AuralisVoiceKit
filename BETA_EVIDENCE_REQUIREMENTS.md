@@ -87,6 +87,8 @@ Este documento describe los campos JSON que pueden cerrar blockers de beta. No r
   - `system` = `Linux | Ubuntu/Linux | Ubuntu`
   - `system_guard.expected_system_matched` = `True`
   - `capture_backend` = `sounddevice | pyaudio`
+  - `target_capture_backend.available` = `True`
+  - `capture_backend_ready_required` = `True`
   - `hardware_capture_tested` = `True`
   - `input_review_confirmed` = `True`
   - `capture_checklist.input_review_confirmed` = `True`
@@ -103,6 +105,8 @@ Este documento describe los campos JSON que pueden cerrar blockers de beta. No r
   - `system` = `Darwin | macOS | Mac`
   - `system_guard.expected_system_matched` = `True`
   - `capture_backend` = `sounddevice | pyaudio`
+  - `target_capture_backend.available` = `True`
+  - `capture_backend_ready_required` = `True`
   - `hardware_capture_tested` = `True`
   - `input_review_confirmed` = `True`
   - `capture_checklist.input_review_confirmed` = `True`

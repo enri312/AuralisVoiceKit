@@ -78,29 +78,11 @@ class BetaReadinessTests(unittest.TestCase):
             evidence_root = Path(tmpdir)
             _write_json(
                 evidence_root / "linux" / "manual-pilot-report.json",
-                {
-                    "project": "AuralisVoiceKit",
-                    "system": "Linux",
-                    "capture_backend": "sounddevice",
-                    "system_guard": _system_guard(),
-                    "hardware_capture_tested": True,
-                    "input_review_confirmed": True,
-                    "capture_checklist": _capture_checklist(),
-                    "passed": True,
-                },
+                _capture_evidence("Linux", "sounddevice"),
             )
             _write_json(
                 evidence_root / "macos" / "manual-pilot-report.json",
-                {
-                    "project": "AuralisVoiceKit",
-                    "system": "Darwin",
-                    "capture_backend": "pyaudio",
-                    "system_guard": _system_guard(),
-                    "hardware_capture_tested": True,
-                    "input_review_confirmed": True,
-                    "capture_checklist": _capture_checklist(),
-                    "passed": True,
-                },
+                _capture_evidence("Darwin", "pyaudio"),
             )
             _write_json(
                 evidence_root / "output" / "output-pilot-report.json",
@@ -431,13 +413,8 @@ class BetaReadinessTests(unittest.TestCase):
             _write_json(
                 evidence_path,
                 {
-                    "project": "AuralisVoiceKit",
-                    "system": "Linux",
-                    "capture_backend": "sounddevice",
-                    "hardware_capture_tested": True,
-                    "input_review_confirmed": True,
-                    "capture_checklist": _capture_checklist(),
-                    "passed": True,
+                    **_capture_evidence("Linux", "sounddevice"),
+                    "system_guard": {},
                 },
             )
 
@@ -455,16 +432,12 @@ class BetaReadinessTests(unittest.TestCase):
             _write_json(
                 evidence_path,
                 {
-                    "project": "AuralisVoiceKit",
-                    "system": "Linux",
-                    "capture_backend": "pyaudio",
-                    "system_guard": _system_guard(),
-                    "hardware_capture_tested": True,
+                    **_capture_evidence("Linux", "pyaudio"),
+                    "input_review_confirmed": False,
                     "capture_checklist": {
                         "ready_for_beta_evidence": True,
                         "input_review_confirmed": False,
                     },
-                    "passed": True,
                 },
             )
 
@@ -482,14 +455,8 @@ class BetaReadinessTests(unittest.TestCase):
             _write_json(
                 evidence_path,
                 {
-                    "project": "AuralisVoiceKit",
-                    "system": "Linux",
-                    "capture_backend": "wav",
-                    "system_guard": _system_guard(),
-                    "hardware_capture_tested": True,
-                    "input_review_confirmed": True,
-                    "capture_checklist": _capture_checklist(),
-                    "passed": True,
+                    **_capture_evidence("Linux", "wav"),
+                    "target_capture_backend": _capture_backend_status("wav"),
                 },
             )
 
@@ -499,6 +466,37 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertFalse(checks["ubuntu_linux_capture"]["ok"])
         self.assertIn("ubuntu_linux_capture", report["blockers"])
 
+    def test_cross_platform_capture_evidence_requires_backend_availability(self):
+        module = _load_beta_readiness()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            evidence_path = Path(tmpdir) / "manual-pilot-report.json"
+            evidence = _capture_evidence("Linux", "sounddevice")
+            evidence["target_capture_backend"]["available"] = False
+            evidence["target_capture_backend"]["reason"] = "missing optional backend"
+            _write_json(evidence_path, evidence)
+
+            report = module.build_beta_readiness_report(ROOT, evidence_paths=[evidence_path])
+            checks = {check["name"]: check for check in report["checks"]}
+
+        self.assertFalse(checks["ubuntu_linux_capture"]["ok"])
+        self.assertIn("ubuntu_linux_capture", report["blockers"])
+
+    def test_cross_platform_capture_evidence_requires_backend_ready_guard(self):
+        module = _load_beta_readiness()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            evidence_path = Path(tmpdir) / "manual-pilot-report.json"
+            evidence = _capture_evidence("Darwin", "pyaudio")
+            evidence["capture_backend_ready_required"] = False
+            _write_json(evidence_path, evidence)
+
+            report = module.build_beta_readiness_report(ROOT, evidence_paths=[evidence_path])
+            checks = {check["name"]: check for check in report["checks"]}
+
+        self.assertFalse(checks["macos_capture"]["ok"])
+        self.assertIn("macos_capture", report["blockers"])
+
     def test_cli_evidence_allows_strict_beta_pass(self):
         module = _load_beta_readiness()
 
@@ -506,29 +504,11 @@ class BetaReadinessTests(unittest.TestCase):
             evidence_root = Path(tmpdir)
             _write_json(
                 evidence_root / "linux" / "manual-pilot-report.json",
-                {
-                    "project": "AuralisVoiceKit",
-                    "system": "Linux",
-                    "capture_backend": "sounddevice",
-                    "system_guard": _system_guard(),
-                    "hardware_capture_tested": True,
-                    "input_review_confirmed": True,
-                    "capture_checklist": _capture_checklist(),
-                    "passed": True,
-                },
+                _capture_evidence("Linux", "sounddevice"),
             )
             _write_json(
                 evidence_root / "macos" / "manual-pilot-report.json",
-                {
-                    "project": "AuralisVoiceKit",
-                    "system": "Darwin",
-                    "capture_backend": "pyaudio",
-                    "system_guard": _system_guard(),
-                    "hardware_capture_tested": True,
-                    "input_review_confirmed": True,
-                    "capture_checklist": _capture_checklist(),
-                    "passed": True,
-                },
+                _capture_evidence("Darwin", "pyaudio"),
             )
             _write_json(
                 evidence_root / "output" / "output-pilot-report.json",
@@ -689,10 +669,14 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertIn("operator_checklist.ready_for_beta_evidence", output_fields)
         self.assertIn("system_guard.expected_system_matched", linux_fields)
         self.assertEqual(linux_fields["capture_backend"], "sounddevice | pyaudio")
+        self.assertEqual(linux_fields["target_capture_backend.available"], True)
+        self.assertEqual(linux_fields["capture_backend_ready_required"], True)
         self.assertIn("input_review_confirmed", linux_fields)
         self.assertIn("capture_checklist.input_review_confirmed", linux_fields)
         self.assertIn("capture_checklist.ready_for_beta_evidence", linux_fields)
         self.assertEqual(macos_fields["capture_backend"], "sounddevice | pyaudio")
+        self.assertEqual(macos_fields["target_capture_backend.available"], True)
+        self.assertEqual(macos_fields["capture_backend_ready_required"], True)
 
     def test_cli_requirements_markdown_is_public_safe(self):
         module = _load_beta_readiness()
@@ -707,6 +691,8 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertIn("transcription-pilot-report.json", content)
         self.assertIn("system_guard.expected_system_matched", content)
         self.assertIn("input_review_confirmed", content)
+        self.assertIn("target_capture_backend.available", content)
+        self.assertIn("capture_backend_ready_required", content)
         self.assertIn("capture_checklist.input_review_confirmed", content)
         self.assertIn("capture_checklist.ready_for_beta_evidence", content)
         self.assertIn("quality.min_word_accuracy", content)
@@ -794,16 +780,7 @@ class BetaReadinessTests(unittest.TestCase):
             evidence_path = tmpdir_path / "manual-pilot-report.json"
             _write_json(
                 evidence_path,
-                {
-                    "project": "AuralisVoiceKit",
-                    "system": "Linux",
-                    "capture_backend": "pyaudio",
-                    "system_guard": _system_guard(),
-                    "hardware_capture_tested": True,
-                    "input_review_confirmed": True,
-                    "capture_checklist": _capture_checklist(),
-                    "passed": True,
-                },
+                _capture_evidence("Linux", "pyaudio"),
             )
             output = io.StringIO()
             with contextlib.redirect_stdout(output):
@@ -886,29 +863,11 @@ class BetaReadinessTests(unittest.TestCase):
             )
             _write_json(
                 evidence_root / "linux" / "manual-pilot-report.json",
-                {
-                    "project": "AuralisVoiceKit",
-                    "system": "Linux",
-                    "capture_backend": "sounddevice",
-                    "system_guard": _system_guard(),
-                    "hardware_capture_tested": True,
-                    "input_review_confirmed": True,
-                    "capture_checklist": _capture_checklist(),
-                    "passed": True,
-                },
+                _capture_evidence("Linux", "sounddevice"),
             )
             _write_json(
                 evidence_root / "macos" / "manual-pilot-report.json",
-                {
-                    "project": "AuralisVoiceKit",
-                    "system": "Darwin",
-                    "capture_backend": "pyaudio",
-                    "system_guard": _system_guard(),
-                    "hardware_capture_tested": True,
-                    "input_review_confirmed": True,
-                    "capture_checklist": _capture_checklist(),
-                    "passed": True,
-                },
+                _capture_evidence("Darwin", "pyaudio"),
             )
             _write_json(
                 evidence_root / "output" / "output-pilot-report.json",
@@ -945,29 +904,11 @@ class BetaReadinessTests(unittest.TestCase):
             )
             _write_json(
                 evidence_root / "linux" / "manual-pilot-report.json",
-                {
-                    "project": "AuralisVoiceKit",
-                    "system": "Linux",
-                    "capture_backend": "sounddevice",
-                    "system_guard": _system_guard(),
-                    "hardware_capture_tested": True,
-                    "input_review_confirmed": True,
-                    "capture_checklist": _capture_checklist(),
-                    "passed": True,
-                },
+                _capture_evidence("Linux", "sounddevice"),
             )
             _write_json(
                 evidence_root / "macos" / "manual-pilot-report.json",
-                {
-                    "project": "AuralisVoiceKit",
-                    "system": "Darwin",
-                    "capture_backend": "pyaudio",
-                    "system_guard": _system_guard(),
-                    "hardware_capture_tested": True,
-                    "input_review_confirmed": True,
-                    "capture_checklist": _capture_checklist(),
-                    "passed": True,
-                },
+                _capture_evidence("Darwin", "pyaudio"),
             )
             _write_json(
                 evidence_root / "output" / "output-pilot-report.json",
@@ -998,6 +939,31 @@ def _write_json(path: Path, payload: dict):
 
 def _capture_checklist() -> dict[str, bool]:
     return {"input_review_confirmed": True, "ready_for_beta_evidence": True}
+
+
+def _capture_backend_status(backend: str) -> dict:
+    return {
+        "name": backend,
+        "kind": "capture",
+        "available": True,
+        "dependencies": [backend],
+        "reason": None,
+    }
+
+
+def _capture_evidence(system: str, backend: str) -> dict:
+    return {
+        "project": "AuralisVoiceKit",
+        "system": system,
+        "capture_backend": backend,
+        "target_capture_backend": _capture_backend_status(backend),
+        "capture_backend_ready_required": True,
+        "system_guard": _system_guard(),
+        "hardware_capture_tested": True,
+        "input_review_confirmed": True,
+        "capture_checklist": _capture_checklist(),
+        "passed": True,
+    }
 
 
 def _output_evidence() -> dict:

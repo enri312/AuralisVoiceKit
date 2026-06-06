@@ -6,6 +6,14 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.98.0] - 2026-06-06
+
+### Agregado
+
+- `tools/beta_readiness.py` ahora exige `target_capture_backend.available=true` y `capture_backend_ready_required=true` para cerrar los blockers de captura Ubuntu/Linux y macOS.
+- El contrato `BETA_EVIDENCE_REQUIREMENTS.md`, README, `PILOTS.md` y la documentacion HTML explicitan que la evidencia beta debe probar disponibilidad del backend antes de abrir microfono.
+- Nuevas pruebas cubren evidencias de captura con backend no disponible o sin guard estricto.
+
 ## [0.97.0] - 2026-06-06
 
 ### Agregado

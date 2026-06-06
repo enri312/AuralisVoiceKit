@@ -2,6 +2,35 @@
 
 Este documento resume hallazgos de pilotos reales o semi-manuales. No debe incluir audio, transcripciones privadas, rutas locales completas ni nombres reales de dispositivos.
 
+## 2026-06-06 - Auditoria beta exige backend de captura real para Linux/macOS
+
+Comando ejecutado:
+
+```powershell
+python tools\beta_readiness.py --requirements
+```
+
+Alcance:
+
+- Sistema anfitrion: Windows.
+- Version AuralisVoiceKit: `0.98.0`.
+- Microfono abierto: no.
+- Audio real guardado: no.
+- Tipo de piloto: auditoria de contrato beta, sin captura real.
+
+Resultado:
+
+- El contrato de evidencias beta ahora exige `target_capture_backend.available=true`.
+- El contrato de evidencias beta ahora exige `capture_backend_ready_required=true`.
+- Los blockers `ubuntu_linux_capture` y `macos_capture` ya no se cierran con JSON que omita el guard estricto de backend.
+- Evidencia beta: `false`; este hallazgo valida el contrato, no reemplaza pilotos reales en Ubuntu/Linux ni macOS.
+
+Acciones siguientes:
+
+1. Ejecutar `tools/manual_pilot.py --capture-test --backend sounddevice --device default --expected-system Linux --confirm-input-reviewed --require-capture-backend-ready --json` en Ubuntu/Linux real.
+2. Ejecutar el mismo flujo en macOS con `--expected-system Darwin`.
+3. Guardar solo JSON/checklists sanitizados que incluyan `target_capture_backend.available=true` y `capture_backend_ready_required=true`.
+
 ## 2026-06-06 - Windows dry-run de guard estricto para captura Ubuntu/Linux
 
 Comando ejecutado:

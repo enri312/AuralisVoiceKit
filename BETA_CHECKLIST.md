@@ -4,7 +4,7 @@ Este documento se genera con `tools\beta_readiness.py`. No debe incluir audio, t
 
 ## Estado
 
-- Version: `0.97.0`
+- Version: `0.98.0`
 - Estado: `pilot`
 - Listo para beta: `false`
 - Gate de pilotos reales: `true`
@@ -30,10 +30,10 @@ Este documento se genera con `tools\beta_readiness.py`. No debe incluir audio, t
   - Evidencia faltante: `Real audio requested: True`, `Output backend readiness required: True`, `Operator confirmation status: confirmed`, `Text review confirmed: True`, `Spoken text privacy scan passed: True`, `Voice review confirmed: True`, `Operator checklist ready for beta evidence: True`
 - [ ] `ubuntu_linux_capture` (blocker) - Ubuntu/Linux capture pilot
   - Accion: Run the manual capture pilot on Ubuntu/Linux with real hardware and --backend sounddevice or --backend pyaudio, --expected-system Linux --confirm-input-reviewed and --require-capture-backend-ready, then keep manual-capture-checklist.md, system_guard.expected_system_matched=true, capture_backend=sounddevice|pyaudio, target_capture_backend.available=true, capture_backend_ready_required=true, input_review_confirmed=true, capture_checklist.input_review_confirmed=true and capture_checklist.ready_for_beta_evidence=true.
-  - Evidencia faltante: `Sistema: Ubuntu/Linux`
+  - Evidencia faltante: `Sistema: Ubuntu/Linux`, `Target capture backend available: True`, `Capture backend readiness required: True`
 - [ ] `macos_capture` (blocker) - macOS capture pilot
   - Accion: Run the manual capture pilot on macOS with real hardware and --backend sounddevice or --backend pyaudio, --expected-system Darwin --confirm-input-reviewed and --require-capture-backend-ready, then keep manual-capture-checklist.md, system_guard.expected_system_matched=true, capture_backend=sounddevice|pyaudio, target_capture_backend.available=true, capture_backend_ready_required=true, input_review_confirmed=true, capture_checklist.input_review_confirmed=true and capture_checklist.ready_for_beta_evidence=true.
-  - Evidencia faltante: `Sistema: macOS`
+  - Evidencia faltante: `Sistema: macOS`, `Target capture backend available: True`, `Capture backend readiness required: True`
 
 ## Bugs conocidos
 

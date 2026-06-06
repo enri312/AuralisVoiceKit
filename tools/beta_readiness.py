@@ -142,6 +142,8 @@ def build_evidence_requirements_report() -> dict[str, Any]:
                     _required_field("system", "Linux | Ubuntu/Linux | Ubuntu"),
                     _required_field("system_guard.expected_system_matched", True),
                     _required_field("capture_backend", "sounddevice | pyaudio"),
+                    _required_field("target_capture_backend.available", True),
+                    _required_field("capture_backend_ready_required", True),
                     _required_field("hardware_capture_tested", True),
                     _required_field("input_review_confirmed", True),
                     _required_field("capture_checklist.input_review_confirmed", True),
@@ -164,6 +166,8 @@ def build_evidence_requirements_report() -> dict[str, Any]:
                     _required_field("system", "Darwin | macOS | Mac"),
                     _required_field("system_guard.expected_system_matched", True),
                     _required_field("capture_backend", "sounddevice | pyaudio"),
+                    _required_field("target_capture_backend.available", True),
+                    _required_field("capture_backend_ready_required", True),
                     _required_field("hardware_capture_tested", True),
                     _required_field("input_review_confirmed", True),
                     _required_field("capture_checklist.input_review_confirmed", True),
@@ -332,6 +336,8 @@ def build_beta_readiness_report(
             required_terms=(
                 "Sistema: Ubuntu/Linux",
                 "Piloto manual: `passed=true`",
+                "Target capture backend available: True",
+                "Capture backend readiness required: True",
             ),
             next_action=(
                 "Run the manual capture pilot on Ubuntu/Linux with real hardware and "
@@ -353,6 +359,8 @@ def build_beta_readiness_report(
             required_terms=(
                 "Sistema: macOS",
                 "Piloto manual: `passed=true`",
+                "Target capture backend available: True",
+                "Capture backend readiness required: True",
             ),
             next_action=(
                 "Run the manual capture pilot on macOS with real hardware and --backend sounddevice "
@@ -929,11 +937,15 @@ def _is_ubuntu_linux_capture_evidence(report: dict[str, Any]) -> bool:
     system = str(report.get("system", "")).lower()
     capture_checklist = report.get("capture_checklist", {})
     system_guard = report.get("system_guard", {})
+    target_capture_backend = report.get("target_capture_backend", {})
     return (
         system in {"linux", "ubuntu/linux", "ubuntu"}
         and isinstance(system_guard, dict)
         and system_guard.get("expected_system_matched") is True
         and _is_cross_platform_capture_backend(report.get("capture_backend"))
+        and isinstance(target_capture_backend, dict)
+        and target_capture_backend.get("available") is True
+        and report.get("capture_backend_ready_required") is True
         and report.get("hardware_capture_tested") is True
         and report.get("input_review_confirmed") is True
         and isinstance(capture_checklist, dict)
@@ -947,11 +959,15 @@ def _is_macos_capture_evidence(report: dict[str, Any]) -> bool:
     system = str(report.get("system", "")).lower()
     capture_checklist = report.get("capture_checklist", {})
     system_guard = report.get("system_guard", {})
+    target_capture_backend = report.get("target_capture_backend", {})
     return (
         system in {"darwin", "macos", "mac"}
         and isinstance(system_guard, dict)
         and system_guard.get("expected_system_matched") is True
         and _is_cross_platform_capture_backend(report.get("capture_backend"))
+        and isinstance(target_capture_backend, dict)
+        and target_capture_backend.get("available") is True
+        and report.get("capture_backend_ready_required") is True
         and report.get("hardware_capture_tested") is True
         and report.get("input_review_confirmed") is True
         and isinstance(capture_checklist, dict)
