@@ -187,6 +187,7 @@ def run_safe_pilot(
     }
     findings_template_path = output / "real-pilot-findings-template.md"
     handoff_path = output / "real-pilot-handoff.md"
+    command_pack_path = output / "real-pilot-command-pack.md"
     plan_path = output / "pilot-plan.md"
     report_path = output / "pilot-report.json"
     report["real_pilot_findings_template"] = {
@@ -216,12 +217,29 @@ def run_safe_pilot(
             "records_operator_identity": False,
         },
     }
+    report["real_pilot_command_pack"] = {
+        "artifact": str(command_pack_path),
+        "safe_to_share": True,
+        "source": "platform_pilot_matrix",
+        "includes_platform_commands": True,
+        "includes_required_fields": True,
+        "includes_strict_audit_command": True,
+        "records_audio": False,
+        "records_transcripts": False,
+        "records_spoken_text": False,
+        "records_expected_text": False,
+        "records_local_paths": False,
+        "records_device_names": False,
+        "records_operator_identity": False,
+    }
     artifacts["real_pilot_findings_template"] = str(findings_template_path)
     artifacts["real_pilot_handoff"] = str(handoff_path)
+    artifacts["real_pilot_command_pack"] = str(command_pack_path)
     artifacts["pilot_plan"] = str(plan_path)
     artifacts["pilot_report"] = str(report_path)
     findings_template_path.write_text(_format_real_pilot_findings_template_markdown(report), encoding="utf-8")
     handoff_path.write_text(_format_real_pilot_handoff_markdown(report), encoding="utf-8")
+    command_pack_path.write_text(_format_real_pilot_command_pack_markdown(report), encoding="utf-8")
     plan_path.write_text(_format_pilot_plan_markdown(report), encoding="utf-8")
     report_path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return report
@@ -694,6 +712,9 @@ def _format_pilot_plan_markdown(report: dict[str, Any]) -> str:
         report["artifacts"].get("real_pilot_findings_template", "real-pilot-findings-template.md")
     ).name
     handoff_name = Path(report["artifacts"].get("real_pilot_handoff", "real-pilot-handoff.md")).name
+    command_pack_name = Path(
+        report["artifacts"].get("real_pilot_command_pack", "real-pilot-command-pack.md")
+    ).name
     lines = [
         "# Plan de pilotos AuralisVoiceKit",
         "",
@@ -712,6 +733,7 @@ def _format_pilot_plan_markdown(report: dict[str, Any]) -> str:
         f"- Blockers cerrados por JSON: {_format_inline_list(beta['satisfied_json_blockers'])}",
         f"- Blockers JSON pendientes: {_format_inline_list(beta['missing_json_blockers'])}",
         f"- Handoff seguro: `{handoff_name}`",
+        f"- Paquete de comandos: `{command_pack_name}`",
         f"- Plantilla de hallazgos: `{findings_template_name}`",
         "",
         "## Checks seguros",
@@ -924,9 +946,86 @@ def _format_real_pilot_findings_template_markdown(report: dict[str, Any]) -> str
     return "\n".join(lines)
 
 
+def _format_real_pilot_command_pack_markdown(report: dict[str, Any]) -> str:
+    beta = report["beta_readiness"]
+    pack = report["real_pilot_command_pack"]
+    lines = [
+        "# Paquete de comandos para pilotos reales AuralisVoiceKit",
+        "",
+        "Este artefacto agrupa comandos por plataforma sin incluir audio, transcripciones, texto hablado real, rutas locales completas, nombres reales de dispositivos ni identidad del operador.",
+        "",
+        "## Estado",
+        "",
+        f"- Version: `{report['version']}`",
+        f"- Stage: `{report['stage']}`",
+        f"- Listo para pilotos reales: `{_format_bool(report['gate']['ready_for_real_world_pilots'])}`",
+        f"- Listo para beta: `{_format_bool(beta['ready_for_beta'])}`",
+        f"- Blockers pendientes: {_format_inline_list(beta['blockers'])}",
+        f"- Blockers cerrados por JSON: {_format_inline_list(beta['satisfied_json_blockers'])}",
+        "",
+        "## Politica de contenido",
+        "",
+        f"- Seguro para compartir: `{_format_bool(pack['safe_to_share'])}`",
+        f"- Registra audio: `{_format_bool(pack['records_audio'])}`",
+        f"- Registra transcripciones: `{_format_bool(pack['records_transcripts'])}`",
+        f"- Registra texto hablado: `{_format_bool(pack['records_spoken_text'])}`",
+        f"- Registra texto esperado completo: `{_format_bool(pack['records_expected_text'])}`",
+        f"- Registra rutas locales: `{_format_bool(pack['records_local_paths'])}`",
+        f"- Registra nombres reales de dispositivos: `{_format_bool(pack['records_device_names'])}`",
+        f"- Registra identidad del operador: `{_format_bool(pack['records_operator_identity'])}`",
+        "",
+        "## Uso rapido",
+        "",
+        "- Ejecutar primero los comandos con estado `recommended` que preparan fixtures, checklists o preflights.",
+        "- Ejecutar comandos `pending` solo con hardware/audio no sensible y revision humana completada.",
+        "- Conservar los artifacts JSON/Markdown generados por las herramientas; no copiar contenido privado al reporte publico.",
+        "- Cerrar con la auditoria estricta y luego refrescar `BETA_CHECKLIST.md`.",
+        "",
+        "## Comandos por plataforma",
+        "",
+    ]
+    for row in report["platform_pilot_matrix"]:
+        required_fields = _command_pack_required_fields(report, row)
+        lines.extend(
+            [
+                f"### {row['platform']} - {row['name']}",
+                "",
+                f"- Estado: `{row['status']}`",
+                f"- Blocker: `{row['blocker'] or 'ninguno'}`",
+                f"- Comando: `{row['command']}`",
+                f"- Artifact esperado: `{row['artifact']}`",
+                f"- Campos requeridos: {_format_inline_list(required_fields)}",
+                f"- Requiere hardware: `{_format_bool(row['requires_hardware'])}`",
+                f"- Requiere operador: `{_format_bool(row['requires_operator'])}`",
+                f"- Requiere audio no sensible: `{_format_bool(row['requires_non_sensitive_audio'])}`",
+            ]
+        )
+        _append_strict_backend_guard_lines(lines, row)
+        lines.extend([f"- Nota: {row['notes']}", ""])
+    lines.extend(
+        [
+            "## Auditoria y cierre",
+            "",
+            f"- Auditoria estricta: `{beta['strict_audit_command']}`",
+            "- Refrescar checklist: `python tools/beta_readiness.py --evidence pilot_runs/manual --evidence pilot_runs/output --evidence pilot_runs/transcription --output BETA_CHECKLIST.md --fail-on-blockers --json`",
+            "- Publicar hallazgos solo con la plantilla sanitizada `real-pilot-findings-template.md`.",
+            "",
+            "## Placeholders",
+            "",
+            "- Reemplazar `sample.mp3`, `<audio-path>`, `<expected-text-path>` y `<public-spoken-text>` solo en la maquina del operador.",
+            "- No subir archivos de audio, referencias privadas, transcripciones completas ni texto hablado real.",
+            "",
+        ]
+    )
+    return "\n".join(lines)
+
+
 def _format_real_pilot_handoff_markdown(report: dict[str, Any]) -> str:
     beta = report["beta_readiness"]
     policy = report["real_pilot_handoff"]["content_policy"]
+    command_pack_name = Path(
+        report["artifacts"].get("real_pilot_command_pack", "real-pilot-command-pack.md")
+    ).name
     lines = [
         "# Handoff de pilotos reales AuralisVoiceKit",
         "",
@@ -941,6 +1040,7 @@ def _format_real_pilot_handoff_markdown(report: dict[str, Any]) -> str:
         f"- Listo para beta: `{_format_bool(beta['ready_for_beta'])}`",
         f"- Blockers pendientes: {_format_inline_list(beta['blockers'])}",
         f"- Blockers cerrados por JSON: {_format_inline_list(beta['satisfied_json_blockers'])}",
+        f"- Paquete de comandos: `{command_pack_name}`",
         "",
         "## Politica de contenido",
         "",
@@ -989,6 +1089,23 @@ def _format_real_pilot_handoff_markdown(report: dict[str, Any]) -> str:
         ]
     )
     return "\n".join(lines)
+
+
+def _command_pack_required_fields(report: dict[str, Any], row: dict[str, Any]) -> list[str]:
+    row_names = {row["name"]}
+    blocker = row.get("blocker")
+    if blocker:
+        row_names.add(str(blocker))
+        row_names.add(str(blocker).replace("_", "-"))
+    for step in report["recommended_pilot_sequence"]:
+        step_names = {step["name"], step["name"].replace("_", "-")}
+        if row_names & step_names:
+            return step["required_fields"]
+    for step in report["next_beta_evidence_steps"]:
+        step_names = {step["name"], step["name"].replace("_", "-")}
+        if row_names & step_names:
+            return step["required_fields"]
+    return []
 
 
 def _format_inline_list(values: list[str]) -> str:

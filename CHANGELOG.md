@@ -6,6 +6,13 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.87.0] - 2026-06-06
+
+### Agregado
+
+- `tools/pilot_run.py` ahora genera `real-pilot-command-pack.md`, un paquete seguro de comandos por plataforma para pilotos reales.
+- El reporte JSON del piloto seguro expone `real_pilot_command_pack` con politica de contenido, campos requeridos, guards estrictos y auditoria final.
+
 ## [0.86.0] - 2026-06-06
 
 ### Cambiado
