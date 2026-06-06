@@ -124,6 +124,29 @@ def run_output_pilot(
     command_template = _system_output_command_template(
         expected_system=expected_system,
     )
+    next_system_output = {
+        "artifact": str(next_step_path),
+        "command_template": command_template,
+        "target_output_backend": target_output_backend,
+        "uses_placeholders": True,
+        "records_spoken_text": False,
+        "records_operator_identity": False,
+        "requires_operator": True,
+    }
+    beta_evidence_gap = _output_beta_evidence_gap(
+        backend="system",
+        system_guard=system_guard,
+        target_output_backend=target_output_backend,
+        require_output_backend_ready=require_output_backend_ready,
+        speak=speak,
+        confirmation_status=confirmation_status,
+        text_review_confirmed=text_review_confirmed,
+        spoken_text_privacy_scan=spoken_text_privacy_scan,
+        voice_review_confirmed=voice_review_confirmed,
+        passed=passed,
+        operator_checklist=operator_checklist,
+        next_system_output=next_system_output,
+    )
     findings = _build_findings_markdown(
         timestamp=timestamp,
         system=system_name,
@@ -139,6 +162,7 @@ def run_output_pilot(
         spoken_text_privacy_scan=spoken_text_privacy_scan,
         payload=sanitized_payload,
         operator_checklist=operator_checklist,
+        beta_evidence_gap=beta_evidence_gap,
         report_path=report_path,
         checklist_path=checklist_path,
         next_step_path=next_step_path,
@@ -161,9 +185,11 @@ def run_output_pilot(
         target_output_backend=target_output_backend,
         spoken_text_privacy_scan=spoken_text_privacy_scan,
         operator_checklist=operator_checklist,
+        beta_evidence_gap=beta_evidence_gap,
         command_template=command_template,
         checklist_path=checklist_path,
     )
+    next_system_output["beta_evidence_gap"] = beta_evidence_gap
 
     report: dict[str, Any] = {
         "project": "AuralisVoiceKit",
@@ -194,15 +220,8 @@ def run_output_pilot(
         "commands_count": len(payload.get("commands", [])),
         "notes": _pilot_notes(speak),
         "operator_checklist": operator_checklist,
-        "next_system_output": {
-            "artifact": str(next_step_path),
-            "command_template": command_template,
-            "target_output_backend": target_output_backend,
-            "uses_placeholders": True,
-            "records_spoken_text": False,
-            "records_operator_identity": False,
-            "requires_operator": True,
-        },
+        "beta_evidence_gap": beta_evidence_gap,
+        "next_system_output": next_system_output,
         "output": sanitized_payload,
         "artifacts": {
             "operator_checklist": str(checklist_path),
@@ -579,6 +598,174 @@ def _checklist_item(
     }
 
 
+def _output_beta_evidence_gap(
+    *,
+    backend: str,
+    system_guard: dict[str, Any],
+    target_output_backend: dict[str, Any],
+    require_output_backend_ready: bool,
+    speak: bool,
+    confirmation_status: str,
+    text_review_confirmed: bool,
+    spoken_text_privacy_scan: dict[str, Any],
+    voice_review_confirmed: bool,
+    passed: bool,
+    operator_checklist: dict[str, Any],
+    next_system_output: dict[str, Any],
+) -> dict[str, Any]:
+    """Summarize why this output report does or does not close beta evidence."""
+
+    checks = [
+        _beta_gap_check("backend", "system", backend, backend == "system"),
+        _beta_gap_check(
+            "system_guard.expected_system_matched",
+            True,
+            system_guard["expected_system_matched"],
+            system_guard["expected_system_matched"] is True,
+        ),
+        _beta_gap_check(
+            "target_output_backend.available",
+            True,
+            target_output_backend["available"],
+            target_output_backend["available"] is True,
+        ),
+        _beta_gap_check(
+            "output_backend_ready_required",
+            True,
+            require_output_backend_ready,
+            require_output_backend_ready,
+        ),
+        _beta_gap_check("real_audio_requested", True, speak, speak),
+        _beta_gap_check(
+            "operator_confirmation_status",
+            "confirmed",
+            confirmation_status,
+            confirmation_status == "confirmed",
+        ),
+        _beta_gap_check("text_review_confirmed", True, text_review_confirmed, text_review_confirmed),
+        _beta_gap_check(
+            "spoken_text_privacy_scan.passed",
+            True,
+            spoken_text_privacy_scan["passed"],
+            spoken_text_privacy_scan["passed"] is True,
+        ),
+        _beta_gap_check("voice_review_confirmed", True, voice_review_confirmed, voice_review_confirmed),
+        _beta_gap_check(
+            "operator_checklist.expected_system_matched",
+            True,
+            operator_checklist["expected_system_matched"],
+            operator_checklist["expected_system_matched"] is True,
+        ),
+        _beta_gap_check(
+            "operator_checklist.records_operator_identity",
+            False,
+            operator_checklist["records_operator_identity"],
+            operator_checklist["records_operator_identity"] is False,
+        ),
+        _beta_gap_check(
+            "operator_checklist.redacts_spoken_text",
+            True,
+            operator_checklist["redacts_spoken_text"],
+            operator_checklist["redacts_spoken_text"],
+        ),
+        _beta_gap_check(
+            "operator_checklist.text_review_confirmed",
+            True,
+            operator_checklist["text_review_confirmed"],
+            operator_checklist["text_review_confirmed"],
+        ),
+        _beta_gap_check(
+            "operator_checklist.spoken_text_privacy_scan_passed",
+            True,
+            operator_checklist["spoken_text_privacy_scan_passed"],
+            operator_checklist["spoken_text_privacy_scan_passed"] is True,
+        ),
+        _beta_gap_check(
+            "operator_checklist.voice_review_confirmed",
+            True,
+            operator_checklist["voice_review_confirmed"],
+            operator_checklist["voice_review_confirmed"],
+        ),
+        _beta_gap_check(
+            "operator_checklist.commands_available",
+            True,
+            operator_checklist["commands_available"],
+            operator_checklist["commands_available"],
+        ),
+        _beta_gap_check(
+            "operator_checklist.ready_for_real_audio",
+            True,
+            operator_checklist["ready_for_real_audio"],
+            operator_checklist["ready_for_real_audio"],
+        ),
+        _beta_gap_check(
+            "operator_checklist.ready_for_beta_evidence",
+            True,
+            operator_checklist["ready_for_beta_evidence"],
+            operator_checklist["ready_for_beta_evidence"],
+        ),
+        _beta_gap_check(
+            "next_system_output.uses_placeholders",
+            True,
+            next_system_output["uses_placeholders"],
+            next_system_output["uses_placeholders"],
+        ),
+        _beta_gap_check(
+            "next_system_output.records_spoken_text",
+            False,
+            next_system_output["records_spoken_text"],
+            next_system_output["records_spoken_text"] is False,
+        ),
+        _beta_gap_check(
+            "next_system_output.records_operator_identity",
+            False,
+            next_system_output["records_operator_identity"],
+            next_system_output["records_operator_identity"] is False,
+        ),
+        _beta_gap_check("passed", True, passed, passed),
+    ]
+    missing_fields = [item["path"] for item in checks if item["ok"] is not True]
+    ready = not missing_fields
+    return {
+        "blocker": "system_output_audible",
+        "ready_for_beta_evidence": ready,
+        "missing_count": len(missing_fields),
+        "missing_fields": missing_fields,
+        "checks": checks,
+        "safe_to_share": True,
+        "records_audio": False,
+        "records_spoken_text": False,
+        "records_operator_identity": False,
+        "records_local_paths": False,
+        "next_action": _output_beta_evidence_gap_next_action(missing_fields),
+    }
+
+
+def _beta_gap_check(path: str, expected: object, actual: object, ok: bool) -> dict[str, Any]:
+    return {
+        "path": path,
+        "expected": expected,
+        "actual": actual,
+        "ok": bool(ok),
+    }
+
+
+def _output_beta_evidence_gap_next_action(missing_fields: list[str]) -> str:
+    if not missing_fields:
+        return "Audit this report with tools/beta_readiness.py --audit-evidence before closing beta."
+    if "real_audio_requested" in missing_fields or "operator_confirmation_status" in missing_fields:
+        return "Run the audible system output pilot with --speak, an operator present and --confirm-audible."
+    if "target_output_backend.available" in missing_fields or "output_backend_ready_required" in missing_fields:
+        return "Follow the readiness plan, require the output backend and rerun before playback."
+    if any(field.startswith("system_guard.") or field.endswith("expected_system_matched") for field in missing_fields):
+        return "Rerun on the intended OS with --expected-system matching the actual platform."
+    if any(field.startswith("spoken_text_privacy_scan") or field.endswith("text_review_confirmed") for field in missing_fields):
+        return "Review public spoken text locally and rerun with --confirm-text-reviewed."
+    if "voice_review_confirmed" in missing_fields or "operator_checklist.voice_review_confirmed" in missing_fields:
+        return "After audible playback, review voice, volume and pronunciation, then rerun with --confirm-voice-reviewed."
+    return "Complete the missing operator confirmations and rerun the beta evidence audit."
+
+
 def _build_findings_markdown(
     *,
     timestamp: str,
@@ -595,6 +782,7 @@ def _build_findings_markdown(
     spoken_text_privacy_scan: dict[str, Any],
     payload: dict[str, Any],
     operator_checklist: dict[str, Any],
+    beta_evidence_gap: dict[str, Any],
     report_path: Path,
     checklist_path: Path,
     next_step_path: Path,
@@ -626,6 +814,9 @@ def _build_findings_markdown(
         f"- Voices reported: {len(payload.get('voices', []))}",
         f"- Commands observed: {len(payload.get('commands', []))}",
         f"- Operator checklist ready for beta evidence: {operator_checklist['ready_for_beta_evidence']}",
+        f"- Beta evidence gap ready: {beta_evidence_gap['ready_for_beta_evidence']}",
+        f"- Beta evidence gap missing count: {beta_evidence_gap['missing_count']}",
+        f"- Beta evidence gap next action: {beta_evidence_gap['next_action']}",
         f"- Report: {report_path.name}",
         f"- Operator checklist: {checklist_path.name}",
         f"- System output next step: {next_step_path.name}",
@@ -641,6 +832,12 @@ def _build_findings_markdown(
         f"- Spoken flag: {payload.get('spoken')}",
         f"- Error: {_format_optional(payload.get('error'))}",
         f"- Voice listing error: {_format_optional(payload.get('voice_error'))}",
+        "",
+        "## Beta Evidence Gap",
+        "",
+        f"- Blocker: `{beta_evidence_gap['blocker']}`",
+        f"- Ready for beta evidence: `{beta_evidence_gap['ready_for_beta_evidence']}`",
+        f"- Missing fields: {_format_list(beta_evidence_gap['missing_fields'])}",
         "",
         "## Follow-up",
         "",
@@ -681,6 +878,7 @@ def _build_system_output_next_step_markdown(
     target_output_backend: dict[str, Any],
     spoken_text_privacy_scan: dict[str, Any],
     operator_checklist: dict[str, Any],
+    beta_evidence_gap: dict[str, Any],
     command_template: str,
     checklist_path: Path,
 ) -> str:
@@ -712,6 +910,9 @@ def _build_system_output_next_step_markdown(
         f"- Voice review confirmed: {voice_review_confirmed}",
         f"- Ready for real audio: {operator_checklist['ready_for_real_audio']}",
         f"- Ready for beta evidence: {operator_checklist['ready_for_beta_evidence']}",
+        f"- Beta evidence gap ready: {beta_evidence_gap['ready_for_beta_evidence']}",
+        f"- Beta evidence gap missing count: {beta_evidence_gap['missing_count']}",
+        f"- Beta evidence gap next action: {beta_evidence_gap['next_action']}",
         f"- Operator checklist: {checklist_path.name}",
         "",
         "## Command Template",
@@ -721,6 +922,12 @@ def _build_system_output_next_step_markdown(
         "```powershell",
         command_template,
         "```",
+        "",
+        "## Beta Evidence Gap",
+        "",
+        f"- Blocker: `{beta_evidence_gap['blocker']}`",
+        f"- Ready for beta evidence: `{beta_evidence_gap['ready_for_beta_evidence']}`",
+        f"- Missing fields: {_format_list(beta_evidence_gap['missing_fields'])}",
         "",
         "## Required Review",
         "",

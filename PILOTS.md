@@ -38,6 +38,8 @@ Nota `v0.119.0`: `transcription-pilot-report.json`, `transcription-pilot-finding
 
 Nota `v0.120.0`: `tools/transcription_pilot.py` escribe `real-transcription-command.md` con comandos seguros de preflight MP3/WAV/FLAC, transcripcion real y auditoria beta; el preflight dedicado incluye revision de audio, guardas de duracion y guard estricto de backend. English: real transcription pilots now write a dedicated command card for the operator.
 
+Nota `v0.121.0`: `tools/output_pilot.py` agrega `beta_evidence_gap` a `output-pilot-report.json`, `output-pilot-findings.md` y `system-output-next-step.md` para listar campos faltantes y siguiente accion segura de `system_output_audible`. English: system output pilots now expose public-safe beta evidence gaps.
+
 ```powershell
 py tools\pilot_run.py --output-dir pilot_runs\safe --json
 py tools\pilot_run.py --output-dir pilot_runs\safe --evidence pilot_runs\manual --evidence pilot_runs\output --evidence pilot_runs\transcription --json

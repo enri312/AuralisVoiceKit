@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -78,6 +79,13 @@ class OutputPilotTests(unittest.TestCase):
         self.assertFalse(report["operator_checklist"]["voice_review_confirmed"])
         self.assertIsNone(report["operator_checklist"]["expected_system_matched"])
         self.assertFalse(report["operator_checklist"]["ready_for_beta_evidence"])
+        self.assertFalse(report["beta_evidence_gap"]["ready_for_beta_evidence"])
+        self.assertIn("real_audio_requested", report["beta_evidence_gap"]["missing_fields"])
+        self.assertIn("operator_confirmation_status", report["beta_evidence_gap"]["missing_fields"])
+        self.assertFalse(report["beta_evidence_gap"]["records_spoken_text"])
+        self.assertFalse(report["beta_evidence_gap"]["records_operator_identity"])
+        self.assertFalse(report["beta_evidence_gap"]["records_local_paths"])
+        self.assertEqual(report["next_system_output"]["beta_evidence_gap"], report["beta_evidence_gap"])
         self.assertIn("operator_checklist", report["artifacts"])
         self.assertIn("system_output_next_step", report["artifacts"])
         self.assertIn("System output pilot findings", findings)
@@ -87,6 +95,8 @@ class OutputPilotTests(unittest.TestCase):
         self.assertIn("Spoken text privacy scan passed: True", findings)
         self.assertIn("Expected system matched: not-set", findings)
         self.assertIn("Operator checklist ready for beta evidence: False", findings)
+        self.assertIn("Beta evidence gap ready: False", findings)
+        self.assertIn("Beta Evidence Gap", findings)
         self.assertIn("System output next step: system-output-next-step.md", findings)
         self.assertNotIn(private_text, findings)
         self.assertIn("System output operator checklist", checklist)
@@ -104,11 +114,74 @@ class OutputPilotTests(unittest.TestCase):
         self.assertIn("target_output_backend.readiness_plan.post_install_check", next_step)
         self.assertIn("spoken_text_privacy_scan.passed=true", next_step)
         self.assertIn("target_output_backend.available=true", next_step)
+        self.assertIn("Beta evidence gap ready: False", next_step)
+        self.assertIn("Beta Evidence Gap", next_step)
         self.assertNotIn(private_text, next_step)
         self.assertEqual(report["next_system_output"]["uses_placeholders"], True)
         self.assertEqual(report["next_system_output"]["target_output_backend"]["name"], "system")
         self.assertFalse(report["next_system_output"]["records_spoken_text"])
         self.assertFalse(report["next_system_output"]["records_operator_identity"])
+
+    def test_output_pilot_real_audio_gap_can_be_ready_with_sanitized_fake_backend(self):
+        module = _load_output_pilot()
+        public_text = "Hola salida publica"
+
+        class FakeDemo:
+            @staticmethod
+            def run_demo(text, **kwargs):
+                return {
+                    "spoken": True,
+                    "error": None,
+                    "voice_error": None,
+                    "voices": [],
+                    "commands": [{"argv": ["fake-say", text]}],
+                }
+
+        target_backend = {
+            "name": "system",
+            "kind": "output",
+            "available": True,
+            "dependencies": ["fake-say"],
+            "reason": None,
+            "readiness_plan": module._output_backend_readiness_plan(module.platform.system(), ["fake-say"]),
+        }
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with patch.object(module, "_load_system_output_demo", return_value=FakeDemo):
+                with patch.object(module, "_output_backend_status", return_value=target_backend):
+                    report = module.run_output_pilot(
+                        root=ROOT,
+                        output_dir=tmpdir,
+                        text=public_text,
+                        expected_system=module.platform.system(),
+                        speak=True,
+                        operator_present=True,
+                        operator_confirmed_audio=True,
+                        text_review_confirmed=True,
+                        voice_review_confirmed=True,
+                        require_output_backend_ready=True,
+                    )
+            report_text = Path(report["artifacts"]["output_pilot_report"]).read_text(encoding="utf-8")
+            findings = Path(report["artifacts"]["pilot_findings"]).read_text(encoding="utf-8")
+            next_step = Path(report["artifacts"]["system_output_next_step"]).read_text(encoding="utf-8")
+
+        self.assertTrue(report["passed"])
+        self.assertTrue(report["real_audio_requested"])
+        self.assertTrue(report["output_backend_ready_required"])
+        self.assertEqual(report["operator_confirmation_status"], "confirmed")
+        self.assertTrue(report["operator_checklist"]["ready_for_beta_evidence"])
+        self.assertTrue(report["beta_evidence_gap"]["ready_for_beta_evidence"])
+        self.assertEqual(report["beta_evidence_gap"]["missing_count"], 0)
+        self.assertEqual(report["beta_evidence_gap"]["missing_fields"], [])
+        self.assertEqual(report["next_system_output"]["beta_evidence_gap"], report["beta_evidence_gap"])
+        self.assertFalse(report["beta_evidence_gap"]["records_spoken_text"])
+        self.assertFalse(report["beta_evidence_gap"]["records_operator_identity"])
+        self.assertNotIn(public_text, report_text)
+        self.assertIn("<text-redacted>", report_text)
+        self.assertIn("Beta evidence gap ready: True", findings)
+        self.assertIn("Ready for beta evidence: `True`", findings)
+        self.assertIn("Beta evidence gap ready: True", next_step)
+        self.assertIn("Missing fields: none", next_step)
 
     def test_output_pilot_cli_outputs_json(self):
         module = _load_output_pilot()

@@ -6,6 +6,15 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.121.0] - 2026-06-06
+
+### Agregado
+
+- `tools/output_pilot.py` agrega `beta_evidence_gap` para el blocker `system_output_audible`.
+- `output-pilot-findings.md` y `system-output-next-step.md` muestran campos beta faltantes, conteo y siguiente accion segura para salida audible.
+- `next_system_output` propaga el gap y confirma que no guarda audio, texto hablado, identidad del operador ni rutas locales.
+- Nuevas pruebas cubren el gap en dry-run y una corrida audible simulada sin reproducir audio real.
+
 ## [0.120.0] - 2026-06-06
 
 ### Agregado

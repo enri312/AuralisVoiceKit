@@ -82,6 +82,8 @@ Nota `v0.119.0`: el piloto de transcripcion ahora expone `beta_evidence_gap` con
 
 Nota `v0.120.0`: el piloto de transcripcion genera `real-transcription-command.md` con comandos seguros de preflight, corrida real y auditoria beta; el preflight recomendado ahora incluye guardas de duracion, revision de audio y guard estricto de backend.
 
+Nota `v0.121.0`: el piloto de salida `system` expone `beta_evidence_gap` para `system_output_audible`, con campos faltantes y siguiente accion segura sin guardar texto hablado, identidad del operador ni rutas locales.
+
 ## Fase 0 - Base del proyecto
 
 **Objetivo:** dejar una libreria instalable, importable y testeable.
