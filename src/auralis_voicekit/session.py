@@ -21,6 +21,7 @@ from .models import AudioChunk, TranscriptResult
 
 TurnHandler = Callable[["VoiceTurn"], bool | None]
 ChunkHandler = Callable[[AudioChunk], bool | None]
+ActivationHandler = Callable[["VoiceTurn"], bool]
 
 
 @dataclass(frozen=True, slots=True)
@@ -35,8 +36,16 @@ class VoiceSessionConfig:
     normalization_target_peak: float = 0.95
     normalization_max_gain: float = 8.0
     capture_poll_interval_ms: int = 50
+    activation_phrases: tuple[str, ...] = ()
+    activation_case_sensitive: bool = False
 
     def __post_init__(self) -> None:
+        activation_phrases = (
+            (self.activation_phrases,)
+            if isinstance(self.activation_phrases, str)
+            else tuple(self.activation_phrases)
+        )
+        object.__setattr__(self, "activation_phrases", activation_phrases)
         if self.chunk_duration_ms <= 0:
             raise ValueError("chunk_duration_ms must be greater than zero")
         if self.max_turns is not None and self.max_turns <= 0:
@@ -49,6 +58,8 @@ class VoiceSessionConfig:
             raise ValueError("normalization_max_gain must be greater than zero")
         if self.capture_poll_interval_ms <= 0:
             raise ValueError("capture_poll_interval_ms must be greater than zero")
+        if any(not phrase.strip() for phrase in self.activation_phrases):
+            raise ValueError("activation_phrases cannot contain blank values")
 
 
 @dataclass(frozen=True, slots=True)
@@ -192,15 +203,20 @@ class VoiceSession:
         self,
         segments: Iterable[VoiceSegment],
         on_turn: TurnHandler | None = None,
+        *,
+        require_activation: bool = False,
+        activation_hook: ActivationHandler | None = None,
     ) -> list[VoiceTurn]:
         self._ensure_open()
         turns: list[VoiceTurn] = []
         for index, segment in enumerate(segments, start=1):
             if self._should_stop():
                 break
-            if self.config.max_turns is not None and index > self.config.max_turns:
+            if self.config.max_turns is not None and len(turns) >= self.config.max_turns:
                 break
             turn = self.transcribe_segment(segment, index)
+            if require_activation and not self.turn_is_activated(turn, activation_hook=activation_hook):
+                continue
             turns.append(turn)
             if on_turn is not None:
                 should_continue = on_turn(turn)
@@ -213,22 +229,41 @@ class VoiceSession:
         self,
         chunks: Iterable[AudioChunk],
         on_turn: TurnHandler | None = None,
+        *,
+        require_activation: bool = False,
+        activation_hook: ActivationHandler | None = None,
     ) -> list[VoiceTurn]:
-        return self.transcribe_segments(self.segment_chunks(chunks), on_turn=on_turn)
+        return self.transcribe_segments(
+            self.segment_chunks(chunks),
+            on_turn=on_turn,
+            require_activation=require_activation,
+            activation_hook=activation_hook,
+        )
 
     def transcribe_wav(
         self,
         path: str,
         on_turn: TurnHandler | None = None,
+        *,
+        require_activation: bool = False,
+        activation_hook: ActivationHandler | None = None,
     ) -> list[VoiceTurn]:
         self._ensure_open()
         chunks = read_wav(path, chunk_duration_ms=self.config.chunk_duration_ms)
-        return self.transcribe_chunks(chunks, on_turn=on_turn)
+        return self.transcribe_chunks(
+            chunks,
+            on_turn=on_turn,
+            require_activation=require_activation,
+            activation_hook=activation_hook,
+        )
 
     def transcribe_file(
         self,
         path: str,
         on_turn: TurnHandler | None = None,
+        *,
+        require_activation: bool = False,
+        activation_hook: ActivationHandler | None = None,
     ) -> list[VoiceTurn]:
         self._ensure_open()
         chunks = read_audio(
@@ -238,7 +273,32 @@ class VoiceSession:
             channels=self.kit.config.channels,
             ffmpeg_executable=self.config.ffmpeg_executable,
         )
-        return self.transcribe_chunks(chunks, on_turn=on_turn)
+        return self.transcribe_chunks(
+            chunks,
+            on_turn=on_turn,
+            require_activation=require_activation,
+            activation_hook=activation_hook,
+        )
+
+    def turn_is_activated(
+        self,
+        turn: VoiceTurn,
+        *,
+        activation_hook: ActivationHandler | None = None,
+    ) -> bool:
+        """Return whether a turn passes the configured or external activation gate."""
+
+        self._ensure_open()
+        if activation_hook is not None:
+            return bool(activation_hook(turn))
+        phrases = self.config.activation_phrases
+        if not phrases:
+            return True
+        haystack = turn.text if self.config.activation_case_sensitive else turn.text.casefold()
+        return any(
+            (phrase if self.config.activation_case_sensitive else phrase.casefold()) in haystack
+            for phrase in phrases
+        )
 
     def capture_for(
         self,
@@ -283,6 +343,14 @@ class VoiceSession:
         seconds: float,
         on_turn: TurnHandler | None = None,
         on_chunk: ChunkHandler | None = None,
+        *,
+        require_activation: bool = False,
+        activation_hook: ActivationHandler | None = None,
     ) -> list[VoiceTurn]:
         chunks = self.capture_for(seconds, on_chunk=on_chunk)
-        return self.transcribe_chunks(chunks, on_turn=on_turn)
+        return self.transcribe_chunks(
+            chunks,
+            on_turn=on_turn,
+            require_activation=require_activation,
+            activation_hook=activation_hook,
+        )

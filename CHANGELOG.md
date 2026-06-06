@@ -6,6 +6,14 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.101.0] - 2026-06-06
+
+### Agregado
+
+- `VoiceSessionConfig` ahora acepta `activation_phrases` y `activation_case_sensitive` para filtrar turnos por wake word o frase de activacion.
+- `VoiceSession` ahora expone `turn_is_activated()` y acepta `require_activation=True` con `activation_hook` opcional en `transcribe_segments()`, `transcribe_chunks()`, `transcribe_wav()`, `transcribe_file()` y `listen_once()`.
+- Nuevas pruebas cubren activacion por frase, activacion por hook externo, normalizacion de una frase individual y rechazo de frases vacias.
+
 ## [0.100.0] - 2026-06-06
 
 ### Agregado

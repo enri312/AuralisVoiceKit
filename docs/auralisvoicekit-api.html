@@ -519,7 +519,7 @@ with VoiceSession(kit, VoiceSessionConfig(chunk_duration_ms=50)) as session:
           <tbody>
             <tr>
               <td><code>VoiceSessionConfig</code></td>
-              <td>Controla chunking, VAD, normalizacion, limite de turnos y ejecutable <code>ffmpeg</code>.</td>
+              <td>Controla chunking, VAD, normalizacion, limite de turnos, ejecutable <code>ffmpeg</code>, <code>activation_phrases</code> y sensibilidad de mayusculas para activacion.</td>
             </tr>
             <tr>
               <td><code>VoiceTurn</code></td>
@@ -527,10 +527,22 @@ with VoiceSession(kit, VoiceSessionConfig(chunk_duration_ms=50)) as session:
             </tr>
             <tr>
               <td><code>VoiceSession</code></td>
-              <td>Expone <code>segment_chunks</code>, <code>transcribe_segments</code>, <code>transcribe_chunks</code>, <code>transcribe_wav</code>, <code>transcribe_file</code>, <code>capture_for</code>, <code>listen_once</code>, <code>cancel</code> y <code>close</code>.</td>
+              <td>Expone <code>segment_chunks</code>, <code>transcribe_segments</code>, <code>transcribe_chunks</code>, <code>transcribe_wav</code>, <code>transcribe_file</code>, <code>turn_is_activated</code>, <code>capture_for</code>, <code>listen_once</code>, <code>cancel</code> y <code>close</code>.</td>
             </tr>
           </tbody>
         </table>
+        <p>Las llamadas de transcripcion de sesion aceptan <code>require_activation=True</code> para devolver solo turnos activados. La activacion puede venir de <code>activation_phrases</code> o de un <code>activation_hook</code> externo. English: activation hooks are opt-in and keep the default behavior unchanged.</p>
+        <pre><code>session = VoiceSession(
+    kit,
+    VoiceSessionConfig(activation_phrases=("auralis",)),
+)
+turns = session.transcribe_file("sample.mp3", require_activation=True)
+
+external_turns = session.transcribe_chunks(
+    chunks,
+    require_activation=True,
+    activation_hook=lambda turn: turn.text.startswith("ok asistente"),
+)</code></pre>
       </section>
 
       <section id="events">

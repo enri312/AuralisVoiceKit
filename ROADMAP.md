@@ -170,7 +170,7 @@ Criterio de salida:
 Entregables:
 
 - API de alto nivel para sesiones de voz. Estado: inicial con `VoiceSession`.
-- Hooks para wake word o activacion externa.
+- Hooks para wake word o activacion externa. Estado: inicial con `activation_phrases`, `require_activation`, `activation_hook` y `turn_is_activated()`.
 - Integracion limpia con loops de agente externos.
 - Ejemplo `examples/assistant_loop.py`. Estado: creado.
 - Ejemplo local offline con logs sanitizados. Estado: inicial con `examples/local_assistant_privacy_demo.py`.

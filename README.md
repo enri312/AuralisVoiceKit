@@ -12,7 +12,7 @@ English: AuralisVoiceKit is a modern voice toolkit for Python assistants, local 
 
 El objetivo principal es evitar que la captura de microfono dependa obligatoriamente de PyAudio o de wheels que tardan en llegar a las versiones nuevas de Python. El paquete base debe poder instalarse de forma liviana, sin compiladores y sin dependencias nativas obligatorias. Para MP3, FLAC y formatos comprimidos, AuralisVoiceKit usa `ffmpeg` como herramienta externa opcional.
 
-> Estado actual: alpha tecnica con gate de pilotos reales y checklist de beta. El repositorio ya define el core, los contratos de backends, captura real inicial con `sounddevice`, `wasapi` y compatibilidad opcional `pyaudio`, diagnostico reforzado para WASAPI, bundles de diagnostico sanitizados y analizables, flujo WAV offline, transcripcion inicial por API y local opcional, sesiones de voz iniciales, una CLI de diagnostico, benchmarks offline y comparativos para Whisper exportables a JSON/CSV, errores accionables para `ffmpeg`, mensajes accionables para audio Windows, documentacion estatica, salida de voz del sistema con voces configurables, cola simple de salida y ejemplo seguro, salida custom en memoria, quickstart para PyPI sin extras, guia de privacidad/logs, ejemplo de asistente local con logs sanitizados, runner de piloto seguro, runner de piloto manual con checklist de captura, piloto de salida con checklist de operador, piloto de transcripcion con checklist de revision, scoring redactado, escaneo redactado de privacidad de referencia, redaccion de nombres de archivos de audio/referencia y confirmacion humana de calidad, checklist de beta automatizado, pruebas unitarias y pruebas reales de MP3/FLAC. Los backends reales se iran agregando por etapas.
+> Estado actual: alpha tecnica con gate de pilotos reales y checklist de beta. El repositorio ya define el core, los contratos de backends, captura real inicial con `sounddevice`, `wasapi` y compatibilidad opcional `pyaudio`, diagnostico reforzado para WASAPI, bundles de diagnostico sanitizados y analizables, flujo WAV offline, transcripcion inicial por API y local opcional, sesiones de voz iniciales con activacion por frase/hook, una CLI de diagnostico, benchmarks offline y comparativos para Whisper exportables a JSON/CSV, errores accionables para `ffmpeg`, mensajes accionables para audio Windows, documentacion estatica, salida de voz del sistema con voces configurables, cola simple de salida y ejemplo seguro, salida custom en memoria, quickstart para PyPI sin extras, guia de privacidad/logs, ejemplo de asistente local con logs sanitizados, runner de piloto seguro, runner de piloto manual con checklist de captura, piloto de salida con checklist de operador, piloto de transcripcion con checklist de revision, scoring redactado, escaneo redactado de privacidad de referencia, redaccion de nombres de archivos de audio/referencia y confirmacion humana de calidad, checklist de beta automatizado, pruebas unitarias y pruebas reales de MP3/FLAC. Los backends reales se iran agregando por etapas.
 
 ## Problema que resuelve
 
@@ -631,6 +631,24 @@ AuralisVoiceKit puede funcionar como capa de voz para asistentes personales y ag
 - enviar audio a un reconocedor;
 - devolver texto limpio a un loop de agente;
 - registrar eventos de voz sin exponer datos privados.
+
+`VoiceSession` tambien puede filtrar turnos por activacion inicial. Configura `activation_phrases` para una wake word sencilla o pasa `activation_hook` si el asistente decide la activacion desde otro modulo. `require_activation=True` se puede usar en `transcribe_chunks()`, `transcribe_file()`, `transcribe_wav()` y `listen_once()`; por defecto no filtra nada.
+
+```python
+from auralis_voicekit import VoiceSession, VoiceSessionConfig
+
+session = VoiceSession(
+    kit,
+    VoiceSessionConfig(activation_phrases=("auralis",)),
+)
+turns = session.transcribe_file("sample.mp3", require_activation=True)
+
+external_turns = session.transcribe_chunks(
+    chunks,
+    require_activation=True,
+    activation_hook=lambda turn: turn.text.startswith("ok asistente"),
+)
+```
 
 ## Privacidad y logs
 

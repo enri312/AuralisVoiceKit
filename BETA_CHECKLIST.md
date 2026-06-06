@@ -4,7 +4,7 @@ Este documento se genera con `tools\beta_readiness.py`. No debe incluir audio, t
 
 ## Estado
 
-- Version: `0.100.0`
+- Version: `0.101.0`
 - Estado: `pilot`
 - Listo para beta: `false`
 - Gate de pilotos reales: `true`

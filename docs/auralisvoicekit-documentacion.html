@@ -664,6 +664,20 @@ kit.stop_capture()
 result = kit.transcribe(chunk)
 kit.speak("Hola")</code></pre>
 
+        <h3>VoiceSession</h3>
+        <p><code>VoiceSession</code> agrupa audio en turnos, permite cancelacion y ahora puede filtrar por activacion. <code>VoiceSessionConfig(activation_phrases=("auralis",))</code> activa una wake word simple; <code>require_activation=True</code> filtra turnos y <code>activation_hook</code> permite delegar la decision en otro modulo. English: activation hooks are opt-in and do not change the default assistant loop.</p>
+        <pre><code>session = VoiceSession(
+    kit,
+    VoiceSessionConfig(activation_phrases=("auralis",)),
+)
+turns = session.transcribe_file("sample.mp3", require_activation=True)
+
+external_turns = session.transcribe_chunks(
+    chunks,
+    require_activation=True,
+    activation_hook=lambda turn: turn.text.startswith("ok asistente"),
+)</code></pre>
+
         <h3>VoiceKitConfig</h3>
         <p>Controla formato de audio, idioma, privacidad y seleccion de backends.</p>
         <pre><code>from auralis_voicekit import VoiceKitConfig

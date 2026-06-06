@@ -57,6 +57,17 @@ class DocumentationTests(unittest.TestCase):
             self.assertIn("clear_output_queue", content)
             self.assertIn("output_queue_size", content)
 
+    def test_session_activation_is_documented(self):
+        readme = README.read_text(encoding="utf-8")
+        main_doc = MAIN_DOC.read_text(encoding="utf-8")
+        api_doc = API_DOC.read_text(encoding="utf-8")
+
+        for content in (readme, main_doc, api_doc):
+            self.assertIn("activation_phrases", content)
+            self.assertIn("require_activation", content)
+            self.assertIn("activation_hook", content)
+        self.assertIn("turn_is_activated", api_doc)
+
     def test_pyaudio_optional_backend_is_documented(self):
         readme = README.read_text(encoding="utf-8")
         main_doc = MAIN_DOC.read_text(encoding="utf-8")

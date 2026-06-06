@@ -10,11 +10,14 @@ from auralis_voicekit import (
     AuralisVoiceKit,
     AudioChunk,
     AudioFormat,
+    TranscriptResult,
     VoiceActivityConfig,
+    VoiceKitConfig,
     VoiceSession,
     VoiceSessionConfig,
     write_wav,
 )
+from auralis_voicekit.backends import BackendInfo, create_default_registry
 
 
 def _constant_chunk(amplitude: int, samples: int = 100, sample_rate: int = 1000) -> AudioChunk:
@@ -36,6 +39,33 @@ def _session() -> VoiceSession:
             ),
         ),
     )
+
+
+class IndexedTextTranscriptionBackend:
+    name = "indexed-text"
+
+    def __init__(self, texts: list[str]) -> None:
+        self.texts = texts
+
+    def info(self) -> BackendInfo:
+        return BackendInfo(name=self.name, kind="transcription")
+
+    def transcribe(self, chunk: AudioChunk, config: VoiceKitConfig) -> TranscriptResult:
+        index = int(chunk.metadata["segment_index"]) - 1
+        return TranscriptResult(
+            text=self.texts[index],
+            language=config.language,
+            source=self.name,
+            metadata={"text_index": index},
+        )
+
+
+def _text_session(texts: list[str], config: VoiceSessionConfig) -> VoiceSession:
+    backend = IndexedTextTranscriptionBackend(texts)
+    registry = create_default_registry()
+    registry.register_transcription("indexed-text", lambda: backend)
+    kit = AuralisVoiceKit(VoiceKitConfig(transcription_backend="indexed-text"), registry=registry)
+    return VoiceSession(kit, config)
 
 
 class VoiceSessionTests(unittest.TestCase):
@@ -159,6 +189,73 @@ class VoiceSessionTests(unittest.TestCase):
 
         self.assertEqual(len(turns), 1)
         self.assertTrue(session.is_cancelled)
+
+    def test_activation_phrase_filters_transcribed_turns(self):
+        chunks = [
+            _constant_chunk(6000),
+            _constant_chunk(0),
+            _constant_chunk(0),
+            _constant_chunk(6000),
+            _constant_chunk(0),
+        ]
+        session = _text_session(
+            ["ruido de prueba", "Hola Auralis, continua"],
+            VoiceSessionConfig(
+                chunk_duration_ms=100,
+                voice_activity=VoiceActivityConfig(
+                    threshold=0.01,
+                    min_voice_ms=100,
+                    max_silence_ms=100,
+                    pre_speech_ms=0,
+                ),
+                activation_phrases=("auralis",),
+            ),
+        )
+
+        turns = session.transcribe_chunks(chunks, require_activation=True)
+
+        self.assertEqual(len(turns), 1)
+        self.assertEqual(turns[0].index, 2)
+        self.assertEqual(turns[0].text, "Hola Auralis, continua")
+        self.assertTrue(session.turn_is_activated(turns[0]))
+
+    def test_activation_hook_can_gate_turns_externally(self):
+        chunks = [
+            _constant_chunk(6000),
+            _constant_chunk(0),
+            _constant_chunk(0),
+            _constant_chunk(6000),
+            _constant_chunk(0),
+        ]
+        session = _text_session(
+            ["primer turno", "segundo turno"],
+            VoiceSessionConfig(
+                chunk_duration_ms=100,
+                voice_activity=VoiceActivityConfig(
+                    threshold=0.01,
+                    min_voice_ms=100,
+                    max_silence_ms=100,
+                    pre_speech_ms=0,
+                ),
+            ),
+        )
+
+        turns = session.transcribe_chunks(
+            chunks,
+            require_activation=True,
+            activation_hook=lambda turn: turn.index == 1,
+        )
+
+        self.assertEqual([turn.text for turn in turns], ["primer turno"])
+
+    def test_session_config_normalizes_single_activation_phrase(self):
+        config = VoiceSessionConfig(activation_phrases="auralis")
+
+        self.assertEqual(config.activation_phrases, ("auralis",))
+
+    def test_session_config_rejects_blank_activation_phrase(self):
+        with self.assertRaises(ValueError):
+            VoiceSessionConfig(activation_phrases=("auralis", " "))
 
     def test_cancelled_session_skips_transcription_until_reset(self):
         session = _session()
