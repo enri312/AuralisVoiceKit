@@ -226,7 +226,15 @@ def run_transcription_pilot(
 
     findings_path = output / "transcription-pilot-findings.md"
     checklist_path = output / "transcription-review-checklist.md"
+    next_step_path = output / "real-transcription-next-step.md"
     report_path = output / "transcription-pilot-report.json"
+    command_template = _real_transcription_command_template(
+        backend=backend,
+        model=model,
+        normalize=normalize,
+        min_audio_seconds=min_audio_seconds,
+        max_audio_seconds=max_audio_seconds,
+    )
     findings = _build_findings_markdown(
         timestamp=timestamp,
         backend=backend,
@@ -244,11 +252,25 @@ def run_transcription_pilot(
         transcription_checklist=transcription_checklist,
         report_path=report_path,
         checklist_path=checklist_path,
+        next_step_path=next_step_path,
     )
     checklist = _build_transcription_checklist_markdown(
         timestamp=timestamp,
         backend=backend,
         transcription_checklist=transcription_checklist,
+    )
+    next_step = _build_real_transcription_next_step_markdown(
+        timestamp=timestamp,
+        backend=backend,
+        model=model,
+        preflight_only=preflight_only,
+        real_transcription=real_transcription,
+        audio=audio_payload,
+        quality=quality_report,
+        reference_privacy_scan=reference_privacy_scan,
+        transcription_checklist=transcription_checklist,
+        command_template=command_template,
+        checklist_path=checklist_path,
     )
 
     report: dict[str, Any] = {
@@ -273,10 +295,19 @@ def run_transcription_pilot(
         "quality": quality_report,
         "reference_privacy_scan": reference_privacy_scan,
         "transcription_checklist": transcription_checklist,
+        "next_real_transcription": {
+            "artifact": str(next_step_path),
+            "command_template": command_template,
+            "uses_placeholders": True,
+            "records_audio_path": False,
+            "records_audio_file_name": False,
+            "records_expected_text_file_name": False,
+        },
         "notes": _pilot_notes(real_transcription, preflight_only),
         "artifacts": {
             "pilot_findings": str(findings_path),
             "transcription_review_checklist": str(checklist_path),
+            "real_transcription_next_step": str(next_step_path),
             "transcription_pilot_report": str(report_path),
         },
     }
@@ -285,6 +316,7 @@ def run_transcription_pilot(
 
     findings_path.write_text(findings, encoding="utf-8")
     checklist_path.write_text(checklist, encoding="utf-8")
+    next_step_path.write_text(next_step, encoding="utf-8")
     report_path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return report
 
@@ -897,6 +929,7 @@ def _build_findings_markdown(
     transcription_checklist: dict[str, Any],
     report_path: Path,
     checklist_path: Path,
+    next_step_path: Path,
 ) -> str:
     transcript_characters = transcript.get("text_characters") if transcript is not None else 0
     lines = [
@@ -931,11 +964,13 @@ def _build_findings_markdown(
         f"- Transcription checklist ready for beta evidence: {transcription_checklist['ready_for_beta_evidence']}",
         f"- Report: {report_path.name}",
         f"- Review checklist: {checklist_path.name}",
+        f"- Real transcription next step: {next_step_path.name}",
         "",
         "## Privacy",
         "",
         "- The full transcript is not written to findings or JSON artifacts.",
         "- The full audio path is not written to findings.",
+        "- User audio and reference file names are redacted in shared artifacts.",
         "- Reference privacy scanning reports only risk types and counts, not matched text.",
         "- Prompt-like metadata is redacted.",
         "",
@@ -991,6 +1026,95 @@ def _build_findings_markdown(
     return "\n".join(lines)
 
 
+def _real_transcription_command_template(
+    *,
+    backend: str,
+    model: str | None,
+    normalize: bool,
+    min_audio_seconds: float | None,
+    max_audio_seconds: float | None,
+) -> str:
+    real_backend = backend if backend != "null" else "whisper"
+    if model:
+        real_model = model
+    elif real_backend == "openai":
+        real_model = "gpt-4o-mini-transcribe"
+    else:
+        real_model = "base"
+    min_seconds = 0.2 if min_audio_seconds is None else min_audio_seconds
+    max_seconds = 60 if max_audio_seconds is None else max_audio_seconds
+    normalize_flag = " --normalize" if normalize else ""
+    return (
+        "python tools/transcription_pilot.py --real-transcription "
+        "--audio <audio-path> --audio-non-sensitive --confirm-audio-reviewed "
+        "--confirm-reference-reviewed "
+        f"--backend {real_backend} --model {real_model}{normalize_flag} "
+        "--expected-text-file <expected-text-path> --min-word-accuracy 0.75 "
+        f"--min-audio-seconds {min_seconds} --max-audio-seconds {max_seconds} "
+        "--confirm-quality-reviewed --json"
+    )
+
+
+def _build_real_transcription_next_step_markdown(
+    *,
+    timestamp: str,
+    backend: str,
+    model: str | None,
+    preflight_only: bool,
+    real_transcription: bool,
+    audio: dict[str, Any],
+    quality: dict[str, Any],
+    reference_privacy_scan: dict[str, Any],
+    transcription_checklist: dict[str, Any],
+    command_template: str,
+    checklist_path: Path,
+) -> str:
+    lines = [
+        "# Real transcription next step",
+        "",
+        "This artifact is safe to share: it uses placeholders and does not include local audio paths, user audio file names, full transcripts or expected text.",
+        "",
+        "## Status",
+        "",
+        f"- Created at: {timestamp}",
+        f"- Backend from current run: {backend}",
+        f"- Model from current run: {_format_optional(model)}",
+        f"- Preflight only: {preflight_only}",
+        f"- Real transcription requested: {real_transcription}",
+        f"- Audio file name redacted: {audio['audio_file_name_redacted']}",
+        f"- Audio extension: {audio['audio_file_extension'] or 'none'}",
+        f"- Source format: {_format_optional(audio['source_format'])}",
+        f"- Audio decoded: {audio['decoded']}",
+        f"- Duration seconds: {_format_optional(audio['duration_seconds'])}",
+        f"- Duration gate passed: {_format_optional(audio['duration_gate']['passed'])}",
+        f"- Reference provided: {quality['enabled']}",
+        f"- Reference privacy scan passed: {_format_optional(reference_privacy_scan['passed'])}",
+        f"- Ready for real transcription: {transcription_checklist['ready_for_real_transcription']}",
+        f"- Ready for beta evidence: {transcription_checklist['ready_for_beta_evidence']}",
+        f"- Review checklist: {checklist_path.name}",
+        "",
+        "## Command Template",
+        "",
+        "Replace placeholders locally after confirming the audio and expected text are non-sensitive:",
+        "",
+        "```powershell",
+        command_template,
+        "```",
+        "",
+        "## Required Review",
+        "",
+        "- Replace `<audio-path>` locally; do not paste the real path into public findings.",
+        "- Replace `<expected-text-path>` locally or use `--expected-text` only with public/non-sensitive text.",
+        "- Confirm `audio.audio_file_name_redacted=true` in `transcription-pilot-report.json`.",
+        "- Confirm `transcription_checklist.records_audio_file_name=false`.",
+        "- Confirm `transcription_checklist.records_expected_text_file_name=false`.",
+        "- Confirm `reference_privacy_scan.passed=true` before accepting beta evidence.",
+        "- Confirm `transcription_checklist.ready_for_beta_evidence=true` only after human quality review.",
+        "",
+    ]
+    return "\n".join(lines)
+
+
 def _build_transcription_checklist_markdown(
     *,
     timestamp: str,
@@ -1038,6 +1162,7 @@ def _build_transcription_checklist_markdown(
             "## Notes",
             "",
             "- Do not write private audio paths, full transcripts or full expected text in shared findings.",
+            "- Use real-transcription-next-step.md for a sanitized command template after preflight.",
             "- A preflight checklist is preparation only; beta evidence requires a real backend and quality gate.",
             "",
         ]

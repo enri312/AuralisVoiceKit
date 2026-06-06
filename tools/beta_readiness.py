@@ -274,7 +274,7 @@ def build_beta_readiness_report(
                 "--confirm-audio-reviewed before model use plus --confirm-reference-reviewed before scoring "
                 "with reference_privacy_scan.passed=true, "
                 "and --confirm-quality-reviewed after human review, "
-                "then keep transcription-review-checklist.md."
+                "then keep transcription-review-checklist.md and real-transcription-next-step.md."
             ),
         ),
         _evidence_or_terms_check(

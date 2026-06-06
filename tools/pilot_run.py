@@ -423,6 +423,7 @@ def _transcription_audio_preflight_step(order: int) -> dict[str, Any]:
             "transcription_checklist.redacts_expected_text",
             "transcription_checklist.records_expected_text_file_name",
             "artifacts.transcription_review_checklist",
+            "artifacts.real_transcription_next_step",
         ],
         "requires_hardware": False,
         "requires_operator": False,
@@ -430,7 +431,7 @@ def _transcription_audio_preflight_step(order: int) -> dict[str, Any]:
         "review_required": True,
         "reason": (
             "Confirma que el MP3 propio se decodifica con ffmpeg y genera "
-            "transcription-review-checklist.md antes de ejecutar un modelo real."
+            "transcription-review-checklist.md y real-transcription-next-step.md antes de ejecutar un modelo real."
         ),
     }
 
@@ -559,7 +560,10 @@ def _platform_pilot_matrix(blockers: list[str]) -> list[dict[str, Any]]:
             "requires_hardware": False,
             "requires_operator": False,
             "requires_non_sensitive_audio": True,
-            "notes": "Paso previo: valida ffmpeg y metadata antes de transcribir con un modelo.",
+            "notes": (
+                "Paso previo: valida ffmpeg y metadata, luego revisa "
+                "real-transcription-next-step.md antes de transcribir con un modelo."
+            ),
         },
         {
             "name": "real-transcription-quality",

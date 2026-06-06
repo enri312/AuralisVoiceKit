@@ -57,6 +57,7 @@ class PilotRunTests(unittest.TestCase):
         self.assertIn("--confirm-reference-reviewed", plan)
         self.assertIn("--confirm-quality-reviewed", plan)
         self.assertIn("transcription-review-checklist.md", plan)
+        self.assertIn("real-transcription-next-step.md", plan)
         self.assertIn("audio.audio_file_name_redacted", plan)
         self.assertIn("transcription_checklist.records_audio_file_name", plan)
         self.assertIn("transcription_checklist.records_expected_text_file_name", plan)
@@ -103,6 +104,10 @@ class PilotRunTests(unittest.TestCase):
         self.assertTrue(report["recommended_pilot_sequence"][1]["requires_non_sensitive_audio"])
         self.assertIn(
             "artifacts.transcription_review_checklist",
+            report["recommended_pilot_sequence"][1]["required_fields"],
+        )
+        self.assertIn(
+            "artifacts.real_transcription_next_step",
             report["recommended_pilot_sequence"][1]["required_fields"],
         )
         self.assertIn(

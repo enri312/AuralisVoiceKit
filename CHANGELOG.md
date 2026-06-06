@@ -6,6 +6,18 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.69.0] - 2026-06-06
+
+### Agregado
+
+- Artifact `real-transcription-next-step.md` en `tools/transcription_pilot.py` con comando plantilla sanitizado para pasar del preflight MP3/FLAC/WAV al piloto real.
+- Bloque JSON `next_real_transcription` con `command_template`, `uses_placeholders` y garantias de no registrar rutas ni nombres reales de archivos.
+- Pruebas para confirmar que el siguiente paso de transcripcion no filtra nombres de audio ni rutas locales.
+
+### Cambiado
+
+- `tools/pilot_run.py`, `tools/stability_gate.py`, README, `PILOTS.md`, docs HTML y roadmap documentan el nuevo artifact previo a transcripcion real.
+
 ## [0.68.0] - 2026-06-05
 
 ### Agregado

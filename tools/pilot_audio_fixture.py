@@ -23,6 +23,7 @@ from auralis_voicekit import (
 SUPPORTED_FORMATS = ("wav", "mp3", "flac")
 MP3_FIXTURE_NAME = "pilot-sample.mp3"
 TRANSCRIPTION_REVIEW_CHECKLIST_NAME = "transcription-review-checklist.md"
+REAL_TRANSCRIPTION_NEXT_STEP_NAME = "real-transcription-next-step.md"
 ENCODER_ARGS = {
     "mp3": ("-codec:a", "libmp3lame", "-q:a", "4"),
     "flac": ("-codec:a", "flac", "-compression_level", "5"),
@@ -108,6 +109,7 @@ def generate_pilot_audio_fixture(
             "reason": "not_requested",
             "artifact": None,
             "review_checklist": None,
+            "real_transcription_next_step": None,
             "audio_decoded": None,
             "duration_gate_passed": None,
             "error": None,
@@ -117,6 +119,8 @@ def generate_pilot_audio_fixture(
         artifacts["fixture_preflight_report"] = preflight["artifact"]
     if preflight.get("review_checklist") is not None:
         artifacts["fixture_preflight_checklist"] = preflight["review_checklist"]
+    if preflight.get("real_transcription_next_step") is not None:
+        artifacts["fixture_preflight_next_step"] = preflight["real_transcription_next_step"]
 
     findings_path = output / "pilot-audio-fixture-findings.md"
     report_path = output / "pilot-audio-fixture-report.json"
@@ -342,6 +346,7 @@ def _run_fixture_preflight(
             "reason": "missing_mp3_fixture",
             "artifact": None,
             "review_checklist": None,
+            "real_transcription_next_step": None,
             "audio_decoded": False,
             "duration_gate_passed": None,
             "error": "MP3 fixture was not generated; install ffmpeg or review the fixture file report.",
@@ -369,6 +374,7 @@ def _run_fixture_preflight(
             "reason": "preflight_error",
             "artifact": None,
             "review_checklist": None,
+            "real_transcription_next_step": None,
             "audio_decoded": False,
             "duration_gate_passed": None,
             "error": str(exc),
@@ -381,6 +387,7 @@ def _run_fixture_preflight(
         "reason": "completed",
         "artifact": report["artifacts"]["transcription_pilot_report"],
         "review_checklist": report["artifacts"]["transcription_review_checklist"],
+        "real_transcription_next_step": report["artifacts"]["real_transcription_next_step"],
         "audio_file_name": report["audio"]["audio_file_name"],
         "audio_decoded": report["audio"]["decoded"],
         "source_format": report["audio"]["source_format"],
@@ -407,7 +414,8 @@ def _fixture_next_step(*, run_preflight: bool) -> str:
         return (
             "Replace the generated fixture with your own non-sensitive MP3 and run "
             "tools/transcription_pilot.py --preflight-only before collecting real beta evidence. "
-            f"Review {TRANSCRIPTION_REVIEW_CHECKLIST_NAME} from the preflight artifacts."
+            f"Review {TRANSCRIPTION_REVIEW_CHECKLIST_NAME} and {REAL_TRANSCRIPTION_NEXT_STEP_NAME} "
+            "from the preflight artifacts."
         )
     return (
         "Use the generated MP3 for a local ffmpeg preflight, then replace it with "
@@ -477,12 +485,14 @@ def _build_findings_markdown(report: dict[str, Any]) -> str:
             f"- Requested: `{str(report['preflight']['requested']).lower()}`",
             f"- Passed: `{report['preflight']['passed']}`",
             f"- Review checklist: `{report['preflight'].get('review_checklist') or 'none'}`",
+            f"- Real transcription next step: `{report['preflight'].get('real_transcription_next_step') or 'none'}`",
             f"- Audio decoded: `{report['preflight']['audio_decoded']}`",
             f"- Duration gate passed: `{report['preflight']['duration_gate_passed']}`",
             "",
             "## Next step",
             "",
             "- Run `tools/transcription_pilot.py --preflight-only` against your own non-sensitive MP3.",
+            f"- Review `{REAL_TRANSCRIPTION_NEXT_STEP_NAME}` for the sanitized real-transcription command template.",
             "- Replace the fixture with your own non-sensitive MP3 before collecting beta evidence.",
             "",
         ]

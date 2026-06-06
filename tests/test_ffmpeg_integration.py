@@ -335,9 +335,12 @@ class FfmpegIntegrationTests(unittest.TestCase):
             )
             mp3_path = Path(report["artifacts"]["mp3"])
             checklist_path = Path(report["artifacts"]["fixture_preflight_checklist"])
+            next_step_path = Path(report["artifacts"]["fixture_preflight_next_step"])
             mp3_exists = mp3_path.exists()
             checklist_exists = checklist_path.exists()
+            next_step_exists = next_step_path.exists()
             findings = Path(report["artifacts"]["fixture_findings"]).read_text(encoding="utf-8")
+            next_step = next_step_path.read_text(encoding="utf-8")
 
         self.assertTrue(report["passed"])
         self.assertTrue(report["ffmpeg"]["available"])
@@ -348,11 +351,16 @@ class FfmpegIntegrationTests(unittest.TestCase):
         self.assertFalse(report["usable_as_beta_evidence"])
         self.assertTrue(mp3_exists)
         self.assertTrue(checklist_exists)
+        self.assertTrue(next_step_exists)
         self.assertIn("transcription-review-checklist.md", report["preflight"]["review_checklist"])
+        self.assertIn("real-transcription-next-step.md", report["preflight"]["real_transcription_next_step"])
+        self.assertIn("--audio <audio-path>", next_step)
+        self.assertIn("--expected-text-file <expected-text-path>", next_step)
         self.assertEqual(report["files"][0]["format"], "mp3")
         self.assertTrue(report["files"][0]["decoded"])
         self.assertIn("pilot-sample.mp3", findings)
         self.assertIn("Review checklist:", findings)
+        self.assertIn("Real transcription next step:", findings)
 
 
 if __name__ == "__main__":
