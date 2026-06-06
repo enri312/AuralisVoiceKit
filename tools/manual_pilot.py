@@ -25,6 +25,7 @@ from auralis_voicekit.backends import create_default_registry
 
 
 REAL_CAPTURE_BACKENDS = {"sounddevice", "wasapi", "pyaudio"}
+CROSS_PLATFORM_CAPTURE_BACKENDS = {"sounddevice", "pyaudio"}
 
 
 def run_manual_pilot(
@@ -93,6 +94,18 @@ def run_manual_pilot(
         device_redacted=device_redacted,
         expected_system_matched=system_guard["expected_system_matched"],
     )
+    beta_evidence_gap = _capture_beta_evidence_gap(
+        system=system,
+        evidence_system=readiness_system,
+        backend=backend,
+        system_guard=system_guard,
+        target_capture_backend=target_capture_backend,
+        require_capture_backend_ready=require_capture_backend_ready,
+        capture_test=capture_test,
+        input_review_confirmed=input_review_confirmed,
+        passed=passed,
+        capture_checklist=capture_checklist,
+    )
     findings = _build_findings_markdown(
         timestamp=timestamp,
         system=system,
@@ -107,6 +120,7 @@ def run_manual_pilot(
         doctor_status=doctor.status.value,
         passed=passed,
         capture_checklist=capture_checklist,
+        beta_evidence_gap=beta_evidence_gap,
         analysis=analysis.to_dict(),
         bundle_path=bundle_path,
         analysis_path=analysis_path,
@@ -121,6 +135,7 @@ def run_manual_pilot(
         require_capture_backend_ready=require_capture_backend_ready,
         capture_readiness_plan=capture_readiness_plan,
         capture_checklist=capture_checklist,
+        beta_evidence_gap=beta_evidence_gap,
     )
     checklist_path.write_text(checklist, encoding="utf-8")
 
@@ -143,6 +158,7 @@ def run_manual_pilot(
         "passed": passed,
         "hardware_capture_tested": capture_test,
         "capture_checklist": capture_checklist,
+        "beta_evidence_gap": beta_evidence_gap,
         "notes": _pilot_notes(capture_test),
         "analysis": analysis.to_dict(),
         "artifacts": {
@@ -378,6 +394,7 @@ def _build_findings_markdown(
     doctor_status: str,
     passed: bool,
     capture_checklist: dict[str, Any],
+    beta_evidence_gap: dict[str, Any],
     analysis: dict[str, Any],
     bundle_path: Path,
     analysis_path: Path,
@@ -404,6 +421,9 @@ def _build_findings_markdown(
         f"- Doctor status: {doctor_status}",
         f"- Passed: {passed}",
         f"- Capture checklist ready for beta evidence: {capture_checklist['ready_for_beta_evidence']}",
+        f"- Beta evidence gap ready: {beta_evidence_gap['ready_for_beta_evidence']}",
+        f"- Beta evidence gap missing count: {beta_evidence_gap['missing_count']}",
+        f"- Beta evidence gap next action: {beta_evidence_gap['next_action']}",
         f"- Bundle: {bundle_path.name}",
         f"- Analysis: {analysis_path.name}",
         f"- Capture checklist: {checklist_path.name}",
@@ -433,6 +453,13 @@ def _build_findings_markdown(
         )
     lines.extend(
         [
+            "",
+            "## Beta Evidence Gap",
+            "",
+            f"- Blocker: `{beta_evidence_gap['blocker']}`",
+            f"- Evidence target system: `{beta_evidence_gap['evidence_system']}`",
+            f"- Ready for beta evidence: `{beta_evidence_gap['ready_for_beta_evidence']}`",
+            f"- Missing fields: {_format_list(beta_evidence_gap['missing_fields'])}",
             "",
             "## Follow-up",
             "",
@@ -543,6 +570,152 @@ def _capture_checklist(
     }
 
 
+def _capture_beta_evidence_gap(
+    *,
+    system: str,
+    evidence_system: str,
+    backend: str,
+    system_guard: dict[str, Any],
+    target_capture_backend: dict[str, Any],
+    require_capture_backend_ready: bool,
+    capture_test: bool,
+    input_review_confirmed: bool,
+    passed: bool,
+    capture_checklist: dict[str, Any],
+) -> dict[str, Any]:
+    """Summarize why this capture report does or does not close beta evidence."""
+
+    blocker, expected_system, accepted_backends = _capture_beta_blocker_metadata(evidence_system)
+    normalized_backend = backend.strip().lower()
+    checks = [
+        _beta_gap_check("project", "AuralisVoiceKit", "AuralisVoiceKit", True),
+        _beta_gap_check(
+            "system",
+            expected_system,
+            system,
+            _system_matches_capture_blocker(system=system, blocker=blocker),
+        ),
+        _beta_gap_check(
+            "system_guard.expected_system_matched",
+            True,
+            system_guard["expected_system_matched"],
+            system_guard["expected_system_matched"] is True,
+        ),
+        _beta_gap_check(
+            "capture_backend",
+            " | ".join(accepted_backends),
+            backend,
+            normalized_backend in accepted_backends,
+        ),
+    ]
+    if blocker in {"ubuntu_linux_capture", "macos_capture"}:
+        checks.extend(
+            [
+                _beta_gap_check(
+                    "target_capture_backend.available",
+                    True,
+                    target_capture_backend["available"],
+                    target_capture_backend["available"] is True,
+                ),
+                _beta_gap_check(
+                    "capture_backend_ready_required",
+                    True,
+                    require_capture_backend_ready,
+                    require_capture_backend_ready,
+                ),
+            ]
+        )
+    checks.extend(
+        [
+            _beta_gap_check("hardware_capture_tested", True, capture_test, capture_test),
+            _beta_gap_check("input_review_confirmed", True, input_review_confirmed, input_review_confirmed),
+            _beta_gap_check(
+                "capture_checklist.input_review_confirmed",
+                True,
+                capture_checklist["input_review_confirmed"],
+                capture_checklist["input_review_confirmed"] is True,
+            ),
+            _beta_gap_check(
+                "capture_checklist.ready_for_beta_evidence",
+                True,
+                capture_checklist["ready_for_beta_evidence"],
+                capture_checklist["ready_for_beta_evidence"] is True,
+            ),
+            _beta_gap_check("passed", True, passed, passed),
+        ]
+    )
+    missing_fields = [item["path"] for item in checks if item["ok"] is not True]
+    return {
+        "blocker": blocker,
+        "evidence_system": evidence_system,
+        "ready_for_beta_evidence": not missing_fields,
+        "missing_count": len(missing_fields),
+        "missing_fields": missing_fields,
+        "checks": checks,
+        "safe_to_share": True,
+        "records_audio": False,
+        "records_audio_bytes": False,
+        "records_device_name": False,
+        "records_local_paths": False,
+        "next_action": _capture_beta_evidence_gap_next_action(
+            missing_fields=missing_fields,
+            blocker=blocker,
+            accepted_backends=accepted_backends,
+        ),
+    }
+
+
+def _capture_beta_blocker_metadata(evidence_system: str) -> tuple[str, str, list[str]]:
+    normalized = evidence_system.strip().lower()
+    if normalized in {"linux", "ubuntu", "ubuntu/linux"}:
+        return "ubuntu_linux_capture", "Linux | Ubuntu/Linux | Ubuntu", sorted(CROSS_PLATFORM_CAPTURE_BACKENDS)
+    if normalized in {"darwin", "mac", "macos"}:
+        return "macos_capture", "Darwin | macOS | Mac", sorted(CROSS_PLATFORM_CAPTURE_BACKENDS)
+    return "windows_wasapi_capture", "Windows", ["wasapi"]
+
+
+def _system_matches_capture_blocker(*, system: str, blocker: str) -> bool:
+    normalized = system.strip().lower()
+    if blocker == "ubuntu_linux_capture":
+        return normalized in {"linux", "ubuntu/linux", "ubuntu"}
+    if blocker == "macos_capture":
+        return normalized in {"darwin", "macos", "mac"}
+    return normalized == "windows"
+
+
+def _beta_gap_check(path: str, expected: object, actual: object, ok: bool) -> dict[str, Any]:
+    return {
+        "path": path,
+        "expected": expected,
+        "actual": actual,
+        "ok": bool(ok),
+    }
+
+
+def _capture_beta_evidence_gap_next_action(
+    *,
+    missing_fields: list[str],
+    blocker: str,
+    accepted_backends: list[str],
+) -> str:
+    if not missing_fields:
+        return "Audit this report with tools/beta_readiness.py --audit-evidence before closing beta."
+    if "system" in missing_fields or any(field.startswith("system_guard.") for field in missing_fields):
+        return "Rerun on the intended OS with --expected-system matching the actual platform."
+    if "capture_backend" in missing_fields:
+        backends = " or ".join(f"--backend {backend}" for backend in accepted_backends)
+        return f"Rerun the capture pilot with {backends} for this platform."
+    if "target_capture_backend.available" in missing_fields or "capture_backend_ready_required" in missing_fields:
+        return "Follow the readiness plan, require the capture backend and rerun before opening the microphone."
+    if "hardware_capture_tested" in missing_fields:
+        return "Run the manual capture pilot with --capture-test only when a human is ready to open the microphone."
+    if "input_review_confirmed" in missing_fields or "capture_checklist.input_review_confirmed" in missing_fields:
+        return "Review microphone permissions, selected input and room privacy, then rerun with --confirm-input-reviewed."
+    if blocker == "windows_wasapi_capture" and "capture_checklist.ready_for_beta_evidence" in missing_fields:
+        return "Review the WASAPI sample rate, commonly --sample-rate 48000, then rerun the capture pilot."
+    return "Complete the missing capture confirmations and rerun the beta evidence audit."
+
+
 def _checklist_item(
     item_id: str,
     instruction: str,
@@ -567,6 +740,7 @@ def _build_capture_checklist_markdown(
     require_capture_backend_ready: bool,
     capture_readiness_plan: dict[str, Any],
     capture_checklist: dict[str, Any],
+    beta_evidence_gap: dict[str, Any],
 ) -> str:
     lines = [
         "# Checklist de captura manual / Manual capture checklist",
@@ -589,6 +763,9 @@ def _build_capture_checklist_markdown(
         f"- Input review confirmed: {capture_checklist['input_review_confirmed']}",
         f"- Ready for real capture: {capture_checklist['ready_for_real_capture']}",
         f"- Ready for beta evidence: {capture_checklist['ready_for_beta_evidence']}",
+        f"- Beta evidence gap ready: {beta_evidence_gap['ready_for_beta_evidence']}",
+        f"- Beta evidence gap missing count: {beta_evidence_gap['missing_count']}",
+        f"- Beta evidence gap next action: {beta_evidence_gap['next_action']}",
         "",
         "## Antes de capturar / Before Capture",
         "",
@@ -606,6 +783,13 @@ def _build_capture_checklist_markdown(
         lines.append(_format_checklist_item(item))
     lines.extend(
         [
+            "",
+            "## Beta Evidence Gap",
+            "",
+            f"- Blocker: `{beta_evidence_gap['blocker']}`",
+            f"- Evidence target system: `{beta_evidence_gap['evidence_system']}`",
+            f"- Ready for beta evidence: `{beta_evidence_gap['ready_for_beta_evidence']}`",
+            f"- Missing fields: {_format_list(beta_evidence_gap['missing_fields'])}",
             "",
             "## Notas / Notes",
             "",
@@ -718,6 +902,9 @@ def _print_report(report: dict[str, Any]) -> None:
     print(f"Capture readiness post-install check: {readiness_plan['post_install_check']}")
     print(f"Capture test requested: {report['capture_test_requested']}")
     print(f"Input review confirmed: {report['input_review_confirmed']}")
+    beta_evidence_gap = report["beta_evidence_gap"]
+    print(f"Beta evidence gap ready: {beta_evidence_gap['ready_for_beta_evidence']}")
+    print(f"Beta evidence gap missing count: {beta_evidence_gap['missing_count']}")
     print(f"Doctor status: {report['doctor_status']}")
     print(f"Passed: {report['passed']}")
     print("Artifacts:")

@@ -56,6 +56,7 @@ class ManualPilotTests(unittest.TestCase):
         self.assertIn("capture_readiness_plan", report)
         self.assertIn("target_capture_backend", report)
         self.assertIn("capture_backend_ready_required", report)
+        self.assertIn("beta_evidence_gap", report)
         self.assertEqual(report["capture_readiness_plan"]["backend"], "wav")
         self.assertEqual(report["target_capture_backend"]["name"], "wav")
         self.assertTrue(report["target_capture_backend"]["available"])
@@ -63,6 +64,13 @@ class ManualPilotTests(unittest.TestCase):
         self.assertFalse(report["capture_readiness_plan"]["post_install_check_uses_microphone"])
         self.assertFalse(report["capture_checklist"]["records_audio_bytes"])
         self.assertFalse(report["capture_checklist"]["ready_for_beta_evidence"])
+        self.assertFalse(report["beta_evidence_gap"]["ready_for_beta_evidence"])
+        self.assertGreater(report["beta_evidence_gap"]["missing_count"], 0)
+        self.assertIn("capture_backend", report["beta_evidence_gap"]["missing_fields"])
+        self.assertFalse(report["beta_evidence_gap"]["records_audio"])
+        self.assertFalse(report["beta_evidence_gap"]["records_audio_bytes"])
+        self.assertFalse(report["beta_evidence_gap"]["records_device_name"])
+        self.assertFalse(report["beta_evidence_gap"]["records_local_paths"])
         self.assertEqual(analysis["bundle_count"], 1)
         self.assertIn("Manual pilot findings", findings)
         self.assertIn("Capture test requested: False", findings)
@@ -72,6 +80,8 @@ class ManualPilotTests(unittest.TestCase):
         self.assertIn("Target capture backend available: True", findings)
         self.assertIn("Capture backend readiness required: False", findings)
         self.assertIn("Capture readiness post-install check", findings)
+        self.assertIn("Beta evidence gap ready: False", findings)
+        self.assertIn("Beta Evidence Gap", findings)
         self.assertIn("Sample rate: 48000", findings)
         self.assertIn("Bundle: doctor-bundle.json", findings)
         self.assertIn("Capture checklist: manual-capture-checklist.md", findings)
@@ -81,6 +91,8 @@ class ManualPilotTests(unittest.TestCase):
         self.assertIn("Readiness post-install uses microphone: False", checklist)
         self.assertIn("Input review confirmed: False", checklist)
         self.assertIn("Ready for beta evidence: False", checklist)
+        self.assertIn("Beta evidence gap ready: False", checklist)
+        self.assertIn("Beta Evidence Gap", checklist)
         self.assertNotIn(str(Path(tempfile.gettempdir())), findings)
         self.assertNotIn(str(Path(tempfile.gettempdir())), checklist)
 
@@ -113,12 +125,14 @@ class ManualPilotTests(unittest.TestCase):
         self.assertIn("capture_checklist", payload)
         self.assertIn("capture_readiness_plan", payload)
         self.assertIn("target_capture_backend", payload)
+        self.assertIn("beta_evidence_gap", payload)
         self.assertEqual(payload["capture_readiness_plan"]["backend"], "wav")
         self.assertEqual(payload["target_capture_backend"]["name"], "wav")
         self.assertFalse(payload["capture_backend_ready_required"])
         self.assertFalse(payload["capture_readiness_plan"]["post_install_check_uses_microphone"])
         self.assertIn("capture_checklist", payload["artifacts"])
         self.assertFalse(payload["system_guard"]["enabled"])
+        self.assertFalse(payload["beta_evidence_gap"]["ready_for_beta_evidence"])
 
     def test_manual_pilot_target_system_only_changes_readiness_plan(self):
         module = _load_manual_pilot()
@@ -145,6 +159,10 @@ class ManualPilotTests(unittest.TestCase):
         self.assertEqual(payload["capture_readiness_plan"]["system"], "Linux")
         self.assertEqual(payload["system"], module.platform.system())
         self.assertFalse(payload["system_guard"]["enabled"])
+        self.assertEqual(payload["beta_evidence_gap"]["blocker"], "ubuntu_linux_capture")
+        self.assertIn("system_guard.expected_system_matched", payload["beta_evidence_gap"]["missing_fields"])
+        if module.platform.system() != "Linux":
+            self.assertIn("system", payload["beta_evidence_gap"]["missing_fields"])
         self.assertIn("--target-system Linux", payload["capture_readiness_plan"]["post_install_check"])
         self.assertIn(
             "--require-capture-backend-ready",
@@ -164,6 +182,7 @@ class ManualPilotTests(unittest.TestCase):
 
         self.assertEqual(report["capture_backend"], "sounddevice")
         self.assertEqual(report["capture_readiness_plan"]["system"], "Linux")
+        self.assertEqual(report["beta_evidence_gap"]["blocker"], "ubuntu_linux_capture")
 
     def test_manual_pilot_cli_reports_unavailable_capture_backend_guard(self):
         module = _load_manual_pilot()
@@ -261,6 +280,18 @@ class ManualPilotTests(unittest.TestCase):
             device_redacted=False,
             expected_system_matched=True,
         )
+        beta_evidence_gap = module._capture_beta_evidence_gap(
+            system="Linux",
+            evidence_system="Linux",
+            backend="sounddevice",
+            system_guard={"expected_system_matched": True},
+            target_capture_backend={"available": True},
+            require_capture_backend_ready=True,
+            capture_test=True,
+            input_review_confirmed=True,
+            passed=True,
+            capture_checklist=checklist,
+        )
         markdown = module._build_capture_checklist_markdown(
             timestamp="2026-06-05T00:00:00+00:00",
             system="Linux",
@@ -275,14 +306,22 @@ class ManualPilotTests(unittest.TestCase):
             require_capture_backend_ready=True,
             capture_readiness_plan=module._capture_readiness_plan(system="Linux", backend="sounddevice"),
             capture_checklist=checklist,
+            beta_evidence_gap=beta_evidence_gap,
         )
 
         self.assertTrue(checklist["ready_for_real_capture"])
         self.assertTrue(checklist["ready_for_beta_evidence"])
+        self.assertEqual(beta_evidence_gap["blocker"], "ubuntu_linux_capture")
+        self.assertTrue(beta_evidence_gap["ready_for_beta_evidence"])
+        self.assertEqual(beta_evidence_gap["missing_count"], 0)
+        self.assertEqual(beta_evidence_gap["missing_fields"], [])
+        self.assertFalse(beta_evidence_gap["records_audio_bytes"])
+        self.assertFalse(beta_evidence_gap["records_device_name"])
         self.assertTrue(checklist["expected_system_matched"])
         self.assertTrue(checklist["input_review_confirmed"])
         self.assertFalse(checklist["records_audio_bytes"])
         self.assertIn("Ready for beta evidence: True", markdown)
+        self.assertIn("Beta evidence gap ready: True", markdown)
         self.assertIn("Expected system matched: True", markdown)
         self.assertIn("Input review confirmed: True", markdown)
 
@@ -303,6 +342,38 @@ class ManualPilotTests(unittest.TestCase):
 
         self.assertTrue(checklist["ready_for_real_capture"])
         self.assertTrue(checklist["ready_for_beta_evidence"])
+
+    def test_capture_beta_evidence_gap_accepts_macos_pyaudio(self):
+        module = _load_manual_pilot()
+
+        checklist = module._capture_checklist(
+            system="Darwin",
+            backend="pyaudio",
+            capture_test=True,
+            sample_rate=None,
+            passed=True,
+            hardware_capture_tested=True,
+            input_review_confirmed=True,
+            device_redacted=False,
+            expected_system_matched=True,
+        )
+        gap = module._capture_beta_evidence_gap(
+            system="Darwin",
+            evidence_system="Darwin",
+            backend="pyaudio",
+            system_guard={"expected_system_matched": True},
+            target_capture_backend={"available": True},
+            require_capture_backend_ready=True,
+            capture_test=True,
+            input_review_confirmed=True,
+            passed=True,
+            capture_checklist=checklist,
+        )
+
+        self.assertEqual(gap["blocker"], "macos_capture")
+        self.assertTrue(gap["ready_for_beta_evidence"])
+        self.assertEqual(gap["missing_fields"], [])
+        self.assertTrue(gap["safe_to_share"])
 
     def test_capture_readiness_plan_supports_linux_and_macos_backends(self):
         module = _load_manual_pilot()

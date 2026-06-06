@@ -84,6 +84,8 @@ Nota `v0.120.0`: el piloto de transcripcion genera `real-transcription-command.m
 
 Nota `v0.121.0`: el piloto de salida `system` expone `beta_evidence_gap` para `system_output_audible`, con campos faltantes y siguiente accion segura sin guardar texto hablado, identidad del operador ni rutas locales.
 
+Nota `v0.122.0`: el piloto manual de captura expone `beta_evidence_gap` para Windows/WASAPI, Ubuntu/Linux y macOS, con campos faltantes y siguiente accion segura sin guardar audio, nombres de dispositivos ni rutas locales.
+
 ## Fase 0 - Base del proyecto
 
 **Objetivo:** dejar una libreria instalable, importable y testeable.
@@ -252,7 +254,7 @@ Entregables:
 - Workflow manual para TestPyPI/PyPI con Trusted Publishing. Estado: inicial.
 - Gate de estabilidad para CI. Estado: inicial con `tools/stability_gate.py` y workflow de release verificado con `actions/upload-artifact@v7.0.1`.
 - Runner de piloto automatizado seguro. Estado: inicial con `tools/pilot_run.py`.
-- Runner de piloto manual guiado. Estado: inicial con `tools/manual_pilot.py`, `manual-capture-checklist.md`, `capture_checklist`, `target_capture_backend`, `capture_backend_ready_required`, `capture_readiness_plan`, `--target-system` para preparar Ubuntu/Linux o macOS sin abrir microfono, setup PortAudio por sistema, `post_install_check` sin microfono, guard `--require-capture-backend-ready`, `system_guard`, `--expected-system`, `--confirm-input-reviewed`, `input_review_confirmed`, redaccion de selector de dispositivo y sin captura real salvo `--capture-test`.
+- Runner de piloto manual guiado. Estado: inicial con `tools/manual_pilot.py`, `manual-capture-checklist.md`, `capture_checklist`, `target_capture_backend`, `capture_backend_ready_required`, `capture_readiness_plan`, `beta_evidence_gap`, `--target-system` para preparar Ubuntu/Linux o macOS sin abrir microfono, setup PortAudio por sistema, `post_install_check` sin microfono, guard `--require-capture-backend-ready`, `system_guard`, `--expected-system`, `--confirm-input-reviewed`, `input_review_confirmed`, redaccion de selector de dispositivo y sin captura real salvo `--capture-test`.
 
 Criterio de salida:
 

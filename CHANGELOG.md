@@ -6,6 +6,15 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.122.0] - 2026-06-06
+
+### Agregado
+
+- `tools/manual_pilot.py` agrega `beta_evidence_gap` para captura manual en Windows/WASAPI, Ubuntu/Linux y macOS.
+- `manual-pilot-report.json`, `pilot-findings.md` y `manual-capture-checklist.md` muestran campos faltantes, conteo y siguiente accion segura para cerrar evidencia beta de captura.
+- El gap confirma que no guarda audio, bytes capturados, nombres privados de dispositivos ni rutas locales.
+- Nuevas pruebas cubren dry-run y gaps listos para Ubuntu/Linux con `sounddevice` y macOS con `pyaudio`.
+
 ## [0.121.0] - 2026-06-06
 
 ### Agregado
