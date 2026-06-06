@@ -103,6 +103,17 @@ def build_evidence_requirements_report() -> dict[str, Any]:
                     _required_field("transcription_checklist.quality_review_confirmed", True),
                     _required_field("transcription_checklist.ready_for_beta_evidence", True),
                 ],
+                "conditional_fields": [
+                    {
+                        "when": _required_field("target_backend.name", "openai"),
+                        "fields": [
+                            _required_field("credentials.checked", True),
+                            _required_field("credentials.openai_api_key_required", True),
+                            _required_field("credentials.openai_api_key_present", True),
+                            _required_field("credentials.records_openai_api_key", False),
+                        ],
+                    }
+                ],
             },
             {
                 "name": "system_output_audible",
@@ -195,6 +206,7 @@ def build_evidence_requirements_report() -> dict[str, Any]:
             "No audio bytes are required in beta evidence.",
             "No full transcript or expected text is required in beta readiness evidence.",
             "User audio file names and expected-text file names must be redacted.",
+            "OpenAI evidence records credential presence only, never the API key value.",
             "Reference privacy scans expose only pass/fail, risk counts and risk types.",
             "Spoken text privacy scans expose only pass/fail, risk counts and risk types.",
             "Only structured fields and sanitized artifact names are used.",
@@ -317,6 +329,8 @@ def build_beta_readiness_report(
                 "--require-openai-api-key when using --backend openai, "
                 "and --confirm-quality-reviewed after human review, "
                 "then keep target_backend.available=true, target_backend_ready_required=true, "
+                "credentials.checked=true, credentials.openai_api_key_required=true, "
+                "credentials.openai_api_key_present=true and credentials.records_openai_api_key=false for OpenAI, "
                 "transcription-review-checklist.md and real-transcription-next-step.md."
             ),
         ),
@@ -553,6 +567,13 @@ def format_requirements_markdown(report: dict[str, Any]) -> str:
         lines.append("- Campos requeridos:")
         for field in requirement["fields"]:
             lines.append(f"  - `{field['path']}` = `{field['expected']}`")
+        if requirement.get("conditional_fields"):
+            lines.append("- Campos condicionales:")
+            for conditional in requirement["conditional_fields"]:
+                condition = conditional["when"]
+                lines.append(f"  - Si `{condition['path']}` = `{condition['expected']}`:")
+                for field in conditional["fields"]:
+                    lines.append(f"    - `{field['path']}` = `{field['expected']}`")
         lines.append("")
     lines.extend(
         [
@@ -841,13 +862,24 @@ def _required_field(path: str, expected: Any) -> dict[str, Any]:
 
 
 def _audit_requirement(report: dict[str, Any], requirement: dict[str, Any]) -> dict[str, Any]:
-    fields = [_audit_field(report, field) for field in requirement["fields"]]
+    required_fields = list(requirement["fields"]) + _applicable_conditional_fields(report, requirement)
+    fields = [_audit_field(report, field) for field in required_fields]
     return {
         "name": requirement["name"],
         "title": requirement["title"],
         "ok": all(field["ok"] for field in fields),
         "fields": fields,
     }
+
+
+def _applicable_conditional_fields(report: dict[str, Any], requirement: dict[str, Any]) -> list[dict[str, Any]]:
+    fields: list[dict[str, Any]] = []
+    for conditional in requirement.get("conditional_fields", []):
+        condition = conditional["when"]
+        found, actual = _get_nested_value(report, condition["path"])
+        if found and _field_matches(actual, condition["expected"]):
+            fields.extend(conditional["fields"])
+    return fields
 
 
 def _audit_field(report: dict[str, Any], field: dict[str, Any]) -> dict[str, Any]:
@@ -1092,6 +1124,26 @@ def _is_real_transcription_quality_evidence(report: dict[str, Any]) -> bool:
         and transcription_checklist.get("reference_privacy_scan_passed") is True
         and transcription_checklist.get("quality_review_confirmed") is True
         and transcription_checklist.get("ready_for_beta_evidence") is True
+        and _openai_credential_evidence_ok(report, target_backend)
+    )
+
+
+def _openai_credential_evidence_ok(report: dict[str, Any], target_backend: Any) -> bool:
+    backend_name = ""
+    if isinstance(target_backend, dict):
+        backend_name = str(target_backend.get("name") or "").strip().lower()
+    if not backend_name:
+        backend_name = str(report.get("backend") or "").strip().lower()
+    if backend_name != "openai":
+        return True
+
+    credentials = report.get("credentials", {})
+    return (
+        isinstance(credentials, dict)
+        and credentials.get("checked") is True
+        and credentials.get("openai_api_key_required") is True
+        and credentials.get("openai_api_key_present") is True
+        and credentials.get("records_openai_api_key") is False
     )
 
 

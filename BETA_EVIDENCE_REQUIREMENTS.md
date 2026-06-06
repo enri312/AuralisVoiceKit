@@ -62,6 +62,12 @@ Este documento describe los campos JSON que pueden cerrar blockers de beta. No r
   - `transcription_checklist.reference_privacy_scan_passed` = `True`
   - `transcription_checklist.quality_review_confirmed` = `True`
   - `transcription_checklist.ready_for_beta_evidence` = `True`
+- Campos condicionales:
+  - Si `target_backend.name` = `openai`:
+    - `credentials.checked` = `True`
+    - `credentials.openai_api_key_required` = `True`
+    - `credentials.openai_api_key_present` = `True`
+    - `credentials.records_openai_api_key` = `False`
 
 ### system_output_audible
 
@@ -133,6 +139,7 @@ Este documento describe los campos JSON que pueden cerrar blockers de beta. No r
 - No audio bytes are required in beta evidence.
 - No full transcript or expected text is required in beta readiness evidence.
 - User audio file names and expected-text file names must be redacted.
+- OpenAI evidence records credential presence only, never the API key value.
 - Reference privacy scans expose only pass/fail, risk counts and risk types.
 - Spoken text privacy scans expose only pass/fail, risk counts and risk types.
 - Only structured fields and sanitized artifact names are used.

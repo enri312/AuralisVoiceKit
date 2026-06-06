@@ -6,6 +6,14 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.107.0] - 2026-06-06
+
+### Agregado
+
+- `tools/beta_readiness.py` ahora exige evidencia sanitizada de credencial cuando un piloto de transcripcion real usa backend `openai`.
+- El contrato de evidencias beta agrega campos condicionales para OpenAI: `credentials.checked`, `credentials.openai_api_key_required`, `credentials.openai_api_key_present` y `credentials.records_openai_api_key=false`.
+- README, `PILOTS.md`, roadmap y documentacion HTML aclaran que el auditor nunca necesita ni registra el valor de `OPENAI_API_KEY`.
+
 ## [0.106.0] - 2026-06-06
 
 ### Agregado

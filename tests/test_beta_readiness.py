@@ -152,6 +152,39 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertFalse(checks["real_transcription_quality"]["ok"])
         self.assertIn("real_transcription_quality", report["blockers"])
 
+    def test_openai_real_transcription_evidence_requires_sanitized_credential_check(self):
+        module = _load_beta_readiness()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            evidence_path = Path(tmpdir) / "transcription-pilot-report.json"
+            evidence = _transcription_evidence(backend="openai")
+            evidence.pop("credentials")
+            _write_json(evidence_path, evidence)
+
+            report = module.build_beta_readiness_report(ROOT, evidence_paths=[evidence_path])
+            checks = {check["name"]: check for check in report["checks"]}
+
+        self.assertFalse(checks["real_transcription_quality"]["ok"])
+        self.assertIn("real_transcription_quality", report["blockers"])
+
+    def test_openai_real_transcription_evidence_accepts_sanitized_credential_presence(self):
+        module = _load_beta_readiness()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            evidence_path = Path(tmpdir) / "transcription-pilot-report.json"
+            _write_json(evidence_path, _transcription_evidence(backend="openai"))
+
+            report = module.build_beta_readiness_report(ROOT, evidence_paths=[evidence_path])
+            checks = {check["name"]: check for check in report["checks"]}
+
+        self.assertTrue(checks["real_transcription_quality"]["ok"])
+        self.assertTrue(
+            any(
+                source.endswith("transcription-pilot-report.json")
+                for source in checks["real_transcription_quality"]["evidence_sources"]
+            )
+        )
+
     def test_real_transcription_evidence_requires_duration_gate(self):
         module = _load_beta_readiness()
 
@@ -761,6 +794,11 @@ class BetaReadinessTests(unittest.TestCase):
         transcription_fields = {
             field["path"]: field["expected"] for field in requirements["real_transcription_quality"]["fields"]
         }
+        transcription_conditional_fields = {
+            field["path"]: field["expected"]
+            for conditional in requirements["real_transcription_quality"]["conditional_fields"]
+            for field in conditional["fields"]
+        }
         output_fields = {
             field["path"]: field["expected"] for field in requirements["system_output_audible"]["fields"]
         }
@@ -795,6 +833,10 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertEqual(transcription_fields["transcription_checklist.reference_privacy_scan_passed"], True)
         self.assertEqual(transcription_fields["transcription_checklist.quality_review_confirmed"], True)
         self.assertEqual(transcription_fields["transcription_checklist.ready_for_beta_evidence"], True)
+        self.assertEqual(transcription_conditional_fields["credentials.checked"], True)
+        self.assertEqual(transcription_conditional_fields["credentials.openai_api_key_required"], True)
+        self.assertEqual(transcription_conditional_fields["credentials.openai_api_key_present"], True)
+        self.assertEqual(transcription_conditional_fields["credentials.records_openai_api_key"], False)
         self.assertIn("system_guard.expected_system_matched", output_fields)
         self.assertIn("target_output_backend.available", output_fields)
         self.assertIn("output_backend_ready_required", output_fields)
@@ -836,6 +878,8 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertIn("Requisitos de evidencias beta", content)
         self.assertIn("transcription-pilot-report.json", content)
         self.assertIn("system_guard.expected_system_matched", content)
+        self.assertIn("credentials.openai_api_key_present", content)
+        self.assertIn("credentials.records_openai_api_key", content)
         self.assertIn("input_review_confirmed", content)
         self.assertIn("target_capture_backend.available", content)
         self.assertIn("capture_backend_ready_required", content)
@@ -1170,15 +1214,17 @@ def _output_evidence() -> dict:
     }
 
 
-def _transcription_evidence(*, min_word_accuracy: float = 0.75, word_accuracy: float = 0.92) -> dict:
-    return {
+def _transcription_evidence(
+    *, min_word_accuracy: float = 0.75, word_accuracy: float = 0.92, backend: str = "whisper"
+) -> dict:
+    evidence = {
         "project": "AuralisVoiceKit",
         "real_transcription_requested": True,
         "target_backend": {
-            "name": "whisper",
+            "name": backend,
             "kind": "transcription",
             "available": True,
-            "dependencies": ["faster-whisper"],
+            "dependencies": ["openai"] if backend == "openai" else ["faster-whisper"],
             "reason": None,
         },
         "target_backend_ready_required": True,
@@ -1234,6 +1280,15 @@ def _transcription_evidence(*, min_word_accuracy: float = 0.75, word_accuracy: f
             "ready_for_beta_evidence": True,
         },
     }
+    if backend == "openai":
+        evidence["credentials"] = {
+            "checked": True,
+            "status": "present",
+            "openai_api_key_required": True,
+            "openai_api_key_present": True,
+            "records_openai_api_key": False,
+        }
+    return evidence
 
 
 def _system_guard() -> dict[str, bool]:
