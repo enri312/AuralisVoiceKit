@@ -6,6 +6,14 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.99.3] - 2026-06-06
+
+### Agregado
+
+- `tools/transcription_pilot.py` ahora emite `preflight_decision` para resumir si el preflight de audio propio puede avanzar, debe instalar backend o queda bloqueado.
+- `real-transcription-next-step.md`, findings y salida CLI muestran la decision de preflight sin copiar rutas locales, nombres de audio, transcripciones ni texto esperado.
+- Nuevas pruebas cubren que la decision bloquee preflights sin guardas de duracion y mantenga artifacts publicos.
+
 ## [0.99.2] - 2026-06-06
 
 ### Agregado

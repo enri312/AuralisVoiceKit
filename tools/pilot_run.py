@@ -610,6 +610,10 @@ def _transcription_audio_preflight_step(order: int) -> dict[str, Any]:
             "audio.duration_gate.enabled",
             "audio.duration_gate.passed",
             "target_backend.available",
+            "preflight_decision.decision",
+            "preflight_decision.blocking_reasons",
+            "preflight_decision.backend_ready",
+            "preflight_decision.next_action",
             "audio.audio_file_name_redacted",
             "audio.audio_file_extension",
             "audio.audio_confirmed_non_sensitive",
@@ -626,7 +630,7 @@ def _transcription_audio_preflight_step(order: int) -> dict[str, Any]:
         "review_required": True,
         "reason": (
             "Confirma que el MP3 propio se decodifica con ffmpeg y genera "
-            "transcription-review-checklist.md y real-transcription-next-step.md antes de ejecutar un modelo real."
+            "preflight_decision, transcription-review-checklist.md y real-transcription-next-step.md antes de ejecutar un modelo real."
         ),
         **_strict_backend_guard_metadata("transcription-audio-preflight"),
     }

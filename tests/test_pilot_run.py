@@ -306,6 +306,8 @@ class PilotRunTests(unittest.TestCase):
         self.assertIn("--confirm-quality-reviewed", transcription_readiness)
         self.assertIn("--require-target-backend-ready", transcription_readiness)
         self.assertIn("target_backend.available", transcription_readiness)
+        self.assertIn("preflight_decision", transcription_readiness)
+        self.assertIn("preflight_decision.decision", transcription_readiness)
         self.assertIn("reference_privacy_scan.passed", transcription_readiness)
         self.assertIn("Do not run a real transcription model with private or unreviewed audio.", transcription_readiness)
         self.assertNotIn(str(tmpdir), transcription_readiness)
@@ -601,6 +603,12 @@ class PilotRunTests(unittest.TestCase):
         self.assertEqual(matrix["macos-capture"]["status"], "pending")
         self.assertEqual(matrix["transcription-audio-fixture"]["status"], "recommended")
         self.assertEqual(matrix["transcription-mp3-preflight"]["status"], "recommended")
+        preflight_step = {
+            step["name"]: step for step in report["recommended_pilot_sequence"]
+        }["transcription-audio-preflight"]
+        self.assertIn("preflight_decision.decision", preflight_step["required_fields"])
+        self.assertIn("preflight_decision.blocking_reasons", preflight_step["required_fields"])
+        self.assertIn("preflight_decision.backend_ready", preflight_step["required_fields"])
         self.assertIn("target_backend.available=true", matrix["real-transcription-quality"]["notes"])
         self.assertIn("target_backend_ready_required=true", matrix["real-transcription-quality"]["notes"])
         self.assertIn("audio.generated_synthetic_audio=false", matrix["real-transcription-quality"]["notes"])

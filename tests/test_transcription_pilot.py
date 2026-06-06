@@ -343,6 +343,17 @@ class TranscriptionPilotTests(unittest.TestCase):
         self.assertEqual(report["audio"]["source_format"], "wav")
         self.assertTrue(report["audio"]["duration_gate"]["enabled"])
         self.assertTrue(report["audio"]["duration_gate"]["passed"])
+        expected_preflight_decision = (
+            "ready_for_real_transcription"
+            if report["target_backend"]["available"]
+            else "install_backend_then_retry_preflight"
+        )
+        self.assertEqual(report["preflight_decision"]["decision"], expected_preflight_decision)
+        self.assertTrue(report["preflight_decision"]["safe_to_share"])
+        self.assertFalse(report["preflight_decision"]["usable_as_beta_evidence"])
+        self.assertFalse(report["preflight_decision"]["records_audio"])
+        self.assertFalse(report["preflight_decision"]["records_audio_file_name"])
+        self.assertEqual(report["preflight_decision"]["blocking_reasons"], [])
         self.assertNotIn(str(audio_path), report_text)
         self.assertNotIn("private-meeting.wav", report_text)
         self.assertNotIn("private-meeting.wav", findings)
@@ -356,6 +367,7 @@ class TranscriptionPilotTests(unittest.TestCase):
         self.assertIn("Audio file name redacted: True", findings)
         self.assertIn("Audio decode passed: True", findings)
         self.assertIn("Duration gate passed: True", findings)
+        self.assertIn(f"Preflight decision: {expected_preflight_decision}", findings)
         self.assertIn("Review checklist: transcription-review-checklist.md", findings)
         self.assertIn("Real transcription next step: real-transcription-next-step.md", findings)
         self.assertIn("--real-transcription", next_step)
@@ -367,6 +379,8 @@ class TranscriptionPilotTests(unittest.TestCase):
         self.assertIn("target_backend.install_plan.post_install_check", next_step)
         self.assertIn("audio.audio_file_name_redacted=true", next_step)
         self.assertIn("target_backend.available=true", next_step)
+        self.assertIn(f"Preflight decision: {expected_preflight_decision}", next_step)
+        self.assertIn("preflight_decision.decision=ready_for_real_transcription", next_step)
         self.assertIn("transcription_checklist.records_audio_file_name=false", next_step)
         self.assertIn("transcription_checklist.records_expected_text_file_name=false", next_step)
         self.assertEqual(report["next_real_transcription"]["uses_placeholders"], True)
@@ -375,6 +389,34 @@ class TranscriptionPilotTests(unittest.TestCase):
         self.assertFalse(report["next_real_transcription"]["records_audio_file_name"])
         self.assertFalse(report["transcription_checklist"]["ready_for_beta_evidence"])
         self.assertIn("Ready for beta evidence: False", checklist)
+
+    def test_transcription_pilot_preflight_decision_blocks_without_duration_gate(self):
+        module = _load_transcription_pilot()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            audio_path = Path(tmpdir) / "private-meeting.wav"
+            write_wav(
+                str(audio_path),
+                [AudioChunk(data=b"\x00\x00" * 800, format=AudioFormat(sample_rate=8000, channels=1))],
+            )
+            report = module.run_transcription_pilot(
+                root=ROOT,
+                output_dir=Path(tmpdir) / "pilot",
+                audio=audio_path,
+                backend="whisper",
+                preflight_only=True,
+                audio_confirmed_non_sensitive=True,
+                sample_rate=8000,
+            )
+            findings = Path(report["artifacts"]["pilot_findings"]).read_text(encoding="utf-8")
+            next_step = Path(report["artifacts"]["real_transcription_next_step"]).read_text(encoding="utf-8")
+
+        self.assertTrue(report["passed"])
+        self.assertFalse(report["audio"]["duration_gate"]["enabled"])
+        self.assertEqual(report["preflight_decision"]["decision"], "blocked")
+        self.assertIn("duration_gate_enabled", report["preflight_decision"]["blocking_reasons"])
+        self.assertIn("Preflight decision: blocked", findings)
+        self.assertIn("Preflight decision: blocked", next_step)
 
     def test_transcription_pilot_cli_preflight_allows_target_backend(self):
         module = _load_transcription_pilot()

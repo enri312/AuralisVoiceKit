@@ -230,6 +230,11 @@ def run_transcription_pilot(
         reference_review_confirmed=reference_review_confirmed,
         quality_review_confirmed=quality_review_confirmed,
     )
+    preflight_decision = _preflight_decision(
+        preflight_only=preflight_only,
+        target_backend=target_backend,
+        audio=audio_payload,
+    )
 
     findings_path = output / "transcription-pilot-findings.md"
     checklist_path = output / "transcription-review-checklist.md"
@@ -258,6 +263,7 @@ def run_transcription_pilot(
         reference_review_confirmed=reference_review_confirmed,
         quality_review_confirmed=quality_review_confirmed,
         transcription_checklist=transcription_checklist,
+        preflight_decision=preflight_decision,
         report_path=report_path,
         checklist_path=checklist_path,
         next_step_path=next_step_path,
@@ -279,6 +285,7 @@ def run_transcription_pilot(
         quality=quality_report,
         reference_privacy_scan=reference_privacy_scan,
         transcription_checklist=transcription_checklist,
+        preflight_decision=preflight_decision,
         command_template=command_template,
         checklist_path=checklist_path,
     )
@@ -307,6 +314,7 @@ def run_transcription_pilot(
         "quality": quality_report,
         "reference_privacy_scan": reference_privacy_scan,
         "transcription_checklist": transcription_checklist,
+        "preflight_decision": preflight_decision,
         "next_real_transcription": {
             "artifact": str(next_step_path),
             "command_template": command_template,
@@ -988,6 +996,90 @@ def _checklist_item(
     }
 
 
+def _preflight_decision(
+    *,
+    preflight_only: bool,
+    target_backend: dict[str, Any],
+    audio: dict[str, Any],
+) -> dict[str, Any]:
+    checks = [
+        _checklist_item(
+            "preflight_only",
+            "Run --preflight-only before a real transcription model.",
+            ok=preflight_only,
+            required=True,
+        ),
+        _checklist_item(
+            "audio_non_sensitive_confirmed",
+            "Confirm the supplied audio is non-sensitive before processing.",
+            ok=audio["audio_confirmed_non_sensitive"],
+            required=True,
+        ),
+        _checklist_item(
+            "audio_file_name_redacted",
+            "Shared artifacts must redact the audio file name.",
+            ok=audio["audio_file_name_redacted"],
+            required=True,
+        ),
+        _checklist_item(
+            "audio_decoded",
+            "Decode the audio before running a model.",
+            ok=audio["decoded"],
+            required=True,
+        ),
+        _checklist_item(
+            "duration_gate_enabled",
+            "Use --min-audio-seconds and --max-audio-seconds before real transcription.",
+            ok=audio["duration_gate"]["enabled"],
+            required=True,
+        ),
+        _checklist_item(
+            "duration_gate_passed",
+            "Confirm the decoded duration is inside the configured bounds.",
+            ok=audio["duration_gate"]["passed"] if audio["duration_gate"]["enabled"] else None,
+            required=True,
+        ),
+        _checklist_item(
+            "target_backend_available",
+            "Install the optional transcription extra before the real model run.",
+            ok=target_backend["available"],
+            required=True,
+        ),
+    ]
+    failed_preflight_checks = [item["id"] for item in checks[:-1] if item["ok"] is not True]
+    backend_ready = target_backend["available"] is True
+    if not preflight_only:
+        decision = "not_applicable"
+        blocking_reasons: list[str] = []
+        next_action = "Run a sanitized --preflight-only pass with the target audio before the real model."
+    elif failed_preflight_checks:
+        decision = "blocked"
+        blocking_reasons = failed_preflight_checks
+        next_action = "Fix the blocking preflight checks before using Whisper or OpenAI."
+    elif not backend_ready:
+        decision = "install_backend_then_retry_preflight"
+        blocking_reasons = []
+        next_action = "Install the optional backend extra and rerun --preflight-only with --require-target-backend-ready."
+    else:
+        decision = "ready_for_real_transcription"
+        blocking_reasons = []
+        next_action = "Run the real transcription command template locally after reviewing audio and reference privacy."
+    return {
+        "decision": decision,
+        "safe_to_share": True,
+        "usable_as_beta_evidence": False,
+        "records_audio": False,
+        "records_transcripts": False,
+        "records_expected_text": False,
+        "records_local_paths": False,
+        "records_audio_file_name": False,
+        "checks": checks,
+        "blocking_reasons": blocking_reasons,
+        "backend_ready": backend_ready,
+        "next_action": next_action,
+    }
+
+
 def _build_findings_markdown(
     *,
     timestamp: str,
@@ -1005,6 +1097,7 @@ def _build_findings_markdown(
     reference_review_confirmed: bool,
     quality_review_confirmed: bool,
     transcription_checklist: dict[str, Any],
+    preflight_decision: dict[str, Any],
     report_path: Path,
     checklist_path: Path,
     next_step_path: Path,
@@ -1045,6 +1138,8 @@ def _build_findings_markdown(
         f"- Quality gate passed: {_format_optional(quality['passed'])}",
         f"- Quality review confirmed: {quality_review_confirmed}",
         f"- Transcription checklist ready for beta evidence: {transcription_checklist['ready_for_beta_evidence']}",
+        f"- Preflight decision: {preflight_decision['decision']}",
+        f"- Preflight next action: {preflight_decision['next_action']}",
         f"- Report: {report_path.name}",
         f"- Review checklist: {checklist_path.name}",
         f"- Real transcription next step: {next_step_path.name}",
@@ -1151,6 +1246,7 @@ def _build_real_transcription_next_step_markdown(
     quality: dict[str, Any],
     reference_privacy_scan: dict[str, Any],
     transcription_checklist: dict[str, Any],
+    preflight_decision: dict[str, Any],
     command_template: str,
     checklist_path: Path,
 ) -> str:
@@ -1180,6 +1276,8 @@ def _build_real_transcription_next_step_markdown(
         f"- Duration gate passed: {_format_optional(audio['duration_gate']['passed'])}",
         f"- Reference provided: {quality['enabled']}",
         f"- Reference privacy scan passed: {_format_optional(reference_privacy_scan['passed'])}",
+        f"- Preflight decision: {preflight_decision['decision']}",
+        f"- Preflight next action: {preflight_decision['next_action']}",
         f"- Ready for real transcription: {transcription_checklist['ready_for_real_transcription']}",
         f"- Ready for beta evidence: {transcription_checklist['ready_for_beta_evidence']}",
         f"- Review checklist: {checklist_path.name}",
@@ -1202,6 +1300,7 @@ def _build_real_transcription_next_step_markdown(
         "- Confirm `target_backend.available=true` before running without `--preflight-only`.",
         "- Confirm `transcription_checklist.records_audio_file_name=false`.",
         "- Confirm `transcription_checklist.records_expected_text_file_name=false`.",
+        "- Confirm `preflight_decision.decision=ready_for_real_transcription` or rerun the preflight after installing the backend.",
         "- Confirm `reference_privacy_scan.passed=true` before accepting beta evidence.",
         "- Confirm `transcription_checklist.ready_for_beta_evidence=true` only after human quality review.",
         "",
@@ -1303,6 +1402,7 @@ def _print_report(report: dict[str, Any]) -> None:
     print(f"Reference privacy scan passed: {report['reference_privacy_scan']['passed']}")
     print(f"Reference privacy risk count: {report['reference_privacy_scan']['risk_count']}")
     print(f"Quality review confirmed: {report['quality_review_confirmed']}")
+    print(f"Preflight decision: {report['preflight_decision']['decision']}")
     print(f"Passed: {report['passed']}")
     print(f"Transcript characters: {report['transcript']['text_characters'] if report['transcript'] else 0}")
     if report["quality"]["enabled"]:
