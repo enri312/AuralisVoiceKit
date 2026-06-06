@@ -96,6 +96,8 @@ Nota `v0.126.0`: la evidencia beta de transcripcion real requiere `real_transcri
 
 Nota `v0.127.0`: la auditoria de evidencias beta agrega `privacy_audit`, que bloquea beta si artifacts JSON aceptados contienen campos crudos sospechosos y reporta solo rutas de campos, no valores privados.
 
+Nota `v0.128.0`: el piloto seguro propaga `privacy_audit` a `pilot-report.json`, `pilot-plan.md`, `real-pilot-evidence-manifest.md` y `real-pilot-decision-gate.md`, manteniendo beta bloqueada si aparecen campos crudos aunque los blockers funcionales esten cerrados por JSON.
+
 ## Fase 0 - Base del proyecto
 
 **Objetivo:** dejar una libreria instalable, importable y testeable.

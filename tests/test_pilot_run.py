@@ -87,6 +87,11 @@ class PilotRunTests(unittest.TestCase):
         self.assertIn("pilot_decision_gate", persisted)
         self.assertIn("blocker_summaries", persisted["beta_readiness"])
         self.assertIn("blocker_summaries", persisted["evidence_manifest"])
+        self.assertIn("privacy_audit", persisted["beta_readiness"])
+        self.assertEqual(persisted["beta_readiness"]["privacy_audit"]["status"], "passed")
+        self.assertEqual(persisted["beta_readiness"]["privacy_audit"]["finding_count"], 0)
+        self.assertEqual(persisted["evidence_manifest"]["privacy_audit"]["status"], "passed")
+        self.assertEqual(persisted["pilot_decision_gate"]["privacy_audit"]["status"], "passed")
         self.assertIn("real_pilot_handoff", persisted["artifacts"])
         self.assertIn("real_pilot_findings_template", persisted["artifacts"])
         self.assertIn("real_pilot_command_pack", persisted["artifacts"])
@@ -400,6 +405,7 @@ class PilotRunTests(unittest.TestCase):
         self.assertIn("ubuntu_linux_capture", evidence_manifest)
         self.assertIn("macos_capture", evidence_manifest)
         self.assertIn("Resumen por blocker", evidence_manifest)
+        self.assertIn("Escaneo de privacidad", evidence_manifest)
         self.assertIn("Candidato mas cercano", evidence_manifest)
         self.assertIn("transcription-pilot-report.json", evidence_manifest)
         self.assertIn("output-pilot-report.json", evidence_manifest)
@@ -409,6 +415,7 @@ class PilotRunTests(unittest.TestCase):
         self.assertIn("output_backend_ready_required", evidence_manifest)
         self.assertNotIn(str(tmpdir), evidence_manifest)
         self.assertIn("Compuerta go/no-go para pilotos reales AuralisVoiceKit", decision_gate)
+        self.assertIn("Escaneo de privacidad", decision_gate)
         self.assertIn("Pilotos reales: `go`", decision_gate)
         self.assertIn("Beta: `blocked`", decision_gate)
         self.assertIn("Estable: `blocked`", decision_gate)
@@ -426,6 +433,7 @@ class PilotRunTests(unittest.TestCase):
         self.assertIn("Secuencia recomendada", plan)
         self.assertIn("Matriz por plataforma", plan)
         self.assertIn("Resumen por blocker", plan)
+        self.assertIn("Escaneo de privacidad", plan)
         self.assertIn("Candidato mas cercano", plan)
         self.assertIn("Proximas evidencias beta", plan)
         self.assertIn("--confirm-audible", plan)
@@ -988,6 +996,69 @@ class PilotRunTests(unittest.TestCase):
         self.assertNotIn(str(evidence_root), decision_gate)
         matrix = {row["name"]: row for row in report["platform_pilot_matrix"]}
         self.assertEqual(matrix["ubuntu-linux-capture"]["status"], "closed")
+
+    def test_safe_pilot_surfaces_privacy_audit_findings_without_values(self):
+        module = _load_pilot_run()
+        private_value = "texto privado no publicable"
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            evidence_root = Path(tmpdir) / "evidence"
+            _write_json(
+                evidence_root / "linux" / "manual-pilot-report.json",
+                {
+                    "project": "AuralisVoiceKit",
+                    "system": "Linux",
+                    "capture_backend": "pyaudio",
+                    "target_capture_backend": {
+                        "name": "pyaudio",
+                        "kind": "capture",
+                        "available": True,
+                        "dependencies": ["pyaudio"],
+                        "reason": None,
+                    },
+                    "capture_backend_ready_required": True,
+                    "system_guard": {"expected_system_matched": True},
+                    "hardware_capture_tested": True,
+                    "input_review_confirmed": True,
+                    "capture_checklist": {
+                        "input_review_confirmed": True,
+                        "ready_for_beta_evidence": True,
+                    },
+                    "manual_capture_command_card": _manual_capture_command_card(
+                        "ubuntu_linux_capture",
+                        "Linux | Ubuntu/Linux | Ubuntu",
+                        "pyaudio",
+                    ),
+                    "passed": True,
+                    "transcript": {"text": private_value},
+                },
+            )
+            report = module.run_safe_pilot(
+                root=ROOT,
+                output_dir=Path(tmpdir) / "pilot",
+                evidence_paths=[evidence_root],
+            )
+            plan = Path(report["artifacts"]["pilot_plan"]).read_text(encoding="utf-8")
+            evidence_manifest = Path(report["artifacts"]["real_pilot_evidence_manifest"]).read_text(encoding="utf-8")
+            decision_gate = Path(report["artifacts"]["real_pilot_decision_gate"]).read_text(encoding="utf-8")
+
+        privacy_audit = report["beta_readiness"]["privacy_audit"]
+        self.assertEqual(privacy_audit["status"], "failed")
+        self.assertEqual(privacy_audit["finding_count"], 1)
+        self.assertTrue(privacy_audit["blocking"])
+        self.assertEqual(privacy_audit["findings"][0]["field"], "transcript.text")
+        self.assertEqual(privacy_audit["findings"][0]["reason"], "raw_text_field")
+        self.assertEqual(report["evidence_manifest"]["privacy_audit"], privacy_audit)
+        self.assertEqual(report["pilot_decision_gate"]["privacy_audit"], privacy_audit)
+        self.assertEqual(report["pilot_decision_gate"]["beta"]["decision"], "blocked")
+        self.assertIn("privacy audit", report["pilot_decision_gate"]["beta"]["reason"])
+        self.assertIn("Escaneo de privacidad", plan)
+        self.assertIn("Escaneo de privacidad", evidence_manifest)
+        self.assertIn("Escaneo de privacidad", decision_gate)
+        combined = "\n".join([plan, evidence_manifest, decision_gate, json.dumps(report, sort_keys=True)])
+        self.assertIn("transcript.text", combined)
+        self.assertIn("raw_text_field", combined)
+        self.assertNotIn(private_value, combined)
 
 
 def _write_json(path: Path, payload: dict):

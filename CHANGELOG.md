@@ -6,6 +6,18 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.128.0] - 2026-06-06
+
+### Cambiado
+
+- `tools/pilot_run.py` ahora propaga `privacy_audit` desde la auditoria beta a `pilot-report.json`, `pilot-plan.md`, `real-pilot-evidence-manifest.md` y `real-pilot-decision-gate.md`.
+- La compuerta go/no-go mantiene beta bloqueada si la auditoria de privacidad encuentra campos crudos sospechosos, aunque los blockers funcionales parezcan cerrados por JSON.
+- El plan y el manifiesto muestran estado, conteo, campo y motivo de hallazgos de privacidad sin imprimir valores privados.
+
+### Pruebas
+
+- Nuevas pruebas verifican que un artifact aceptado con `transcript.text` crudo queda marcado por privacidad y que el valor privado no aparece en reportes JSON ni Markdown.
+
 ## [0.127.0] - 2026-06-06
 
 ### Cambiado

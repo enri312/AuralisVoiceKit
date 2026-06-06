@@ -177,6 +177,7 @@ def run_safe_pilot(
             "missing_json_blockers": beta_audit["missing_blockers"],
             "blocker_summaries": beta_audit["blocker_summaries"],
             "next_evidence_focus": beta_audit["next_evidence_focus"],
+            "privacy_audit": beta_audit["privacy_audit"],
             "accepted_json_artifacts": _pilot_plan_artifact_summary(beta_audit["artifacts"]),
             "ignored_json_artifacts": beta_audit["ignored_details"],
             "strict_audit_command": (
@@ -1271,6 +1272,7 @@ def _real_pilot_evidence_manifest(
         "closed_blockers": beta_audit["satisfied_blockers"],
         "blocker_summaries": beta_audit["blocker_summaries"],
         "next_evidence_focus": beta_audit["next_evidence_focus"],
+        "privacy_audit": beta_audit["privacy_audit"],
         "accepted_json_artifacts": _pilot_plan_artifact_summary(beta_audit["artifacts"]),
         "ignored_json_artifacts": beta_audit["ignored_details"],
         "pending_count": len(beta_readiness["blockers"]),
@@ -1605,12 +1607,17 @@ def _real_pilot_system_output_readiness_card(report: dict[str, Any]) -> dict[str
 def _real_pilot_decision_gate(report: dict[str, Any]) -> dict[str, Any]:
     """Build a public-safe go/no-go summary for the next operator."""
 
+    privacy_audit = report["beta_readiness"].get(
+        "privacy_audit",
+        {"status": "unknown", "finding_count": 0, "findings": [], "blocking": False},
+    )
+    privacy_blocked = bool(privacy_audit.get("blocking"))
     pilot_go = bool(
         report["safe_automated_pilot"]["passed"]
         and report["gate"]["ready_for_real_world_pilots"]
         and not report["gate"]["pilot_blockers"]
     )
-    beta_go = bool(report["beta_readiness"]["ready_for_beta"])
+    beta_go = bool(report["beta_readiness"]["ready_for_beta"] and not privacy_blocked)
     stable_go = bool(report["gate"]["ready_for_stable_release"])
     recommended = report["recommended_pilot_sequence"][0] if report["recommended_pilot_sequence"] else None
     local_warnings = [
@@ -1644,6 +1651,8 @@ def _real_pilot_decision_gate(report: dict[str, Any]) -> dict[str, Any]:
             "reason": (
                 "All beta blockers are closed."
                 if beta_go
+                else "Evidence privacy audit found suspicious raw fields; beta remains blocked."
+                if privacy_blocked
                 else "Beta remains blocked until real evidence closes the pending blockers."
             ),
         },
@@ -1669,6 +1678,7 @@ def _real_pilot_decision_gate(report: dict[str, Any]) -> dict[str, Any]:
             "strict_backend_guard_field": recommended["strict_backend_guard_field"] if recommended else None,
         },
         "next_evidence_focus": report["beta_readiness"].get("next_evidence_focus", {}),
+        "privacy_audit": privacy_audit,
         "local_environment_warnings": local_warnings,
         "target_system_checks": target_system_checks,
         "operator_actions": [
@@ -1677,12 +1687,14 @@ def _real_pilot_decision_gate(report: dict[str, Any]) -> dict[str, Any]:
             "Review real-pilot-transcription-readiness.md before running a real transcription backend.",
             "Review real-pilot-system-output-readiness.md before audible system output.",
             "Review real-pilot-evidence-manifest.md to know which JSON artifact closes each blocker.",
+            "Review privacy_audit before treating any JSON artifact as beta-ready.",
             "Run the strict audit after collecting real artifacts.",
             "Refresh BETA_CHECKLIST.md only after the audit is reviewed.",
         ],
         "hard_stop_conditions": [
             "Do not run real audio if the room, input, reference text or spoken text contains private content.",
             "Do not use --confirm-* flags before local human review is complete.",
+            "Do not declare beta while privacy_audit.blocking=true.",
             "Do not declare beta while beta.decision is blocked.",
             "Do not declare stable while stable.decision is blocked.",
         ],
@@ -1705,6 +1717,7 @@ def _pilot_plan_artifact_summary(artifacts: list[dict[str, Any]]) -> list[dict[s
             "file": artifact["file"],
             "artifact": artifact["artifact"],
             "satisfied_blockers": artifact["satisfied_blockers"],
+            "privacy_finding_count": artifact.get("privacy_finding_count", 0),
         }
         for artifact in artifacts
     ]
@@ -1786,6 +1799,8 @@ def _format_pilot_plan_markdown(report: dict[str, Any]) -> str:
         f"- Listo para beta: `{str(beta['ready_for_beta']).lower()}`",
         f"- Evidencias JSON aceptadas: `{beta['evidence_count']}`",
         f"- Evidencias JSON ignoradas: `{beta['ignored_evidence_count']}`",
+        f"- Auditoria de privacidad: `{beta['privacy_audit']['status']}`",
+        f"- Hallazgos de privacidad: `{beta['privacy_audit']['finding_count']}`",
         f"- Blockers beta: {_format_inline_list(beta['blockers'])}",
         f"- Blockers cerrados por JSON: {_format_inline_list(beta['satisfied_json_blockers'])}",
         f"- Blockers JSON pendientes: {_format_inline_list(beta['missing_json_blockers'])}",
@@ -1822,6 +1837,7 @@ def _format_pilot_plan_markdown(report: dict[str, Any]) -> str:
                     f"- `{artifact['file']}`",
                     f"  - Artifact: `{artifact['artifact']}`",
                     f"  - Blockers cerrados: {_format_inline_list(artifact['satisfied_blockers'])}",
+                    f"  - Hallazgos de privacidad: `{artifact['privacy_finding_count']}`",
                 ]
             )
         lines.append("")
@@ -1836,6 +1852,8 @@ def _format_pilot_plan_markdown(report: dict[str, Any]) -> str:
                 f"- `{artifact['file']}`: `{artifact['reason']}` - {artifact['message_es']} / {artifact['message_en']}."
             )
         lines.append("")
+    lines.extend(["## Escaneo de privacidad", ""])
+    _append_privacy_audit_lines(lines, beta.get("privacy_audit", {}))
     lines.extend(["## Resumen por blocker", ""])
     _append_blocker_summary_lines(lines, beta.get("blocker_summaries", []))
     lines.extend(
@@ -1948,6 +1966,8 @@ def _format_pilot_plan_markdown(report: dict[str, Any]) -> str:
             "## Auditoria estricta",
             "",
             f"- Comando: `{beta['strict_audit_command']}`",
+            f"- Auditoria de privacidad: `{beta['privacy_audit']['status']}`",
+            f"- Hallazgos de privacidad: `{beta['privacy_audit']['finding_count']}`",
             f"- Checklist de entorno previo: `{environment_checklist_name}`",
             "",
             "## Matriz por plataforma",
@@ -2517,6 +2537,8 @@ def _format_real_pilot_evidence_manifest_markdown(report: dict[str, Any]) -> str
         f"- Blockers pendientes solo por auditoria JSON: {_format_inline_list(manifest['missing_json_blockers'])}",
         f"- Blockers cerrados por JSON: {_format_inline_list(manifest['closed_blockers'])}",
         f"- Evidencias ignoradas: `{manifest['ignored_count']}`",
+        f"- Auditoria de privacidad: `{manifest['privacy_audit']['status']}`",
+        f"- Hallazgos de privacidad: `{manifest['privacy_audit']['finding_count']}`",
         "",
         "## Politica de contenido",
         "",
@@ -2533,6 +2555,8 @@ def _format_real_pilot_evidence_manifest_markdown(report: dict[str, Any]) -> str
         "",
     ]
     _append_blocker_summary_lines(lines, manifest.get("blocker_summaries", []))
+    lines.extend(["## Escaneo de privacidad", ""])
+    _append_privacy_audit_lines(lines, manifest.get("privacy_audit", {}))
     lines.extend(["## Siguiente foco de evidencia", ""])
     _append_next_evidence_focus_lines(lines, manifest.get("next_evidence_focus", {}))
     lines.extend(
@@ -2568,6 +2592,7 @@ def _format_real_pilot_evidence_manifest_markdown(report: dict[str, Any]) -> str
                     f"- `{artifact['file']}`",
                     f"  - Artifact: `{artifact['artifact']}`",
                     f"  - Blockers cerrados: {_format_inline_list(artifact['satisfied_blockers'])}",
+                    f"  - Hallazgos de privacidad: `{artifact['privacy_finding_count']}`",
                 ]
             )
         lines.append("")
@@ -2605,6 +2630,7 @@ def _format_real_pilot_decision_gate_markdown(report: dict[str, Any]) -> str:
     gate = report["pilot_decision_gate"]
     artifact_policy = report["real_pilot_decision_gate"]
     next_step = gate["next_recommended_step"]
+    privacy_audit = gate.get("privacy_audit", {})
     lines = [
         "# Compuerta go/no-go para pilotos reales AuralisVoiceKit",
         "",
@@ -2622,6 +2648,8 @@ def _format_real_pilot_decision_gate_markdown(report: dict[str, Any]) -> str:
         f"- Estable: `{gate['stable']['decision']}`",
         f"- Motivo estable: {gate['stable']['reason']}",
         f"- Blockers estable: {_format_inline_list(gate['stable']['blockers'])}",
+        f"- Auditoria de privacidad: `{privacy_audit.get('status', 'unknown')}`",
+        f"- Hallazgos de privacidad: `{privacy_audit.get('finding_count', 0)}`",
         f"- Usable como evidencia beta: `{_format_bool(artifact_policy['usable_as_beta_evidence'])}`",
         "",
         "## Politica de contenido",
@@ -2645,9 +2673,16 @@ def _format_real_pilot_decision_gate_markdown(report: dict[str, Any]) -> str:
         f"- Requiere operador: `{_format_bool(next_step['requires_operator'])}`",
         f"- Requiere audio no sensible: `{_format_bool(next_step['requires_non_sensitive_audio'])}`",
         "",
-        "## Siguiente foco de evidencia",
+        "## Escaneo de privacidad",
         "",
     ]
+    _append_privacy_audit_lines(lines, privacy_audit)
+    lines.extend(
+        [
+        "## Siguiente foco de evidencia",
+        "",
+        ]
+    )
     _append_next_evidence_focus_lines(lines, gate.get("next_evidence_focus", {}))
     lines.extend(
         [
@@ -2988,6 +3023,29 @@ def _append_next_evidence_focus_lines(lines: list[str], focus: dict[str, Any]) -
                 f"{_format_inline_list(item['fields'])}"
             )
     lines.append(f"- Motivo: {focus['reason_es']} / {focus['reason_en']}.")
+    lines.append("")
+
+
+def _append_privacy_audit_lines(lines: list[str], privacy_audit: dict[str, Any]) -> None:
+    if not privacy_audit:
+        lines.extend(["- Auditoria de privacidad no disponible.", ""])
+        return
+    lines.extend(
+        [
+            f"- Estado: `{privacy_audit.get('status', 'unknown')}`",
+            f"- Hallazgos: `{privacy_audit.get('finding_count', 0)}`",
+            f"- Bloquea beta: `{_format_bool(bool(privacy_audit.get('blocking', False)))}`",
+        ]
+    )
+    findings = privacy_audit.get("findings", [])
+    if not findings:
+        lines.append("- No se detectaron campos crudos sospechosos.")
+        lines.append("")
+        return
+    for finding in findings:
+        lines.append(
+            f"- `{finding['file']}` campo `{finding['field']}`: `{finding['reason']}`"
+        )
     lines.append("")
 
 
