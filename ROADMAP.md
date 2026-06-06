@@ -47,7 +47,7 @@ La meta no es competir con todos los motores de voz a la vez. La meta es constru
 | Asistente local con privacidad | Ejemplo offline inicial con logs sanitizados |
 | Backends de salida custom | Guia inicial y ejemplo en memoria |
 | Automatizacion de estabilidad | Gate inicial para pilotos reales |
-| Pilotos seguros | Runner automatizado, piloto manual guiado con checklist de captura y revision confirmada de entrada, piloto de salida system con checklist de operador, guard de plataforma, readiness por sistema operativo, scan de privacidad del texto hablado y revision de voz, piloto de transcripcion con checklist de revision, plan de instalacion de backend y confirmacion humana de calidad, command pack por plataforma, checklist de entorno local, runbook, bundle doctor, analisis de bundles y checklist de beta |
+| Pilotos seguros | Runner automatizado, piloto manual guiado con checklist de captura y revision confirmada de entrada, piloto de salida system con checklist de operador, guard de plataforma, readiness por sistema operativo, scan de privacidad del texto hablado y revision de voz, piloto de transcripcion con checklist de revision, plan de instalacion de backend, comando dedicado de MP3/WAV/FLAC real y confirmacion humana de calidad, command pack por plataforma, checklist de entorno local, runbook, bundle doctor, analisis de bundles y checklist de beta |
 | Mensajes Windows audio | Helper inicial para errores comunes |
 
 Nota `v0.105.0`: el piloto seguro ya separa la ruta generica y la ruta OpenAI en tarjetas, matriz y command pack, con plantilla OpenAI segura (`--preflight-backend openai`, `gpt-4o-mini-transcribe`, timeout 30) sin red ni modelos durante preflight.
@@ -79,6 +79,8 @@ Nota `v0.117.0`: el fixture sintetico propaga `preflight_readiness` al reporte p
 Nota `v0.118.0`: el piloto real de transcripcion con guard estricto conserva `preflight_readiness.status=ready` cuando los checks previos al modelo pasan, cerrando la ruta tecnica para que `real_transcription_quality` pueda cumplir el contrato beta.
 
 Nota `v0.119.0`: el piloto de transcripcion ahora expone `beta_evidence_gap` con faltantes y siguiente accion segura, reduciendo el trabajo manual para cerrar `real_transcription_quality` con un MP3 propio.
+
+Nota `v0.120.0`: el piloto de transcripcion genera `real-transcription-command.md` con comandos seguros de preflight, corrida real y auditoria beta; el preflight recomendado ahora incluye guardas de duracion, revision de audio y guard estricto de backend.
 
 ## Fase 0 - Base del proyecto
 

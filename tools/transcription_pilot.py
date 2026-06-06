@@ -256,11 +256,20 @@ def run_transcription_pilot(
         max_audio_seconds=max_audio_seconds,
         timeout_seconds=timeout_seconds,
     )
+    preflight_command_template = _real_transcription_preflight_command_template(
+        backend=backend,
+        model=model,
+        min_audio_seconds=min_audio_seconds,
+        max_audio_seconds=max_audio_seconds,
+        timeout_seconds=timeout_seconds,
+    )
+    audit_command_template = _beta_evidence_audit_command_template()
     preflight_readiness = _preflight_readiness(
         preflight_decision=preflight_decision,
         target_backend=target_backend,
         credentials=credentials,
         audio=audio_payload,
+        preflight_command_template=preflight_command_template,
         command_template=command_template,
     )
     beta_evidence_gap = _transcription_beta_evidence_gap(
@@ -284,6 +293,7 @@ def run_transcription_pilot(
     findings_path = output / "transcription-pilot-findings.md"
     checklist_path = output / "transcription-review-checklist.md"
     next_step_path = output / "real-transcription-next-step.md"
+    command_path = output / "real-transcription-command.md"
     report_path = output / "transcription-pilot-report.json"
     findings = _build_findings_markdown(
         timestamp=timestamp,
@@ -309,6 +319,7 @@ def run_transcription_pilot(
         report_path=report_path,
         checklist_path=checklist_path,
         next_step_path=next_step_path,
+        command_path=command_path,
     )
     checklist = _build_transcription_checklist_markdown(
         timestamp=timestamp,
@@ -332,8 +343,22 @@ def run_transcription_pilot(
         preflight_decision=preflight_decision,
         preflight_readiness=preflight_readiness,
         beta_evidence_gap=beta_evidence_gap,
+        preflight_command_template=preflight_command_template,
         command_template=command_template,
+        audit_command_template=audit_command_template,
+        command_path=command_path,
         checklist_path=checklist_path,
+    )
+    command_card = _build_real_transcription_command_markdown(
+        timestamp=timestamp,
+        backend=backend,
+        target_backend=target_backend,
+        credentials=credentials,
+        preflight_readiness=preflight_readiness,
+        beta_evidence_gap=beta_evidence_gap,
+        preflight_command_template=preflight_command_template,
+        command_template=command_template,
+        audit_command_template=audit_command_template,
     )
 
     report: dict[str, Any] = {
@@ -367,7 +392,10 @@ def run_transcription_pilot(
         "beta_evidence_gap": beta_evidence_gap,
         "next_real_transcription": {
             "artifact": str(next_step_path),
+            "command_artifact": str(command_path),
             "command_template": command_template,
+            "preflight_command_template": preflight_command_template,
+            "audit_command_template": audit_command_template,
             "preflight_readiness": preflight_readiness,
             "beta_evidence_gap": beta_evidence_gap,
             "target_backend": target_backend,
@@ -375,12 +403,14 @@ def run_transcription_pilot(
             "records_audio_path": False,
             "records_audio_file_name": False,
             "records_expected_text_file_name": False,
+            "records_local_paths": False,
         },
         "notes": _pilot_notes(real_transcription, preflight_only),
         "artifacts": {
             "pilot_findings": str(findings_path),
             "transcription_review_checklist": str(checklist_path),
             "real_transcription_next_step": str(next_step_path),
+            "real_transcription_command": str(command_path),
             "transcription_pilot_report": str(report_path),
         },
     }
@@ -390,6 +420,7 @@ def run_transcription_pilot(
     findings_path.write_text(findings, encoding="utf-8")
     checklist_path.write_text(checklist, encoding="utf-8")
     next_step_path.write_text(next_step, encoding="utf-8")
+    command_path.write_text(command_card, encoding="utf-8")
     report_path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return report
 
@@ -1231,6 +1262,7 @@ def _preflight_readiness(
     target_backend: dict[str, Any],
     credentials: dict[str, Any],
     audio: dict[str, Any],
+    preflight_command_template: str,
     command_template: str,
 ) -> dict[str, Any]:
     decision = preflight_decision["decision"]
@@ -1260,7 +1292,8 @@ def _preflight_readiness(
         "duration_gate_enabled": audio["duration_gate"]["enabled"],
         "duration_gate_passed": audio["duration_gate"]["passed"],
         "credentials_status": credentials["status"],
-        "preflight_command": target_backend["install_plan"]["post_install_check"],
+        "preflight_command": preflight_command_template,
+        "backend_post_install_check": target_backend["install_plan"]["post_install_check"],
         "real_transcription_command_template": command_template,
         "next_action": preflight_decision["next_action"],
     }
@@ -1423,6 +1456,7 @@ def _build_findings_markdown(
     report_path: Path,
     checklist_path: Path,
     next_step_path: Path,
+    command_path: Path,
 ) -> str:
     transcript_characters = transcript.get("text_characters") if transcript is not None else 0
     lines = [
@@ -1476,6 +1510,7 @@ def _build_findings_markdown(
         f"- Report: {report_path.name}",
         f"- Review checklist: {checklist_path.name}",
         f"- Real transcription next step: {next_step_path.name}",
+        f"- Real transcription command: {command_path.name}",
         "",
         "## Privacy",
         "",
@@ -1583,10 +1618,147 @@ def _real_transcription_command_template(
     )
 
 
+def _real_transcription_preflight_command_template(
+    *,
+    backend: str,
+    model: str | None,
+    min_audio_seconds: float | None,
+    max_audio_seconds: float | None,
+    timeout_seconds: float | None,
+) -> str:
+    real_backend = backend if backend != "null" else "whisper"
+    if model:
+        real_model = model
+    elif real_backend == "openai":
+        real_model = "gpt-4o-mini-transcribe"
+    else:
+        real_model = "base"
+    min_seconds = 0.2 if min_audio_seconds is None else min_audio_seconds
+    max_seconds = 60 if max_audio_seconds is None else max_audio_seconds
+    default_timeout_seconds = 30 if real_backend == "openai" else None
+    effective_timeout_seconds = timeout_seconds if timeout_seconds is not None else default_timeout_seconds
+    timeout_flag = (
+        f" --timeout-seconds {_format_cli_number(effective_timeout_seconds)}"
+        if effective_timeout_seconds is not None
+        else ""
+    )
+    credential_flag = " --require-openai-api-key" if real_backend == "openai" else ""
+    return (
+        "python tools/transcription_pilot.py --preflight-only "
+        "--audio <audio-path> --audio-non-sensitive --confirm-audio-reviewed "
+        f"--backend {real_backend} --model {real_model}{timeout_flag} "
+        f"--min-audio-seconds {_format_cli_number(min_seconds)} "
+        f"--max-audio-seconds {_format_cli_number(max_seconds)} "
+        f"--require-target-backend-ready{credential_flag} --json"
+    )
+
+
+def _beta_evidence_audit_command_template() -> str:
+    return (
+        "python tools/beta_readiness.py --audit-evidence "
+        "--evidence <pilot-output-dir> --output <pilot-output-dir>/beta-evidence-audit.md --json"
+    )
+
+
 def _format_cli_number(value: float | int) -> str:
     if isinstance(value, float) and value.is_integer():
         return str(int(value))
     return str(value)
+
+
+def _build_real_transcription_command_markdown(
+    *,
+    timestamp: str,
+    backend: str,
+    target_backend: dict[str, Any],
+    credentials: dict[str, Any],
+    preflight_readiness: dict[str, Any],
+    beta_evidence_gap: dict[str, Any],
+    preflight_command_template: str,
+    command_template: str,
+    audit_command_template: str,
+) -> str:
+    lines = [
+        "# Real transcription command",
+        "",
+        "This artifact is safe to share. It contains placeholders only and does not include local audio paths, audio file names, full transcripts, expected text or secrets.",
+        "",
+        "## Status",
+        "",
+        f"- Created at: {timestamp}",
+        f"- Backend from current run: {backend}",
+        f"- Target backend: {target_backend['name']}",
+        f"- Target backend available: {target_backend['available']}",
+        f"- Target backend dependencies: {_format_list(target_backend['dependencies'])}",
+        f"- Target backend install command: {_format_optional(target_backend['install_command'])}",
+        f"- Backend post-install check: {target_backend['install_plan']['post_install_check']}",
+        f"- Preflight readiness status: {preflight_readiness['status']}",
+        f"- Preflight ready for model run: {preflight_readiness['ready_for_model_run']}",
+        f"- OpenAI API key check: {credentials['status']}",
+        f"- OpenAI API key required: {credentials['openai_api_key_required']}",
+        f"- OpenAI API key present: {_format_optional(credentials['openai_api_key_present'])}",
+        f"- Records OpenAI API key: {credentials['records_openai_api_key']}",
+        f"- Beta evidence gap ready: {beta_evidence_gap['ready_for_beta_evidence']}",
+        f"- Beta evidence gap missing count: {beta_evidence_gap['missing_count']}",
+        f"- Beta evidence gap next action: {beta_evidence_gap['next_action']}",
+        "",
+        "## 1. Preflight MP3/WAV/FLAC",
+        "",
+        "Run this locally with your reviewed audio before any real model call:",
+        "",
+        "```powershell",
+        preflight_command_template,
+        "```",
+        "",
+        "## 2. Real Transcription",
+        "",
+        "Run this only after the preflight reports `preflight_readiness.status=ready`:",
+        "",
+        "```powershell",
+        command_template,
+        "```",
+        "",
+        "## 3. Evidence Audit",
+        "",
+        "Audit the generated report before treating it as beta evidence:",
+        "",
+        "```powershell",
+        audit_command_template,
+        "```",
+        "",
+        "## Local Replacements",
+        "",
+        "- Replace `<audio-path>` with a reviewed, non-sensitive local MP3/WAV/FLAC path.",
+        "- Replace `<expected-text-path>` with a reviewed, non-sensitive local reference text file.",
+        "- Replace `<pilot-output-dir>` with the output folder that contains `transcription-pilot-report.json`.",
+        "- Keep local paths, audio file names, transcript text, expected text and API keys out of public reports.",
+        "",
+        "## Required Confirmations",
+        "",
+        "- `--audio-non-sensitive` means the audio is safe to process locally.",
+        "- `--confirm-audio-reviewed` means a human reviewed audio privacy before model use.",
+        "- `--confirm-reference-reviewed` means a human reviewed expected text privacy before scoring.",
+        "- `--confirm-quality-reviewed` means a human reviewed redacted quality metrics before beta evidence.",
+        "- `--require-target-backend-ready` must stay enabled for beta evidence.",
+        "- For OpenAI, keep `--require-openai-api-key` and store the key only in the local environment.",
+        "",
+        "## Beta Evidence Gap",
+        "",
+        f"- Blocker: `{beta_evidence_gap['blocker']}`",
+        f"- Ready for beta evidence: `{beta_evidence_gap['ready_for_beta_evidence']}`",
+        f"- Missing fields: {_format_list(beta_evidence_gap['missing_fields'])}",
+        "",
+        "## Privacy Contract",
+        "",
+        "- Records audio bytes: `False`",
+        "- Records transcript text: `False`",
+        "- Records expected text: `False`",
+        "- Records audio file name: `False`",
+        "- Records local paths: `False`",
+        "- Records OpenAI API key: `False`",
+        "",
+    ]
+    return "\n".join(lines)
 
 
 def _build_real_transcription_next_step_markdown(
@@ -1607,7 +1779,10 @@ def _build_real_transcription_next_step_markdown(
     preflight_decision: dict[str, Any],
     preflight_readiness: dict[str, Any],
     beta_evidence_gap: dict[str, Any],
+    preflight_command_template: str,
     command_template: str,
+    audit_command_template: str,
+    command_path: Path,
     checklist_path: Path,
 ) -> str:
     lines = [
@@ -1652,6 +1827,7 @@ def _build_real_transcription_next_step_markdown(
         f"- Beta evidence gap missing count: {beta_evidence_gap['missing_count']}",
         f"- Beta evidence gap next action: {beta_evidence_gap['next_action']}",
         f"- Review checklist: {checklist_path.name}",
+        f"- Command card: {command_path.name}",
         "",
         "## Command Template",
         "",
@@ -1666,7 +1842,15 @@ def _build_real_transcription_next_step_markdown(
         "Run this sanitized check until `preflight_readiness.status=ready`:",
         "",
         "```powershell",
-        preflight_readiness["preflight_command"],
+        preflight_command_template,
+        "```",
+        "",
+        "## Evidence Audit Command",
+        "",
+        "After the real run, audit the output directory before treating it as beta evidence:",
+        "",
+        "```powershell",
+        audit_command_template,
         "```",
         "",
         "## Beta Evidence Gap",

@@ -47,12 +47,15 @@ class TranscriptionPilotTests(unittest.TestCase):
             findings_path = Path(report["artifacts"]["pilot_findings"])
             checklist_path = Path(report["artifacts"]["transcription_review_checklist"])
             next_step_path = Path(report["artifacts"]["real_transcription_next_step"])
+            command_path = Path(report["artifacts"]["real_transcription_command"])
             synthetic_audio = Path(report["artifacts"]["synthetic_audio"])
             payload = json.loads(report_path.read_text(encoding="utf-8"))
             findings = findings_path.read_text(encoding="utf-8")
             checklist = checklist_path.read_text(encoding="utf-8")
             next_step = next_step_path.read_text(encoding="utf-8")
+            command_card = command_path.read_text(encoding="utf-8")
             synthetic_audio_exists = synthetic_audio.exists()
+            command_card_exists = command_path.exists()
             report_text = report_path.read_text(encoding="utf-8")
 
         self.assertTrue(report["passed"])
@@ -86,10 +89,13 @@ class TranscriptionPilotTests(unittest.TestCase):
         self.assertFalse(payload["transcription_checklist"]["records_expected_text_file_name"])
         self.assertIn("transcription_review_checklist", report["artifacts"])
         self.assertIn("real_transcription_next_step", report["artifacts"])
+        self.assertIn("real_transcription_command", report["artifacts"])
+        self.assertTrue(command_card_exists)
         self.assertNotIn("text\": \"", report_text)
         self.assertIn("Transcription pilot findings", findings)
         self.assertIn("Generated synthetic audio: True", findings)
         self.assertIn("Real transcription next step: real-transcription-next-step.md", findings)
+        self.assertIn("Real transcription command: real-transcription-command.md", findings)
         self.assertIn("Transcription checklist ready for beta evidence: False", findings)
         self.assertIn("Beta evidence gap ready: False", findings)
         self.assertIn("Transcription review checklist", checklist)
@@ -98,6 +104,12 @@ class TranscriptionPilotTests(unittest.TestCase):
         self.assertIn("--audio <audio-path>", next_step)
         self.assertIn("--expected-text-file <expected-text-path>", next_step)
         self.assertIn("Beta Evidence Gap", next_step)
+        self.assertIn("Real transcription command", command_card)
+        self.assertIn("Preflight MP3/WAV/FLAC", command_card)
+        self.assertIn("--preflight-only", command_card)
+        self.assertIn("--audio <audio-path>", command_card)
+        self.assertIn("--evidence <pilot-output-dir>", command_card)
+        self.assertNotIn(str(command_path.parent), command_card)
 
     def test_transcription_pilot_cli_outputs_json(self):
         module = _load_transcription_pilot()
@@ -188,6 +200,26 @@ class TranscriptionPilotTests(unittest.TestCase):
         self.assertIn("--max-audio-seconds 60", command)
         self.assertNotIn("--timeout-seconds 30.0", command)
         self.assertNotIn("--max-audio-seconds 60.0", command)
+
+    def test_transcription_pilot_preflight_template_includes_duration_and_openai_guard(self):
+        module = _load_transcription_pilot()
+
+        command = module._real_transcription_preflight_command_template(
+            backend="openai",
+            model=None,
+            min_audio_seconds=None,
+            max_audio_seconds=60.0,
+            timeout_seconds=None,
+        )
+
+        self.assertIn("--preflight-only", command)
+        self.assertIn("--backend openai", command)
+        self.assertIn("--model gpt-4o-mini-transcribe", command)
+        self.assertIn("--timeout-seconds 30", command)
+        self.assertIn("--min-audio-seconds 0.2", command)
+        self.assertIn("--max-audio-seconds 60", command)
+        self.assertIn("--require-target-backend-ready", command)
+        self.assertIn("--require-openai-api-key", command)
 
     def test_transcription_pilot_cli_rejects_invalid_timeout(self):
         module = _load_transcription_pilot()
@@ -413,10 +445,12 @@ class TranscriptionPilotTests(unittest.TestCase):
             findings_path = Path(report["artifacts"]["pilot_findings"])
             checklist_path = Path(report["artifacts"]["transcription_review_checklist"])
             next_step_path = Path(report["artifacts"]["real_transcription_next_step"])
+            command_path = Path(report["artifacts"]["real_transcription_command"])
             report_text = report_path.read_text(encoding="utf-8")
             findings = findings_path.read_text(encoding="utf-8")
             checklist = checklist_path.read_text(encoding="utf-8")
             next_step = next_step_path.read_text(encoding="utf-8")
+            command_card = command_path.read_text(encoding="utf-8")
 
         self.assertTrue(report["passed"])
         self.assertTrue(report["preflight_only"])
@@ -451,8 +485,22 @@ class TranscriptionPilotTests(unittest.TestCase):
         self.assertEqual(report["preflight_readiness"]["decision"], expected_preflight_decision)
         self.assertEqual(report["preflight_readiness"]["ready_for_model_run"], report["target_backend"]["available"])
         self.assertEqual(report["preflight_readiness"]["must_rerun_preflight"], not report["target_backend"]["available"])
-        self.assertEqual(report["preflight_readiness"]["preflight_command"], report["target_backend"]["install_plan"]["post_install_check"])
+        self.assertEqual(
+            report["preflight_readiness"]["backend_post_install_check"],
+            report["target_backend"]["install_plan"]["post_install_check"],
+        )
+        self.assertIn("--confirm-audio-reviewed", report["preflight_readiness"]["preflight_command"])
+        self.assertIn("--min-audio-seconds 0.05", report["preflight_readiness"]["preflight_command"])
+        self.assertIn("--max-audio-seconds 1", report["preflight_readiness"]["preflight_command"])
+        self.assertIn("--require-target-backend-ready", report["preflight_readiness"]["preflight_command"])
         self.assertEqual(report["next_real_transcription"]["preflight_readiness"], report["preflight_readiness"])
+        self.assertEqual(
+            report["next_real_transcription"]["preflight_command_template"],
+            report["preflight_readiness"]["preflight_command"],
+        )
+        self.assertIn("real_transcription_command", report["artifacts"])
+        self.assertEqual(report["next_real_transcription"]["command_artifact"], str(command_path))
+        self.assertFalse(report["next_real_transcription"]["records_local_paths"])
         self.assertFalse(report["preflight_readiness"]["usable_as_beta_evidence"])
         self.assertFalse(report["preflight_readiness"]["records_audio_file_name"])
         self.assertFalse(report["beta_evidence_gap"]["ready_for_beta_evidence"])
@@ -465,6 +513,8 @@ class TranscriptionPilotTests(unittest.TestCase):
         self.assertNotIn("private-meeting.wav", checklist)
         self.assertNotIn("private-meeting.wav", next_step)
         self.assertNotIn(str(audio_path), next_step)
+        self.assertNotIn("private-meeting.wav", command_card)
+        self.assertNotIn(str(audio_path), command_card)
         self.assertIn("Preflight only: True", findings)
         self.assertIn("Target backend available:", findings)
         self.assertIn("Target backend dependencies: faster-whisper", findings)
@@ -476,6 +526,7 @@ class TranscriptionPilotTests(unittest.TestCase):
         self.assertIn(f"Preflight readiness status: {expected_readiness_status}", findings)
         self.assertIn("Review checklist: transcription-review-checklist.md", findings)
         self.assertIn("Real transcription next step: real-transcription-next-step.md", findings)
+        self.assertIn("Real transcription command: real-transcription-command.md", findings)
         self.assertIn("--real-transcription", next_step)
         self.assertIn("--audio <audio-path>", next_step)
         self.assertIn("--expected-text-file <expected-text-path>", next_step)
@@ -486,6 +537,8 @@ class TranscriptionPilotTests(unittest.TestCase):
         self.assertIn("Target backend dependencies: faster-whisper", next_step)
         self.assertIn("target_backend.install_plan.pip_command", next_step)
         self.assertIn("target_backend.install_plan.post_install_check", next_step)
+        self.assertIn("Command card: real-transcription-command.md", next_step)
+        self.assertIn("Evidence Audit Command", next_step)
         self.assertIn("audio.audio_file_name_redacted=true", next_step)
         self.assertIn("target_backend.available=true", next_step)
         self.assertIn(f"Preflight decision: {expected_preflight_decision}", next_step)
@@ -498,6 +551,14 @@ class TranscriptionPilotTests(unittest.TestCase):
         self.assertFalse(report["next_real_transcription"]["records_audio_file_name"])
         self.assertFalse(report["transcription_checklist"]["ready_for_beta_evidence"])
         self.assertIn("Ready for beta evidence: False", checklist)
+        self.assertIn("Real transcription command", command_card)
+        self.assertIn("Preflight MP3/WAV/FLAC", command_card)
+        self.assertIn("--preflight-only", command_card)
+        self.assertIn("--min-audio-seconds 0.05", command_card)
+        self.assertIn("--max-audio-seconds 1", command_card)
+        self.assertIn("--confirm-audio-reviewed", command_card)
+        self.assertIn("--evidence <pilot-output-dir>", command_card)
+        self.assertIn("Records local paths: `False`", command_card)
 
     def test_real_transcription_with_strict_guard_keeps_preflight_readiness_ready(self):
         module = _load_transcription_pilot()
@@ -557,6 +618,7 @@ class TranscriptionPilotTests(unittest.TestCase):
             report_text = Path(report["artifacts"]["transcription_pilot_report"]).read_text(encoding="utf-8")
             findings = Path(report["artifacts"]["pilot_findings"]).read_text(encoding="utf-8")
             next_step = Path(report["artifacts"]["real_transcription_next_step"]).read_text(encoding="utf-8")
+            command_card = Path(report["artifacts"]["real_transcription_command"]).read_text(encoding="utf-8")
 
         self.assertTrue(report["passed"])
         self.assertTrue(report["real_transcription_requested"])
@@ -578,10 +640,14 @@ class TranscriptionPilotTests(unittest.TestCase):
         self.assertEqual(report["beta_evidence_gap"]["missing_count"], 0)
         self.assertEqual(report["beta_evidence_gap"]["missing_fields"], [])
         self.assertEqual(report["next_real_transcription"]["beta_evidence_gap"], report["beta_evidence_gap"])
+        self.assertIn("real_transcription_command", report["artifacts"])
+        self.assertIn("--evidence <pilot-output-dir>", report["next_real_transcription"]["audit_command_template"])
         self.assertFalse(report["beta_evidence_gap"]["records_audio_file_name"])
         self.assertFalse(report["beta_evidence_gap"]["records_local_paths"])
         self.assertIn("Ready for beta evidence: True", next_step)
         self.assertIn("Beta evidence gap ready: True", next_step)
+        self.assertIn("Ready for beta evidence: `True`", command_card)
+        self.assertIn("Missing fields: none", command_card)
 
     def test_transcription_pilot_openai_preflight_requires_sanitized_api_key(self):
         module = _load_transcription_pilot()

@@ -6,6 +6,15 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.120.0] - 2026-06-06
+
+### Agregado
+
+- `tools/transcription_pilot.py` ahora escribe `real-transcription-command.md`, una tarjeta segura con comandos de preflight, transcripcion real y auditoria beta para MP3/WAV/FLAC propios.
+- `next_real_transcription` incluye `preflight_command_template`, `audit_command_template`, `command_artifact` y flags publicos que confirman que no se guardan rutas locales.
+- El comando de preflight generado conserva guardas de duracion, `--confirm-audio-reviewed`, `--require-target-backend-ready` y, para OpenAI, timeout 30 con `--require-openai-api-key`.
+- Nuevas pruebas verifican que el comando dedicado no filtra nombres/rutas de audio y que la plantilla OpenAI mantiene timeout, duracion y guard de credencial.
+
 ## [0.119.0] - 2026-06-06
 
 ### Agregado
