@@ -622,6 +622,16 @@ auralis backends --json
 
 `auralis backends --json` devuelve `version`, `backends[]`, `counts.total`, `counts.by_kind` y `content_policy`, con `available`, `reason` y dependencias publicas por backend sin rutas locales. English: backend inventory is machine-readable so pilots and CI can check optional extras without parsing text output or sharing local paths.
 
+Desde Python se puede usar la misma forma segura:
+
+```python
+from auralis_voicekit import AuralisVoiceKit, backend_inventory
+
+print(backend_inventory()["counts"])
+kit = AuralisVoiceKit()
+print(kit.backend_inventory()["content_policy"])
+```
+
 ## Backends previstos
 
 | Backend | Estado | Uso previsto |

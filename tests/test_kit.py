@@ -1,6 +1,14 @@
 import unittest
 
-from auralis_voicekit import AuralisVoiceKit, AudioChunk, AudioFormat, VoiceEventType, VoiceKitConfig
+from auralis_voicekit import (
+    AuralisVoiceKit,
+    AudioChunk,
+    AudioFormat,
+    VoiceEventType,
+    VoiceKitConfig,
+    __version__,
+    backend_inventory,
+)
 from auralis_voicekit.backends import BackendInfo, create_default_registry
 
 
@@ -112,6 +120,28 @@ class AuralisVoiceKitTests(unittest.TestCase):
 
         self.assertEqual(kit.output_queue_size, 2)
         self.assertEqual(kit.output.utterances, ["Uno"])
+
+    def test_backend_inventory_is_public_safe(self):
+        kit = AuralisVoiceKit()
+
+        inventory = kit.backend_inventory()
+        function_inventory = backend_inventory()
+        backend_keys = {
+            f"{backend['kind']}:{backend['name']}" for backend in inventory["backends"]
+        }
+
+        self.assertEqual(inventory["version"], __version__)
+        self.assertEqual(function_inventory["version"], __version__)
+        self.assertIn("capture:null", backend_keys)
+        self.assertIn("transcription:null", backend_keys)
+        self.assertIn("output:system", backend_keys)
+        self.assertEqual(inventory["counts"]["total"], len(inventory["backends"]))
+        self.assertFalse(inventory["content_policy"]["records_local_paths"])
+        self.assertFalse(inventory["content_policy"]["records_credentials"])
+        for backend in inventory["backends"]:
+            for dependency in backend["dependencies"]:
+                self.assertNotIn("\\", dependency)
+                self.assertNotIn("/", dependency)
 
 
 if __name__ == "__main__":

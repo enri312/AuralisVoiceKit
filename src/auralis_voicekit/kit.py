@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Callable, Iterable
 
+from .backend_inventory import backend_inventory
 from .backends import BackendRegistry, create_default_registry
 from .config import VoiceKitConfig
 from .events import EventBus, VoiceEventType
@@ -116,3 +117,8 @@ class AuralisVoiceKit:
 
     def backend_report(self):
         return self.registry.backend_info()
+
+    def backend_inventory(self) -> dict:
+        """Return a public-safe structured backend inventory."""
+
+        return backend_inventory(self.registry)

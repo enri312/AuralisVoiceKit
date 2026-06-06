@@ -16,6 +16,7 @@ from .audio import (
     write_wav,
 )
 from .backends import create_default_registry
+from .backend_inventory import backend_inventory
 from .benchmarks import (
     BenchmarkComparisonReport,
     BenchmarkReport,
@@ -216,49 +217,8 @@ def _format_counts(counts: dict[str, int]) -> str:
     return ", ".join(f"{name}={count}" for name, count in counts.items())
 
 
-def _public_dependency_name(value: str) -> str:
-    normalized = value.replace("\\", "/").rstrip("/")
-    return normalized.rsplit("/", 1)[-1] if "/" in normalized else value
-
-
-def _backend_info_payload() -> dict:
-    infos = create_default_registry().backend_info()
-    backends = [
-        {
-            "name": info.name,
-            "kind": info.kind,
-            "available": info.available,
-            "reason": info.reason,
-            "dependencies": [_public_dependency_name(dependency) for dependency in info.dependencies],
-        }
-        for info in infos
-    ]
-    by_kind: dict[str, dict[str, int]] = {}
-    for info in infos:
-        counts = by_kind.setdefault(info.kind, {"total": 0, "available": 0, "unavailable": 0})
-        counts["total"] += 1
-        if info.available:
-            counts["available"] += 1
-        else:
-            counts["unavailable"] += 1
-    return {
-        "version": __version__,
-        "backends": backends,
-        "counts": {
-            "total": len(infos),
-            "available": sum(1 for info in infos if info.available),
-            "unavailable": sum(1 for info in infos if not info.available),
-            "by_kind": by_kind,
-        },
-        "content_policy": {
-            "records_local_paths": False,
-            "records_credentials": False,
-        },
-    }
-
-
 def _print_backends(*, json_output: bool = False) -> int:
-    payload = _backend_info_payload()
+    payload = backend_inventory()
     if json_output:
         print(json.dumps(payload, indent=2, sort_keys=True))
         return 0

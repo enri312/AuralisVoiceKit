@@ -6,6 +6,18 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.151.0] - 2026-06-06
+
+### Agregado
+
+- Nueva API publica `backend_inventory()` para obtener desde Python el inventario seguro de backends sin rutas locales ni credenciales.
+- `AuralisVoiceKit.backend_inventory()` expone el mismo reporte usando el registro configurado en la instancia.
+- `auralis backends --json` ahora reutiliza el helper publico para mantener una sola politica de inventario.
+
+### Pruebas
+
+- Nuevas pruebas validan la API publica de inventario, el metodo de fachada y la ausencia de rutas locales en dependencias.
+
 ## [0.150.0] - 2026-06-06
 
 ### Agregado

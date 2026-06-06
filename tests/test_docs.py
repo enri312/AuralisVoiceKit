@@ -506,8 +506,11 @@ class DocumentationTests(unittest.TestCase):
 
     def test_backend_json_inventory_is_documented(self):
         self.assertIn("auralis backends --json", README.read_text(encoding="utf-8"))
+        self.assertIn("backend_inventory()", README.read_text(encoding="utf-8"))
         self.assertIn("auralis backends --json", MAIN_DOC.read_text(encoding="utf-8"))
+        self.assertIn("AuralisVoiceKit.backend_inventory()", MAIN_DOC.read_text(encoding="utf-8"))
         self.assertIn("auralis backends --json", API_DOC.read_text(encoding="utf-8"))
+        self.assertIn("backend_inventory()", API_DOC.read_text(encoding="utf-8"))
 
 
 if __name__ == "__main__":
