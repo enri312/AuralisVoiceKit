@@ -67,7 +67,7 @@ def build_evidence_requirements_report() -> dict[str, Any]:
                     "--backend whisper --model base --normalize "
                     "--expected-text \"Hola desde AuralisVoiceKit\" --min-word-accuracy 0.75 "
                     "--min-audio-seconds 0.2 --max-audio-seconds 60 "
-                    "--confirm-quality-reviewed --json"
+                    "--confirm-quality-reviewed --require-target-backend-ready --json"
                 ),
                 "fields": [
                     _required_field("project", "AuralisVoiceKit"),
@@ -278,6 +278,7 @@ def build_beta_readiness_report(
                 "--min-audio-seconds/--max-audio-seconds duration guards and "
                 "--confirm-audio-reviewed before model use plus --confirm-reference-reviewed before scoring "
                 "with reference_privacy_scan.passed=true, "
+                "--require-target-backend-ready before model execution, "
                 "and --confirm-quality-reviewed after human review, "
                 "then keep transcription-review-checklist.md and real-transcription-next-step.md."
             ),

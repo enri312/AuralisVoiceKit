@@ -28,7 +28,7 @@ Este documento describe los campos JSON que pueden cerrar blockers de beta. No r
 ### real_transcription_quality
 
 - Artifact: `transcription-pilot-report.json`
-- Comando sugerido: `python tools/transcription_pilot.py --real-transcription --audio sample.mp3 --audio-non-sensitive --confirm-audio-reviewed --confirm-reference-reviewed --backend whisper --model base --normalize --expected-text "Hola desde AuralisVoiceKit" --min-word-accuracy 0.75 --min-audio-seconds 0.2 --max-audio-seconds 60 --confirm-quality-reviewed --json`
+- Comando sugerido: `python tools/transcription_pilot.py --real-transcription --audio sample.mp3 --audio-non-sensitive --confirm-audio-reviewed --confirm-reference-reviewed --backend whisper --model base --normalize --expected-text "Hola desde AuralisVoiceKit" --min-word-accuracy 0.75 --min-audio-seconds 0.2 --max-audio-seconds 60 --confirm-quality-reviewed --require-target-backend-ready --json`
 - Campos requeridos:
   - `project` = `AuralisVoiceKit`
   - `real_transcription_requested` = `True`

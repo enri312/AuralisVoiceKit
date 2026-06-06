@@ -286,7 +286,7 @@ def _manual_pilot_steps() -> list[dict[str, str]]:
                 "--backend whisper --model base --normalize "
                 "--expected-text \"Hola desde AuralisVoiceKit\" --min-word-accuracy 0.75 "
                 "--min-audio-seconds 0.2 --max-audio-seconds 60 "
-                "--confirm-quality-reviewed --json"
+                "--confirm-quality-reviewed --require-target-backend-ready --json"
             ),
             "reason": (
                 "Uses a real non-sensitive audio file and requires audio review, reference review, "
@@ -614,7 +614,7 @@ def _platform_pilot_matrix(blockers: list[str]) -> list[dict[str, Any]]:
                 "--backend whisper --model base --normalize "
                 "--expected-text \"Hola desde AuralisVoiceKit\" --min-word-accuracy 0.75 "
                 "--min-audio-seconds 0.2 --max-audio-seconds 60 "
-                "--confirm-quality-reviewed --json"
+                "--confirm-quality-reviewed --require-target-backend-ready --json"
             ),
             "artifact": "transcription-pilot-report.json",
             "requires_hardware": False,

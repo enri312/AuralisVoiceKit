@@ -357,6 +357,7 @@ class TranscriptionPilotTests(unittest.TestCase):
         self.assertIn("--real-transcription", next_step)
         self.assertIn("--audio <audio-path>", next_step)
         self.assertIn("--expected-text-file <expected-text-path>", next_step)
+        self.assertIn("--require-target-backend-ready", next_step)
         self.assertIn("Target backend dependencies: faster-whisper", next_step)
         self.assertIn("audio.audio_file_name_redacted=true", next_step)
         self.assertIn("target_backend.available=true", next_step)
@@ -413,6 +414,58 @@ class TranscriptionPilotTests(unittest.TestCase):
         self.assertTrue(payload["audio"]["decoded"])
         self.assertTrue(payload["audio"]["duration_gate"]["passed"])
         self.assertIsNone(payload["transcript"])
+
+    def test_transcription_pilot_cli_can_require_target_backend_ready(self):
+        module = _load_transcription_pilot()
+
+        def unavailable_backend(backend: str) -> dict:
+            return {
+                "name": backend,
+                "kind": "transcription",
+                "available": False,
+                "dependencies": ["faster-whisper"],
+                "reason": "missing test dependency",
+            }
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            audio_path = Path(tmpdir) / "private-sample.wav"
+            write_wav(
+                str(audio_path),
+                [AudioChunk(data=b"\x00\x00" * 800, format=AudioFormat(sample_rate=8000, channels=1))],
+            )
+            original_status = module._transcription_backend_status
+            module._transcription_backend_status = unavailable_backend
+            output = io.StringIO()
+            try:
+                with contextlib.redirect_stdout(output):
+                    exit_code = module.main(
+                        [
+                            "--root",
+                            str(ROOT),
+                            "--output-dir",
+                            str(Path(tmpdir) / "pilot"),
+                            "--audio",
+                            str(audio_path),
+                            "--backend",
+                            "whisper",
+                            "--preflight-only",
+                            "--audio-non-sensitive",
+                            "--require-target-backend-ready",
+                            "--sample-rate",
+                            "8000",
+                            "--json",
+                        ]
+                    )
+            finally:
+                module._transcription_backend_status = original_status
+            payload = json.loads(output.getvalue())
+
+        self.assertEqual(exit_code, 1)
+        self.assertIn("Transcription backend 'whisper' is not available", payload["error"])
+        self.assertIn("faster-whisper", payload["error"])
+        self.assertIn("missing test dependency", payload["error"])
+        self.assertNotIn(str(audio_path), payload["error"])
+        self.assertNotIn("private-sample.wav", payload["error"])
 
     def test_transcription_pilot_cli_preflight_rejects_unknown_target_backend(self):
         module = _load_transcription_pilot()

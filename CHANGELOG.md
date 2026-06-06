@@ -6,6 +6,13 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.82.0] - 2026-06-06
+
+### Agregado
+
+- Flag `tools/transcription_pilot.py --require-target-backend-ready` para fallar temprano, con error sanitizado, cuando el backend objetivo de transcripcion no tenga sus dependencias opcionales instaladas.
+- El comando plantilla de `real-transcription-next-step.md` ahora incluye el gate estricto de backend antes de ejecutar Whisper/OpenAI.
+
 ## [0.81.0] - 2026-06-06
 
 ### Cambiado

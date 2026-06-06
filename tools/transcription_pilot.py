@@ -63,6 +63,7 @@ def run_transcription_pilot(
     normalize: bool = False,
     preflight_only: bool = False,
     real_transcription: bool = False,
+    require_target_backend_ready: bool = False,
     audio_confirmed_non_sensitive: bool = False,
     audio_review_confirmed: bool = False,
     reference_review_confirmed: bool = False,
@@ -99,6 +100,10 @@ def run_transcription_pilot(
         audio_review_confirmed=audio_review_confirmed,
     )
     target_backend = _transcription_backend_status(backend)
+    _validate_target_backend_ready(
+        target_backend=target_backend,
+        required=require_target_backend_ready,
+    )
     _validate_duration_limits(
         min_audio_seconds=min_audio_seconds,
         max_audio_seconds=max_audio_seconds,
@@ -269,6 +274,7 @@ def run_transcription_pilot(
         model=model,
         preflight_only=preflight_only,
         real_transcription=real_transcription,
+        require_target_backend_ready=require_target_backend_ready,
         audio=audio_payload,
         quality=quality_report,
         reference_privacy_scan=reference_privacy_scan,
@@ -287,6 +293,7 @@ def run_transcription_pilot(
         "language": language,
         "preflight_only": preflight_only,
         "real_transcription_requested": real_transcription,
+        "target_backend_ready_required": require_target_backend_ready,
         "audio_confirmed_non_sensitive": audio_confirmed_non_sensitive,
         "audio_review_confirmed": audio_review_confirmed,
         "reference_review_confirmed": reference_review_confirmed,
@@ -347,6 +354,11 @@ def main(argv: list[str] | None = None) -> int:
         "--real-transcription",
         action="store_true",
         help="allow a real transcription backend; requires --audio and --audio-non-sensitive",
+    )
+    parser.add_argument(
+        "--require-target-backend-ready",
+        action="store_true",
+        help="fail before audio/model work when the selected transcription backend dependency is missing",
     )
     parser.add_argument(
         "--audio-non-sensitive",
@@ -414,6 +426,7 @@ def main(argv: list[str] | None = None) -> int:
             normalize=args.normalize,
             preflight_only=args.preflight_only,
             real_transcription=args.real_transcription,
+            require_target_backend_ready=args.require_target_backend_ready,
             audio_confirmed_non_sensitive=args.audio_non_sensitive,
             audio_review_confirmed=args.confirm_audio_reviewed,
             reference_review_confirmed=args.confirm_reference_reviewed,
@@ -518,6 +531,17 @@ def _transcription_backend_status(backend: str) -> dict[str, Any]:
         "dependencies": list(info.dependencies),
         "reason": info.reason,
     }
+
+
+def _validate_target_backend_ready(*, target_backend: dict[str, Any], required: bool) -> None:
+    if not required or target_backend["available"]:
+        return
+    dependencies = _format_list(target_backend["dependencies"])
+    reason = target_backend["reason"] or "backend dependency check failed"
+    raise ValueError(
+        f"Transcription backend {target_backend['name']!r} is not available. "
+        f"Dependencies: {dependencies}. Reason: {reason}"
+    )
 
 
 def _validate_duration_limits(
@@ -1075,7 +1099,7 @@ def _real_transcription_command_template(
         f"--backend {real_backend} --model {real_model}{normalize_flag} "
         "--expected-text-file <expected-text-path> --min-word-accuracy 0.75 "
         f"--min-audio-seconds {min_seconds} --max-audio-seconds {max_seconds} "
-        "--confirm-quality-reviewed --json"
+        "--confirm-quality-reviewed --require-target-backend-ready --json"
     )
 
 
@@ -1087,6 +1111,7 @@ def _build_real_transcription_next_step_markdown(
     model: str | None,
     preflight_only: bool,
     real_transcription: bool,
+    require_target_backend_ready: bool,
     audio: dict[str, Any],
     quality: dict[str, Any],
     reference_privacy_scan: dict[str, Any],
@@ -1109,6 +1134,7 @@ def _build_real_transcription_next_step_markdown(
         f"- Model from current run: {_format_optional(model)}",
         f"- Preflight only: {preflight_only}",
         f"- Real transcription requested: {real_transcription}",
+        f"- Target backend readiness required: {require_target_backend_ready}",
         f"- Audio file name redacted: {audio['audio_file_name_redacted']}",
         f"- Audio extension: {audio['audio_file_extension'] or 'none'}",
         f"- Source format: {_format_optional(audio['source_format'])}",
