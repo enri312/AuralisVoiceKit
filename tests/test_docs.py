@@ -83,6 +83,23 @@ class DocumentationTests(unittest.TestCase):
             self.assertIn("credentials.openai_api_key_present", content)
             self.assertIn("credentials.records_openai_api_key", content)
 
+    def test_openai_docs_are_proprietary_opt_in(self):
+        readme = README.read_text(encoding="utf-8")
+        main_doc = MAIN_DOC.read_text(encoding="utf-8")
+        api_doc = API_DOC.read_text(encoding="utf-8")
+
+        for content in (readme, main_doc, api_doc):
+            self.assertIn("camino libre recomendado", content)
+            self.assertIn("propietaria", content)
+            self.assertIn("opt-in", content)
+            self.assertIn("not the free/local default path", content)
+
+        self.assertIn("Integracion propietaria opcional con OpenAI", readme)
+        self.assertIn("Integracion propietaria opcional: OpenAI", main_doc)
+        self.assertIn("Integraciones propietarias opt-in", api_doc)
+        self.assertNotIn("usa `--backend whisper` o `--backend openai`", readme)
+        self.assertNotIn("Local, API o adaptador personalizado", main_doc)
+
     def test_pyaudio_optional_backend_is_documented(self):
         readme = README.read_text(encoding="utf-8")
         main_doc = MAIN_DOC.read_text(encoding="utf-8")
@@ -544,6 +561,10 @@ class DocumentationTests(unittest.TestCase):
             API_DOC.read_text(encoding="utf-8"),
         )
         self.assertIn("v0.161.0", API_DOC.read_text(encoding="utf-8"))
+        self.assertIn("system_output_no_pip_extra_contract", README.read_text(encoding="utf-8"))
+        self.assertIn("system_output_no_pip_extra_contract", MAIN_DOC.read_text(encoding="utf-8"))
+        self.assertIn("system_output_no_pip_extra_contract", API_DOC.read_text(encoding="utf-8"))
+        self.assertIn("v0.162.0", API_DOC.read_text(encoding="utf-8"))
         self.assertIn("--target-system", API_DOC.read_text(encoding="utf-8"))
         self.assertIn("--require-capture-backend-ready", API_DOC.read_text(encoding="utf-8"))
         self.assertIn("target_capture_backend", API_DOC.read_text(encoding="utf-8"))

@@ -30,6 +30,8 @@ Nota `v0.160.0`: `BETA_CHECKLIST.md` tambien muestra `System output command card
 
 Nota `v0.161.0`: `system_output_readiness_card`, `real-pilot-system-output-readiness.md`, `system-output-operator-checklist` y `platform_pilot_matrix` ahora exponen `no_pip_extra_contract` con `system_output_command_card.python_extra=null`, `system_output_command_card.pip_command=null` y `system_output_command_card.system_dependency_plan.post_install_check_plays_audio=false` antes de la salida audible real. English: system-output pilot cards now show the no-pip-extra contract before real audible playback.
 
+Nota `v0.162.0`: `real_pilot_command_pack` y `real-pilot-command-pack.md` tambien exponen `system_output_no_pip_extra_contract` antes de los comandos copiables. English: the real-pilot command pack now carries the system-output no-pip-extra contract before copyable commands.
+
 Nota `v0.111.0`: `tools/pilot_run.py` conserva esos `blocker_summaries` en `pilot-report.json` y los muestra en `pilot-plan.md` y `real-pilot-evidence-manifest.md`. English: safe-pilot artifacts now show per-blocker evidence summaries for operators.
 
 Nota `v0.112.0`: `tools/beta_readiness.py --audit-evidence` y `tools/pilot_run.py` publican `next_evidence_focus` para mostrar el primer blocker beta activo, campos faltantes y candidato mas cercano sin rutas locales. English: operators now get a public-safe next evidence focus.

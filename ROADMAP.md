@@ -164,6 +164,8 @@ Nota `v0.160.0`: `BETA_CHECKLIST.md` tambien muestra los campos faltantes de la 
 
 Nota `v0.161.0`: `system_output_readiness_card`, `real-pilot-system-output-readiness.md`, `system-output-operator-checklist` y `platform_pilot_matrix` publican `no_pip_extra_contract` para que el operador vea `python_extra=null`, `pip_command=null` y `post_install_check_plays_audio=false` antes del piloto audible real.
 
+Nota `v0.162.0`: `real_pilot_command_pack` y `real-pilot-command-pack.md` tambien publican `system_output_no_pip_extra_contract`, de modo que el paquete de comandos copiables conserva el mismo contrato antes de ejecutar salida audible real.
+
 ## Fase 0 - Base del proyecto
 
 **Objetivo:** dejar una libreria instalable, importable y testeable.

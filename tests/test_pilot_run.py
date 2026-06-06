@@ -625,6 +625,15 @@ class PilotRunTests(unittest.TestCase):
         self.assertTrue(persisted["real_pilot_command_pack"]["includes_platform_commands"])
         self.assertTrue(persisted["real_pilot_command_pack"]["includes_required_fields"])
         self.assertTrue(persisted["real_pilot_command_pack"]["includes_strict_audit_command"])
+        self.assertTrue(persisted["real_pilot_command_pack"]["includes_system_output_no_pip_extra_contract"])
+        self.assertIn(
+            "system_output_command_card.python_extra=null",
+            persisted["real_pilot_command_pack"]["system_output_no_pip_extra_contract"],
+        )
+        self.assertIn(
+            "system_output_command_card.system_dependency_plan.post_install_check_plays_audio=false",
+            persisted["real_pilot_command_pack"]["system_output_no_pip_extra_contract"],
+        )
         self.assertEqual(persisted["real_pilot_findings_template"]["target_document"], "PILOT_FINDINGS.md")
         self.assertFalse(persisted["real_pilot_findings_template"]["records_audio"])
         self.assertFalse(persisted["real_pilot_findings_template"]["records_transcripts"])
@@ -890,6 +899,15 @@ class PilotRunTests(unittest.TestCase):
         self.assertNotIn(str(tmpdir), next_focus)
         self.assertIn("Paquete de comandos para pilotos reales AuralisVoiceKit", command_pack)
         self.assertIn("Comandos por plataforma", command_pack)
+        self.assertIn("Contrato de salida system sin extra pip", command_pack)
+        self.assertIn("target_output_backend.readiness_plan.python_extra=null", command_pack)
+        self.assertIn("target_output_backend.readiness_plan.pip_command=null", command_pack)
+        self.assertIn("system_output_command_card.python_extra=null", command_pack)
+        self.assertIn("system_output_command_card.pip_command=null", command_pack)
+        self.assertIn(
+            "system_output_command_card.system_dependency_plan.post_install_check_plays_audio=false",
+            command_pack,
+        )
         self.assertIn("Auditoria y cierre", command_pack)
         self.assertIn("Windows - windows-wasapi-capture", command_pack)
         self.assertIn("Ubuntu/Linux - ubuntu-linux-capture", command_pack)

@@ -276,6 +276,8 @@ def run_safe_pilot(
         "includes_platform_commands": True,
         "includes_required_fields": True,
         "includes_strict_audit_command": True,
+        "includes_system_output_no_pip_extra_contract": True,
+        "system_output_no_pip_extra_contract": SYSTEM_OUTPUT_NO_PIP_EXTRA_CONTRACT,
         "records_audio": False,
         "records_transcripts": False,
         "records_spoken_text": False,
@@ -3650,9 +3652,18 @@ def _format_real_pilot_command_pack_markdown(report: dict[str, Any]) -> str:
         f"- Revisar `{decision_gate_name}` para confirmar si el siguiente paso esta permitido.",
         "- Cerrar con la auditoria estricta y luego refrescar `BETA_CHECKLIST.md`.",
         "",
-        "## Comandos por plataforma",
+        "## Contrato de salida system sin extra pip",
         "",
     ]
+    for item in pack["system_output_no_pip_extra_contract"]:
+        lines.append(f"- `{item}`")
+    lines.extend(
+        [
+            "",
+            "## Comandos por plataforma",
+            "",
+        ]
+    )
     for row in report["platform_pilot_matrix"]:
         required_fields = _command_pack_required_fields(report, row)
         conditional_required_fields = _command_pack_conditional_required_fields(report, row)

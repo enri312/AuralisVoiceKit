@@ -6,6 +6,19 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.162.0] - 2026-06-06
+
+### Mejorado
+
+- `real_pilot_command_pack` ahora declara `includes_system_output_no_pip_extra_contract=true` y conserva `system_output_no_pip_extra_contract`.
+- `real-pilot-command-pack.md` agrega una seccion dedicada al contrato de salida `system` sin extra pip antes de listar comandos copiables por plataforma.
+- La documentacion publica marca OpenAI como integracion propietaria opcional/no libre, lo separa del flujo libre recomendado y prioriza Whisper local para transcripcion real.
+
+### Pruebas
+
+- `tests/test_pilot_run.py` valida el contrato en JSON y Markdown del paquete de comandos.
+- `tests/test_docs.py` valida que OpenAI quede documentado como opt-in propietario y no como backend libre/default.
+
 ## [0.161.0] - 2026-06-06
 
 ### Mejorado
