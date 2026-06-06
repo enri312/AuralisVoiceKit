@@ -74,6 +74,7 @@ def run_manual_pilot(
     analysis_path = output / "doctor-analysis.json"
     findings_path = output / "pilot-findings.md"
     checklist_path = output / "manual-capture-checklist.md"
+    command_path = output / "manual-capture-command.md"
 
     write_doctor_bundle(bundle_path, doctor)
     analysis = analyze_doctor_bundles([bundle_path])
@@ -106,6 +107,10 @@ def run_manual_pilot(
         passed=passed,
         capture_checklist=capture_checklist,
     )
+    manual_capture_command_card = _manual_capture_command_card(
+        capture_readiness_plan=capture_readiness_plan,
+        beta_evidence_gap=beta_evidence_gap,
+    )
     findings = _build_findings_markdown(
         timestamp=timestamp,
         system=system,
@@ -125,6 +130,7 @@ def run_manual_pilot(
         bundle_path=bundle_path,
         analysis_path=analysis_path,
         checklist_path=checklist_path,
+        command_path=command_path,
     )
     findings_path.write_text(findings, encoding="utf-8")
     checklist = _build_capture_checklist_markdown(
@@ -138,6 +144,18 @@ def run_manual_pilot(
         beta_evidence_gap=beta_evidence_gap,
     )
     checklist_path.write_text(checklist, encoding="utf-8")
+    command_card = _build_manual_capture_command_markdown(
+        timestamp=timestamp,
+        system=system,
+        backend=backend,
+        capture_readiness_plan=capture_readiness_plan,
+        target_capture_backend=target_capture_backend,
+        require_capture_backend_ready=require_capture_backend_ready,
+        beta_evidence_gap=beta_evidence_gap,
+        manual_capture_command_card=manual_capture_command_card,
+        checklist_path=checklist_path,
+    )
+    command_path.write_text(command_card, encoding="utf-8")
 
     report: dict[str, Any] = {
         "project": "AuralisVoiceKit",
@@ -159,6 +177,7 @@ def run_manual_pilot(
         "hardware_capture_tested": capture_test,
         "capture_checklist": capture_checklist,
         "beta_evidence_gap": beta_evidence_gap,
+        "manual_capture_command_card": manual_capture_command_card,
         "notes": _pilot_notes(capture_test),
         "analysis": analysis.to_dict(),
         "artifacts": {
@@ -166,6 +185,7 @@ def run_manual_pilot(
             "doctor_analysis": str(analysis_path),
             "pilot_findings": str(findings_path),
             "capture_checklist": str(checklist_path),
+            "manual_capture_command": str(command_path),
         },
     }
     report_path = output / "manual-pilot-report.json"
@@ -399,6 +419,7 @@ def _build_findings_markdown(
     bundle_path: Path,
     analysis_path: Path,
     checklist_path: Path,
+    command_path: Path,
 ) -> str:
     lines = [
         "# Manual pilot findings",
@@ -427,6 +448,7 @@ def _build_findings_markdown(
         f"- Bundle: {bundle_path.name}",
         f"- Analysis: {analysis_path.name}",
         f"- Capture checklist: {checklist_path.name}",
+        f"- Manual capture command: {command_path.name}",
         "",
         "## Privacy",
         "",
@@ -716,6 +738,43 @@ def _capture_beta_evidence_gap_next_action(
     return "Complete the missing capture confirmations and rerun the beta evidence audit."
 
 
+def _manual_capture_command_card(
+    *,
+    capture_readiness_plan: dict[str, Any],
+    beta_evidence_gap: dict[str, Any],
+) -> dict[str, Any]:
+    preflight_command = _append_output_dir_placeholder(capture_readiness_plan["post_install_check"])
+    real_capture_command = _append_output_dir_placeholder(capture_readiness_plan["real_capture_check_template"])
+    return {
+        "artifact": "manual-capture-command.md",
+        "safe_to_share": True,
+        "uses_placeholders": True,
+        "blocker": beta_evidence_gap["blocker"],
+        "evidence_system": beta_evidence_gap["evidence_system"],
+        "ready_for_beta_evidence": beta_evidence_gap["ready_for_beta_evidence"],
+        "missing_count": beta_evidence_gap["missing_count"],
+        "missing_fields": beta_evidence_gap["missing_fields"],
+        "setup_commands": list(capture_readiness_plan["setup_commands"]),
+        "pip_command": capture_readiness_plan["pip_command"],
+        "preflight_command_template": preflight_command,
+        "preflight_uses_microphone": capture_readiness_plan["post_install_check_uses_microphone"],
+        "real_capture_command_template": real_capture_command,
+        "real_capture_requires_microphone": capture_readiness_plan["real_capture_check_requires_microphone"],
+        "audit_command_template": (
+            "python tools/beta_readiness.py --audit-evidence --evidence <pilot-output-dir> --json"
+        ),
+        "records_audio": False,
+        "records_audio_bytes": False,
+        "records_device_name": False,
+        "records_local_paths": False,
+        "next_action": beta_evidence_gap["next_action"],
+    }
+
+
+def _append_output_dir_placeholder(command: str) -> str:
+    return f"{command} --output-dir <pilot-output-dir>"
+
+
 def _checklist_item(
     item_id: str,
     instruction: str,
@@ -800,6 +859,104 @@ def _build_capture_checklist_markdown(
         ]
     )
     return "\n".join(lines)
+
+
+def _build_manual_capture_command_markdown(
+    *,
+    timestamp: str,
+    system: str,
+    backend: str,
+    capture_readiness_plan: dict[str, Any],
+    target_capture_backend: dict[str, Any],
+    require_capture_backend_ready: bool,
+    beta_evidence_gap: dict[str, Any],
+    manual_capture_command_card: dict[str, Any],
+    checklist_path: Path,
+) -> str:
+    lines = [
+        "# Manual capture command",
+        "",
+        "This artifact is safe to share: it uses placeholders and does not include captured audio, "
+        "private device names or local paths.",
+        "",
+        "## Status",
+        "",
+        f"- Created at: {timestamp}",
+        f"- System from current run: {system}",
+        f"- Evidence target system: {manual_capture_command_card['evidence_system']}",
+        f"- Capture backend: {backend}",
+        f"- Target capture backend available: {target_capture_backend['available']}",
+        f"- Capture backend readiness required: {require_capture_backend_ready}",
+        f"- Preflight uses microphone: {manual_capture_command_card['preflight_uses_microphone']}",
+        f"- Real capture requires microphone: {manual_capture_command_card['real_capture_requires_microphone']}",
+        f"- Beta evidence gap ready: {beta_evidence_gap['ready_for_beta_evidence']}",
+        f"- Beta evidence gap missing count: {beta_evidence_gap['missing_count']}",
+        f"- Beta evidence gap next action: {beta_evidence_gap['next_action']}",
+        f"- Manual checklist: {checklist_path.name}",
+        "",
+        "## Setup",
+        "",
+        "Install the optional capture extra locally if it is missing:",
+        "",
+        "```powershell",
+        manual_capture_command_card["pip_command"],
+        "```",
+        "",
+        "Run platform setup locally when required:",
+        "",
+        "```powershell",
+        _format_command_block(manual_capture_command_card["setup_commands"]),
+        "```",
+        "",
+        "## Preflight Command",
+        "",
+        "Replace `<pilot-output-dir>` locally. This command does not open the microphone:",
+        "",
+        "```powershell",
+        manual_capture_command_card["preflight_command_template"],
+        "```",
+        "",
+        "## Real Capture Command",
+        "",
+        "Run only after reviewing OS microphone permissions, selected input and room privacy:",
+        "",
+        "```powershell",
+        manual_capture_command_card["real_capture_command_template"],
+        "```",
+        "",
+        "## Audit Command",
+        "",
+        "Audit the resulting JSON evidence after the real capture completes:",
+        "",
+        "```powershell",
+        manual_capture_command_card["audit_command_template"],
+        "```",
+        "",
+        "## Beta Evidence Gap",
+        "",
+        f"- Blocker: `{beta_evidence_gap['blocker']}`",
+        f"- Ready for beta evidence: `{beta_evidence_gap['ready_for_beta_evidence']}`",
+        f"- Missing fields: {_format_list(beta_evidence_gap['missing_fields'])}",
+        "",
+        "## Required Review",
+        "",
+        "- Review `manual-capture-checklist.md` before enabling `--capture-test`.",
+        "- Keep `<pilot-output-dir>` as a local replacement only; do not paste private paths into shared findings.",
+        "- Use `default` or a numeric device id when possible; keep named device selectors local.",
+        "- Confirm `system_guard.expected_system_matched=true` on the target OS.",
+        "- Confirm `target_capture_backend.available=true` before opening the microphone.",
+        "- Confirm `capture_backend_ready_required=true` so missing extras fail before capture.",
+        "- Confirm `input_review_confirmed=true` only after reviewing permissions, input device and room privacy.",
+        "- Confirm `capture_checklist.ready_for_beta_evidence=true` only after real hardware capture passes.",
+        "",
+    ]
+    return "\n".join(lines)
+
+
+def _format_command_block(commands: list[str]) -> str:
+    if not commands:
+        return "# no platform setup command required"
+    return "\n".join(commands)
 
 
 def _pilot_notes(capture_test: bool) -> str:

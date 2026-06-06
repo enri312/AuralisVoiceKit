@@ -6,6 +6,15 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.123.0] - 2026-06-06
+
+### Agregado
+
+- `tools/manual_pilot.py` ahora escribe `manual-capture-command.md`, una tarjeta segura con comandos de setup, preflight sin microfono, captura real y auditoria beta.
+- `manual_capture_command_card` queda en el JSON con plantillas de comando, placeholders y flags que confirman que no guarda audio, nombres de dispositivos ni rutas locales.
+- `pilot-findings.md` enlaza la tarjeta de comandos para que el operador no tenga que abrir el JSON antes del piloto real.
+- Nuevas pruebas verifican el artifact, los placeholders y la ausencia de rutas temporales.
+
 ## [0.122.0] - 2026-06-06
 
 ### Agregado
