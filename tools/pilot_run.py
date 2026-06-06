@@ -216,6 +216,7 @@ def run_safe_pilot(
     decision_gate_path = output / "real-pilot-decision-gate.md"
     next_focus_path = output / "real-pilot-next-evidence-focus.md"
     hard_stop_path = output / "real-pilot-hard-stop-card.md"
+    evidence_intake_path = output / "real-pilot-evidence-intake-card.md"
     plan_path = output / "pilot-plan.md"
     report_path = output / "pilot-report.json"
     report["fixture_preflight_card"] = _real_pilot_fixture_preflight_card(report)
@@ -378,6 +379,28 @@ def run_safe_pilot(
         "records_device_names": False,
         "records_operator_identity": False,
     }
+    report["real_pilot_evidence_intake_card"] = {
+        "artifact": str(evidence_intake_path),
+        "safe_to_share": True,
+        "source": "evidence_manifest + strict_audit_command",
+        "usable_as_beta_evidence": False,
+        "tracks_expected_artifacts": True,
+        "tracks_audit_commands": True,
+        "suggested_roots": [
+            "pilot_runs/manual/windows",
+            "pilot_runs/manual/linux",
+            "pilot_runs/manual/macos",
+            "pilot_runs/output/system-real",
+            "pilot_runs/transcription/real",
+        ],
+        "records_audio": False,
+        "records_transcripts": False,
+        "records_spoken_text": False,
+        "records_expected_text": False,
+        "records_local_paths": False,
+        "records_device_names": False,
+        "records_operator_identity": False,
+    }
     artifacts["real_pilot_findings_template"] = str(findings_template_path)
     artifacts["real_pilot_handoff"] = str(handoff_path)
     artifacts["real_pilot_command_pack"] = str(command_pack_path)
@@ -389,6 +412,7 @@ def run_safe_pilot(
     artifacts["real_pilot_decision_gate"] = str(decision_gate_path)
     artifacts["real_pilot_next_evidence_focus"] = str(next_focus_path)
     artifacts["real_pilot_hard_stop_card"] = str(hard_stop_path)
+    artifacts["real_pilot_evidence_intake_card"] = str(evidence_intake_path)
     artifacts["pilot_plan"] = str(plan_path)
     artifacts["pilot_report"] = str(report_path)
     findings_template_path.write_text(_format_real_pilot_findings_template_markdown(report), encoding="utf-8")
@@ -405,6 +429,7 @@ def run_safe_pilot(
     decision_gate_path.write_text(_format_real_pilot_decision_gate_markdown(report), encoding="utf-8")
     next_focus_path.write_text(_format_real_pilot_next_evidence_focus_markdown(report), encoding="utf-8")
     hard_stop_path.write_text(_format_real_pilot_hard_stop_card_markdown(report), encoding="utf-8")
+    evidence_intake_path.write_text(_format_real_pilot_evidence_intake_card_markdown(report), encoding="utf-8")
     plan_path.write_text(_format_pilot_plan_markdown(report), encoding="utf-8")
     report_path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return report
@@ -1809,6 +1834,9 @@ def _format_pilot_plan_markdown(report: dict[str, Any]) -> str:
     hard_stop_name = Path(
         report["artifacts"].get("real_pilot_hard_stop_card", "real-pilot-hard-stop-card.md")
     ).name
+    evidence_intake_name = Path(
+        report["artifacts"].get("real_pilot_evidence_intake_card", "real-pilot-evidence-intake-card.md")
+    ).name
     lines = [
         "# Plan de pilotos AuralisVoiceKit",
         "",
@@ -1838,6 +1866,7 @@ def _format_pilot_plan_markdown(report: dict[str, Any]) -> str:
         f"- Compuerta go/no-go: `{decision_gate_name}`",
         f"- Tarjeta de foco: `{next_focus_name}`",
         f"- Tarjeta de alto operativo: `{hard_stop_name}`",
+        f"- Ingesta de evidencia: `{evidence_intake_name}`",
         f"- Plantilla de hallazgos: `{findings_template_name}`",
         "",
         "## Checks seguros",
@@ -1914,6 +1943,13 @@ def _format_pilot_plan_markdown(report: dict[str, Any]) -> str:
             f"- Condiciones de alto: `{len(report['pilot_decision_gate']['hard_stop_conditions'])}`",
             f"- Acciones del operador: `{len(report['pilot_decision_gate']['operator_actions'])}`",
             f"- Usable como evidencia beta: `{_format_bool(report['real_pilot_hard_stop_card']['usable_as_beta_evidence'])}`",
+            "",
+            "## Ingesta de evidencia real",
+            "",
+            f"- Artifact: `{evidence_intake_name}`",
+            f"- Directorios sugeridos: {_format_inline_list(report['real_pilot_evidence_intake_card']['suggested_roots'])}",
+            f"- Auditoria estricta: `{report['evidence_manifest']['strict_audit_command']}`",
+            f"- Refrescar checklist: `{report['evidence_manifest']['refresh_checklist_command']}`",
             "",
             "## Preflight de fixture de transcripcion",
             "",
@@ -2554,6 +2590,9 @@ def _format_real_pilot_evidence_manifest_markdown(report: dict[str, Any]) -> str
     beta = report["beta_readiness"]
     artifact_policy = report["real_pilot_evidence_manifest"]
     manifest = report["evidence_manifest"]
+    evidence_intake_name = Path(
+        report["artifacts"].get("real_pilot_evidence_intake_card", "real-pilot-evidence-intake-card.md")
+    ).name
     lines = [
         "# Manifiesto de evidencias para pilotos reales AuralisVoiceKit",
         "",
@@ -2573,6 +2612,7 @@ def _format_real_pilot_evidence_manifest_markdown(report: dict[str, Any]) -> str
         f"- Evidencias ignoradas: `{manifest['ignored_count']}`",
         f"- Auditoria de privacidad: `{manifest['privacy_audit']['status']}`",
         f"- Hallazgos de privacidad: `{manifest['privacy_audit']['finding_count']}`",
+        f"- Ingesta de evidencia: `{evidence_intake_name}`",
         "",
         "## Politica de contenido",
         "",
@@ -2671,6 +2711,9 @@ def _format_real_pilot_decision_gate_markdown(report: dict[str, Any]) -> str:
     hard_stop_name = Path(
         report["artifacts"].get("real_pilot_hard_stop_card", "real-pilot-hard-stop-card.md")
     ).name
+    evidence_intake_name = Path(
+        report["artifacts"].get("real_pilot_evidence_intake_card", "real-pilot-evidence-intake-card.md")
+    ).name
     lines = [
         "# Compuerta go/no-go para pilotos reales AuralisVoiceKit",
         "",
@@ -2691,6 +2734,7 @@ def _format_real_pilot_decision_gate_markdown(report: dict[str, Any]) -> str:
         f"- Auditoria de privacidad: `{privacy_audit.get('status', 'unknown')}`",
         f"- Hallazgos de privacidad: `{privacy_audit.get('finding_count', 0)}`",
         f"- Tarjeta de alto operativo: `{hard_stop_name}`",
+        f"- Tarjeta de ingesta de evidencia: `{evidence_intake_name}`",
         f"- Usable como evidencia beta: `{_format_bool(artifact_policy['usable_as_beta_evidence'])}`",
         "",
         "## Politica de contenido",
@@ -2783,6 +2827,9 @@ def _format_real_pilot_next_evidence_focus_markdown(report: dict[str, Any]) -> s
     hard_stop_name = Path(
         report["artifacts"].get("real_pilot_hard_stop_card", "real-pilot-hard-stop-card.md")
     ).name
+    evidence_intake_name = Path(
+        report["artifacts"].get("real_pilot_evidence_intake_card", "real-pilot-evidence-intake-card.md")
+    ).name
     lines = [
         "# Siguiente foco de evidencia AuralisVoiceKit",
         "",
@@ -2827,6 +2874,7 @@ def _format_real_pilot_next_evidence_focus_markdown(report: dict[str, Any]) -> s
             f"- Readiness de salida system: `{system_output_readiness_name}`",
             f"- Checklist de entorno: `{environment_checklist_name}`",
             f"- Alto operativo: `{hard_stop_name}`",
+            f"- Ingesta de evidencia: `{evidence_intake_name}`",
             "",
             "## Antes de ejecutar",
             "",
@@ -2834,6 +2882,7 @@ def _format_real_pilot_next_evidence_focus_markdown(report: dict[str, Any]) -> s
             "- Revisar el alto operativo antes de tocar hardware, audio real o flags `--confirm-*`.",
             "- Usar solo audio/texto no sensible y confirmar revisiones humanas antes de pasar flags `--confirm-*`.",
             "- Conservar solo artifacts JSON/Markdown generados por las herramientas; no pegar audio, transcripciones, rutas locales ni identidad del operador.",
+            "- Colocar solo reportes JSON sanitizados en los directorios sugeridos por la tarjeta de ingesta.",
             "- Correr la auditoria estricta despues de recolectar evidencia real.",
             "",
         ]
@@ -2853,6 +2902,9 @@ def _format_real_pilot_hard_stop_card_markdown(report: dict[str, Any]) -> str:
     evidence_manifest_name = Path(
         report["artifacts"].get("real_pilot_evidence_manifest", "real-pilot-evidence-manifest.md")
     ).name
+    evidence_intake_name = Path(
+        report["artifacts"].get("real_pilot_evidence_intake_card", "real-pilot-evidence-intake-card.md")
+    ).name
     lines = [
         "# Alto operativo para pilotos reales AuralisVoiceKit",
         "",
@@ -2869,6 +2921,7 @@ def _format_real_pilot_hard_stop_card_markdown(report: dict[str, Any]) -> str:
         f"- Compuerta go/no-go: `{decision_gate_name}`",
         f"- Tarjeta de foco: `{next_focus_name}`",
         f"- Manifiesto de evidencias: `{evidence_manifest_name}`",
+        f"- Ingesta de evidencia: `{evidence_intake_name}`",
         f"- Usable como evidencia beta: `{_format_bool(policy['usable_as_beta_evidence'])}`",
         "",
         "## Politica de contenido",
@@ -2900,8 +2953,97 @@ def _format_real_pilot_hard_stop_card_markdown(report: dict[str, Any]) -> str:
             "",
             "- Usar flags `--confirm-*` solo despues de revision humana local.",
             "- Reemplazar placeholders solo en la maquina local del operador.",
+            f"- Guardar reportes reales solo segun `{evidence_intake_name}`.",
             "- Mantener beta y estable bloqueados mientras sus decisiones sigan en `blocked`.",
             "- Volver a correr la auditoria estricta despues de cada piloto real.",
+            "",
+        ]
+    )
+    return "\n".join(lines)
+
+
+def _format_real_pilot_evidence_intake_card_markdown(report: dict[str, Any]) -> str:
+    manifest = report["evidence_manifest"]
+    policy = report["real_pilot_evidence_intake_card"]
+    decision_gate_name = Path(
+        report["artifacts"].get("real_pilot_decision_gate", "real-pilot-decision-gate.md")
+    ).name
+    evidence_manifest_name = Path(
+        report["artifacts"].get("real_pilot_evidence_manifest", "real-pilot-evidence-manifest.md")
+    ).name
+    findings_template_name = Path(
+        report["artifacts"].get("real_pilot_findings_template", "real-pilot-findings-template.md")
+    ).name
+    hard_stop_name = Path(
+        report["artifacts"].get("real_pilot_hard_stop_card", "real-pilot-hard-stop-card.md")
+    ).name
+    expected_artifacts = sorted({row["artifact"] for row in manifest["rows"] if row.get("artifact")})
+    lines = [
+        "# Ingesta de evidencia para pilotos reales AuralisVoiceKit",
+        "",
+        "Esta tarjeta indica donde colocar reportes reales generados por las herramientas y como auditarlos antes de tocar `BETA_CHECKLIST.md`. No copia audio, transcripciones, texto hablado real, rutas locales ni identidad del operador.",
+        "",
+        "## Estado",
+        "",
+        f"- Version: `{report['version']}`",
+        f"- Stage: `{report['stage']}`",
+        f"- Blockers pendientes: {_format_inline_list(manifest['pending_blockers'])}",
+        f"- Blockers cerrados por JSON: {_format_inline_list(manifest['closed_blockers'])}",
+        f"- Artifacts esperados: {_format_inline_list(expected_artifacts)}",
+        f"- Manifiesto: `{evidence_manifest_name}`",
+        f"- Compuerta go/no-go: `{decision_gate_name}`",
+        f"- Alto operativo: `{hard_stop_name}`",
+        f"- Plantilla de hallazgos: `{findings_template_name}`",
+        f"- Usable como evidencia beta: `{_format_bool(policy['usable_as_beta_evidence'])}`",
+        "",
+        "## Politica de contenido",
+        "",
+        f"- Seguro para compartir: `{_format_bool(policy['safe_to_share'])}`",
+        f"- Registra audio: `{_format_bool(policy['records_audio'])}`",
+        f"- Registra transcripciones: `{_format_bool(policy['records_transcripts'])}`",
+        f"- Registra texto hablado: `{_format_bool(policy['records_spoken_text'])}`",
+        f"- Registra texto esperado completo: `{_format_bool(policy['records_expected_text'])}`",
+        f"- Registra rutas locales: `{_format_bool(policy['records_local_paths'])}`",
+        f"- Registra nombres reales de dispositivos: `{_format_bool(policy['records_device_names'])}`",
+        f"- Registra identidad del operador: `{_format_bool(policy['records_operator_identity'])}`",
+        "",
+        "## Directorios sugeridos",
+        "",
+    ]
+    for root in policy["suggested_roots"]:
+        lines.append(f"- `{root}`")
+    lines.extend(
+        [
+            "",
+            "## Artifacts que puede ingerir la auditoria",
+            "",
+        ]
+    )
+    for row in manifest["rows"]:
+        lines.extend(
+            [
+                f"- `{row['artifact']}` para `{row['blocker']}`",
+                f"  - Estado actual: `{row['status']}`",
+                f"  - Revision: `{row['review_state']}`",
+            ]
+        )
+    lines.extend(
+        [
+            "",
+            "## Auditoria",
+            "",
+            f"- Auditoria estricta: `{manifest['strict_audit_command']}`",
+            f"- Refrescar checklist: `{manifest['refresh_checklist_command']}`",
+            "- Ejecutar la auditoria estricta antes de declarar cualquier blocker cerrado.",
+            "- Si aparecen hallazgos de privacidad, corregir los artifacts localmente y repetir la auditoria.",
+            "- Refrescar `BETA_CHECKLIST.md` solo despues de revisar que la auditoria no expone contenido privado.",
+            "",
+            "## Reglas de ingesta",
+            "",
+            "- Copiar solo reportes JSON generados por `tools/manual_pilot.py`, `tools/output_pilot.py` o `tools/transcription_pilot.py`.",
+            "- Mantener audio, transcripciones completas, texto esperado completo y texto hablado real fuera del repositorio.",
+            "- Usar nombres de carpetas publicos por plataforma o tipo de piloto; no usar nombres de personas, dispositivos ni rutas locales.",
+            "- Conservar Markdown operativo generado por las herramientas solo si mantiene placeholders y politica publica segura.",
             "",
         ]
     )
@@ -2938,6 +3080,9 @@ def _format_real_pilot_handoff_markdown(report: dict[str, Any]) -> str:
     hard_stop_name = Path(
         report["artifacts"].get("real_pilot_hard_stop_card", "real-pilot-hard-stop-card.md")
     ).name
+    evidence_intake_name = Path(
+        report["artifacts"].get("real_pilot_evidence_intake_card", "real-pilot-evidence-intake-card.md")
+    ).name
     lines = [
         "# Handoff de pilotos reales AuralisVoiceKit",
         "",
@@ -2961,6 +3106,7 @@ def _format_real_pilot_handoff_markdown(report: dict[str, Any]) -> str:
         f"- Compuerta go/no-go: `{decision_gate_name}`",
         f"- Tarjeta de foco: `{next_focus_name}`",
         f"- Tarjeta de alto operativo: `{hard_stop_name}`",
+        f"- Ingesta de evidencia: `{evidence_intake_name}`",
         "",
         "## Politica de contenido",
         "",
@@ -3009,6 +3155,7 @@ def _format_real_pilot_handoff_markdown(report: dict[str, Any]) -> str:
             f"- Revisar `{transcription_readiness_name}` para confirmar backend objetivo, guard estricto, privacidad de audio/referencia y calidad.",
             f"- Revisar `{system_output_readiness_name}` para confirmar backend de salida, texto publico y operador presente.",
             f"- Revisar `{hard_stop_name}` antes de usar hardware, audio real, texto hablado real o flags `--confirm-*`.",
+            f"- Revisar `{evidence_intake_name}` antes de mover artifacts reales al lote de auditoria.",
             "- Reemplazar `sample.mp3`, `<audio-path>`, `<expected-text-path>` y `<public-spoken-text>` solo localmente.",
             "- Usar audio propio no sensible y texto hablado publico/no sensible.",
             "- Revisar `manual-capture-checklist.md`, `transcription-review-checklist.md`, `real-transcription-next-step.md`, `output-operator-checklist.md` y `system-output-next-step.md` segun el piloto.",

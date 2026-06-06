@@ -6,6 +6,18 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.132.0] - 2026-06-06
+
+### Agregado
+
+- `tools/pilot_run.py` ahora genera `real-pilot-evidence-intake-card.md`, una tarjeta publica para ubicar reportes reales sanitizados y ejecutar la auditoria estricta antes de refrescar `BETA_CHECKLIST.md`.
+- La tarjeta lista directorios sugeridos, artifacts JSON aceptados, comandos de auditoria/refresco y reglas para mantener audio, transcripciones, texto esperado, texto hablado real, rutas locales e identidad del operador fuera del repositorio.
+- `pilot-report.json` incluye `real_pilot_evidence_intake_card` con flags publicos de privacidad y enlaces desde plan, handoff, foco, manifiesto, compuerta y alto operativo.
+
+### Pruebas
+
+- Nuevas pruebas validan que la tarjeta se escribe, se serializa, queda enlazada y no registra contenido privado.
+
 ## [0.131.0] - 2026-06-06
 
 ### Agregado

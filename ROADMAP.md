@@ -104,6 +104,8 @@ Nota `v0.130.0`: `privacy_remediation_plan` agrupa esos hallazgos en pasos orden
 
 Nota `v0.131.0`: `tools/pilot_run.py` genera `real-pilot-hard-stop-card.md`, una tarjeta publica con condiciones de alto, acciones minimas y politica de contenido antes de tocar hardware, audio real o flags `--confirm-*`.
 
+Nota `v0.132.0`: `tools/pilot_run.py` genera `real-pilot-evidence-intake-card.md`, una tarjeta publica para ubicar reportes JSON reales sanitizados, ejecutar la auditoria estricta y refrescar el checklist beta sin copiar contenido privado.
+
 ## Fase 0 - Base del proyecto
 
 **Objetivo:** dejar una libreria instalable, importable y testeable.
