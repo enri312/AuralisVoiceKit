@@ -68,6 +68,8 @@ Nota `v0.112.0`: la auditoria beta y el piloto seguro agregan `next_evidence_foc
 
 Nota `v0.113.0`: el piloto seguro genera `real-pilot-next-evidence-focus.md`, una tarjeta publica dedicada al siguiente foco de evidencia antes de tocar hardware, audio o texto real.
 
+Nota `v0.114.0`: `real-pilot-next-evidence-focus.md` ahora incluye una secuencia de preparacion derivada de `recommended_pilot_sequence`, para ejecutar primero los pasos seguros previos al piloto real enfocado.
+
 ## Fase 0 - Base del proyecto
 
 **Objetivo:** dejar una libreria instalable, importable y testeable.

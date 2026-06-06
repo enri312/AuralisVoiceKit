@@ -79,6 +79,7 @@ class PilotRunTests(unittest.TestCase):
         self.assertIn("real_pilot_evidence_manifest", persisted)
         self.assertIn("real_pilot_decision_gate", persisted)
         self.assertIn("real_pilot_next_evidence_focus", persisted)
+        self.assertIn("next_evidence_focus_preparation_sequence", persisted)
         self.assertIn("evidence_manifest", persisted)
         self.assertIn("fixture_preflight_card", persisted)
         self.assertIn("transcription_readiness_card", persisted)
@@ -121,6 +122,16 @@ class PilotRunTests(unittest.TestCase):
         self.assertTrue(persisted["real_pilot_decision_gate"]["declares_real_world_pilot_scope"])
         self.assertTrue(persisted["real_pilot_decision_gate"]["declares_beta_and_stable_blockers"])
         self.assertTrue(persisted["real_pilot_next_evidence_focus"]["tracks_next_evidence_focus"])
+        self.assertTrue(persisted["real_pilot_next_evidence_focus"]["tracks_preparation_sequence"])
+        self.assertEqual(
+            persisted["real_pilot_next_evidence_focus"]["preparation_sequence"],
+            persisted["next_evidence_focus_preparation_sequence"],
+        )
+        preparation_names = [step["name"] for step in persisted["next_evidence_focus_preparation_sequence"]]
+        self.assertEqual(
+            preparation_names,
+            ["transcription-audio-fixture", "transcription-audio-preflight", "real_transcription_quality"],
+        )
         self.assertTrue(persisted["real_pilot_command_pack"]["includes_platform_commands"])
         self.assertTrue(persisted["real_pilot_command_pack"]["includes_required_fields"])
         self.assertTrue(persisted["real_pilot_command_pack"]["includes_strict_audit_command"])
@@ -259,7 +270,12 @@ class PilotRunTests(unittest.TestCase):
         self.assertNotIn(str(tmpdir), handoff)
         self.assertIn("Siguiente foco de evidencia AuralisVoiceKit", next_focus)
         self.assertIn("Foco", next_focus)
+        self.assertIn("Secuencia de preparacion", next_focus)
+        self.assertIn("transcription-audio-fixture", next_focus)
+        self.assertIn("transcription-audio-preflight", next_focus)
         self.assertIn("Blocker: `real_transcription_quality`", next_focus)
+        self.assertIn("--preflight-only", next_focus)
+        self.assertIn("--require-target-backend-ready", next_focus)
         self.assertIn("real-pilot-command-pack.md", next_focus)
         self.assertIn("real-pilot-evidence-manifest.md", next_focus)
         self.assertIn("real-pilot-decision-gate.md", next_focus)

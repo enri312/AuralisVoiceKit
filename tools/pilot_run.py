@@ -193,6 +193,10 @@ def run_safe_pilot(
         "environment_checklist": environment_checklist,
         "artifacts": artifacts,
     }
+    report["next_evidence_focus_preparation_sequence"] = _next_evidence_focus_preparation_sequence(
+        recommended_pilot_sequence,
+        report["beta_readiness"]["next_evidence_focus"],
+    )
     report["evidence_manifest"] = _real_pilot_evidence_manifest(
         report["beta_readiness"],
         beta_audit,
@@ -346,6 +350,8 @@ def run_safe_pilot(
         "source": "beta_readiness.next_evidence_focus + pilot_decision_gate",
         "usable_as_beta_evidence": False,
         "tracks_next_evidence_focus": True,
+        "tracks_preparation_sequence": True,
+        "preparation_sequence": report["next_evidence_focus_preparation_sequence"],
         "records_audio": False,
         "records_transcripts": False,
         "records_spoken_text": False,
@@ -1661,6 +1667,38 @@ def _pilot_plan_artifact_summary(artifacts: list[dict[str, Any]]) -> list[dict[s
     ]
 
 
+def _next_evidence_focus_preparation_sequence(
+    recommended_pilot_sequence: list[dict[str, Any]],
+    focus: dict[str, Any],
+) -> list[dict[str, Any]]:
+    focus_name = focus.get("name")
+    if not focus_name or focus.get("status") == "complete":
+        return []
+    focus_names = {focus_name, focus_name.replace("_", "-")}
+    steps: list[dict[str, Any]] = []
+    for step in recommended_pilot_sequence:
+        step_names = {step["name"], step["name"].replace("_", "-")}
+        steps.append(
+            {
+                "order": step["order"],
+                "name": step["name"],
+                "title": step["title"],
+                "command": step["command"],
+                "artifact": step["artifact"],
+                "required_fields": list(step.get("required_fields", [])),
+                "conditional_required_fields": list(step.get("conditional_required_fields", [])),
+                "requires_hardware": bool(step.get("requires_hardware", False)),
+                "requires_operator": bool(step.get("requires_operator", False)),
+                "requires_non_sensitive_audio": bool(step.get("requires_non_sensitive_audio", False)),
+                "review_required": bool(step.get("review_required", False)),
+                **_strict_backend_guard_metadata(step["name"]),
+            }
+        )
+        if step_names & focus_names:
+            return steps
+    return []
+
+
 def _format_pilot_plan_markdown(report: dict[str, Any]) -> str:
     beta = report["beta_readiness"]
     findings_template_name = Path(
@@ -2649,6 +2687,11 @@ def _format_real_pilot_next_evidence_focus_markdown(report: dict[str, Any]) -> s
         "",
     ]
     _append_next_evidence_focus_lines(lines, focus)
+    lines.extend(["## Secuencia de preparacion", ""])
+    _append_focus_preparation_sequence_lines(
+        lines,
+        report.get("next_evidence_focus_preparation_sequence", []),
+    )
     lines.extend(
         [
             "## Artifacts de apoyo",
@@ -2903,6 +2946,30 @@ def _append_next_evidence_focus_lines(lines: list[str], focus: dict[str, Any]) -
             )
     lines.append(f"- Motivo: {focus['reason_es']} / {focus['reason_en']}.")
     lines.append("")
+
+
+def _append_focus_preparation_sequence_lines(lines: list[str], steps: list[dict[str, Any]]) -> None:
+    if not steps:
+        lines.extend(["- No hay secuencia de preparacion pendiente.", ""])
+        return
+    for step in steps:
+        lines.extend(
+            [
+                f"### {step['order']}. {step['name']}",
+                "",
+                f"- Titulo: {step['title']}",
+                f"- Comando: `{step['command']}`",
+                f"- Artifact esperado: `{step['artifact']}`",
+                f"- Campos requeridos: {_format_inline_list(step.get('required_fields', []))}",
+                f"- Requiere hardware: `{_format_bool(step.get('requires_hardware', False))}`",
+                f"- Requiere operador: `{_format_bool(step.get('requires_operator', False))}`",
+                f"- Requiere audio no sensible: `{_format_bool(step.get('requires_non_sensitive_audio', False))}`",
+                f"- Revision requerida: `{_format_bool(step.get('review_required', False))}`",
+            ]
+        )
+        _append_conditional_required_field_lines(lines, step)
+        _append_strict_backend_guard_lines(lines, step)
+        lines.append("")
 
 
 def _append_conditional_required_field_lines(lines: list[str], item: dict[str, Any]) -> None:

@@ -6,6 +6,14 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.114.0] - 2026-06-06
+
+### Agregado
+
+- `real-pilot-next-evidence-focus.md` ahora incluye una `Secuencia de preparacion` derivada de `recommended_pilot_sequence`.
+- Para el foco `real_transcription_quality`, la tarjeta muestra fixture sintetico, preflight MP3 propio y piloto real antes de auditar evidencias.
+- Nuevas pruebas verifican que la secuencia de preparacion quede persistida en JSON y renderizada sin datos privados.
+
 ## [0.113.0] - 2026-06-06
 
 ### Agregado
