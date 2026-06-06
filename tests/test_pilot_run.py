@@ -53,8 +53,10 @@ class PilotRunTests(unittest.TestCase):
         self.assertIn("--run-preflight", plan)
         self.assertIn("--preflight-only", plan)
         self.assertIn("--max-audio-seconds 60", plan)
+        self.assertIn("--confirm-audio-reviewed", plan)
         self.assertIn("--confirm-quality-reviewed", plan)
         self.assertIn("transcription-review-checklist.md", plan)
+        self.assertIn("transcription_checklist.audio_review_confirmed", plan)
         self.assertIn("transcription_checklist.quality_review_confirmed", plan)
         self.assertIn("transcription_checklist.ready_for_beta_evidence", plan)
         self.assertIn("output-operator-checklist.md", plan)
@@ -102,6 +104,8 @@ class PilotRunTests(unittest.TestCase):
             step["name"]: step for step in report["recommended_pilot_sequence"]
         }["system_output_audible"]
         self.assertIn("--confirm-quality-reviewed", transcription_step["command"])
+        self.assertIn("--confirm-audio-reviewed", transcription_step["command"])
+        self.assertIn("transcription_checklist.audio_review_confirmed", transcription_step["required_fields"])
         self.assertIn("transcription_checklist.quality_review_confirmed", transcription_step["required_fields"])
         self.assertIn("--confirm-voice-reviewed", output_step["command"])
         self.assertIn('--expected-system "Windows|Linux|Darwin"', output_step["command"])

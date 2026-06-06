@@ -108,23 +108,7 @@ class BetaReadinessTests(unittest.TestCase):
             )
             _write_json(
                 evidence_root / "transcription" / "transcription-pilot-report.json",
-                {
-                    "project": "AuralisVoiceKit",
-                    "real_transcription_requested": True,
-                    "audio_confirmed_non_sensitive": True,
-                    "quality_review_confirmed": True,
-                    "passed": True,
-                    "quality": {
-                        "enabled": True,
-                        "passed": True,
-                        "min_word_accuracy": 0.75,
-                        "word_accuracy": 0.92,
-                    },
-                    "transcription_checklist": {
-                        "quality_review_confirmed": True,
-                        "ready_for_beta_evidence": True,
-                    },
-                },
+                _transcription_evidence(word_accuracy=0.92),
             )
 
             report = module.build_beta_readiness_report(ROOT, evidence_paths=[evidence_root])
@@ -146,23 +130,7 @@ class BetaReadinessTests(unittest.TestCase):
             evidence_path = Path(tmpdir) / "transcription-pilot-report.json"
             _write_json(
                 evidence_path,
-                {
-                    "project": "AuralisVoiceKit",
-                    "real_transcription_requested": True,
-                    "audio_confirmed_non_sensitive": True,
-                    "quality_review_confirmed": True,
-                    "passed": True,
-                    "quality": {
-                        "enabled": True,
-                        "passed": True,
-                        "min_word_accuracy": 0.1,
-                        "word_accuracy": 1.0,
-                    },
-                    "transcription_checklist": {
-                        "quality_review_confirmed": True,
-                        "ready_for_beta_evidence": True,
-                    },
-                },
+                _transcription_evidence(min_word_accuracy=0.1, word_accuracy=1.0),
             )
 
             report = module.build_beta_readiness_report(ROOT, evidence_paths=[evidence_path])
@@ -182,6 +150,8 @@ class BetaReadinessTests(unittest.TestCase):
                     "project": "AuralisVoiceKit",
                     "real_transcription_requested": True,
                     "audio_confirmed_non_sensitive": True,
+                    "audio_review_confirmed": True,
+                    "quality_review_confirmed": True,
                     "passed": True,
                     "quality": {"enabled": True, "passed": True, "min_word_accuracy": 0.75},
                 },
@@ -204,14 +174,34 @@ class BetaReadinessTests(unittest.TestCase):
                     "project": "AuralisVoiceKit",
                     "real_transcription_requested": True,
                     "audio_confirmed_non_sensitive": True,
+                    "audio_review_confirmed": True,
+                    "quality_review_confirmed": True,
                     "passed": True,
                     "quality": {"enabled": True, "passed": True, "min_word_accuracy": 0.75},
                     "transcription_checklist": {
+                        "audio_review_confirmed": True,
                         "quality_review_confirmed": False,
                         "ready_for_beta_evidence": False,
                     },
                 },
             )
+
+            report = module.build_beta_readiness_report(ROOT, evidence_paths=[evidence_path])
+            checks = {check["name"]: check for check in report["checks"]}
+
+        self.assertFalse(checks["real_transcription_quality"]["ok"])
+        self.assertIn("real_transcription_quality", report["blockers"])
+
+    def test_real_transcription_evidence_requires_audio_review_confirmation(self):
+        module = _load_beta_readiness()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            evidence_path = Path(tmpdir) / "transcription-pilot-report.json"
+            evidence = _transcription_evidence()
+            evidence["audio_review_confirmed"] = False
+            evidence["transcription_checklist"]["audio_review_confirmed"] = False
+            evidence["transcription_checklist"]["ready_for_beta_evidence"] = False
+            _write_json(evidence_path, evidence)
 
             report = module.build_beta_readiness_report(ROOT, evidence_paths=[evidence_path])
             checks = {check["name"]: check for check in report["checks"]}
@@ -391,18 +381,7 @@ class BetaReadinessTests(unittest.TestCase):
             )
             _write_json(
                 evidence_root / "transcription" / "transcription-pilot-report.json",
-                {
-                    "project": "AuralisVoiceKit",
-                    "real_transcription_requested": True,
-                    "audio_confirmed_non_sensitive": True,
-                    "quality_review_confirmed": True,
-                    "passed": True,
-                    "quality": {"enabled": True, "passed": True, "min_word_accuracy": 0.8},
-                    "transcription_checklist": {
-                        "quality_review_confirmed": True,
-                        "ready_for_beta_evidence": True,
-                    },
-                },
+                _transcription_evidence(min_word_accuracy=0.8),
             )
             output = io.StringIO()
             with contextlib.redirect_stdout(output):
@@ -520,8 +499,11 @@ class BetaReadinessTests(unittest.TestCase):
         }
         output_fields = {field["path"] for field in requirements["system_output_audible"]["fields"]}
         linux_fields = {field["path"] for field in requirements["ubuntu_linux_capture"]["fields"]}
+        self.assertEqual(transcription_fields["audio_confirmed_non_sensitive"], True)
+        self.assertEqual(transcription_fields["audio_review_confirmed"], True)
         self.assertEqual(transcription_fields["quality.min_word_accuracy"], ">= 0.75")
         self.assertEqual(transcription_fields["quality_review_confirmed"], True)
+        self.assertEqual(transcription_fields["transcription_checklist.audio_review_confirmed"], True)
         self.assertEqual(transcription_fields["transcription_checklist.quality_review_confirmed"], True)
         self.assertEqual(transcription_fields["transcription_checklist.ready_for_beta_evidence"], True)
         self.assertIn("system_guard.expected_system_matched", output_fields)
@@ -550,6 +532,8 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertIn("capture_checklist.input_review_confirmed", content)
         self.assertIn("capture_checklist.ready_for_beta_evidence", content)
         self.assertIn("quality.min_word_accuracy", content)
+        self.assertIn("audio_review_confirmed", content)
+        self.assertIn("transcription_checklist.audio_review_confirmed", content)
         self.assertIn("quality_review_confirmed", content)
         self.assertIn("voice_review_confirmed", content)
         self.assertIn("operator_checklist.expected_system_matched", content)
@@ -580,18 +564,7 @@ class BetaReadinessTests(unittest.TestCase):
             )
             _write_json(
                 evidence_root / "transcription" / "transcription-pilot-report.json",
-                {
-                    "project": "AuralisVoiceKit",
-                    "real_transcription_requested": True,
-                    "audio_confirmed_non_sensitive": True,
-                    "quality_review_confirmed": True,
-                    "passed": True,
-                    "quality": {"enabled": True, "passed": True, "min_word_accuracy": 0.2},
-                    "transcription_checklist": {
-                        "quality_review_confirmed": True,
-                        "ready_for_beta_evidence": True,
-                    },
-                },
+                _transcription_evidence(min_word_accuracy=0.2),
             )
             _write_json(
                 evidence_root / "ignored" / "manual-pilot-report.json",
@@ -748,18 +721,7 @@ class BetaReadinessTests(unittest.TestCase):
             )
             _write_json(
                 evidence_root / "transcription" / "transcription-pilot-report.json",
-                {
-                    "project": "AuralisVoiceKit",
-                    "real_transcription_requested": True,
-                    "audio_confirmed_non_sensitive": True,
-                    "quality_review_confirmed": True,
-                    "passed": True,
-                    "quality": {"enabled": True, "passed": True, "min_word_accuracy": 0.75},
-                    "transcription_checklist": {
-                        "quality_review_confirmed": True,
-                        "ready_for_beta_evidence": True,
-                    },
-                },
+                _transcription_evidence(),
             )
 
             report = module.build_evidence_audit_report(ROOT, evidence_paths=[evidence_root])
@@ -816,18 +778,7 @@ class BetaReadinessTests(unittest.TestCase):
             )
             _write_json(
                 evidence_root / "transcription" / "transcription-pilot-report.json",
-                {
-                    "project": "AuralisVoiceKit",
-                    "real_transcription_requested": True,
-                    "audio_confirmed_non_sensitive": True,
-                    "quality_review_confirmed": True,
-                    "passed": True,
-                    "quality": {"enabled": True, "passed": True, "min_word_accuracy": 0.75},
-                    "transcription_checklist": {
-                        "quality_review_confirmed": True,
-                        "ready_for_beta_evidence": True,
-                    },
-                },
+                _transcription_evidence(),
             )
 
             output = io.StringIO()
@@ -866,6 +817,28 @@ def _output_evidence() -> dict:
             "ready_for_beta_evidence": True,
         },
         "passed": True,
+    }
+
+
+def _transcription_evidence(*, min_word_accuracy: float = 0.75, word_accuracy: float = 0.92) -> dict:
+    return {
+        "project": "AuralisVoiceKit",
+        "real_transcription_requested": True,
+        "audio_confirmed_non_sensitive": True,
+        "audio_review_confirmed": True,
+        "quality_review_confirmed": True,
+        "passed": True,
+        "quality": {
+            "enabled": True,
+            "passed": True,
+            "min_word_accuracy": min_word_accuracy,
+            "word_accuracy": word_accuracy,
+        },
+        "transcription_checklist": {
+            "audio_review_confirmed": True,
+            "quality_review_confirmed": True,
+            "ready_for_beta_evidence": True,
+        },
     }
 
 

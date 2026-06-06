@@ -249,12 +249,12 @@ def _manual_pilot_steps() -> list[dict[str, str]]:
             "name": "real-transcription",
             "command": (
                 "python tools/transcription_pilot.py --real-transcription --audio sample.mp3 "
-                "--audio-non-sensitive --backend whisper --model base --normalize "
+                "--audio-non-sensitive --confirm-audio-reviewed --backend whisper --model base --normalize "
                 "--expected-text \"Hola desde AuralisVoiceKit\" --min-word-accuracy 0.75 "
                 "--min-audio-seconds 0.2 --max-audio-seconds 60 "
                 "--confirm-quality-reviewed --json"
             ),
-            "reason": "Uses a real non-sensitive audio file and requires human quality review before beta evidence.",
+            "reason": "Uses a real non-sensitive audio file and requires audio privacy plus quality review before beta evidence.",
         },
         {
             "name": "record-findings",
@@ -559,7 +559,7 @@ def _platform_pilot_matrix(blockers: list[str]) -> list[dict[str, Any]]:
             "blocker": "real_transcription_quality",
             "command": (
                 "python tools/transcription_pilot.py --real-transcription --audio sample.mp3 "
-                "--audio-non-sensitive --backend whisper --model base --normalize "
+                "--audio-non-sensitive --confirm-audio-reviewed --backend whisper --model base --normalize "
                 "--expected-text \"Hola desde AuralisVoiceKit\" --min-word-accuracy 0.75 "
                 "--min-audio-seconds 0.2 --max-audio-seconds 60 "
                 "--confirm-quality-reviewed --json"
@@ -568,7 +568,7 @@ def _platform_pilot_matrix(blockers: list[str]) -> list[dict[str, Any]]:
             "requires_hardware": False,
             "requires_operator": False,
             "requires_non_sensitive_audio": True,
-            "notes": "Usar un MP3 propio no sensible, una referencia redactable y confirmar revision humana de calidad.",
+            "notes": "Usar un MP3 propio no sensible, revisar privacidad del audio y confirmar revision humana de calidad.",
         },
     ]
     for row in rows:

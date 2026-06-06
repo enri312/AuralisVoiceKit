@@ -6,6 +6,19 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.64.0] - 2026-06-05
+
+### Agregado
+
+- Flag `tools/transcription_pilot.py --confirm-audio-reviewed` para confirmar revision humana de privacidad del audio antes de que una transcripcion real pueda contar como evidencia beta.
+- Campo JSON `audio_review_confirmed` en `transcription-pilot-report.json` y `transcription_checklist.audio_review_confirmed` dentro del checklist de transcripcion.
+- Pruebas para bloquear evidencia de transcripcion real cuando falta la revision de privacidad del audio aunque la calidad este revisada.
+
+### Cambiado
+
+- `transcription_checklist.ready_for_beta_evidence` ahora exige audio real no sensible, audio revisado, backend real, duracion valida, calidad aprobada y revision humana de calidad.
+- `tools/beta_readiness.py --requirements`, auditoria de evidencias, `tools/pilot_run.py`, README, `PILOTS.md`, docs HTML, roadmap y gate de estabilidad documentan el nuevo requisito.
+
 ## [0.63.0] - 2026-06-05
 
 ### Agregado

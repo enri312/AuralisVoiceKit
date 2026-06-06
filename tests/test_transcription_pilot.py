@@ -49,6 +49,8 @@ class TranscriptionPilotTests(unittest.TestCase):
         self.assertTrue(synthetic_audio_exists)
         self.assertEqual(payload["transcript"]["text_characters"], 0)
         self.assertTrue(payload["transcript"]["text_redacted"])
+        self.assertFalse(payload["audio_review_confirmed"])
+        self.assertFalse(payload["transcription_checklist"]["audio_review_confirmed"])
         self.assertFalse(payload["quality_review_confirmed"])
         self.assertFalse(payload["transcription_checklist"]["quality_review_confirmed"])
         self.assertFalse(payload["transcription_checklist"]["records_audio_path"])
@@ -87,6 +89,7 @@ class TranscriptionPilotTests(unittest.TestCase):
         self.assertEqual(payload["backend"], "null")
         self.assertTrue(payload["generated_synthetic_audio"])
         self.assertFalse(payload["real_transcription_requested"])
+        self.assertFalse(payload["audio_review_confirmed"])
         self.assertFalse(payload["quality_review_confirmed"])
         self.assertIn("transcription_review_checklist", payload["artifacts"])
         self.assertFalse(payload["transcription_checklist"]["ready_for_beta_evidence"])
@@ -319,6 +322,7 @@ class TranscriptionPilotTests(unittest.TestCase):
             audio={
                 "generated_synthetic_audio": False,
                 "audio_confirmed_non_sensitive": True,
+                "audio_review_confirmed": True,
                 "decoded": True,
                 "duration_gate": {"enabled": True, "passed": True},
             },
@@ -328,6 +332,7 @@ class TranscriptionPilotTests(unittest.TestCase):
                 "passed": True,
                 "min_word_accuracy": 0.75,
             },
+            audio_review_confirmed=True,
         )
         markdown = module._build_transcription_checklist_markdown(
             timestamp="2026-06-05T00:00:00+00:00",
@@ -337,11 +342,42 @@ class TranscriptionPilotTests(unittest.TestCase):
 
         self.assertTrue(checklist["ready_for_real_transcription"])
         self.assertTrue(checklist["ready_for_beta_evidence"])
+        self.assertTrue(checklist["audio_review_confirmed"])
         self.assertTrue(checklist["quality_review_confirmed"])
         self.assertFalse(checklist["records_transcript_text"])
         self.assertFalse(checklist["records_expected_text"])
         self.assertIn("Quality review confirmed: True", markdown)
+        self.assertIn("Audio review confirmed: True", markdown)
         self.assertIn("Ready for beta evidence: True", markdown)
+
+    def test_transcription_checklist_requires_audio_review_confirmation_for_beta(self):
+        module = _load_transcription_pilot()
+
+        checklist = module._transcription_checklist(
+            backend="whisper",
+            preflight_only=False,
+            real_transcription=True,
+            quality_review_confirmed=True,
+            passed=True,
+            audio={
+                "generated_synthetic_audio": False,
+                "audio_confirmed_non_sensitive": True,
+                "audio_review_confirmed": False,
+                "decoded": True,
+                "duration_gate": {"enabled": True, "passed": True},
+            },
+            transcript={"text_redacted": True, "text_characters": 26},
+            quality={
+                "enabled": True,
+                "passed": True,
+                "min_word_accuracy": 0.75,
+            },
+            audio_review_confirmed=False,
+        )
+
+        self.assertFalse(checklist["ready_for_real_transcription"])
+        self.assertFalse(checklist["ready_for_beta_evidence"])
+        self.assertFalse(checklist["audio_review_confirmed"])
 
     def test_transcription_checklist_requires_quality_review_confirmation_for_beta(self):
         module = _load_transcription_pilot()
@@ -354,6 +390,7 @@ class TranscriptionPilotTests(unittest.TestCase):
             audio={
                 "generated_synthetic_audio": False,
                 "audio_confirmed_non_sensitive": True,
+                "audio_review_confirmed": True,
                 "decoded": True,
                 "duration_gate": {"enabled": True, "passed": True},
             },
@@ -363,6 +400,7 @@ class TranscriptionPilotTests(unittest.TestCase):
                 "passed": True,
                 "min_word_accuracy": 0.75,
             },
+            audio_review_confirmed=True,
             quality_review_confirmed=False,
         )
 
@@ -379,6 +417,18 @@ class TranscriptionPilotTests(unittest.TestCase):
                     root=ROOT,
                     output_dir=tmpdir,
                     quality_review_confirmed=True,
+                )
+
+    def test_transcription_pilot_rejects_audio_review_confirmation_without_audio_guard(self):
+        module = _load_transcription_pilot()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with self.assertRaises(ValueError):
+                module.run_transcription_pilot(
+                    root=ROOT,
+                    output_dir=tmpdir,
+                    audio="sample.wav",
+                    audio_review_confirmed=True,
                 )
 
     def test_transcription_pilot_preflight_rejects_quality_flags(self):
