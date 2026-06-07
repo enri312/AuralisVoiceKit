@@ -27,11 +27,14 @@ class StabilityGateTests(unittest.TestCase):
         self.assertTrue(report["ready_for_real_world_pilots"])
         self.assertFalse(report["ready_for_stable_release"])
         self.assertIn("version_is_pre_1_0", report["stable_blockers"])
-        self.assertTrue(report["release_batch"]["available"])
-        self.assertEqual(report["release_batch"]["threshold"], 5)
-        self.assertFalse(report["release_batch"]["ready_for_tag"])
-        self.assertGreaterEqual(report["release_batch"]["commit_count"], 1)
-        self.assertGreaterEqual(report["release_batch"]["remaining"], 1)
+        release_batch = report["release_batch"]
+        self.assertTrue(release_batch["available"])
+        self.assertEqual(release_batch["threshold"], 5)
+        self.assertGreaterEqual(release_batch["commit_count"], 1)
+        if release_batch["ready_for_tag"]:
+            self.assertEqual(release_batch["remaining"], 0)
+        else:
+            self.assertGreaterEqual(release_batch["remaining"], 1)
         check_names = {check["name"] for check in report["checks"]}
         self.assertIn("pilot_runbook", check_names)
         self.assertIn("safe_pilot_runner", check_names)
@@ -51,7 +54,10 @@ class StabilityGateTests(unittest.TestCase):
         next_actions = "\n".join(report["next_actions"])
         self.assertIn("Whisper local", next_actions)
         self.assertIn("OpenAI solo como integracion propietaria opt-in", next_actions)
-        self.assertIn("No crear tag todavia", next_actions)
+        if release_batch["ready_for_tag"]:
+            self.assertIn("Ya corresponde preparar tag", next_actions)
+        else:
+            self.assertIn("No crear tag todavia", next_actions)
         self.assertNotIn("openai o whisper", next_actions)
 
     def test_min_stage_pilot_exits_successfully(self):
