@@ -10,10 +10,13 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 - `tools/pilot_run.py` ahora propaga `release_batch` desde el gate de estabilidad a `pilot-report.json`, `pilot-plan.md`, `real-pilot-handoff.md` y `real-pilot-decision-gate.md`.
 - Las tarjetas de piloto muestran ultimo tag, conteo `n/5`, mejoras restantes y si corresponde crear tag/GitHub Release, reforzando la cadencia por lote.
+- `tools/pilot_audio_fixture.py` ahora incluye `preflight.freedom_policy` para marcar Whisper como ruta `free-local` y cualquier backend propietario como opt-in con red requerida.
+- Los findings del fixture MP3 muestran categoria de libertad, si el backend es propietario y si requiere red antes de preparar el piloto real.
 
 ### Pruebas
 
 - `tests/test_pilot_run.py` valida que `release_batch` quede sincronizado entre el reporte, el gate del piloto y las tarjetas Markdown.
+- `tests/test_pilot_audio_fixture.py` valida la politica libre/local del preflight para Whisper y la ruta propietaria opcional.
 
 ## [0.168.0] - 2026-06-07
 

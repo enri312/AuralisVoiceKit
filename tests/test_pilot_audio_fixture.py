@@ -39,6 +39,9 @@ class PilotAudioFixtureTests(unittest.TestCase):
         self.assertTrue(report["generated_public_fixture"])
         self.assertFalse(report["contains_private_audio"])
         self.assertFalse(report["usable_as_beta_evidence"])
+        self.assertEqual(report["preflight"]["freedom_policy"]["category"], "free-local")
+        self.assertFalse(report["preflight"]["freedom_policy"]["proprietary"])
+        self.assertFalse(report["preflight"]["freedom_policy"]["network_required"])
         self.assertEqual(report["files"][0]["format"], "wav")
         self.assertTrue(report["files"][0]["passed"])
         self.assertTrue(wav_exists)
@@ -112,6 +115,9 @@ class PilotAudioFixtureTests(unittest.TestCase):
         self.assertFalse(report["preflight"]["passed"])
         self.assertEqual(report["preflight"]["reason"], "missing_mp3_fixture")
         self.assertEqual(report["preflight"]["backend"], "whisper")
+        self.assertEqual(report["preflight"]["freedom_policy"]["category"], "free-local")
+        self.assertFalse(report["preflight"]["freedom_policy"]["proprietary"])
+        self.assertFalse(report["preflight"]["freedom_policy"]["network_required"])
         self.assertEqual(report["preflight"]["model"], "auto")
         self.assertIsNone(report["preflight"]["transcription_timeout_seconds"])
         self.assertIsNone(report["preflight"]["review_checklist"])
@@ -123,6 +129,8 @@ class PilotAudioFixtureTests(unittest.TestCase):
         self.assertFalse(report["usable_as_beta_evidence"])
         self.assertIn("your own non-sensitive MP3", report["next_step"])
         self.assertIn("Fixture preflight passed: `False`", findings)
+        self.assertIn("Fixture preflight freedom category: `free-local`", findings)
+        self.assertIn("Fixture preflight proprietary: `false`", findings)
         self.assertIn("Fixture preflight readiness status: `blocked`", findings)
 
     def test_fixture_preflight_surfaces_readiness_summary(self):
@@ -148,6 +156,9 @@ class PilotAudioFixtureTests(unittest.TestCase):
         self.assertTrue(report["preflight"]["requested"])
         self.assertTrue(report["preflight"]["audio_decoded"])
         self.assertIn(report["preflight"]["preflight_readiness"]["status"], {"ready", "needs_backend_install"})
+        self.assertEqual(report["preflight"]["freedom_policy"]["category"], "free-local")
+        self.assertFalse(report["preflight"]["freedom_policy"]["proprietary"])
+        self.assertFalse(report["preflight"]["freedom_policy"]["network_required"])
         self.assertEqual(
             report["preflight"]["preflight_readiness"],
             payload["preflight"]["preflight_readiness"],
@@ -156,7 +167,31 @@ class PilotAudioFixtureTests(unittest.TestCase):
         self.assertFalse(report["preflight"]["preflight_readiness"]["records_audio_file_name"])
         self.assertFalse(report["preflight"]["preflight_readiness"]["records_local_paths"])
         self.assertIn("Fixture preflight readiness status:", findings)
+        self.assertIn("Freedom category: `free-local`", findings)
         self.assertIn("Preflight ready for model run:", findings)
+
+    def test_fixture_preflight_marks_proprietary_backend_policy(self):
+        module = _load_pilot_audio_fixture()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            report = module.generate_pilot_audio_fixture(
+                root=ROOT,
+                output_dir=tmpdir,
+                formats=("wav",),
+                duration_seconds=0.2,
+                sample_rate=8000,
+                run_preflight=False,
+                preflight_backend="openai",
+            )
+            findings = Path(report["artifacts"]["fixture_findings"]).read_text(encoding="utf-8")
+
+        self.assertEqual(report["preflight"]["freedom_policy"]["category"], "proprietary-api")
+        self.assertTrue(report["preflight"]["freedom_policy"]["proprietary"])
+        self.assertTrue(report["preflight"]["freedom_policy"]["network_required"])
+        self.assertFalse(report["preflight"]["freedom_policy"]["free_default"])
+        self.assertIn("Fixture preflight freedom category: `proprietary-api`", findings)
+        self.assertIn("Fixture preflight proprietary: `true`", findings)
+        self.assertIn("Network required: `true`", findings)
 
     def test_rejects_invalid_audio_shape(self):
         module = _load_pilot_audio_fixture()
