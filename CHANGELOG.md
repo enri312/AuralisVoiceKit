@@ -10,10 +10,12 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 - La politica de versionado y publicacion ahora documenta que los tags y GitHub Releases se agrupan cada 5 mejoras o commits publicables desde el ultimo tag, salvo pedido explicito del usuario.
 - README, documentacion HTML y proceso de release explican como contar cambios pendientes con `git log <ultimo_tag>..HEAD --oneline` antes de crear un tag.
+- `tools/release_batch_status.py` agrega un guard JSON/texto para contar commits desde el ultimo tag y bloquear releases prematuros con `--fail-if-not-ready`.
 
 ### Pruebas
 
 - `tests/test_docs.py` valida que la cadencia de releases por lote quede documentada en README, HTML, `VERSIONING.md` y `RELEASE_PROCESS.md`.
+- `tests/test_release_batch_status.py` valida conteos 1/5, 5/5 y salida estricta antes de taggear.
 
 ## [0.167.0] - 2026-06-07
 

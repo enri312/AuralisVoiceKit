@@ -862,6 +862,8 @@ with PrivacyEventLogger("auralis-events.jsonl") as logger:
 python -m twine check dist/*
 git describe --tags --abbrev=0
 git log &lt;ultimo_tag&gt;..HEAD --oneline
+python tools/release_batch_status.py --json
+python tools/release_batch_status.py --fail-if-not-ready
 gh workflow run publish-pypi.yml -f index=testpypi -f tag=v0.14.0
 gh workflow run publish-pypi.yml -f index=pypi -f tag=v0.14.0</code></pre>
       </section>

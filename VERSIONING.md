@@ -51,9 +51,10 @@ Antes de taggear, contar los cambios pendientes:
 ```text
 git describe --tags --abbrev=0
 git log <ultimo_tag>..HEAD --oneline
+python tools/release_batch_status.py --json
 ```
 
-Si hay menos de 5 commits/mejoras publicables, el cambio queda como pendiente o version de desarrollo en `CHANGELOG.md`; no se sube tag ni GitHub Release todavia.
+Si hay menos de 5 commits/mejoras publicables, el cambio queda como pendiente o version de desarrollo en `CHANGELOG.md`; no se sube tag ni GitHub Release todavia. Para automatizaciones, `python tools/release_batch_status.py --fail-if-not-ready` devuelve codigo 1 cuando aun no corresponde tag.
 
 English: alpha releases are batched; tag only after 5 publishable improvements since the latest tag, unless an explicit release is requested.
 

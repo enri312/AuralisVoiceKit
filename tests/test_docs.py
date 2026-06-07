@@ -23,6 +23,7 @@ TRANSCRIPTION_PILOT = ROOT / "tools" / "transcription_pilot.py"
 BETA_READINESS = ROOT / "tools" / "beta_readiness.py"
 VERSIONING = ROOT / "VERSIONING.md"
 RELEASE_PROCESS = ROOT / "RELEASE_PROCESS.md"
+RELEASE_BATCH_STATUS = ROOT / "tools" / "release_batch_status.py"
 
 
 class DocumentationTests(unittest.TestCase):
@@ -619,7 +620,9 @@ class DocumentationTests(unittest.TestCase):
             content = path.read_text(encoding="utf-8").replace("&lt;", "<").replace("&gt;", ">")
             self.assertIn("5 mejoras", content)
             self.assertIn("git log <ultimo_tag>..HEAD --oneline", content)
+            self.assertIn("release_batch_status.py", content)
             self.assertIn("alpha releases are batched", content)
+        self.assertTrue(RELEASE_BATCH_STATUS.exists())
 
 
 if __name__ == "__main__":

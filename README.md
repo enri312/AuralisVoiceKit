@@ -913,9 +913,11 @@ Antes de crear un tag:
 ```powershell
 git describe --tags --abbrev=0
 git log <ultimo_tag>..HEAD --oneline
+py tools\release_batch_status.py --json
+py tools\release_batch_status.py --fail-if-not-ready
 ```
 
-Si hay menos de 5 mejoras publicables, se deja como cambio pendiente/desarrollo y no se crea tag. English: alpha releases are batched; tag only after 5 publishable improvements since the latest tag unless an explicit release is requested.
+Si hay menos de 5 mejoras publicables, se deja como cambio pendiente/desarrollo y no se crea tag. `tools\release_batch_status.py` devuelve `ready_for_tag=false`, `remaining` y `compare_command` para automatizar esa decision antes de publicar. English: alpha releases are batched; tag only after 5 publishable improvements since the latest tag unless an explicit release is requested.
 
 ## Roadmap
 

@@ -21,6 +21,8 @@ Antes de crear un tag, contar el lote pendiente:
 ```bash
 git describe --tags --abbrev=0
 git log <ultimo_tag>..HEAD --oneline
+python tools/release_batch_status.py --json
+python tools/release_batch_status.py --fail-if-not-ready
 ```
 
 Si el conteo es menor a 5, se puede hacer commit y push, pero se deja la version como pendiente/desarrollo y no se dispara release. English: alpha releases are batched; tag only after 5 publishable improvements unless explicitly requested.
