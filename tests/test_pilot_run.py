@@ -123,6 +123,17 @@ class PilotRunTests(unittest.TestCase):
         self.assertIn("real_pilot_run_sheet_card", persisted)
         self.assertIn("real_pilot_final_go_no_go_card", persisted)
         self.assertIn("real_pilot_local_receipt_card", persisted)
+        for card_name in (
+            "real_pilot_operator_brief_card",
+            "real_pilot_run_sheet_card",
+            "real_pilot_final_go_no_go_card",
+            "real_pilot_local_receipt_card",
+        ):
+            notice = persisted[card_name]["release_batch_notice"]
+            self.assertTrue(notice["safe_to_share"])
+            self.assertIn("batch_state", notice)
+            self.assertIn("publishable_commits_needed", notice)
+            self.assertIsInstance(notice["ready_for_tag"], bool)
         self.assertIn("next_evidence_focus_preparation_sequence", persisted)
         self.assertIn("evidence_manifest", persisted)
         self.assertIn("fixture_preflight_card", persisted)
@@ -156,6 +167,10 @@ class PilotRunTests(unittest.TestCase):
         self.assertIn("Commits publicables faltantes", decision_gate)
         self.assertIn("Mejoras restantes antes de tag", decision_gate)
         self.assertIn("no crear GitHub Release", decision_gate)
+        for artifact in (operator_brief, run_sheet, final_go_no_go, local_receipt):
+            self.assertIn("## Lote de release", artifact)
+            self.assertIn("Commits publicables faltantes", artifact)
+            self.assertIn("Crear GitHub Release ahora", artifact)
         self.assertIn(
             "system_output_command_card.python_extra=null",
             persisted["system_output_readiness_card"]["no_pip_extra_contract"],

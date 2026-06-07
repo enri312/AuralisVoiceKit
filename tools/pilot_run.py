@@ -2475,6 +2475,7 @@ def _real_pilot_operator_brief_card(report: dict[str, Any], artifact_path: Path)
         "safe_to_share": True,
         "source": "real_pilot_execution_card + real_pilot_consent_card + real_pilot_evidence_package_card",
         "usable_as_beta_evidence": False,
+        "release_batch_notice": _release_batch_notice(report),
         "brief_status": "ready_for_local_operator_review" if gate["allowed_to_run"] else "blocked",
         "focus": gate["focus"],
         "focus_title": focus.get("title") or "ninguno",
@@ -2627,6 +2628,7 @@ def _real_pilot_run_sheet_card(report: dict[str, Any], artifact_path: Path) -> d
         "safe_to_share": True,
         "source": "real_pilot_operator_brief_card + real_pilot_execution_card + real_pilot_audit_closure_card",
         "usable_as_beta_evidence": False,
+        "release_batch_notice": _release_batch_notice(report),
         "sheet_status": "ready_for_local_operator_review" if gate["allowed_to_run"] else "blocked",
         "focus": gate["focus"],
         "focus_title": focus.get("title") or "ninguno",
@@ -2760,6 +2762,7 @@ def _real_pilot_final_go_no_go_card(report: dict[str, Any], artifact_path: Path)
         "safe_to_share": True,
         "source": "real_pilot_run_sheet_card + operator_gate.command_audit + real_pilot_consent_card",
         "usable_as_beta_evidence": False,
+        "release_batch_notice": _release_batch_notice(report),
         "go_no_go_status": "ready_for_local_operator_review" if gate["allowed_to_run"] else "blocked",
         "focus": gate["focus"],
         "focus_title": focus.get("title") or "ninguno",
@@ -2881,6 +2884,7 @@ def _real_pilot_local_receipt_card(report: dict[str, Any], artifact_path: Path) 
         "safe_to_share": True,
         "source": "real_pilot_final_go_no_go_card + real_pilot_evidence_package_card + real_pilot_audit_closure_card",
         "usable_as_beta_evidence": False,
+        "release_batch_notice": _release_batch_notice(report),
         "receipt_status": "waiting_for_local_receipt",
         "focus": final_gate["focus"],
         "focus_artifact": final_gate["focus_artifact"],
@@ -2927,6 +2931,32 @@ def _real_pilot_local_receipt_card(report: dict[str, Any], artifact_path: Path) 
         "records_device_names": False,
         "records_operator_identity": False,
         "records_signature": False,
+    }
+
+
+def _release_batch_notice(report: dict[str, Any]) -> dict[str, Any]:
+    release_batch = report.get("release_batch", {})
+    return {
+        "safe_to_share": True,
+        "latest_tag": release_batch.get("latest_tag"),
+        "batch_state": release_batch.get("batch_state", "unknown"),
+        "batch_summary_es": release_batch.get(
+            "batch_summary_es",
+            release_batch.get("next_action_es", "Revisar lote antes de publicar."),
+        ),
+        "commit_count": release_batch.get("commit_count", 0),
+        "threshold": release_batch.get("threshold", release_batch.get("tag_every", 5)),
+        "publishable_commits_needed": release_batch.get(
+            "publishable_commits_needed",
+            release_batch.get("remaining", 0),
+        ),
+        "ready_for_tag": release_batch.get("ready_for_tag", False),
+        "should_create_release": release_batch.get("should_create_release", False),
+        "compare_command": release_batch.get("compare_command", "git log <ultimo_tag>..HEAD --oneline"),
+        "operator_warning_es": (
+            "No crear tag ni GitHub Release desde este piloto real salvo que ready_for_tag sea true "
+            "o el usuario lo pida explicitamente."
+        ),
     }
 
 
@@ -5234,6 +5264,20 @@ def _format_real_pilot_evidence_package_markdown(report: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
+def _release_batch_notice_lines(notice: dict[str, Any]) -> list[str]:
+    return [
+        f"- Ultimo tag: `{notice.get('latest_tag') or 'ninguno'}`",
+        f"- Estado del lote: `{notice.get('batch_state', 'unknown')}`",
+        f"- Commits desde ultimo tag: `{notice.get('commit_count', 0)}/{notice.get('threshold', 5)}`",
+        f"- Commits publicables faltantes: `{notice.get('publishable_commits_needed', 0)}`",
+        f"- Crear tag ahora: `{_format_bool(notice.get('ready_for_tag', False))}`",
+        f"- Crear GitHub Release ahora: `{_format_bool(notice.get('should_create_release', False))}`",
+        f"- Resumen: {notice.get('batch_summary_es', 'Revisar lote antes de publicar.')}",
+        f"- Comparar: `{notice.get('compare_command', 'git log <ultimo_tag>..HEAD --oneline')}`",
+        f"- Advertencia: {notice.get('operator_warning_es', 'No crear tag ni GitHub Release desde este piloto real.')}",
+    ]
+
+
 def _format_real_pilot_operator_brief_markdown(report: dict[str, Any]) -> str:
     brief = report["real_pilot_operator_brief_card"]
     gate = report["pilot_decision_gate"]
@@ -5256,6 +5300,10 @@ def _format_real_pilot_operator_brief_markdown(report: dict[str, Any]) -> str:
         f"- Estado de seguridad de copia: `{brief['copy_safety_status']}`",
         f"- Requiere revision local: `{_format_bool(brief['requires_local_operator_review'])}`",
         f"- Usable como evidencia beta: `{_format_bool(brief['usable_as_beta_evidence'])}`",
+        "",
+        "## Lote de release",
+        "",
+        *_release_batch_notice_lines(brief["release_batch_notice"]),
         "",
         "## Politica de contenido",
         "",
@@ -5355,6 +5403,10 @@ def _format_real_pilot_run_sheet_markdown(report: dict[str, Any]) -> str:
         f"- Comando seguro para copia local: `{_format_bool(sheet['command_safe_to_copy_for_local_operator'])}`",
         f"- Fases requeridas: `{sheet['required_phase_count']}`",
         f"- Usable como evidencia beta: `{_format_bool(sheet['usable_as_beta_evidence'])}`",
+        "",
+        "## Lote de release",
+        "",
+        *_release_batch_notice_lines(sheet["release_batch_notice"]),
         "",
         "## Politica de contenido",
         "",
@@ -5476,6 +5528,10 @@ def _format_real_pilot_final_go_no_go_markdown(report: dict[str, Any]) -> str:
         f"- Puede ejecutar sin decision final: `{_format_bool(card['can_execute_without_final_decision'])}`",
         f"- Usable como evidencia beta: `{_format_bool(card['usable_as_beta_evidence'])}`",
         "",
+        "## Lote de release",
+        "",
+        *_release_batch_notice_lines(card["release_batch_notice"]),
+        "",
         "## Politica de contenido",
         "",
         f"- Seguro para compartir: `{_format_bool(card['safe_to_share'])}`",
@@ -5564,6 +5620,10 @@ def _format_real_pilot_local_receipt_markdown(report: dict[str, Any]) -> str:
         f"- Permitido ejecutar localmente: `{_format_bool(receipt['local_run_allowed'])}`",
         f"- Requiere go/no-go final: `{_format_bool(receipt['requires_final_go_no_go'])}`",
         f"- Usable como evidencia beta: `{_format_bool(receipt['usable_as_beta_evidence'])}`",
+        "",
+        "## Lote de release",
+        "",
+        *_release_batch_notice_lines(receipt["release_batch_notice"]),
         "",
         "## Politica de contenido",
         "",

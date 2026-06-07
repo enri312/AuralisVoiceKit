@@ -10,6 +10,7 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 - `tools/release_batch_status.py` ahora expone `batch_state`, `batch_summary_*` y `publishable_commits_needed` para distinguir lotes recien reiniciados, en progreso o listos para tag.
 - `tools/pilot_run.py` muestra `batch_state`, resumen del lote y commits publicables faltantes en `pilot-plan.md`, handoff y compuerta go/no-go.
+- Las tarjetas `real-pilot-operator-brief.md`, `real-pilot-run-sheet.md`, `real-pilot-final-go-no-go.md` y `real-pilot-local-receipt.md` ahora incluyen un aviso de lote de release para no convertir pilotos reales en tags prematuros.
 - README, documentacion HTML y guias de release documentan esos campos para evitar tags prematuros despues de publicar una version.
 
 ### Pruebas

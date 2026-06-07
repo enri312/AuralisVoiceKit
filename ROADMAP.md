@@ -188,6 +188,8 @@ Nota Unreleased: `tools/release_batch_status.py` agrega `batch_state`, `batch_su
 
 Nota Unreleased: `tools/pilot_run.py` propaga ese estado explicito del lote a `pilot-plan.md`, `real-pilot-handoff.md` y `real-pilot-decision-gate.md`, mostrando resumen y commits publicables faltantes para el operador.
 
+Nota Unreleased: las tarjetas finales de operador (`real-pilot-operator-brief.md`, `real-pilot-run-sheet.md`, `real-pilot-final-go-no-go.md` y `real-pilot-local-receipt.md`) incluyen `release_batch_notice` para separar resultados de pilotos reales de la decision de publicar tags.
+
 ## Fase 0 - Base del proyecto
 
 **Objetivo:** dejar una libreria instalable, importable y testeable.

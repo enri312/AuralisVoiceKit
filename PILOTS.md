@@ -90,6 +90,8 @@ Nota Unreleased: `tools/release_batch_status.py` publica `batch_state`, `batch_s
 
 Nota Unreleased: `tools/pilot_run.py` muestra ese estado del lote en `pilot-plan.md`, `real-pilot-handoff.md` y `real-pilot-decision-gate.md`, incluyendo resumen y commits publicables faltantes. English: safe-pilot artifacts now surface explicit release-batch state for operators.
 
+Nota Unreleased: las tarjetas operativas finales (`real-pilot-operator-brief.md`, `real-pilot-run-sheet.md`, `real-pilot-final-go-no-go.md` y `real-pilot-local-receipt.md`) tambien muestran el aviso de lote de release para no crear tags ni GitHub Releases desde un piloto real mientras el lote siga incompleto. English: final real-pilot operator cards now repeat the release-batch warning.
+
 Nota `v0.140.0`: `tools/transcription_pilot.py` y `tools/beta_readiness.py` exigen `real_transcription_operator_gate.ready_for_beta_audit=true`, con comando seguro, confirmaciones completas y cero campos faltantes para aceptar evidencia beta de transcripcion real. English: real transcription beta evidence now requires a public-safe operator gate.
 
 Nota `v0.141.0`: el piloto seguro escribe `real-pilot-consent-card.md`, una plantilla publica de consentimiento local antes de usar hardware, audio real o flags `--confirm-*`, sin registrar identidad, firma, audio, rutas ni texto privado. English: safe pilots now include a public-safe local consent card.
