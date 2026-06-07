@@ -176,13 +176,15 @@ Nota `v0.166.0`: el auditor de evidencias beta exige `freedom_policy` en artifac
 
 Nota `v0.167.0`: `tools/pilot_run.py` propaga `policy_required_fields` al foco de evidencia, secuencia recomendada, manifiesto y compuerta del operador, para que los campos `*.freedom_policy.*` se revisen antes del piloto real.
 
-Nota Unreleased: `tools/pilot_audio_fixture.py` propaga `preflight.freedom_policy` al reporte y findings del fixture, marcando Whisper como `free-local` y cualquier backend propietario como opt-in con red requerida antes de usar audio real.
+Nota `v0.169.0`: `tools/pilot_audio_fixture.py` propaga `preflight.freedom_policy` al reporte y findings del fixture, marcando Whisper como `free-local` y cualquier backend propietario como opt-in con red requerida antes de usar audio real.
 
-Nota Unreleased: el dry-run Windows de salida `system` fue repetido con `--require-output-backend-ready` y quedo documentado en `PILOT_FINDINGS.md`; el backend local esta disponible, el comando es seguro para copiar y beta sigue bloqueada hasta reproducir audio con operador presente y confirmaciones humanas.
+Nota `v0.169.0`: el dry-run Windows de salida `system` fue repetido con `--require-output-backend-ready` y quedo documentado en `PILOT_FINDINGS.md`; el backend local esta disponible, el comando es seguro para copiar y beta sigue bloqueada hasta reproducir audio con operador presente y confirmaciones humanas.
 
-Nota Unreleased: `tools/output_pilot.py` agrega `system_output_operator_gate.copy_readiness` para distinguir si la plantilla con placeholders es segura para copiar, si todavia faltan confirmaciones locales y si el audio real ya esta listo para auditoria beta.
+Nota `v0.169.0`: `tools/output_pilot.py` agrega `system_output_operator_gate.copy_readiness` para distinguir si la plantilla con placeholders es segura para copiar, si todavia faltan confirmaciones locales y si el audio real ya esta listo para auditoria beta.
 
-Nota Unreleased: `tools/beta_readiness.py` exige `system_output_operator_gate.copy_readiness` con plantilla copiable, salida real lista, pendientes vacios y flags de privacidad antes de aceptar evidencia beta de salida audible.
+Nota `v0.169.0`: `tools/beta_readiness.py` exige `system_output_operator_gate.copy_readiness` con plantilla copiable, salida real lista, pendientes vacios y flags de privacidad antes de aceptar evidencia beta de salida audible.
+
+Nota Unreleased: `tools/release_batch_status.py` agrega `batch_state`, `batch_summary_*` y `publishable_commits_needed` para distinguir lotes recien reiniciados, en progreso o listos antes de crear tags.
 
 ## Fase 0 - Base del proyecto
 

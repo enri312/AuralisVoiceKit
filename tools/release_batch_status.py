@@ -68,6 +68,18 @@ def build_release_batch_status(
     commit_count = len(commits)
     remaining = max(threshold - commit_count, 0)
     ready = commit_count >= threshold
+    if ready:
+        batch_state = "ready"
+        batch_summary_es = f"Lote listo: {commit_count}/{threshold}. Ya corresponde tag y GitHub Release."
+        batch_summary_en = f"Batch ready: {commit_count}/{threshold}. Tag and GitHub Release can be prepared."
+    elif commit_count == 0:
+        batch_state = "fresh"
+        batch_summary_es = f"Lote reiniciado: 0/{threshold}. No crear tag todavia."
+        batch_summary_en = f"Batch reset: 0/{threshold}. Do not tag yet."
+    else:
+        batch_state = "collecting"
+        batch_summary_es = f"Lote en progreso: {commit_count}/{threshold}; faltan {remaining} mejora(s)."
+        batch_summary_en = f"Batch in progress: {commit_count}/{threshold}; {remaining} improvement(s) remaining."
 
     return {
         "project": "AuralisVoiceKit",
@@ -75,6 +87,11 @@ def build_release_batch_status(
         "threshold": threshold,
         "commit_count": commit_count,
         "remaining": remaining,
+        "batch_state": batch_state,
+        "batch_summary_es": batch_summary_es,
+        "batch_summary_en": batch_summary_en,
+        "next_tag_after_commit_count": threshold,
+        "publishable_commits_needed": remaining,
         "ready_for_tag": ready,
         "should_create_release": ready,
         "compare_command": compare_command,
@@ -103,8 +120,11 @@ def _format_text(report: dict[str, object]) -> str:
         "AuralisVoiceKit release batch status",
         f"Latest tag: {latest_tag}",
         f"Commits since latest tag: {report['commit_count']}/{report['threshold']}",
+        f"Batch state: {report['batch_state']}",
+        f"Publishable commits needed: {report['publishable_commits_needed']}",
         f"Ready for tag: {str(report['ready_for_tag']).lower()}",
         f"Compare command: {report['compare_command']}",
+        f"Batch summary: {report['batch_summary_es']}",
         f"Next action: {report['next_action_es']}",
     ]
     commits = report.get("commits", [])

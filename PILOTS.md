@@ -84,7 +84,9 @@ Nota `v0.138.0`: `tools/beta_readiness.py` exige `capture_operator_gate.ready_fo
 
 Nota `v0.139.0`: `tools/output_pilot.py` y `tools/beta_readiness.py` exigen `system_output_operator_gate.ready_for_beta_audit=true`, con comando seguro, confirmaciones completas y cero campos faltantes para aceptar evidencia beta de salida audible. English: audible output beta evidence now requires a public-safe operator gate.
 
-Nota Unreleased: `tools/output_pilot.py` agrega `system_output_operator_gate.copy_readiness` y `tools/beta_readiness.py` lo exige para aceptar evidencia audible: plantilla segura, salida real lista, pendientes vacios y sin texto, identidad ni rutas. English: audible-output copy readiness separates safe command templates from beta-ready real playback and is now required by beta audits.
+Nota `v0.169.0`: `tools/output_pilot.py` agrega `system_output_operator_gate.copy_readiness` y `tools/beta_readiness.py` lo exige para aceptar evidencia audible: plantilla segura, salida real lista, pendientes vacios y sin texto, identidad ni rutas. English: audible-output copy readiness separates safe command templates from beta-ready real playback and is now required by beta audits.
+
+Nota Unreleased: `tools/release_batch_status.py` publica `batch_state`, `batch_summary_*` y `publishable_commits_needed` para que los pilotos y automatizaciones sepan si el lote esta recien reiniciado, en progreso o listo antes de crear tags. English: release batches now expose an explicit state for safer publishing cadence.
 
 Nota `v0.140.0`: `tools/transcription_pilot.py` y `tools/beta_readiness.py` exigen `real_transcription_operator_gate.ready_for_beta_audit=true`, con comando seguro, confirmaciones completas y cero campos faltantes para aceptar evidencia beta de transcripcion real. English: real transcription beta evidence now requires a public-safe operator gate.
 

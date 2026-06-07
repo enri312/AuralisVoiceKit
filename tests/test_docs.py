@@ -621,6 +621,8 @@ class DocumentationTests(unittest.TestCase):
             self.assertIn("5 mejoras", content)
             self.assertIn("git log <ultimo_tag>..HEAD --oneline", content)
             self.assertIn("release_batch_status.py", content)
+            self.assertIn("batch_state", content)
+            self.assertIn("publishable_commits_needed", content)
             self.assertIn("alpha releases are batched", content)
         self.assertTrue(RELEASE_BATCH_STATUS.exists())
 

@@ -25,7 +25,7 @@ python tools/release_batch_status.py --json
 python tools/release_batch_status.py --fail-if-not-ready
 ```
 
-Si el conteo es menor a 5, se puede hacer commit y push, pero se deja la version como pendiente/desarrollo y no se dispara release. English: alpha releases are batched; tag only after 5 publishable improvements unless explicitly requested.
+Si el conteo es menor a 5, se puede hacer commit y push, pero se deja la version como pendiente/desarrollo y no se dispara release. El JSON incluye `batch_state` (`fresh`, `collecting` o `ready`) y `publishable_commits_needed` para automatizar la decision sin crear tags prematuros. English: alpha releases are batched; tag only after 5 publishable improvements unless explicitly requested.
 
 ## Checklist
 
