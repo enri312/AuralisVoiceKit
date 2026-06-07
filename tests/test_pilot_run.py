@@ -1364,6 +1364,8 @@ class PilotRunTests(unittest.TestCase):
         self.assertIn("capture_checklist.input_review_confirmed", plan)
         self.assertIn("capture_checklist.ready_for_beta_evidence", plan)
         self.assertIn("system_guard.expected_system_matched", plan)
+        self.assertIn("Campos de politica backend", plan)
+        self.assertIn("target_capture_backend.freedom_policy.category", plan)
         self.assertIn("--expected-system Linux", plan)
         self.assertIn("--expected-system Darwin", plan)
         self.assertIn("sample.mp3", plan)
@@ -1382,6 +1384,18 @@ class PilotRunTests(unittest.TestCase):
         self.assertEqual(manifest_rows["real_transcription_quality"]["status"], "pending")
         self.assertEqual(manifest_rows["real_transcription_quality"]["artifact"], "transcription-pilot-report.json")
         self.assertIn("target_backend.available", manifest_rows["real_transcription_quality"]["required_fields"])
+        self.assertIn(
+            "target_backend.freedom_policy.category",
+            manifest_rows["real_transcription_quality"]["policy_required_fields"],
+        )
+        self.assertIn(
+            "target_backend.freedom_policy.proprietary",
+            manifest_rows["real_transcription_quality"]["policy_required_fields"],
+        )
+        self.assertIn(
+            "target_backend.freedom_policy.network_required",
+            manifest_rows["real_transcription_quality"]["policy_required_fields"],
+        )
         self.assertIn("audio.generated_synthetic_audio", manifest_rows["real_transcription_quality"]["required_fields"])
         self.assertIn("audio.decoded", manifest_rows["real_transcription_quality"]["required_fields"])
         self.assertIn("audio.duration_gate.enabled", manifest_rows["real_transcription_quality"]["required_fields"])
@@ -1430,6 +1444,14 @@ class PilotRunTests(unittest.TestCase):
         )
         self.assertEqual(manifest_rows["system_output_audible"]["status"], "pending")
         self.assertEqual(manifest_rows["system_output_audible"]["artifact"], "output-pilot-report.json")
+        self.assertEqual(
+            manifest_rows["system_output_audible"]["policy_required_fields"],
+            [
+                "target_output_backend.freedom_policy.category",
+                "target_output_backend.freedom_policy.proprietary",
+                "target_output_backend.freedom_policy.network_required",
+            ],
+        )
         self.assertIn(
             "operator_checklist.redacts_spoken_text",
             manifest_rows["system_output_audible"]["required_fields"],
@@ -1467,6 +1489,17 @@ class PilotRunTests(unittest.TestCase):
         self.assertEqual(
             report["pilot_decision_gate"]["next_recommended_step"]["strict_backend_guard_flag"],
             "--require-capture-backend-ready",
+        )
+        operator_contract = report["real_pilot_execution_card"]["operator_gate"]["evidence_contract"]
+        self.assertEqual(operator_contract["blocker"], "windows_wasapi_capture")
+        self.assertEqual(operator_contract["policy_required_field_count"], 3)
+        self.assertEqual(
+            operator_contract["policy_required_fields"],
+            [
+                "target_capture_backend.freedom_policy.category",
+                "target_capture_backend.freedom_policy.proprietary",
+                "target_capture_backend.freedom_policy.network_required",
+            ],
         )
         self.assertIn("local-real-transcription-ready", report["pilot_decision_gate"]["local_environment_warnings"])
         self.assertEqual(report["fixture_preflight_card"]["status"], "recommended")
@@ -1618,6 +1651,14 @@ class PilotRunTests(unittest.TestCase):
         self.assertTrue(windows_step["requires_hardware"])
         self.assertEqual(windows_step["strict_backend_guard_flag"], "--require-capture-backend-ready")
         self.assertIn("manual_capture_command_card.safe_to_share", windows_step["required_fields"])
+        self.assertEqual(
+            windows_step["policy_required_fields"],
+            [
+                "target_capture_backend.freedom_policy.category",
+                "target_capture_backend.freedom_policy.proprietary",
+                "target_capture_backend.freedom_policy.network_required",
+            ],
+        )
         self.assertFalse(fixture_step["requires_hardware"])
         self.assertFalse(fixture_step["requires_non_sensitive_audio"])
         self.assertIn("preflight.passed", fixture_step["required_fields"])
@@ -1649,6 +1690,9 @@ class PilotRunTests(unittest.TestCase):
         self.assertIn("--confirm-reference-reviewed", transcription_step["command"])
         self.assertIn("--require-target-backend-ready", transcription_step["command"])
         self.assertIn("target_backend.available", transcription_step["required_fields"])
+        self.assertIn("target_backend.freedom_policy.category", transcription_step["policy_required_fields"])
+        self.assertIn("target_backend.freedom_policy.proprietary", transcription_step["policy_required_fields"])
+        self.assertIn("target_backend.freedom_policy.network_required", transcription_step["policy_required_fields"])
         self.assertIn("target_backend_ready_required", transcription_step["required_fields"])
         self.assertIn("audio.generated_synthetic_audio", transcription_step["required_fields"])
         self.assertIn("audio.audio_confirmed_non_sensitive", transcription_step["required_fields"])
@@ -1685,6 +1729,14 @@ class PilotRunTests(unittest.TestCase):
         self.assertIn('--expected-system "Windows|Linux|Darwin"', output_step["command"])
         self.assertIn("system_guard.expected_system_matched", output_step["required_fields"])
         self.assertIn("target_output_backend.available", output_step["required_fields"])
+        self.assertEqual(
+            output_step["policy_required_fields"],
+            [
+                "target_output_backend.freedom_policy.category",
+                "target_output_backend.freedom_policy.proprietary",
+                "target_output_backend.freedom_policy.network_required",
+            ],
+        )
         self.assertIn("target_output_backend.readiness_plan.uses_pip_extra", output_step["required_fields"])
         self.assertIn("target_output_backend.readiness_plan.python_extra", output_step["required_fields"])
         self.assertIn("target_output_backend.readiness_plan.pip_command", output_step["required_fields"])
@@ -1822,6 +1874,7 @@ class PilotRunTests(unittest.TestCase):
         self.assertIn("system_output_command_card.records_spoken_text=false", matrix["system-output-audible"]["notes"])
         self.assertIn("--fail-on-audit-gaps", report["beta_readiness"]["strict_audit_command"])
         self.assertIn("Campos condicionales", evidence_manifest)
+        self.assertIn("Campos de politica backend", evidence_manifest)
         self.assertIn("target_backend.name", evidence_manifest)
         self.assertIn("credentials.checked", evidence_manifest)
         self.assertIn("credentials.openai_api_key_required", evidence_manifest)
@@ -1968,6 +2021,14 @@ class PilotRunTests(unittest.TestCase):
         focus = report["beta_readiness"]["next_evidence_focus"]
         self.assertEqual(focus["status"], "pending")
         self.assertEqual(focus["name"], "windows_wasapi_capture")
+        self.assertEqual(
+            focus["policy_required_fields"],
+            [
+                "target_capture_backend.freedom_policy.category",
+                "target_capture_backend.freedom_policy.proprietary",
+                "target_capture_backend.freedom_policy.network_required",
+            ],
+        )
         self.assertEqual(report["evidence_manifest"]["next_evidence_focus"], focus)
         self.assertEqual(report["pilot_decision_gate"]["next_evidence_focus"], focus)
         self.assertNotIn("ubuntu_linux_capture", report["beta_readiness"]["blockers"])
@@ -1991,6 +2052,14 @@ class PilotRunTests(unittest.TestCase):
         self.assertNotIn("Ubuntu/Linux capture pilot", plan)
         manifest_rows = {row["blocker"]: row for row in report["evidence_manifest"]["rows"]}
         self.assertEqual(manifest_rows["ubuntu_linux_capture"]["status"], "closed")
+        self.assertEqual(
+            manifest_rows["ubuntu_linux_capture"]["policy_required_fields"],
+            [
+                "target_capture_backend.freedom_policy.category",
+                "target_capture_backend.freedom_policy.proprietary",
+                "target_capture_backend.freedom_policy.network_required",
+            ],
+        )
         self.assertEqual(
             manifest_rows["ubuntu_linux_capture"]["accepted_json_artifact"],
             "linux/manual-pilot-report.json",

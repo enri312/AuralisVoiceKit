@@ -60,6 +60,7 @@ def run_safe_pilot(
     beta_module = _load_module(workspace / "tools" / "beta_readiness.py", "auralis_beta_readiness_for_pilot")
     beta_readiness = beta_module.build_beta_readiness_report(workspace, evidence_paths=evidence_paths or [])
     beta_audit = beta_module.build_evidence_audit_report(workspace, evidence_paths=evidence_paths or [])
+    beta_next_evidence_focus = _with_policy_required_fields(beta_audit["next_evidence_focus"])
     next_beta_evidence_steps = _next_beta_evidence_steps(beta_module, beta_readiness["blockers"])
     recommended_pilot_sequence = _recommended_pilot_sequence(
         next_beta_evidence_steps,
@@ -187,7 +188,7 @@ def run_safe_pilot(
             "satisfied_json_blockers": beta_audit["satisfied_blockers"],
             "missing_json_blockers": beta_audit["missing_blockers"],
             "blocker_summaries": beta_audit["blocker_summaries"],
-            "next_evidence_focus": beta_audit["next_evidence_focus"],
+            "next_evidence_focus": beta_next_evidence_focus,
             "privacy_audit": beta_audit["privacy_audit"],
             "privacy_remediation_plan": beta_audit["privacy_remediation_plan"],
             "accepted_json_artifacts": _pilot_plan_artifact_summary(beta_audit["artifacts"]),
@@ -599,14 +600,17 @@ def _next_beta_evidence_steps(beta_module: Any, blockers: list[str]) -> list[dic
         requirement = requirements.get(blocker)
         if requirement is None:
             continue
+        required_fields = [field["path"] for field in requirement["fields"]]
+        conditional_required_fields = _conditional_required_fields(requirement)
         steps.append(
             {
                 "name": blocker,
                 "title": requirement["title"],
                 "artifact": requirement["artifact"],
                 "command": requirement["command"],
-                "required_fields": [field["path"] for field in requirement["fields"]],
-                "conditional_required_fields": _conditional_required_fields(requirement),
+                "required_fields": required_fields,
+                "conditional_required_fields": conditional_required_fields,
+                "policy_required_fields": _policy_required_fields(required_fields, conditional_required_fields),
                 "reason": "Evidencia real requerida antes de beta publica.",
                 **_strict_backend_guard_metadata(blocker),
             }
@@ -628,6 +632,42 @@ def _conditional_required_fields(requirement: dict[str, Any]) -> list[dict[str, 
             }
         )
     return fields
+
+
+def _policy_required_fields(
+    required_fields: list[str],
+    conditional_required_fields: list[dict[str, Any]] | None = None,
+) -> list[str]:
+    policy_fields: list[str] = []
+    for field in required_fields:
+        if ".freedom_policy." in field:
+            policy_fields.append(field)
+    for conditional in conditional_required_fields or []:
+        for field in conditional.get("fields", []):
+            if ".freedom_policy." in field:
+                policy_fields.append(field)
+    return _ordered_unique(policy_fields)
+
+
+def _ordered_unique(values: list[str]) -> list[str]:
+    seen: set[str] = set()
+    unique: list[str] = []
+    for value in values:
+        if value in seen:
+            continue
+        seen.add(value)
+        unique.append(value)
+    return unique
+
+
+def _with_policy_required_fields(focus: dict[str, Any]) -> dict[str, Any]:
+    if not focus:
+        return focus
+    enriched = dict(focus)
+    required_fields = list(enriched.get("required_fields", []))
+    conditional_required_fields = list(enriched.get("conditional_required_fields", []))
+    enriched["policy_required_fields"] = _policy_required_fields(required_fields, conditional_required_fields)
+    return enriched
 
 
 def _strict_backend_guard_metadata(step_name: str) -> dict[str, Any]:
@@ -690,6 +730,7 @@ def _recommended_pilot_sequence(
                 "artifact": step["artifact"],
                 "required_fields": step["required_fields"],
                 "conditional_required_fields": step.get("conditional_required_fields", []),
+                "policy_required_fields": step.get("policy_required_fields", []),
                 "requires_hardware": step["name"] in hardware_required_blockers,
                 "requires_operator": step["name"] == "system_output_audible",
                 "requires_non_sensitive_audio": step["name"] == "real_transcription_quality",
@@ -1348,6 +1389,7 @@ def _real_pilot_evidence_manifest(
                 "artifact": artifact["artifact"],
                 "title": candidate["title"],
                 "required_fields": [field["path"] for field in candidate["fields"]],
+                "policy_required_fields": _policy_required_fields([field["path"] for field in candidate["fields"]]),
             }
 
     rows: list[dict[str, Any]] = []
@@ -1363,6 +1405,7 @@ def _real_pilot_evidence_manifest(
                 "command": step["command"],
                 "required_fields": step["required_fields"],
                 "conditional_required_fields": step.get("conditional_required_fields", []),
+                "policy_required_fields": step.get("policy_required_fields", []),
                 "accepted_json_artifact": None,
                 "review_state": "real-evidence-required",
                 **_strict_backend_guard_metadata(step["name"]),
@@ -1381,6 +1424,7 @@ def _real_pilot_evidence_manifest(
                 "command": None,
                 "required_fields": closed.get("required_fields", []),
                 "conditional_required_fields": [],
+                "policy_required_fields": closed.get("policy_required_fields", []),
                 "accepted_json_artifact": closed.get("file"),
                 "review_state": "closed-by-accepted-json",
                 **_strict_backend_guard_metadata(blocker),
@@ -1394,7 +1438,7 @@ def _real_pilot_evidence_manifest(
         "missing_json_blockers": beta_audit["missing_blockers"],
         "closed_blockers": beta_audit["satisfied_blockers"],
         "blocker_summaries": beta_audit["blocker_summaries"],
-        "next_evidence_focus": beta_audit["next_evidence_focus"],
+        "next_evidence_focus": _with_policy_required_fields(beta_audit["next_evidence_focus"]),
         "privacy_audit": beta_audit["privacy_audit"],
         "privacy_remediation_plan": beta_audit["privacy_remediation_plan"],
         "accepted_json_artifacts": _pilot_plan_artifact_summary(beta_audit["artifacts"]),
@@ -2884,6 +2928,7 @@ def _operator_gate_evidence_contract(focus: dict[str, Any], report: dict[str, An
     required_fields = list(focus.get("required_fields", []))
     missing_fields = list(focus.get("missing_fields", []))
     conditional_required_fields = list(focus.get("conditional_required_fields", []))
+    policy_required_fields = _policy_required_fields(required_fields, conditional_required_fields)
     return {
         "safe_to_share": True,
         "blocker": focus.get("name") or "ninguno",
@@ -2895,6 +2940,8 @@ def _operator_gate_evidence_contract(focus: dict[str, Any], report: dict[str, An
         "missing_field_count": len(missing_fields),
         "conditional_required_fields": conditional_required_fields,
         "conditional_required_field_count": len(conditional_required_fields),
+        "policy_required_fields": policy_required_fields,
+        "policy_required_field_count": len(policy_required_fields),
         "suggested_roots": report["real_pilot_evidence_intake_card"]["suggested_roots"],
         "strict_audit_command": report["evidence_manifest"]["strict_audit_command"],
         "refresh_checklist_command": report["evidence_manifest"]["refresh_checklist_command"],
@@ -3106,6 +3153,7 @@ def _next_evidence_focus_preparation_sequence(
                 "artifact": step["artifact"],
                 "required_fields": list(step.get("required_fields", [])),
                 "conditional_required_fields": list(step.get("conditional_required_fields", [])),
+                "policy_required_fields": list(step.get("policy_required_fields", [])),
                 "requires_hardware": bool(step.get("requires_hardware", False)),
                 "requires_operator": bool(step.get("requires_operator", False)),
                 "requires_non_sensitive_audio": bool(step.get("requires_non_sensitive_audio", False)),
@@ -4109,6 +4157,7 @@ def _format_real_pilot_evidence_manifest_markdown(report: dict[str, Any]) -> str
                 f"- JSON aceptado: `{row['accepted_json_artifact'] or 'pendiente'}`",
                 f"- Comando: `{row['command'] or 'cerrado por evidencia JSON aceptada'}`",
                 f"- Campos requeridos: {_format_inline_list(row['required_fields'])}",
+                f"- Campos de politica backend: {_format_inline_list(row.get('policy_required_fields', []))}",
                 f"- Revision: `{row['review_state']}`",
             ]
         )
@@ -4738,6 +4787,7 @@ def _format_real_pilot_execution_card_markdown(report: dict[str, Any]) -> str:
                     f"- Comando: `{step['command']}`",
                     f"- Artifact esperado: `{step['artifact']}`",
                     f"- Campos requeridos: {_format_inline_list(step['required_fields'])}",
+                    f"- Campos de politica backend: {_format_inline_list(step.get('policy_required_fields', []))}",
                     f"- Requiere hardware: `{_format_bool(step['requires_hardware'])}`",
                     f"- Requiere operador: `{_format_bool(step['requires_operator'])}`",
                     f"- Requiere audio no sensible: `{_format_bool(step['requires_non_sensitive_audio'])}`",
@@ -4760,6 +4810,8 @@ def _format_real_pilot_execution_card_markdown(report: dict[str, Any]) -> str:
             f"- Campos faltantes actuales: `{operator_gate['evidence_contract']['missing_field_count']}`",
             f"- Campos requeridos actuales: {_format_inline_list(operator_gate['evidence_contract']['required_fields'])}",
             f"- Campos condicionales: `{operator_gate['evidence_contract']['conditional_required_field_count']}`",
+            f"- Campos de politica backend: {_format_inline_list(operator_gate['evidence_contract']['policy_required_fields'])}",
+            f"- Campos de politica backend requeridos: `{operator_gate['evidence_contract']['policy_required_field_count']}`",
             f"- Directorios sugeridos: {_format_inline_list(operator_gate['evidence_contract']['suggested_roots'])}",
             f"- Auditoria estricta: `{operator_gate['evidence_contract']['strict_audit_command']}`",
             f"- Refrescar checklist: `{operator_gate['evidence_contract']['refresh_checklist_command']}`",
@@ -4771,6 +4823,7 @@ def _format_real_pilot_execution_card_markdown(report: dict[str, Any]) -> str:
             "",
             f"- Comando: `{focus_command}`",
             f"- Campos requeridos: {_format_inline_list(focus.get('required_fields', []))}",
+            f"- Campos de politica backend: {_format_inline_list(focus.get('policy_required_fields', []))}",
             f"- Campos faltantes actuales: {_format_inline_list(focus.get('missing_fields', []))}",
             f"- Candidato mas cercano: `{focus.get('closest_candidate') or 'ninguno'}`",
             "",
@@ -5801,6 +5854,7 @@ def _append_next_evidence_focus_lines(lines: list[str], focus: dict[str, Any]) -
     closest = focus.get("closest_candidate")
     missing_fields = _format_inline_list(focus.get("missing_fields", []))
     required_fields = _format_inline_list(focus.get("required_fields", []))
+    policy_required_fields = _format_inline_list(focus.get("policy_required_fields", []))
     lines.extend(
         [
             f"- Blocker: `{focus['name']}`",
@@ -5810,6 +5864,7 @@ def _append_next_evidence_focus_lines(lines: list[str], focus: dict[str, Any]) -
             f"- Candidatos evaluados: `{focus['candidate_count']}`",
             f"- Campos faltantes a cerrar: {missing_fields}",
             f"- Campos requeridos base: {required_fields}",
+            f"- Campos de politica backend: {policy_required_fields}",
         ]
     )
     if closest is None:
@@ -5892,6 +5947,7 @@ def _append_focus_preparation_sequence_lines(lines: list[str], steps: list[dict[
                 f"- Comando: `{step['command']}`",
                 f"- Artifact esperado: `{step['artifact']}`",
                 f"- Campos requeridos: {_format_inline_list(step.get('required_fields', []))}",
+                f"- Campos de politica backend: {_format_inline_list(step.get('policy_required_fields', []))}",
                 f"- Requiere hardware: `{_format_bool(step.get('requires_hardware', False))}`",
                 f"- Requiere operador: `{_format_bool(step.get('requires_operator', False))}`",
                 f"- Requiere audio no sensible: `{_format_bool(step.get('requires_non_sensitive_audio', False))}`",

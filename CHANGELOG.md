@@ -6,6 +6,18 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.167.0] - 2026-06-07
+
+### Mejorado
+
+- `tools/pilot_run.py` resume `policy_required_fields` en el siguiente foco de evidencia, la secuencia recomendada, el manifiesto y la compuerta del operador.
+- Las tarjetas Markdown de pilotos reales muestran los campos `*.freedom_policy.*` por separado de la lista general de campos requeridos.
+- El contrato del operador ahora incluye conteo y lista de campos de politica backend antes de copiar o ejecutar el comando real.
+
+### Pruebas
+
+- `tests/test_pilot_run.py` valida que `policy_required_fields` se propague en JSON y Markdown, incluso cuando un blocker ya fue cerrado por evidencia aceptada.
+
 ## [0.166.0] - 2026-06-07
 
 ### Mejorado

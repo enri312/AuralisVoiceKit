@@ -174,6 +174,8 @@ Nota `v0.165.0`: `backend_freedom_policy()` queda exportado y los pilotos manual
 
 Nota `v0.166.0`: el auditor de evidencias beta exige `freedom_policy` en artifacts reales: captura `free-local`, salida `system-local`, Whisper `free-local` y OpenAI solamente como `proprietary-api` opt-in.
 
+Nota `v0.167.0`: `tools/pilot_run.py` propaga `policy_required_fields` al foco de evidencia, secuencia recomendada, manifiesto y compuerta del operador, para que los campos `*.freedom_policy.*` se revisen antes del piloto real.
+
 ## Fase 0 - Base del proyecto
 
 **Objetivo:** dejar una libreria instalable, importable y testeable.
