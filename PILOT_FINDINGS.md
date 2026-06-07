@@ -2,6 +2,54 @@
 
 Este documento resume hallazgos de pilotos reales o semi-manuales. No debe incluir audio, transcripciones privadas, rutas locales completas ni nombres reales de dispositivos.
 
+## 2026-06-07 - Windows dry-run de salida system con guard estricto
+
+Comando ejecutado:
+
+```powershell
+python tools\output_pilot.py --output-dir pilot_runs\output\system-dry-run-20260607 --text "Hola desde AuralisVoiceKit" --expected-system Windows --require-output-backend-ready --json
+```
+
+Alcance:
+
+- Sistema anfitrion: Windows.
+- Version AuralisVoiceKit: `0.168.0`.
+- Audio real reproducido: no.
+- Texto hablado real registrado: no; los artifacts usan texto redactado/placeholders.
+- Tipo de piloto: dry-run de salida `system` con guard estricto de backend.
+
+Resultado:
+
+- Dry-run: `passed=true`.
+- `target_output_backend.available=true`.
+- `target_output_backend.freedom_policy.category=system-local`.
+- `output_backend_ready_required=true`.
+- `system_guard.expected_system_matched=true`.
+- `spoken_text_privacy_scan.passed=true`.
+- `system_output_command_card.safe_to_share=true`.
+- `system_output_command_card.records_spoken_text=false`.
+- `system_output_command_card.system_dependency_plan.post_install_check_plays_audio=false`.
+- `system_output_operator_gate.command_safe_to_copy=true`.
+- `system_output_operator_gate.ready_for_beta_audit=false`.
+- Evidencia beta: `false`; falta ejecucion audible con operador presente y confirmaciones humanas.
+
+Faltantes para el piloto audible:
+
+- `real_audio_requested=true`.
+- `operator_confirmation_status=confirmed`.
+- `text_review_confirmed=true`.
+- `voice_review_confirmed=true`.
+- `operator_checklist.ready_for_real_audio=true`.
+- `operator_checklist.ready_for_beta_evidence=true`.
+- `system_output_command_card.ready_for_beta_evidence=true`.
+
+Acciones siguientes:
+
+1. Revisar localmente `output-operator-checklist.md` y `system-output-next-step.md`.
+2. Ejecutar salida `system` real solo con operador presente, volumen seguro y texto publico/no sensible.
+3. Usar `--speak --operator-present --confirm-audible --confirm-text-reviewed --confirm-voice-reviewed --require-output-backend-ready --expected-system Windows` solo despues de la revision humana local.
+4. Conservar solo `output-pilot-report.json` y Markdown sanitizados; no copiar texto hablado real ni identidad del operador.
+
 ## 2026-06-06 - Auditoria beta exige salida audible redactada
 
 Comando ejecutado:

@@ -12,6 +12,7 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 - Las tarjetas de piloto muestran ultimo tag, conteo `n/5`, mejoras restantes y si corresponde crear tag/GitHub Release, reforzando la cadencia por lote.
 - `tools/pilot_audio_fixture.py` ahora incluye `preflight.freedom_policy` para marcar Whisper como ruta `free-local` y cualquier backend propietario como opt-in con red requerida.
 - Los findings del fixture MP3 muestran categoria de libertad, si el backend es propietario y si requiere red antes de preparar el piloto real.
+- `PILOT_FINDINGS.md` documenta un dry-run Windows de salida `system` con guard estricto, backend `system-local`, texto redactado y faltantes exactos antes del piloto audible.
 
 ### Pruebas
 
