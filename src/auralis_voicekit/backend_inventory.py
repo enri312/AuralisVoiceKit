@@ -118,7 +118,9 @@ def _install_plan(kind: str, name: str) -> dict[str, Any]:
     }
 
 
-def _freedom_policy(kind: str, name: str) -> dict[str, Any]:
+def backend_freedom_policy(kind: str, name: str) -> dict[str, Any]:
+    """Return public free/local policy metadata for a backend."""
+
     return dict(_FREEDOM_POLICY_BY_BACKEND.get((kind, name), _DEFAULT_FREEDOM_POLICY))
 
 
@@ -135,7 +137,7 @@ def backend_inventory(registry: BackendRegistry | None = None) -> dict[str, Any]
             "reason": info.reason,
             "dependencies": [_public_dependency_name(dependency) for dependency in info.dependencies],
             "install_plan": _install_plan(info.kind, info.name),
-            "freedom_policy": _freedom_policy(info.kind, info.name),
+            "freedom_policy": backend_freedom_policy(info.kind, info.name),
         }
         for info in infos
     ]

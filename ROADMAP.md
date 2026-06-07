@@ -170,6 +170,8 @@ Nota `v0.163.0`: los mensajes de estabilidad, beta y pilotos de transcripcion re
 
 Nota `v0.164.0`: el inventario publico de backends expone `freedom_policy` para declarar si cada backend es `free-local`, `system-local` o `proprietary-api`, incluyendo `free_default`, `network_required` y `proprietary`.
 
+Nota `v0.165.0`: `backend_freedom_policy()` queda exportado y los pilotos manual, salida `system` y transcripcion copian `freedom_policy` al backend objetivo de sus artifacts, para que la ruta libre/local o propietaria quede trazable durante pilotos reales.
+
 ## Fase 0 - Base del proyecto
 
 **Objetivo:** dejar una libreria instalable, importable y testeable.

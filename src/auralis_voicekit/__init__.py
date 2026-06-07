@@ -42,7 +42,7 @@ from .benchmarks import (
     run_whisper_comparison_benchmarks,
     write_benchmark_report,
 )
-from .backend_inventory import backend_inventory
+from .backend_inventory import backend_freedom_policy, backend_inventory
 from .config import VoiceKitConfig
 from .diagnostics import (
     DOCTOR_BUNDLE_SCHEMA,
@@ -116,6 +116,7 @@ __all__ = [
     "__version__",
     "apply_gain_pcm16",
     "analyze_doctor_bundles",
+    "backend_freedom_policy",
     "backend_inventory",
     "calibrate_noise_pcm16",
     "chunk_audio",

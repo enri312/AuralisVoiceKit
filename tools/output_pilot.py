@@ -16,6 +16,7 @@ import re
 import sys
 from typing import Any
 
+from auralis_voicekit import backend_freedom_policy
 from auralis_voicekit.backends import SystemSpeechOutputBackend
 
 
@@ -432,6 +433,7 @@ def _output_backend_status(system: str) -> dict[str, Any]:
         "available": info.available,
         "dependencies": dependencies,
         "reason": info.reason,
+        "freedom_policy": backend_freedom_policy(info.kind, info.name),
         "readiness_plan": readiness_plan,
     }
 
@@ -1096,6 +1098,9 @@ def _build_findings_markdown(
         f"- Target output backend available: {target_output_backend['available']}",
         f"- Target output backend dependencies: {_format_list(target_output_backend['dependencies'])}",
         f"- Target output backend reason: {_format_optional(target_output_backend['reason'])}",
+        f"- Target output backend freedom policy: {_backend_policy_value(target_output_backend, 'category')}",
+        f"- Target output backend proprietary: {_backend_policy_value(target_output_backend, 'proprietary')}",
+        f"- Target output backend network required: {_backend_policy_value(target_output_backend, 'network_required')}",
         f"- Target output backend setup commands: {_format_list(target_output_backend['readiness_plan']['setup_commands'])}",
         f"- Target output backend readiness uses pip extra: {target_output_backend['readiness_plan']['uses_pip_extra']}",
         f"- Target output backend readiness python extra: {_format_nullable(target_output_backend['readiness_plan']['python_extra'])}",
@@ -1303,6 +1308,9 @@ def _build_system_output_next_step_markdown(
         f"- Target output backend available: {target_output_backend['available']}",
         f"- Target output backend dependencies: {_format_list(target_output_backend['dependencies'])}",
         f"- Target output backend reason: {_format_optional(target_output_backend['reason'])}",
+        f"- Target output backend freedom policy: {_backend_policy_value(target_output_backend, 'category')}",
+        f"- Target output backend proprietary: {_backend_policy_value(target_output_backend, 'proprietary')}",
+        f"- Target output backend network required: {_backend_policy_value(target_output_backend, 'network_required')}",
         f"- Target output backend setup commands: {_format_list(target_output_backend['readiness_plan']['setup_commands'])}",
         f"- Target output backend readiness uses pip extra: {target_output_backend['readiness_plan']['uses_pip_extra']}",
         f"- Target output backend readiness python extra: {_format_nullable(target_output_backend['readiness_plan']['python_extra'])}",
@@ -1487,6 +1495,14 @@ def _format_optional(value: object | None) -> str:
 
 def _format_nullable(value: object | None) -> str:
     return "not-set" if value is None else str(value)
+
+
+def _backend_policy_value(target_backend: dict[str, Any], key: str) -> object:
+    policy = target_backend.get("freedom_policy")
+    if not isinstance(policy, dict):
+        return "unknown"
+    value = policy.get(key)
+    return "unknown" if value is None else value
 
 
 def _format_list(values: list[str]) -> str:

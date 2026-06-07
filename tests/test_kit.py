@@ -7,6 +7,7 @@ from auralis_voicekit import (
     VoiceEventType,
     VoiceKitConfig,
     __version__,
+    backend_freedom_policy,
     backend_inventory,
 )
 from auralis_voicekit.backends import BackendInfo, create_default_registry
@@ -158,6 +159,8 @@ class AuralisVoiceKitTests(unittest.TestCase):
         self.assertIn("never installed or selected by default", backends["transcription:openai"]["freedom_policy"]["note"])
         self.assertEqual(backends["output:system"]["freedom_policy"]["category"], "system-local")
         self.assertFalse(backends["output:system"]["freedom_policy"]["network_required"])
+        self.assertEqual(backend_freedom_policy("transcription", "openai")["category"], "proprietary-api")
+        self.assertEqual(backend_freedom_policy("custom", "unknown")["category"], "unknown")
         self.assertFalse(backends["output:null"]["install_plan"]["uses_pip_extra"])
         for backend in inventory["backends"]:
             for dependency in backend["dependencies"]:

@@ -6,6 +6,18 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.165.0] - 2026-06-07
+
+### Mejorado
+
+- `backend_freedom_policy()` queda exportado desde la API publica para consultar la politica libre/local de un backend puntual.
+- `tools/manual_pilot.py`, `tools/output_pilot.py` y `tools/transcription_pilot.py` agregan `freedom_policy` al backend objetivo de sus reportes JSON.
+- Las tarjetas Markdown de pilotos muestran la categoria de libertad/localidad, si el backend es propietario y si requiere red.
+
+### Pruebas
+
+- `tests/test_kit.py`, `tests/test_manual_pilot.py`, `tests/test_output_pilot.py` y `tests/test_transcription_pilot.py` validan la propagacion de `freedom_policy`.
+
 ## [0.164.0] - 2026-06-07
 
 ### Mejorado

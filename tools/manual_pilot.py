@@ -17,6 +17,7 @@ from typing import Any
 from auralis_voicekit import (
     DiagnosticStatus,
     analyze_doctor_bundles,
+    backend_freedom_policy,
     run_doctor,
     write_doctor_bundle,
     write_doctor_bundle_analysis,
@@ -385,6 +386,7 @@ def _capture_backend_status(backend: str, readiness_plan: dict[str, Any]) -> dic
             "available": info.available,
             "dependencies": list(info.dependencies),
             "reason": info.reason,
+            "freedom_policy": backend_freedom_policy(info.kind, info.name),
             "readiness_plan": readiness_plan,
         }
 
@@ -396,6 +398,7 @@ def _capture_backend_status(backend: str, readiness_plan: dict[str, Any]) -> dic
         "available": False,
         "dependencies": [],
         "reason": f"Unknown capture backend {backend!r}. Available: {available}.",
+        "freedom_policy": backend_freedom_policy("capture", backend),
         "readiness_plan": readiness_plan,
     }
 
@@ -451,6 +454,8 @@ def _build_findings_markdown(
         f"- Capture backend: {backend}",
         f"- Target capture backend available: {target_capture_backend['available']}",
         f"- Target capture backend dependencies: {_format_list(target_capture_backend['dependencies'])}",
+        f"- Target capture backend freedom policy: {_backend_policy_value(target_capture_backend, 'category')}",
+        f"- Target capture backend proprietary: {_backend_policy_value(target_capture_backend, 'proprietary')}",
         f"- Capture backend readiness required: {require_capture_backend_ready}",
         f"- Capture readiness target system: {capture_readiness_plan['system']}",
         f"- Capture readiness uses pip extra: {capture_readiness_plan['uses_pip_extra']}",
@@ -945,6 +950,8 @@ def _build_capture_checklist_markdown(
         f"- Capture backend: {backend}",
         f"- Target capture backend available: {target_capture_backend['available']}",
         f"- Target capture backend dependencies: {_format_list(target_capture_backend['dependencies'])}",
+        f"- Target capture backend freedom policy: {_backend_policy_value(target_capture_backend, 'category')}",
+        f"- Target capture backend proprietary: {_backend_policy_value(target_capture_backend, 'proprietary')}",
         f"- Capture backend readiness required: {require_capture_backend_ready}",
         f"- Readiness target system: {capture_readiness_plan['system']}",
         f"- Readiness pip command: `{capture_readiness_plan['pip_command']}`",
@@ -1032,6 +1039,8 @@ def _build_manual_capture_command_markdown(
         f"- Evidence target system: {manual_capture_command_card['evidence_system']}",
         f"- Capture backend: {backend}",
         f"- Target capture backend available: {target_capture_backend['available']}",
+        f"- Target capture backend freedom policy: {_backend_policy_value(target_capture_backend, 'category')}",
+        f"- Target capture backend proprietary: {_backend_policy_value(target_capture_backend, 'proprietary')}",
         f"- Capture backend readiness required: {require_capture_backend_ready}",
         f"- Capture readiness uses pip extra: {manual_capture_command_card['uses_pip_extra']}",
         f"- Capture readiness python extra: {_format_optional(manual_capture_command_card['python_extra'])}",
@@ -1135,6 +1144,14 @@ def _format_optional(value: object | None) -> str:
 
 def _format_nullable(value: object | None) -> str:
     return "not-set" if value is None else str(value)
+
+
+def _backend_policy_value(target_backend: dict[str, Any], key: str) -> object:
+    policy = target_backend.get("freedom_policy")
+    if not isinstance(policy, dict):
+        return "unknown"
+    value = policy.get(key)
+    return "unknown" if value is None else value
 
 
 def _format_list(values: list[str]) -> str:

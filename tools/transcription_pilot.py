@@ -22,6 +22,7 @@ import unicodedata
 from auralis_voicekit import (
     AuralisVoiceKit,
     VoiceKitConfig,
+    backend_freedom_policy,
     generate_synthetic_audio_chunks,
     normalize_pcm16,
     read_audio_as_chunk,
@@ -676,6 +677,7 @@ def _transcription_backend_status(backend: str) -> dict[str, Any]:
         "reason": info.reason,
         "install_command": install_plan["pip_command"],
         "install_plan": install_plan,
+        "freedom_policy": backend_freedom_policy(info.kind, info.name),
     }
 
 
@@ -1508,6 +1510,9 @@ def _build_findings_markdown(
         f"- Target backend available: {target_backend['available']}",
         f"- Target backend dependencies: {_format_list(target_backend['dependencies'])}",
         f"- Target backend reason: {_format_optional(target_backend['reason'])}",
+        f"- Target backend freedom policy: {_backend_policy_value(target_backend, 'category')}",
+        f"- Target backend proprietary: {_backend_policy_value(target_backend, 'proprietary')}",
+        f"- Target backend network required: {_backend_policy_value(target_backend, 'network_required')}",
         f"- Target backend install command: {_format_optional(target_backend['install_command'])}",
         f"- Target backend post-install check: {target_backend['install_plan']['post_install_check']}",
         f"- OpenAI API key check: {credentials['status']}",
@@ -1967,6 +1972,8 @@ def _build_real_transcription_command_markdown(
         f"- Target backend available: {target_backend['available']}",
         f"- Target backend dependencies: {_format_list(target_backend['dependencies'])}",
         f"- Target backend install command: {_format_optional(target_backend['install_command'])}",
+        f"- Target backend freedom policy: {_backend_policy_value(target_backend, 'category')}",
+        f"- Target backend proprietary: {_backend_policy_value(target_backend, 'proprietary')}",
         f"- Backend post-install check: {target_backend['install_plan']['post_install_check']}",
         f"- Command card uses pip extra: {python_extra is not None}",
         f"- Command card python extra: {_format_optional(python_extra)}",
@@ -2089,6 +2096,9 @@ def _build_real_transcription_next_step_markdown(
         f"- Target backend available: {target_backend['available']}",
         f"- Target backend dependencies: {_format_list(target_backend['dependencies'])}",
         f"- Target backend reason: {_format_optional(target_backend['reason'])}",
+        f"- Target backend freedom policy: {_backend_policy_value(target_backend, 'category')}",
+        f"- Target backend proprietary: {_backend_policy_value(target_backend, 'proprietary')}",
+        f"- Target backend network required: {_backend_policy_value(target_backend, 'network_required')}",
         f"- Target backend install command: {_format_optional(target_backend['install_command'])}",
         f"- Target backend post-install check: {target_backend['install_plan']['post_install_check']}",
         f"- OpenAI API key check: {credentials['status']}",
@@ -2291,6 +2301,14 @@ def _pilot_notes(real_transcription: bool, preflight_only: bool) -> str:
 
 def _format_optional(value: object | None) -> str:
     return "none" if value in (None, "") else str(value)
+
+
+def _backend_policy_value(target_backend: dict[str, Any], key: str) -> object:
+    policy = target_backend.get("freedom_policy")
+    if not isinstance(policy, dict):
+        return "unknown"
+    value = policy.get(key)
+    return "unknown" if value is None else value
 
 
 def _format_list(values: list[str]) -> str:
