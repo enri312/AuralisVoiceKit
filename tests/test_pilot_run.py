@@ -133,6 +133,9 @@ class PilotRunTests(unittest.TestCase):
             self.assertTrue(notice["safe_to_share"])
             self.assertIn("batch_state", notice)
             self.assertIn("publishable_commits_needed", notice)
+            self.assertIn("publish_decision", notice)
+            self.assertIn("release_blocker", notice)
+            self.assertIn("explicit_user_override_required", notice)
             self.assertIsInstance(notice["ready_for_tag"], bool)
         self.assertIn("next_evidence_focus_preparation_sequence", persisted)
         self.assertIn("evidence_manifest", persisted)
@@ -170,6 +173,9 @@ class PilotRunTests(unittest.TestCase):
         for artifact in (operator_brief, run_sheet, final_go_no_go, local_receipt):
             self.assertIn("## Lote de release", artifact)
             self.assertIn("Commits publicables faltantes", artifact)
+            self.assertIn("Decision de publicacion", artifact)
+            self.assertIn("Bloqueo de release", artifact)
+            self.assertIn("Override explicito requerido", artifact)
             self.assertIn("Crear GitHub Release ahora", artifact)
         self.assertIn(
             "system_output_command_card.python_extra=null",
