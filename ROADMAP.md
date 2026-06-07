@@ -182,6 +182,8 @@ Nota Unreleased: el dry-run Windows de salida `system` fue repetido con `--requi
 
 Nota Unreleased: `tools/output_pilot.py` agrega `system_output_operator_gate.copy_readiness` para distinguir si la plantilla con placeholders es segura para copiar, si todavia faltan confirmaciones locales y si el audio real ya esta listo para auditoria beta.
 
+Nota Unreleased: `tools/beta_readiness.py` exige `system_output_operator_gate.copy_readiness` con plantilla copiable, salida real lista, pendientes vacios y flags de privacidad antes de aceptar evidencia beta de salida audible.
+
 ## Fase 0 - Base del proyecto
 
 **Objetivo:** dejar una libreria instalable, importable y testeable.

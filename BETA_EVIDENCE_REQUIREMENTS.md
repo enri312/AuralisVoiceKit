@@ -220,6 +220,22 @@ Este documento describe los campos JSON que pueden cerrar blockers de beta. No r
   - `system_output_operator_gate.ready_for_beta_audit` = `True`
   - `system_output_operator_gate.command_safe_to_copy` = `True`
   - `system_output_operator_gate.local_operator_required` = `True`
+  - `system_output_operator_gate.copy_readiness.safe_to_share` = `True`
+  - `system_output_operator_gate.copy_readiness.decision` = `ready_to_copy_template`
+  - `system_output_operator_gate.copy_readiness.template_safe_to_copy` = `True`
+  - `system_output_operator_gate.copy_readiness.ready_to_run_real_audio` = `True`
+  - `system_output_operator_gate.copy_readiness.ready_for_beta_audit` = `True`
+  - `system_output_operator_gate.copy_readiness.preflight_must_run_first` = `True`
+  - `system_output_operator_gate.copy_readiness.preflight_plays_audio` = `False`
+  - `system_output_operator_gate.copy_readiness.real_output_requires_operator` = `True`
+  - `system_output_operator_gate.copy_readiness.uses_placeholders` = `True`
+  - `system_output_operator_gate.copy_readiness.pending_confirmations` = `[]`
+  - `system_output_operator_gate.copy_readiness.pending_fields` = `[]`
+  - `system_output_operator_gate.copy_readiness.blocked_by` = `[]`
+  - `system_output_operator_gate.copy_readiness.records_audio` = `False`
+  - `system_output_operator_gate.copy_readiness.records_spoken_text` = `False`
+  - `system_output_operator_gate.copy_readiness.records_operator_identity` = `False`
+  - `system_output_operator_gate.copy_readiness.records_local_paths` = `False`
   - `system_output_operator_gate.missing_confirmation_count` = `0`
   - `system_output_operator_gate.missing_confirmations` = `[]`
   - `system_output_operator_gate.missing_field_count` = `0`
@@ -342,5 +358,6 @@ Este documento describe los campos JSON que pueden cerrar blockers de beta. No r
 - Real transcription command cards must use placeholders and must not record audio, transcripts, expected text, file names or local paths.
 - Real transcription operator gates must use placeholders and must not record audio, transcripts, expected text, file names, local paths or operator identity.
 - System output command cards must use placeholders and must not record audio, spoken text, operator identity or local paths.
+- System output copy readiness must use placeholders and must not record audio, spoken text, operator identity or local paths.
 - Evidence audits flag suspicious raw fields by path only; they do not print private values.
 - Only structured fields and sanitized artifact names are used.

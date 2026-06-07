@@ -904,6 +904,38 @@ class BetaReadinessTests(unittest.TestCase):
                 self.assertFalse(checks["system_output_audible"]["ok"])
                 self.assertIn("system_output_audible", report["blockers"])
 
+    def test_system_output_evidence_requires_copy_readiness(self):
+        module = _load_beta_readiness()
+
+        unsafe_cases = [
+            ("template_safe_to_copy", False),
+            ("ready_to_run_real_audio", False),
+            ("ready_for_beta_audit", False),
+            ("pending_confirmations", ["operator_confirmed_audible"]),
+            ("pending_fields", ["real_audio_requested"]),
+            ("blocked_by", ["unsafe_command_template"]),
+            ("records_spoken_text", True),
+            ("records_operator_identity", True),
+            ("records_local_paths", True),
+        ]
+        for field, value in unsafe_cases:
+            with self.subTest(field=field):
+                with tempfile.TemporaryDirectory() as tmpdir:
+                    evidence_path = Path(tmpdir) / "output-pilot-report.json"
+                    payload = _output_evidence()
+                    payload["system_output_operator_gate"]["copy_readiness"][field] = value
+                    _write_json(evidence_path, payload)
+
+                    report = module.build_beta_readiness_report(ROOT, evidence_paths=[evidence_path])
+                    audit = module.build_evidence_audit_report(ROOT, evidence_paths=[evidence_path])
+                    checks = {check["name"]: check for check in report["checks"]}
+
+                self.assertFalse(checks["system_output_audible"]["ok"])
+                self.assertIn("system_output_audible", report["blockers"])
+                output = audit["artifacts"][0]["candidates"][0]
+                missing_fields = [field["path"] for field in output["fields"] if not field["ok"]]
+                self.assertIn(f"system_output_operator_gate.copy_readiness.{field}", missing_fields)
+
     def test_system_output_evidence_requires_operator_gate_placeholders(self):
         module = _load_beta_readiness()
 
@@ -1494,6 +1526,25 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertEqual(output_fields["system_output_operator_gate.ready_for_beta_audit"], True)
         self.assertEqual(output_fields["system_output_operator_gate.command_safe_to_copy"], True)
         self.assertEqual(output_fields["system_output_operator_gate.local_operator_required"], True)
+        self.assertEqual(output_fields["system_output_operator_gate.copy_readiness.safe_to_share"], True)
+        self.assertEqual(
+            output_fields["system_output_operator_gate.copy_readiness.decision"],
+            "ready_to_copy_template",
+        )
+        self.assertEqual(output_fields["system_output_operator_gate.copy_readiness.template_safe_to_copy"], True)
+        self.assertEqual(output_fields["system_output_operator_gate.copy_readiness.ready_to_run_real_audio"], True)
+        self.assertEqual(output_fields["system_output_operator_gate.copy_readiness.ready_for_beta_audit"], True)
+        self.assertEqual(output_fields["system_output_operator_gate.copy_readiness.preflight_must_run_first"], True)
+        self.assertEqual(output_fields["system_output_operator_gate.copy_readiness.preflight_plays_audio"], False)
+        self.assertEqual(output_fields["system_output_operator_gate.copy_readiness.real_output_requires_operator"], True)
+        self.assertEqual(output_fields["system_output_operator_gate.copy_readiness.uses_placeholders"], True)
+        self.assertEqual(output_fields["system_output_operator_gate.copy_readiness.pending_confirmations"], [])
+        self.assertEqual(output_fields["system_output_operator_gate.copy_readiness.pending_fields"], [])
+        self.assertEqual(output_fields["system_output_operator_gate.copy_readiness.blocked_by"], [])
+        self.assertEqual(output_fields["system_output_operator_gate.copy_readiness.records_audio"], False)
+        self.assertEqual(output_fields["system_output_operator_gate.copy_readiness.records_spoken_text"], False)
+        self.assertEqual(output_fields["system_output_operator_gate.copy_readiness.records_operator_identity"], False)
+        self.assertEqual(output_fields["system_output_operator_gate.copy_readiness.records_local_paths"], False)
         self.assertEqual(output_fields["system_output_operator_gate.missing_confirmation_count"], 0)
         self.assertEqual(output_fields["system_output_operator_gate.missing_confirmations"], [])
         self.assertEqual(output_fields["system_output_operator_gate.missing_field_count"], 0)
@@ -2254,6 +2305,25 @@ def _system_output_operator_gate() -> dict:
         "expected_artifact": "output-pilot-report.json",
         "ready_for_beta_audit": True,
         "command_safe_to_copy": True,
+        "copy_readiness": {
+            "safe_to_share": True,
+            "decision": "ready_to_copy_template",
+            "template_safe_to_copy": True,
+            "ready_to_run_real_audio": True,
+            "ready_for_beta_audit": True,
+            "preflight_must_run_first": True,
+            "preflight_plays_audio": False,
+            "real_output_requires_operator": True,
+            "uses_placeholders": True,
+            "required_placeholders": ["<pilot-output-dir>", "<public-spoken-text>"],
+            "pending_confirmations": [],
+            "pending_fields": [],
+            "blocked_by": [],
+            "records_audio": False,
+            "records_spoken_text": False,
+            "records_operator_identity": False,
+            "records_local_paths": False,
+        },
         "local_operator_required": True,
         "confirmations": [],
         "missing_confirmations": [],

@@ -8,18 +8,26 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ### Mejorado
 
+### Pruebas
+
+## [0.169.0] - 2026-06-07
+
+### Mejorado
+
 - `tools/pilot_run.py` ahora propaga `release_batch` desde el gate de estabilidad a `pilot-report.json`, `pilot-plan.md`, `real-pilot-handoff.md` y `real-pilot-decision-gate.md`.
 - Las tarjetas de piloto muestran ultimo tag, conteo `n/5`, mejoras restantes y si corresponde crear tag/GitHub Release, reforzando la cadencia por lote.
 - `tools/pilot_audio_fixture.py` ahora incluye `preflight.freedom_policy` para marcar Whisper como ruta `free-local` y cualquier backend propietario como opt-in con red requerida.
 - Los findings del fixture MP3 muestran categoria de libertad, si el backend es propietario y si requiere red antes de preparar el piloto real.
 - `PILOT_FINDINGS.md` documenta un dry-run Windows de salida `system` con guard estricto, backend `system-local`, texto redactado y faltantes exactos antes del piloto audible.
 - `tools/output_pilot.py` agrega `system_output_operator_gate.copy_readiness` para separar plantilla segura para copiar de evidencia lista para beta antes del piloto audible real.
+- `tools/beta_readiness.py`, `BETA_CHECKLIST.md` y `BETA_EVIDENCE_REQUIREMENTS.md` ahora exigen `copy_readiness` seguro para aceptar evidencia beta de salida audible.
 
 ### Pruebas
 
 - `tests/test_pilot_run.py` valida que `release_batch` quede sincronizado entre el reporte, el gate del piloto y las tarjetas Markdown.
 - `tests/test_pilot_audio_fixture.py` valida la politica libre/local del preflight para Whisper y la ruta propietaria opcional.
 - `tests/test_output_pilot.py` valida que `copy_readiness` no registre texto hablado, identidad del operador ni rutas locales, y que distinga dry-run copiable de audio real listo.
+- `tests/test_beta_readiness.py` valida que evidencias de salida `system` sin `copy_readiness` beta-ready sigan bloqueadas.
 
 ## [0.168.0] - 2026-06-07
 

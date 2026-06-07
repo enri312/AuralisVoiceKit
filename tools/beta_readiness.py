@@ -268,6 +268,7 @@ def build_evidence_requirements_report() -> dict[str, Any]:
             "Real transcription command cards must use placeholders and must not record audio, transcripts, expected text, file names or local paths.",
             "Real transcription operator gates must use placeholders and must not record audio, transcripts, expected text, file names, local paths or operator identity.",
             "System output command cards must use placeholders and must not record audio, spoken text, operator identity or local paths.",
+            "System output copy readiness must use placeholders and must not record audio, spoken text, operator identity or local paths.",
             "Evidence audits flag suspicious raw fields by path only; they do not print private values.",
             "Only structured fields and sanitized artifact names are used.",
         ],
@@ -530,6 +531,12 @@ def build_beta_readiness_report(
                 "system_output_command_card.records_operator_identity=false, "
                 "system_output_operator_gate.ready_for_beta_audit=true, "
                 "system_output_operator_gate.command_safe_to_copy=true, "
+                "system_output_operator_gate.copy_readiness.template_safe_to_copy=true, "
+                "system_output_operator_gate.copy_readiness.ready_to_run_real_audio=true, "
+                "system_output_operator_gate.copy_readiness.pending_confirmations=[], "
+                "system_output_operator_gate.copy_readiness.pending_fields=[], "
+                "system_output_operator_gate.copy_readiness.records_spoken_text=false, "
+                "system_output_operator_gate.copy_readiness.records_operator_identity=false, "
                 "system_output_operator_gate.missing_confirmation_count=0, "
                 "system_output_operator_gate.missing_field_count=0, "
                 "system_output_operator_gate.records_spoken_text=false, "
@@ -1175,6 +1182,22 @@ def _system_output_operator_gate_required_fields() -> list[dict[str, Any]]:
         _required_field("system_output_operator_gate.ready_for_beta_audit", True),
         _required_field("system_output_operator_gate.command_safe_to_copy", True),
         _required_field("system_output_operator_gate.local_operator_required", True),
+        _required_field("system_output_operator_gate.copy_readiness.safe_to_share", True),
+        _required_field("system_output_operator_gate.copy_readiness.decision", "ready_to_copy_template"),
+        _required_field("system_output_operator_gate.copy_readiness.template_safe_to_copy", True),
+        _required_field("system_output_operator_gate.copy_readiness.ready_to_run_real_audio", True),
+        _required_field("system_output_operator_gate.copy_readiness.ready_for_beta_audit", True),
+        _required_field("system_output_operator_gate.copy_readiness.preflight_must_run_first", True),
+        _required_field("system_output_operator_gate.copy_readiness.preflight_plays_audio", False),
+        _required_field("system_output_operator_gate.copy_readiness.real_output_requires_operator", True),
+        _required_field("system_output_operator_gate.copy_readiness.uses_placeholders", True),
+        _required_field("system_output_operator_gate.copy_readiness.pending_confirmations", []),
+        _required_field("system_output_operator_gate.copy_readiness.pending_fields", []),
+        _required_field("system_output_operator_gate.copy_readiness.blocked_by", []),
+        _required_field("system_output_operator_gate.copy_readiness.records_audio", False),
+        _required_field("system_output_operator_gate.copy_readiness.records_spoken_text", False),
+        _required_field("system_output_operator_gate.copy_readiness.records_operator_identity", False),
+        _required_field("system_output_operator_gate.copy_readiness.records_local_paths", False),
         _required_field("system_output_operator_gate.missing_confirmation_count", 0),
         _required_field("system_output_operator_gate.missing_confirmations", []),
         _required_field("system_output_operator_gate.missing_field_count", 0),
@@ -1947,9 +1970,38 @@ def _has_ready_system_output_operator_gate(report: dict[str, Any]) -> bool:
         and gate.get("records_spoken_text") is False
         and gate.get("records_operator_identity") is False
         and gate.get("records_local_paths") is False
+        and _has_safe_system_output_copy_readiness(gate)
         and all(isinstance(command, str) and "<pilot-output-dir>" in command for command in command_templates)
         and isinstance(gate.get("real_output_command_template"), str)
         and "<public-spoken-text>" in gate["real_output_command_template"]
+    )
+
+
+def _has_safe_system_output_copy_readiness(gate: dict[str, Any]) -> bool:
+    copy_readiness = gate.get("copy_readiness", {})
+    if not isinstance(copy_readiness, dict):
+        return False
+    required_placeholders = copy_readiness.get("required_placeholders", [])
+    return (
+        copy_readiness.get("safe_to_share") is True
+        and copy_readiness.get("decision") == "ready_to_copy_template"
+        and copy_readiness.get("template_safe_to_copy") is True
+        and copy_readiness.get("ready_to_run_real_audio") is True
+        and copy_readiness.get("ready_for_beta_audit") is True
+        and copy_readiness.get("preflight_must_run_first") is True
+        and copy_readiness.get("preflight_plays_audio") is False
+        and copy_readiness.get("real_output_requires_operator") is True
+        and copy_readiness.get("uses_placeholders") is True
+        and isinstance(required_placeholders, list)
+        and "<pilot-output-dir>" in required_placeholders
+        and "<public-spoken-text>" in required_placeholders
+        and copy_readiness.get("pending_confirmations") == []
+        and copy_readiness.get("pending_fields") == []
+        and copy_readiness.get("blocked_by") == []
+        and copy_readiness.get("records_audio") is False
+        and copy_readiness.get("records_spoken_text") is False
+        and copy_readiness.get("records_operator_identity") is False
+        and copy_readiness.get("records_local_paths") is False
     )
 
 
