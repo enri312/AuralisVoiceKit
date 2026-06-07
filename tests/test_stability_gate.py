@@ -46,6 +46,8 @@ class StabilityGateTests(unittest.TestCase):
         self.assertIn("doctor_bundle_analysis", check_names)
         self.assertIn("release_workflow", check_names)
         self.assertIn("release_batch_guard", check_names)
+        ci_check = next(check for check in report["checks"] if check["name"] == "ci")
+        self.assertTrue(ci_check["ok"])
         next_actions = "\n".join(report["next_actions"])
         self.assertIn("Whisper local", next_actions)
         self.assertIn("OpenAI solo como integracion propietaria opt-in", next_actions)
