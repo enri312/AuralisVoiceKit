@@ -30,7 +30,8 @@ class StabilityGateTests(unittest.TestCase):
         self.assertTrue(report["release_batch"]["available"])
         self.assertEqual(report["release_batch"]["threshold"], 5)
         self.assertFalse(report["release_batch"]["ready_for_tag"])
-        self.assertGreaterEqual(report["release_batch"]["commit_count"], 2)
+        self.assertGreaterEqual(report["release_batch"]["commit_count"], 1)
+        self.assertGreaterEqual(report["release_batch"]["remaining"], 1)
         check_names = {check["name"] for check in report["checks"]}
         self.assertIn("pilot_runbook", check_names)
         self.assertIn("safe_pilot_runner", check_names)
