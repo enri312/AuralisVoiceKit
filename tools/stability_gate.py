@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import json
 from pathlib import Path
 import re
@@ -217,12 +218,18 @@ PILOT_CHECKS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
     ("ci", ".github/workflows/ci.yml", ("stability_gate.py", "unittest discover", "windows-2025-vs2026", "PIP_NO_CACHE_DIR")),
     ("pyproject_pyaudio_extra", "pyproject.toml", ("pyaudio", "PyAudio>=0.2.14")),
     ("release_workflow", ".github/workflows/release.yml", ("python -m build", "actions/upload-artifact@v7.0.1", "gh release create")),
+    (
+        "release_batch_guard",
+        "tools/release_batch_status.py",
+        ("build_release_batch_status", "--fail-if-not-ready", "ready_for_tag"),
+    ),
 )
 
 
 def build_report(root: str | Path) -> dict[str, Any]:
     workspace = Path(root)
     version = _read_version(workspace)
+    release_batch = _build_release_batch_status(workspace)
     checks = [_run_check(workspace, name, relative_path, required_terms) for name, relative_path, required_terms in PILOT_CHECKS]
     pilot_blockers = [check["name"] for check in checks if not check["ok"]]
     ready_for_pilots = not pilot_blockers
@@ -248,7 +255,8 @@ def build_report(root: str | Path) -> dict[str, Any]:
         "checks": checks,
         "pilot_blockers": pilot_blockers,
         "stable_blockers": stable_blockers,
-        "next_actions": _next_actions(stage, pilot_blockers),
+        "release_batch": release_batch,
+        "next_actions": _next_actions(stage, pilot_blockers, release_batch),
     }
 
 
@@ -316,11 +324,45 @@ def _major_version(version: str) -> int:
         return 0
 
 
-def _next_actions(stage: str, pilot_blockers: list[str]) -> list[str]:
+def _build_release_batch_status(workspace: Path) -> dict[str, Any]:
+    guard_path = workspace / "tools" / "release_batch_status.py"
+    if not guard_path.exists():
+        return {
+            "available": False,
+            "ready_for_tag": False,
+            "commit_count": 0,
+            "threshold": 5,
+            "remaining": 5,
+            "next_action_es": "Agregar tools/release_batch_status.py antes de publicar tags.",
+        }
+
+    spec = importlib.util.spec_from_file_location("release_batch_status", guard_path)
+    if spec is None or spec.loader is None:
+        return {
+            "available": False,
+            "ready_for_tag": False,
+            "commit_count": 0,
+            "threshold": 5,
+            "remaining": 5,
+            "next_action_es": "No se pudo cargar el guard de releases por lote.",
+        }
+
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    report = module.build_release_batch_status(workspace)
+    report["available"] = True
+    return report
+
+
+def _next_actions(stage: str, pilot_blockers: list[str], release_batch: dict[str, Any]) -> list[str]:
+    release_action = release_batch.get("next_action_es")
     if stage == "stable":
-        return ["Mantener compatibilidad, pruebas reales y politica de cambios."]
+        actions = ["Mantener compatibilidad, pruebas reales y politica de cambios."]
+        if release_action:
+            actions.append(str(release_action))
+        return actions
     if stage == "pilot":
-        return [
+        actions = [
             "Probar con microfono real en Windows, Ubuntu/Linux y macOS.",
             "Probar salida system con voces reales disponibles por sistema.",
             (
@@ -329,6 +371,9 @@ def _next_actions(stage: str, pilot_blockers: list[str]) -> list[str]:
             ),
             "Registrar hallazgos antes de declarar beta o version 1.0.",
         ]
+        if release_action:
+            actions.append(str(release_action))
+        return actions
     return [f"Completar check faltante: {name}" for name in pilot_blockers]
 
 
@@ -338,6 +383,12 @@ def _print_text_report(report: dict[str, Any]) -> None:
     print(f"Stage: {report['stage']}")
     print(f"Ready for real-world pilots: {report['ready_for_real_world_pilots']}")
     print(f"Ready for stable release: {report['ready_for_stable_release']}")
+    release_batch = report["release_batch"]
+    print(
+        "Release batch: "
+        f"{release_batch['commit_count']}/{release_batch['threshold']} "
+        f"(ready_for_tag={str(release_batch['ready_for_tag']).lower()})"
+    )
     print("Checks:")
     for check in report["checks"]:
         marker = "ok" if check["ok"] else "fail"

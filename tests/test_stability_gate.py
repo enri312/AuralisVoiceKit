@@ -27,6 +27,10 @@ class StabilityGateTests(unittest.TestCase):
         self.assertTrue(report["ready_for_real_world_pilots"])
         self.assertFalse(report["ready_for_stable_release"])
         self.assertIn("version_is_pre_1_0", report["stable_blockers"])
+        self.assertTrue(report["release_batch"]["available"])
+        self.assertEqual(report["release_batch"]["threshold"], 5)
+        self.assertFalse(report["release_batch"]["ready_for_tag"])
+        self.assertGreaterEqual(report["release_batch"]["commit_count"], 2)
         check_names = {check["name"] for check in report["checks"]}
         self.assertIn("pilot_runbook", check_names)
         self.assertIn("safe_pilot_runner", check_names)
@@ -40,9 +44,11 @@ class StabilityGateTests(unittest.TestCase):
         self.assertIn("doctor_bundle_api", check_names)
         self.assertIn("doctor_bundle_analysis", check_names)
         self.assertIn("release_workflow", check_names)
+        self.assertIn("release_batch_guard", check_names)
         next_actions = "\n".join(report["next_actions"])
         self.assertIn("Whisper local", next_actions)
         self.assertIn("OpenAI solo como integracion propietaria opt-in", next_actions)
+        self.assertIn("No crear tag todavia", next_actions)
         self.assertNotIn("openai o whisper", next_actions)
 
     def test_min_stage_pilot_exits_successfully(self):
@@ -53,6 +59,7 @@ class StabilityGateTests(unittest.TestCase):
             exit_code = module.main(["--root", str(ROOT), "--min-stage", "pilot"])
 
         self.assertEqual(exit_code, 0)
+        self.assertIn("Release batch:", output.getvalue())
 
 
 if __name__ == "__main__":

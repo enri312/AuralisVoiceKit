@@ -710,7 +710,7 @@ py tools\stability_gate.py --json
 py tools\stability_gate.py --min-stage pilot
 ```
 
-Hoy el gate exige documentacion clave, privacidad/logs, guia de salida custom, ejemplos, PyPI, referencia API, ejemplo de asistente local con logs sanitizados, CI con Windows `windows-2025-vs2026`, pip sin cache y workflow de release con `actions/upload-artifact@v7.0.1`. Si pasa en etapa `pilot`, ya se puede empezar a probar con microfono real, voces del sistema y transcripcion real controlada antes de pensar en `1.0.0`.
+Hoy el gate exige documentacion clave, privacidad/logs, guia de salida custom, ejemplos, PyPI, referencia API, ejemplo de asistente local con logs sanitizados, CI con Windows `windows-2025-vs2026`, pip sin cache, workflow de release con `actions/upload-artifact@v7.0.1` y guard de lote `release_batch`. Si pasa en etapa `pilot`, ya se puede empezar a probar con microfono real, voces del sistema y transcripcion real controlada antes de pensar en `1.0.0`. El reporte JSON tambien incluye `release_batch.ready_for_tag`, `release_batch.commit_count`, `release_batch.remaining` y `release_batch.compare_command` para evitar tags prematuros.
 
 Ruta portable del gate: `tools/stability_gate.py`.
 

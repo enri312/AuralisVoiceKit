@@ -46,7 +46,7 @@ La meta no es competir con todos los motores de voz a la vez. La meta es constru
 | Privacidad y logs | Guia inicial y exportacion JSONL sanitizada |
 | Asistente local con privacidad | Ejemplo offline inicial con logs sanitizados |
 | Backends de salida custom | Guia inicial y ejemplo en memoria |
-| Automatizacion de estabilidad | Gate inicial para pilotos reales |
+| Automatizacion de estabilidad | Gate inicial para pilotos reales y estado de lote de release |
 | Pilotos seguros | Runner automatizado, piloto manual guiado con checklist de captura, command card y operator gate de captura, piloto de salida system con checklist, command card y operator gate de operador, guard de plataforma, readiness por sistema operativo, scan de privacidad del texto hablado y revision de voz, piloto de transcripcion con checklist de revision, plan de instalacion de backend, comando dedicado de MP3/WAV/FLAC real, operator gate de transcripcion y confirmacion humana de calidad, consent card local, copy safety local, audit closure card, rehearsal card, evidence package card, operator brief card, run sheet card, final go/no-go card, local receipt card, command pack por plataforma, checklist de entorno local, runbook, bundle doctor, analisis de bundles y checklist de beta |
 | Mensajes Windows audio | Helper inicial para errores comunes |
 
@@ -342,7 +342,7 @@ Entregables:
 - Versionado semantico.
 - Licencia y metadata final.
 - Workflow manual para TestPyPI/PyPI con Trusted Publishing. Estado: inicial.
-- Gate de estabilidad para CI. Estado: inicial con `tools/stability_gate.py` y workflow de release verificado con `actions/upload-artifact@v7.0.1`.
+- Gate de estabilidad para CI. Estado: inicial con `tools/stability_gate.py`, workflow de release verificado con `actions/upload-artifact@v7.0.1` y reporte `release_batch` para bloquear tags antes de 5 mejoras publicables.
 - Runner de piloto automatizado seguro. Estado: inicial con `tools/pilot_run.py`.
 - Runner de piloto manual guiado. Estado: inicial con `tools/manual_pilot.py`, `manual-capture-checklist.md`, `manual-capture-command.md`, `manual_capture_command_card`, `capture_checklist`, `target_capture_backend`, `capture_backend_ready_required`, `capture_readiness_plan`, `beta_evidence_gap`, `--target-system` para preparar Ubuntu/Linux o macOS sin abrir microfono, setup PortAudio por sistema, `post_install_check` sin microfono, guard `--require-capture-backend-ready`, `system_guard`, `--expected-system`, `--confirm-input-reviewed`, `input_review_confirmed`, redaccion de selector de dispositivo y sin captura real salvo `--capture-test`.
 
