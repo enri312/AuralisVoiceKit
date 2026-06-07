@@ -6,6 +6,15 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+### Mejorado
+
+- La politica de versionado y publicacion ahora documenta que los tags y GitHub Releases se agrupan cada 5 mejoras o commits publicables desde el ultimo tag, salvo pedido explicito del usuario.
+- README, documentacion HTML y proceso de release explican como contar cambios pendientes con `git log <ultimo_tag>..HEAD --oneline` antes de crear un tag.
+
+### Pruebas
+
+- `tests/test_docs.py` valida que la cadencia de releases por lote quede documentada en README, HTML, `VERSIONING.md` y `RELEASE_PROCESS.md`.
+
 ## [0.167.0] - 2026-06-07
 
 ### Mejorado

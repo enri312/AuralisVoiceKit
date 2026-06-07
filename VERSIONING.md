@@ -42,6 +42,21 @@ Antes de cambiar version:
 4. Verificar que el paquete base importa sin extras.
 5. Confirmar si el cambio es `PATCH`, `MINOR` o `MAJOR`.
 
+## Cadencia de tags y releases
+
+Durante la etapa alpha, las mejoras pueden quedar documentadas en `[Unreleased]` sin crear tag inmediato. Para evitar llenar GitHub con releases demasiado pequenas, se crea tag y GitHub Release solo cuando haya 5 mejoras o commits publicables desde el ultimo tag, o cuando el usuario pida publicar explicitamente.
+
+Antes de taggear, contar los cambios pendientes:
+
+```text
+git describe --tags --abbrev=0
+git log <ultimo_tag>..HEAD --oneline
+```
+
+Si hay menos de 5 commits/mejoras publicables, el cambio queda como pendiente o version de desarrollo en `CHANGELOG.md`; no se sube tag ni GitHub Release todavia.
+
+English: alpha releases are batched; tag only after 5 publishable improvements since the latest tag, unless an explicit release is requested.
+
 ## GitHub Releases
 
 Las releases se manejan con tags anotados:

@@ -12,6 +12,19 @@ Este proceso mantiene las versiones de AuralisVoiceKit simples y predecibles.
 
 Mientras el proyecto este en `0.x`, las mejoras grandes suben `MINOR` y las correcciones pequenas suben `PATCH`.
 
+## Cadencia de publicacion
+
+No se crea tag ni GitHub Release en cada mejora. Durante alpha, las mejoras se acumulan en `CHANGELOG.md` bajo `[Unreleased]` y se publica un tag solo cuando haya 5 mejoras o commits publicables desde el ultimo tag, o cuando el usuario pida publicar explicitamente.
+
+Antes de crear un tag, contar el lote pendiente:
+
+```bash
+git describe --tags --abbrev=0
+git log <ultimo_tag>..HEAD --oneline
+```
+
+Si el conteo es menor a 5, se puede hacer commit y push, pero se deja la version como pendiente/desarrollo y no se dispara release. English: alpha releases are batched; tag only after 5 publishable improvements unless explicitly requested.
+
 ## Checklist
 
 1. Revisar cambios desde la ultima version.

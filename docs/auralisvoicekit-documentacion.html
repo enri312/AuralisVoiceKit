@@ -857,8 +857,11 @@ with PrivacyEventLogger("auralis-events.jsonl") as logger:
       <section id="publicacion">
         <h2>Publicacion</h2>
         <p>El paquete esta preparado para publicarse en TestPyPI y PyPI con Trusted Publishing, sin guardar tokens en GitHub. La guia completa vive en <code>PYPI.md</code>.</p>
+        <p>Durante alpha, los cambios se acumulan en <code>CHANGELOG.md</code> bajo <code>[Unreleased]</code>. Solo se crea tag y GitHub Release cuando haya 5 mejoras o commits publicables desde el ultimo tag, o cuando se pida publicar explicitamente. English: alpha releases are batched; tag only after 5 publishable improvements unless explicitly requested.</p>
         <pre><code>python -m build
 python -m twine check dist/*
+git describe --tags --abbrev=0
+git log &lt;ultimo_tag&gt;..HEAD --oneline
 gh workflow run publish-pypi.yml -f index=testpypi -f tag=v0.14.0
 gh workflow run publish-pypi.yml -f index=pypi -f tag=v0.14.0</code></pre>
       </section>

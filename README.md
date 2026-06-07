@@ -904,6 +904,19 @@ BETA_CHECKLIST.md
 BETA_EVIDENCE_REQUIREMENTS.md
 ```
 
+## Versiones y releases
+
+Las mejoras de alpha se documentan en `CHANGELOG.md` bajo `[Unreleased]` y pueden subirse con commit/push sin crear release inmediato. Para no llenar GitHub con tags pequenos, AuralisVoiceKit crea tag y GitHub Release solo cuando haya 5 mejoras o commits publicables desde el ultimo tag, o cuando se pida publicar explicitamente.
+
+Antes de crear un tag:
+
+```powershell
+git describe --tags --abbrev=0
+git log <ultimo_tag>..HEAD --oneline
+```
+
+Si hay menos de 5 mejoras publicables, se deja como cambio pendiente/desarrollo y no se crea tag. English: alpha releases are batched; tag only after 5 publishable improvements since the latest tag unless an explicit release is requested.
+
 ## Roadmap
 
 El roadmap completo esta en:

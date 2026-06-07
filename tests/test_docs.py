@@ -21,6 +21,8 @@ MANUAL_PILOT = ROOT / "tools" / "manual_pilot.py"
 OUTPUT_PILOT = ROOT / "tools" / "output_pilot.py"
 TRANSCRIPTION_PILOT = ROOT / "tools" / "transcription_pilot.py"
 BETA_READINESS = ROOT / "tools" / "beta_readiness.py"
+VERSIONING = ROOT / "VERSIONING.md"
+RELEASE_PROCESS = ROOT / "RELEASE_PROCESS.md"
 
 
 class DocumentationTests(unittest.TestCase):
@@ -611,6 +613,13 @@ class DocumentationTests(unittest.TestCase):
         self.assertIn("freedom_policy", API_DOC.read_text(encoding="utf-8"))
         self.assertIn("system-local", API_DOC.read_text(encoding="utf-8"))
         self.assertIn("target_output_backend.freedom_policy", API_DOC.read_text(encoding="utf-8"))
+
+    def test_release_batch_cadence_is_documented(self):
+        for path in (README, MAIN_DOC, VERSIONING, RELEASE_PROCESS):
+            content = path.read_text(encoding="utf-8").replace("&lt;", "<").replace("&gt;", ">")
+            self.assertIn("5 mejoras", content)
+            self.assertIn("git log <ultimo_tag>..HEAD --oneline", content)
+            self.assertIn("alpha releases are batched", content)
 
 
 if __name__ == "__main__":
