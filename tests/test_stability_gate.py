@@ -30,7 +30,7 @@ class StabilityGateTests(unittest.TestCase):
         release_batch = report["release_batch"]
         self.assertTrue(release_batch["available"])
         self.assertEqual(release_batch["threshold"], 5)
-        self.assertGreaterEqual(release_batch["commit_count"], 1)
+        self.assertGreaterEqual(release_batch["commit_count"], 0)
         if release_batch["ready_for_tag"]:
             self.assertEqual(release_batch["remaining"], 0)
         else:

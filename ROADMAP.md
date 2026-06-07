@@ -343,7 +343,7 @@ Entregables:
 - Licencia y metadata final.
 - Workflow manual para TestPyPI/PyPI con Trusted Publishing. Estado: inicial.
 - Gate de estabilidad para CI. Estado: inicial con `tools/stability_gate.py`, checkout CI con historial/tags completos, workflow de release verificado con `actions/upload-artifact@v7.0.1` y reporte `release_batch` para bloquear tags antes de 5 mejoras publicables.
-- Runner de piloto automatizado seguro. Estado: inicial con `tools/pilot_run.py`.
+- Runner de piloto automatizado seguro. Estado: inicial con `tools/pilot_run.py` y propagacion de `release_batch` a `pilot-report.json`, `pilot-plan.md`, handoff y compuerta go/no-go para evitar tags antes del lote de 5 mejoras.
 - Runner de piloto manual guiado. Estado: inicial con `tools/manual_pilot.py`, `manual-capture-checklist.md`, `manual-capture-command.md`, `manual_capture_command_card`, `capture_checklist`, `target_capture_backend`, `capture_backend_ready_required`, `capture_readiness_plan`, `beta_evidence_gap`, `--target-system` para preparar Ubuntu/Linux o macOS sin abrir microfono, setup PortAudio por sistema, `post_install_check` sin microfono, guard `--require-capture-backend-ready`, `system_guard`, `--expected-system`, `--confirm-input-reviewed`, `input_review_confirmed`, redaccion de selector de dispositivo y sin captura real salvo `--capture-test`.
 
 Criterio de salida:

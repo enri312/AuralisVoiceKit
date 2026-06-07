@@ -57,6 +57,7 @@ def run_safe_pilot(
 
     gate_module = _load_module(workspace / "tools" / "stability_gate.py", "auralis_stability_gate")
     gate = gate_module.build_report(workspace)
+    release_batch = dict(gate.get("release_batch", {}))
     beta_module = _load_module(workspace / "tools" / "beta_readiness.py", "auralis_beta_readiness_for_pilot")
     beta_readiness = beta_module.build_beta_readiness_report(workspace, evidence_paths=evidence_paths or [])
     beta_audit = beta_module.build_evidence_audit_report(workspace, evidence_paths=evidence_paths or [])
@@ -167,6 +168,7 @@ def run_safe_pilot(
         "created_at": timestamp,
         "version": gate["version"],
         "stage": gate["stage"],
+        "release_batch": release_batch,
         "safe_automated_pilot": {
             "passed": safe_pilot_passed,
             "hardware_used": False,
@@ -178,6 +180,7 @@ def run_safe_pilot(
             "ready_for_stable_release": gate["ready_for_stable_release"],
             "pilot_blockers": gate["pilot_blockers"],
             "stable_blockers": gate["stable_blockers"],
+            "release_batch": release_batch,
         },
         "beta_readiness": {
             "ready_for_beta": beta_readiness["ready_for_beta"],
@@ -1858,6 +1861,7 @@ def _real_pilot_decision_gate(report: dict[str, Any]) -> dict[str, Any]:
         "next_evidence_focus": report["beta_readiness"].get("next_evidence_focus", {}),
         "privacy_audit": privacy_audit,
         "privacy_remediation_plan": report["beta_readiness"].get("privacy_remediation_plan", {}),
+        "release_batch": report.get("release_batch", {}),
         "local_environment_warnings": local_warnings,
         "target_system_checks": target_system_checks,
         "operator_actions": [
@@ -1869,6 +1873,7 @@ def _real_pilot_decision_gate(report: dict[str, Any]) -> dict[str, Any]:
             "Review privacy_audit before treating any JSON artifact as beta-ready.",
             "Run the strict audit after collecting real artifacts.",
             "Refresh BETA_CHECKLIST.md only after the audit is reviewed.",
+            "Check release_batch before tagging; do not create a tag until the configured batch is ready.",
         ],
         "hard_stop_conditions": [
             "Do not run real audio if the room, input, reference text or spoken text contains private content.",
@@ -1876,6 +1881,7 @@ def _real_pilot_decision_gate(report: dict[str, Any]) -> dict[str, Any]:
             "Do not declare beta while privacy_audit.blocking=true.",
             "Do not declare beta while beta.decision is blocked.",
             "Do not declare stable while stable.decision is blocked.",
+            "Do not create a Git tag or GitHub Release while release_batch.ready_for_tag is false.",
         ],
         "content_policy": {
             "usable_as_beta_evidence": False,
@@ -3168,6 +3174,8 @@ def _next_evidence_focus_preparation_sequence(
 
 def _format_pilot_plan_markdown(report: dict[str, Any]) -> str:
     beta = report["beta_readiness"]
+    release_batch = report.get("release_batch", {})
+    release_batch_threshold = release_batch.get("threshold", release_batch.get("tag_every", 5))
     findings_template_name = Path(
         report["artifacts"].get("real_pilot_findings_template", "real-pilot-findings-template.md")
     ).name
@@ -3238,6 +3246,10 @@ def _format_pilot_plan_markdown(report: dict[str, Any]) -> str:
         "",
         f"- Version: `{report['version']}`",
         f"- Stage: `{report['stage']}`",
+        f"- Ultimo tag: `{release_batch.get('latest_tag') or 'ninguno'}`",
+        f"- Mejoras desde ultimo tag: `{release_batch.get('commit_count', 0)}/{release_batch_threshold}`",
+        f"- Crear tag ahora: `{_format_bool(release_batch.get('ready_for_tag', False))}`",
+        f"- Mejoras restantes antes de tag: `{release_batch.get('remaining', 0)}`",
         f"- Piloto seguro paso: `{str(report['safe_automated_pilot']['passed']).lower()}`",
         f"- Listo para pilotos reales: `{str(report['gate']['ready_for_real_world_pilots']).lower()}`",
         f"- Listo para beta: `{str(beta['ready_for_beta']).lower()}`",
@@ -3336,6 +3348,7 @@ def _format_pilot_plan_markdown(report: dict[str, Any]) -> str:
             f"- Pilotos reales: `{report['pilot_decision_gate']['real_world_pilot']['decision']}`",
             f"- Beta: `{report['pilot_decision_gate']['beta']['decision']}`",
             f"- Estable: `{report['pilot_decision_gate']['stable']['decision']}`",
+            f"- Release batch listo para tag: `{_format_bool(report['pilot_decision_gate']['release_batch'].get('ready_for_tag', False))}`",
             f"- Siguiente paso: `{report['pilot_decision_gate']['next_recommended_step']['name'] or 'ninguno'}`",
             "",
             "## Tarjeta de alto operativo",
@@ -4209,6 +4222,8 @@ def _format_real_pilot_evidence_manifest_markdown(report: dict[str, Any]) -> str
 def _format_real_pilot_decision_gate_markdown(report: dict[str, Any]) -> str:
     gate = report["pilot_decision_gate"]
     artifact_policy = report["real_pilot_decision_gate"]
+    release_batch = gate.get("release_batch", {})
+    release_batch_threshold = release_batch.get("threshold", release_batch.get("tag_every", 5))
     next_step = gate["next_recommended_step"]
     privacy_audit = gate.get("privacy_audit", {})
     privacy_remediation_plan = gate.get("privacy_remediation_plan", {})
@@ -4239,6 +4254,10 @@ def _format_real_pilot_decision_gate_markdown(report: dict[str, Any]) -> str:
         "",
         f"- Version: `{report['version']}`",
         f"- Stage: `{report['stage']}`",
+        f"- Ultimo tag: `{release_batch.get('latest_tag') or 'ninguno'}`",
+        f"- Mejoras desde ultimo tag: `{release_batch.get('commit_count', 0)}/{release_batch_threshold}`",
+        f"- Crear tag ahora: `{_format_bool(release_batch.get('ready_for_tag', False))}`",
+        f"- Mejoras restantes antes de tag: `{release_batch.get('remaining', 0)}`",
         f"- Pilotos reales: `{gate['real_world_pilot']['decision']}`",
         f"- Motivo pilotos reales: {gate['real_world_pilot']['reason']}",
         f"- Beta: `{gate['beta']['decision']}`",
@@ -4316,6 +4335,7 @@ def _format_real_pilot_decision_gate_markdown(report: dict[str, Any]) -> str:
             "- Si `pilotos reales` es `blocked`, volver al gate de estabilidad antes de tocar hardware.",
             "- Si `beta` es `blocked`, ejecutar solo pilotos reales y auditoria; no declarar beta publica.",
             "- Si `estable` es `blocked`, mantener version pre-1.0 aunque la preparacion de pilotos avance.",
+            "- Si `crear tag ahora` es `false`, acumular mejoras publicables y no crear GitHub Release.",
             "",
         ]
     )
@@ -5597,6 +5617,8 @@ def _format_real_pilot_local_receipt_markdown(report: dict[str, Any]) -> str:
 
 def _format_real_pilot_handoff_markdown(report: dict[str, Any]) -> str:
     beta = report["beta_readiness"]
+    release_batch = report.get("release_batch", {})
+    release_batch_threshold = release_batch.get("threshold", release_batch.get("tag_every", 5))
     policy = report["real_pilot_handoff"]["content_policy"]
     command_pack_name = Path(
         report["artifacts"].get("real_pilot_command_pack", "real-pilot-command-pack.md")
@@ -5664,6 +5686,9 @@ def _format_real_pilot_handoff_markdown(report: dict[str, Any]) -> str:
         "",
         f"- Version: `{report['version']}`",
         f"- Stage: `{report['stage']}`",
+        f"- Ultimo tag: `{release_batch.get('latest_tag') or 'ninguno'}`",
+        f"- Mejoras desde ultimo tag: `{release_batch.get('commit_count', 0)}/{release_batch_threshold}`",
+        f"- Crear tag ahora: `{_format_bool(release_batch.get('ready_for_tag', False))}`",
         f"- Piloto seguro paso: `{_format_bool(report['safe_automated_pilot']['passed'])}`",
         f"- Listo para pilotos reales: `{_format_bool(report['gate']['ready_for_real_world_pilots'])}`",
         f"- Listo para beta: `{_format_bool(beta['ready_for_beta'])}`",
@@ -5727,6 +5752,7 @@ def _format_real_pilot_handoff_markdown(report: dict[str, Any]) -> str:
             f"- Revisar compuerta: `{decision_gate_name}`",
             "- Guardar solo artifacts JSON/Markdown sanitizados generados por las herramientas.",
             "- Ejecutar el refresco de `BETA_CHECKLIST.md` despues de auditar evidencias reales.",
+            "- Crear tag/GitHub Release solo cuando el lote de 5 mejoras este listo o el usuario lo pida explicitamente.",
             "",
             "## Antes de ejecutar",
             "",

@@ -6,6 +6,15 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+### Mejorado
+
+- `tools/pilot_run.py` ahora propaga `release_batch` desde el gate de estabilidad a `pilot-report.json`, `pilot-plan.md`, `real-pilot-handoff.md` y `real-pilot-decision-gate.md`.
+- Las tarjetas de piloto muestran ultimo tag, conteo `n/5`, mejoras restantes y si corresponde crear tag/GitHub Release, reforzando la cadencia por lote.
+
+### Pruebas
+
+- `tests/test_pilot_run.py` valida que `release_batch` quede sincronizado entre el reporte, el gate del piloto y las tarjetas Markdown.
+
 ## [0.168.0] - 2026-06-07
 
 ### Mejorado
