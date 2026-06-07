@@ -16,6 +16,87 @@ _PYTHON_EXTRA_BY_BACKEND = {
     ("transcription", "whisper"): "whisper",
 }
 
+_FREEDOM_POLICY_BY_BACKEND = {
+    ("capture", "null"): {
+        "category": "free-local",
+        "free_default": True,
+        "network_required": False,
+        "proprietary": False,
+        "note": "Included local test backend.",
+    },
+    ("capture", "wav"): {
+        "category": "free-local",
+        "free_default": True,
+        "network_required": False,
+        "proprietary": False,
+        "note": "Local WAV file capture backend.",
+    },
+    ("capture", "sounddevice"): {
+        "category": "free-local",
+        "free_default": True,
+        "network_required": False,
+        "proprietary": False,
+        "note": "Optional local capture backend.",
+    },
+    ("capture", "wasapi"): {
+        "category": "free-local",
+        "free_default": True,
+        "network_required": False,
+        "proprietary": False,
+        "note": "Optional local Windows capture backend using sounddevice.",
+    },
+    ("capture", "pyaudio"): {
+        "category": "free-local",
+        "free_default": True,
+        "network_required": False,
+        "proprietary": False,
+        "note": "Optional local compatibility backend.",
+    },
+    ("transcription", "null"): {
+        "category": "free-local",
+        "free_default": True,
+        "network_required": False,
+        "proprietary": False,
+        "note": "Included local test backend.",
+    },
+    ("transcription", "whisper"): {
+        "category": "free-local",
+        "free_default": True,
+        "network_required": False,
+        "proprietary": False,
+        "note": "Recommended local transcription path.",
+    },
+    ("transcription", "openai"): {
+        "category": "proprietary-api",
+        "free_default": False,
+        "network_required": True,
+        "proprietary": True,
+        "note": "Optional proprietary API integration; never installed or selected by default.",
+    },
+    ("output", "null"): {
+        "category": "free-local",
+        "free_default": True,
+        "network_required": False,
+        "proprietary": False,
+        "note": "Included local test output backend.",
+    },
+    ("output", "system"): {
+        "category": "system-local",
+        "free_default": True,
+        "network_required": False,
+        "proprietary": False,
+        "note": "Uses local operating-system speech tools.",
+    },
+}
+
+_DEFAULT_FREEDOM_POLICY = {
+    "category": "unknown",
+    "free_default": False,
+    "network_required": None,
+    "proprietary": None,
+    "note": "Custom backend; inspect the implementation before use.",
+}
+
 
 def _public_dependency_name(value: str) -> str:
     normalized = value.replace("\\", "/").rstrip("/")
@@ -37,6 +118,10 @@ def _install_plan(kind: str, name: str) -> dict[str, Any]:
     }
 
 
+def _freedom_policy(kind: str, name: str) -> dict[str, Any]:
+    return dict(_FREEDOM_POLICY_BY_BACKEND.get((kind, name), _DEFAULT_FREEDOM_POLICY))
+
+
 def backend_inventory(registry: BackendRegistry | None = None) -> dict[str, Any]:
     """Return registered backend availability without local paths or credentials."""
 
@@ -50,6 +135,7 @@ def backend_inventory(registry: BackendRegistry | None = None) -> dict[str, Any]
             "reason": info.reason,
             "dependencies": [_public_dependency_name(dependency) for dependency in info.dependencies],
             "install_plan": _install_plan(info.kind, info.name),
+            "freedom_policy": _freedom_policy(info.kind, info.name),
         }
         for info in infos
     ]

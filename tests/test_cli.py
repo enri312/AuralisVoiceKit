@@ -99,6 +99,7 @@ class CliTests(unittest.TestCase):
 
         self.assertEqual(exit_code, 0)
         self.assertIn("capture:null", output.getvalue())
+        self.assertIn("free-local", output.getvalue())
 
     def test_backends_command_outputs_json_report(self):
         output = io.StringIO()
@@ -129,6 +130,12 @@ class CliTests(unittest.TestCase):
             backends["transcription:openai"]["install_plan"]["pip_command"],
             'python -m pip install "auralisvoicekit[openai]"',
         )
+        self.assertEqual(backends["transcription:openai"]["freedom_policy"]["category"], "proprietary-api")
+        self.assertFalse(backends["transcription:openai"]["freedom_policy"]["free_default"])
+        self.assertTrue(backends["transcription:openai"]["freedom_policy"]["network_required"])
+        self.assertTrue(backends["transcription:openai"]["freedom_policy"]["proprietary"])
+        self.assertEqual(backends["transcription:whisper"]["freedom_policy"]["category"], "free-local")
+        self.assertFalse(backends["transcription:whisper"]["freedom_policy"]["network_required"])
         self.assertEqual(backends["capture:wasapi"]["install_plan"]["python_extra"], "sounddevice")
         self.assertFalse(backends["capture:null"]["install_plan"]["uses_pip_extra"])
         for backend in payload["backends"]:

@@ -231,7 +231,9 @@ def _print_backends(*, json_output: bool = False) -> int:
             if info["install_plan"]["pip_command"]
             else ""
         )
-        print(f"{info['kind']}:{info['name']} - {status} - deps: {deps}{install}")
+        policy = info.get("freedom_policy", {})
+        category = policy.get("category", "unknown")
+        print(f"{info['kind']}:{info['name']} - {status} - {category} - deps: {deps}{install}")
     return 0
 
 

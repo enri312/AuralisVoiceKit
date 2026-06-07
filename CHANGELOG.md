@@ -6,6 +6,19 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.164.0] - 2026-06-07
+
+### Mejorado
+
+- `backend_inventory()`, `AuralisVoiceKit.backend_inventory()` y `auralis backends --json` ahora exponen `freedom_policy` por backend.
+- La politica clasifica backends como `free-local`, `system-local` o `proprietary-api`, y marca `openai` como integracion propietaria opcional con red requerida y no default libre.
+- La salida humana de `auralis backends` muestra la categoria de libertad/localidad junto al estado y dependencias.
+
+### Pruebas
+
+- `tests/test_kit.py` y `tests/test_cli.py` validan el nuevo contrato `freedom_policy`.
+- `tests/test_docs.py` valida que README y documentacion HTML mencionen la politica de libertad/localidad versionada.
+
 ## [0.163.0] - 2026-06-06
 
 ### Mejorado

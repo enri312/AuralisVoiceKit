@@ -168,6 +168,8 @@ Nota `v0.162.0`: `real_pilot_command_pack` y `real-pilot-command-pack.md` tambie
 
 Nota `v0.163.0`: los mensajes de estabilidad, beta y pilotos de transcripcion recomiendan Whisper local como ruta libre para evidencia real y mantienen OpenAI solo como integracion propietaria opt-in.
 
+Nota `v0.164.0`: el inventario publico de backends expone `freedom_policy` para declarar si cada backend es `free-local`, `system-local` o `proprietary-api`, incluyendo `free_default`, `network_required` y `proprietary`.
+
 ## Fase 0 - Base del proyecto
 
 **Objetivo:** dejar una libreria instalable, importable y testeable.

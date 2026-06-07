@@ -148,6 +148,16 @@ class AuralisVoiceKitTests(unittest.TestCase):
             backends["transcription:whisper"]["install_plan"]["pip_command"],
             'python -m pip install "auralisvoicekit[whisper]"',
         )
+        self.assertEqual(backends["transcription:whisper"]["freedom_policy"]["category"], "free-local")
+        self.assertTrue(backends["transcription:whisper"]["freedom_policy"]["free_default"])
+        self.assertFalse(backends["transcription:whisper"]["freedom_policy"]["proprietary"])
+        self.assertEqual(backends["transcription:openai"]["freedom_policy"]["category"], "proprietary-api")
+        self.assertFalse(backends["transcription:openai"]["freedom_policy"]["free_default"])
+        self.assertTrue(backends["transcription:openai"]["freedom_policy"]["network_required"])
+        self.assertTrue(backends["transcription:openai"]["freedom_policy"]["proprietary"])
+        self.assertIn("never installed or selected by default", backends["transcription:openai"]["freedom_policy"]["note"])
+        self.assertEqual(backends["output:system"]["freedom_policy"]["category"], "system-local")
+        self.assertFalse(backends["output:system"]["freedom_policy"]["network_required"])
         self.assertFalse(backends["output:null"]["install_plan"]["uses_pip_extra"])
         for backend in inventory["backends"]:
             for dependency in backend["dependencies"]:
