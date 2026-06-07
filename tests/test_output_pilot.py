@@ -158,6 +158,26 @@ class OutputPilotTests(unittest.TestCase):
         self.assertEqual(report["system_output_operator_gate"]["decision"], "blocked")
         self.assertFalse(report["system_output_operator_gate"]["ready_for_beta_audit"])
         self.assertTrue(report["system_output_operator_gate"]["command_safe_to_copy"])
+        self.assertEqual(
+            report["system_output_operator_gate"]["copy_readiness"]["decision"],
+            "ready_to_copy_template",
+        )
+        self.assertTrue(report["system_output_operator_gate"]["copy_readiness"]["template_safe_to_copy"])
+        self.assertFalse(report["system_output_operator_gate"]["copy_readiness"]["ready_to_run_real_audio"])
+        self.assertFalse(report["system_output_operator_gate"]["copy_readiness"]["records_spoken_text"])
+        self.assertFalse(report["system_output_operator_gate"]["copy_readiness"]["records_operator_identity"])
+        self.assertIn(
+            "<public-spoken-text>",
+            report["system_output_operator_gate"]["copy_readiness"]["required_placeholders"],
+        )
+        self.assertIn(
+            "real_output_explicitly_requested",
+            report["system_output_operator_gate"]["copy_readiness"]["pending_confirmations"],
+        )
+        self.assertIn(
+            "real_audio_requested",
+            report["system_output_operator_gate"]["copy_readiness"]["pending_fields"],
+        )
         self.assertTrue(report["system_output_operator_gate"]["local_operator_required"])
         self.assertIn(
             "real_output_explicitly_requested",
@@ -188,6 +208,9 @@ class OutputPilotTests(unittest.TestCase):
         self.assertIn("Operator gate decision: blocked", checklist)
         self.assertIn("System Output Operator Gate", checklist)
         self.assertIn("Operator gate decision: blocked", next_step)
+        self.assertIn("System output copy readiness decision: ready_to_copy_template", findings)
+        self.assertIn("Template safe to copy: True", checklist)
+        self.assertIn("Ready to run real audio: False", next_step)
         self.assertIn("system_output_operator_gate.ready_for_beta_audit=true", next_step)
         self.assertIn("--evidence <pilot-output-dir>", next_step)
 
@@ -255,6 +278,14 @@ class OutputPilotTests(unittest.TestCase):
         self.assertTrue(report["system_output_operator_gate"]["ready_for_beta_audit"])
         self.assertEqual(report["system_output_operator_gate"]["missing_confirmations"], [])
         self.assertEqual(report["system_output_operator_gate"]["missing_fields"], [])
+        self.assertEqual(
+            report["system_output_operator_gate"]["copy_readiness"]["decision"],
+            "ready_to_copy_template",
+        )
+        self.assertTrue(report["system_output_operator_gate"]["copy_readiness"]["template_safe_to_copy"])
+        self.assertTrue(report["system_output_operator_gate"]["copy_readiness"]["ready_to_run_real_audio"])
+        self.assertEqual(report["system_output_operator_gate"]["copy_readiness"]["pending_confirmations"], [])
+        self.assertEqual(report["system_output_operator_gate"]["copy_readiness"]["pending_fields"], [])
         self.assertFalse(report["system_output_operator_gate"]["records_spoken_text"])
         self.assertFalse(report["system_output_operator_gate"]["records_operator_identity"])
         self.assertFalse(report["beta_evidence_gap"]["records_spoken_text"])
@@ -267,6 +298,7 @@ class OutputPilotTests(unittest.TestCase):
         self.assertIn("Ready for beta evidence: `True`", findings)
         self.assertIn("Beta evidence gap ready: True", next_step)
         self.assertIn("Operator gate ready for beta audit: True", next_step)
+        self.assertIn("Ready to run real audio: True", next_step)
         self.assertIn("Missing fields: none", next_step)
 
     def test_output_pilot_cli_outputs_json(self):

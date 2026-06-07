@@ -180,6 +180,8 @@ Nota Unreleased: `tools/pilot_audio_fixture.py` propaga `preflight.freedom_polic
 
 Nota Unreleased: el dry-run Windows de salida `system` fue repetido con `--require-output-backend-ready` y quedo documentado en `PILOT_FINDINGS.md`; el backend local esta disponible, el comando es seguro para copiar y beta sigue bloqueada hasta reproducir audio con operador presente y confirmaciones humanas.
 
+Nota Unreleased: `tools/output_pilot.py` agrega `system_output_operator_gate.copy_readiness` para distinguir si la plantilla con placeholders es segura para copiar, si todavia faltan confirmaciones locales y si el audio real ya esta listo para auditoria beta.
+
 ## Fase 0 - Base del proyecto
 
 **Objetivo:** dejar una libreria instalable, importable y testeable.

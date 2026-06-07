@@ -1020,6 +1020,13 @@ def _system_output_operator_gate(
         and command_safe_to_copy
         and not missing_confirmations
     )
+    copy_readiness = _system_output_copy_readiness(
+        command_safe_to_copy=command_safe_to_copy,
+        ready_for_beta_audit=ready_for_beta_audit,
+        missing_confirmations=missing_confirmations,
+        missing_fields=beta_evidence_gap["missing_fields"],
+        system_output_command_card=system_output_command_card,
+    )
     return {
         "safe_to_share": True,
         "decision": "ready_for_beta_audit" if ready_for_beta_audit else "blocked",
@@ -1027,6 +1034,7 @@ def _system_output_operator_gate(
         "expected_artifact": "output-pilot-report.json",
         "ready_for_beta_audit": ready_for_beta_audit,
         "command_safe_to_copy": command_safe_to_copy,
+        "copy_readiness": copy_readiness,
         "local_operator_required": True,
         "confirmations": confirmations,
         "missing_confirmations": missing_confirmations,
@@ -1045,6 +1053,63 @@ def _system_output_operator_gate(
         "records_spoken_text": False,
         "records_operator_identity": False,
         "records_local_paths": False,
+    }
+
+
+def _system_output_copy_readiness(
+    *,
+    command_safe_to_copy: bool,
+    ready_for_beta_audit: bool,
+    missing_confirmations: list[str],
+    missing_fields: list[str],
+    system_output_command_card: dict[str, Any],
+) -> dict[str, Any]:
+    """Explain whether the audible-output command template can be copied safely."""
+
+    blocked_by: list[str] = []
+    if not command_safe_to_copy:
+        blocked_by.append("unsafe_command_template")
+    if not system_output_command_card["system_dependency_plan"]["safe_to_share"]:
+        blocked_by.append("unsafe_system_dependency_plan")
+    if system_output_command_card["system_dependency_plan"]["post_install_check_plays_audio"]:
+        blocked_by.append("preflight_would_play_audio")
+    if not system_output_command_card["uses_placeholders"]:
+        blocked_by.append("missing_placeholders")
+    if system_output_command_card["records_spoken_text"]:
+        blocked_by.append("records_spoken_text")
+    if system_output_command_card["records_operator_identity"]:
+        blocked_by.append("records_operator_identity")
+    if system_output_command_card["records_local_paths"]:
+        blocked_by.append("records_local_paths")
+
+    template_safe_to_copy = command_safe_to_copy and not blocked_by
+    return {
+        "safe_to_share": True,
+        "decision": "ready_to_copy_template" if template_safe_to_copy else "blocked",
+        "template_safe_to_copy": template_safe_to_copy,
+        "ready_to_run_real_audio": ready_for_beta_audit,
+        "ready_for_beta_audit": ready_for_beta_audit,
+        "preflight_must_run_first": True,
+        "preflight_plays_audio": system_output_command_card["preflight_plays_audio"],
+        "real_output_requires_operator": system_output_command_card["real_output_requires_operator"],
+        "uses_placeholders": system_output_command_card["uses_placeholders"],
+        "required_placeholders": ["<pilot-output-dir>", "<public-spoken-text>"],
+        "local_replacements": [
+            "Replace <pilot-output-dir> with a local artifact directory before running.",
+            "Replace <public-spoken-text> only after confirming it is public and non-sensitive.",
+        ],
+        "pending_confirmations": list(missing_confirmations),
+        "pending_fields": list(missing_fields),
+        "blocked_by": blocked_by,
+        "records_audio": False,
+        "records_spoken_text": False,
+        "records_operator_identity": False,
+        "records_local_paths": False,
+        "next_action": (
+            "Run the audit command against the sanitized output directory."
+            if ready_for_beta_audit
+            else "Copy only the placeholder template; complete local confirmations before real audio."
+        ),
     }
 
 
@@ -1129,6 +1194,9 @@ def _build_findings_markdown(
         f"- System output operator gate decision: {system_output_operator_gate['decision']}",
         f"- System output operator gate ready for beta audit: {system_output_operator_gate['ready_for_beta_audit']}",
         f"- System output operator gate missing confirmations: {system_output_operator_gate['missing_confirmation_count']}",
+        f"- System output copy readiness decision: {system_output_operator_gate['copy_readiness']['decision']}",
+        f"- System output template safe to copy: {system_output_operator_gate['copy_readiness']['template_safe_to_copy']}",
+        f"- System output ready to run real audio: {system_output_operator_gate['copy_readiness']['ready_to_run_real_audio']}",
         f"- Beta evidence gap ready: {beta_evidence_gap['ready_for_beta_evidence']}",
         f"- Beta evidence gap missing count: {beta_evidence_gap['missing_count']}",
         f"- Beta evidence gap next action: {beta_evidence_gap['next_action']}",
@@ -1159,6 +1227,9 @@ def _build_findings_markdown(
         f"- Decision: `{system_output_operator_gate['decision']}`",
         f"- Ready for beta audit: `{system_output_operator_gate['ready_for_beta_audit']}`",
         f"- Command safe to copy: `{system_output_operator_gate['command_safe_to_copy']}`",
+        f"- Copy readiness decision: `{system_output_operator_gate['copy_readiness']['decision']}`",
+        f"- Template safe to copy: `{system_output_operator_gate['copy_readiness']['template_safe_to_copy']}`",
+        f"- Ready to run real audio: `{system_output_operator_gate['copy_readiness']['ready_to_run_real_audio']}`",
         f"- Missing confirmations: {_format_list(system_output_operator_gate['missing_confirmations'])}",
         f"- Missing fields: {_format_list(system_output_operator_gate['missing_fields'])}",
         f"- Next action: {system_output_operator_gate['next_action']}",
@@ -1343,6 +1414,9 @@ def _build_system_output_next_step_markdown(
         f"- Operator gate ready for beta audit: {system_output_operator_gate['ready_for_beta_audit']}",
         f"- Operator gate command safe to copy: {system_output_operator_gate['command_safe_to_copy']}",
         f"- Operator gate missing confirmations: {system_output_operator_gate['missing_confirmation_count']}",
+        f"- Copy readiness decision: {system_output_operator_gate['copy_readiness']['decision']}",
+        f"- Template safe to copy: {system_output_operator_gate['copy_readiness']['template_safe_to_copy']}",
+        f"- Ready to run real audio: {system_output_operator_gate['copy_readiness']['ready_to_run_real_audio']}",
         f"- Beta evidence gap ready: {beta_evidence_gap['ready_for_beta_evidence']}",
         f"- Beta evidence gap missing count: {beta_evidence_gap['missing_count']}",
         f"- Beta evidence gap next action: {beta_evidence_gap['next_action']}",
@@ -1389,6 +1463,11 @@ def _build_system_output_next_step_markdown(
         f"- Decision: `{system_output_operator_gate['decision']}`",
         f"- Ready for beta audit: `{system_output_operator_gate['ready_for_beta_audit']}`",
         f"- Command safe to copy: `{system_output_operator_gate['command_safe_to_copy']}`",
+        f"- Copy readiness decision: `{system_output_operator_gate['copy_readiness']['decision']}`",
+        f"- Template safe to copy: `{system_output_operator_gate['copy_readiness']['template_safe_to_copy']}`",
+        f"- Ready to run real audio: `{system_output_operator_gate['copy_readiness']['ready_to_run_real_audio']}`",
+        f"- Pending confirmations before real audio: {_format_list(system_output_operator_gate['copy_readiness']['pending_confirmations'])}",
+        f"- Pending fields before beta audit: {_format_list(system_output_operator_gate['copy_readiness']['pending_fields'])}",
         f"- Missing confirmations: {_format_list(system_output_operator_gate['missing_confirmations'])}",
         f"- Missing fields: {_format_list(system_output_operator_gate['missing_fields'])}",
         "",
@@ -1417,6 +1496,15 @@ def _build_operator_checklist_markdown(
     operator_checklist: dict[str, Any],
     system_output_operator_gate: dict[str, Any],
 ) -> str:
+    copy_readiness = system_output_operator_gate.get(
+        "copy_readiness",
+        {
+            "decision": "unknown",
+            "template_safe_to_copy": system_output_operator_gate.get("command_safe_to_copy"),
+            "ready_to_run_real_audio": system_output_operator_gate.get("ready_for_beta_audit"),
+            "pending_confirmations": list(system_output_operator_gate.get("missing_confirmations", [])),
+        },
+    )
     lines = [
         "# System output operator checklist",
         "",
@@ -1437,6 +1525,9 @@ def _build_operator_checklist_markdown(
         f"- Operator gate ready for beta audit: {system_output_operator_gate['ready_for_beta_audit']}",
         f"- Operator gate command safe to copy: {system_output_operator_gate['command_safe_to_copy']}",
         f"- Operator gate missing confirmations: {system_output_operator_gate['missing_confirmation_count']}",
+        f"- Copy readiness decision: {copy_readiness['decision']}",
+        f"- Template safe to copy: {copy_readiness['template_safe_to_copy']}",
+        f"- Ready to run real audio: {copy_readiness['ready_to_run_real_audio']}",
         "",
         "## Before Playback",
         "",
@@ -1461,6 +1552,10 @@ def _build_operator_checklist_markdown(
             f"- Ready for beta audit: `{system_output_operator_gate['ready_for_beta_audit']}`",
             f"- Missing confirmations: {_format_list(system_output_operator_gate['missing_confirmations'])}",
             f"- Missing fields: {_format_list(system_output_operator_gate['missing_fields'])}",
+            f"- Copy readiness decision: `{copy_readiness['decision']}`",
+            f"- Template safe to copy: `{copy_readiness['template_safe_to_copy']}`",
+            f"- Ready to run real audio: `{copy_readiness['ready_to_run_real_audio']}`",
+            f"- Pending confirmations before real audio: {_format_list(copy_readiness['pending_confirmations'])}",
         ]
     )
     lines.extend(
