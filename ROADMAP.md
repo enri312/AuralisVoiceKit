@@ -186,6 +186,8 @@ Nota `v0.169.0`: `tools/beta_readiness.py` exige `system_output_operator_gate.co
 
 Nota Unreleased: `tools/release_batch_status.py` agrega `batch_state`, `batch_summary_*` y `publishable_commits_needed` para distinguir lotes recien reiniciados, en progreso o listos antes de crear tags.
 
+Nota Unreleased: `tools/release_batch_status.py` agrega `publish_decision`, `release_blocker` y `explicit_user_override_required` para que automatizaciones y operadores mantengan el release en espera mientras el lote este incompleto.
+
 Nota Unreleased: `tools/pilot_run.py` propaga ese estado explicito del lote a `pilot-plan.md`, `real-pilot-handoff.md` y `real-pilot-decision-gate.md`, mostrando resumen y commits publicables faltantes para el operador.
 
 Nota Unreleased: las tarjetas finales de operador (`real-pilot-operator-brief.md`, `real-pilot-run-sheet.md`, `real-pilot-final-go-no-go.md` y `real-pilot-local-receipt.md`) incluyen `release_batch_notice` para separar resultados de pilotos reales de la decision de publicar tags.

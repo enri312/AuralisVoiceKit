@@ -88,6 +88,8 @@ Nota `v0.169.0`: `tools/output_pilot.py` agrega `system_output_operator_gate.cop
 
 Nota Unreleased: `tools/release_batch_status.py` publica `batch_state`, `batch_summary_*` y `publishable_commits_needed` para que los pilotos y automatizaciones sepan si el lote esta recien reiniciado, en progreso o listo antes de crear tags. English: release batches now expose an explicit state for safer publishing cadence.
 
+Nota Unreleased: `tools/release_batch_status.py` tambien publica `publish_decision`, `release_blocker` y `explicit_user_override_required` para que un piloto real no derive en tag/GitHub Release mientras el lote siga incompleto. English: release batches now expose an explicit hold/prepare decision for safer publishing automation.
+
 Nota Unreleased: `tools/pilot_run.py` muestra ese estado del lote en `pilot-plan.md`, `real-pilot-handoff.md` y `real-pilot-decision-gate.md`, incluyendo resumen y commits publicables faltantes. English: safe-pilot artifacts now surface explicit release-batch state for operators.
 
 Nota Unreleased: las tarjetas operativas finales (`real-pilot-operator-brief.md`, `real-pilot-run-sheet.md`, `real-pilot-final-go-no-go.md` y `real-pilot-local-receipt.md`) tambien muestran el aviso de lote de release para no crear tags ni GitHub Releases desde un piloto real mientras el lote siga incompleto. English: final real-pilot operator cards now repeat the release-batch warning.

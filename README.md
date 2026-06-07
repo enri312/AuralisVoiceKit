@@ -710,7 +710,7 @@ py tools\stability_gate.py --json
 py tools\stability_gate.py --min-stage pilot
 ```
 
-Hoy el gate exige documentacion clave, privacidad/logs, guia de salida custom, ejemplos, PyPI, referencia API, ejemplo de asistente local con logs sanitizados, CI con Windows `windows-2025-vs2026`, pip sin cache, checkout CI con `fetch-depth: 0` y `fetch-tags: true`, workflow de release con `actions/upload-artifact@v7.0.1` y guard de lote `release_batch`. Si pasa en etapa `pilot`, ya se puede empezar a probar con microfono real, voces del sistema y transcripcion real controlada antes de pensar en `1.0.0`. El reporte JSON tambien incluye `release_batch.ready_for_tag`, `release_batch.commit_count`, `release_batch.remaining`, `release_batch.batch_state`, `release_batch.batch_summary_es`, `release_batch.publishable_commits_needed` y `release_batch.compare_command` para evitar tags prematuros. `tools\pilot_run.py` copia ese estado a `pilot-plan.md`, `real-pilot-handoff.md`, `real-pilot-decision-gate.md` y a las tarjetas finales del operador mediante `release_batch_notice`, para que el operador vea si el lote esta `fresh`, `collecting` o `ready`.
+Hoy el gate exige documentacion clave, privacidad/logs, guia de salida custom, ejemplos, PyPI, referencia API, ejemplo de asistente local con logs sanitizados, CI con Windows `windows-2025-vs2026`, pip sin cache, checkout CI con `fetch-depth: 0` y `fetch-tags: true`, workflow de release con `actions/upload-artifact@v7.0.1` y guard de lote `release_batch`. Si pasa en etapa `pilot`, ya se puede empezar a probar con microfono real, voces del sistema y transcripcion real controlada antes de pensar en `1.0.0`. El reporte JSON tambien incluye `release_batch.ready_for_tag`, `release_batch.commit_count`, `release_batch.remaining`, `release_batch.batch_state`, `release_batch.batch_summary_es`, `release_batch.publishable_commits_needed`, `release_batch.publish_decision`, `release_batch.release_blocker`, `release_batch.explicit_user_override_required` y `release_batch.compare_command` para evitar tags prematuros. `tools\pilot_run.py` copia ese estado a `pilot-plan.md`, `real-pilot-handoff.md`, `real-pilot-decision-gate.md` y a las tarjetas finales del operador mediante `release_batch_notice`, para que el operador vea si el lote esta `fresh`, `collecting` o `ready`.
 
 Ruta portable del gate: `tools/stability_gate.py`.
 
@@ -923,7 +923,7 @@ py tools\release_batch_status.py --json
 py tools\release_batch_status.py --fail-if-not-ready
 ```
 
-Si hay menos de 5 mejoras publicables, se deja como cambio pendiente/desarrollo y no se crea tag. `tools\release_batch_status.py` devuelve `ready_for_tag=false`, `remaining`, `batch_state` (`fresh`, `collecting` o `ready`), `publishable_commits_needed` y `compare_command` para automatizar esa decision antes de publicar. English: alpha releases are batched; tag only after 5 publishable improvements since the latest tag unless an explicit release is requested.
+Si hay menos de 5 mejoras publicables, se deja como cambio pendiente/desarrollo y no se crea tag. `tools\release_batch_status.py` devuelve `ready_for_tag=false`, `remaining`, `batch_state` (`fresh`, `collecting` o `ready`), `publishable_commits_needed`, `publish_decision=hold`, `release_blocker`, `explicit_user_override_required=true` y `compare_command` para automatizar esa decision antes de publicar. English: alpha releases are batched; tag only after 5 publishable improvements since the latest tag unless an explicit release is requested.
 
 ## Roadmap
 

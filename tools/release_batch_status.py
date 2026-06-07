@@ -70,16 +70,41 @@ def build_release_batch_status(
     ready = commit_count >= threshold
     if ready:
         batch_state = "ready"
+        publish_decision = "prepare_release"
+        release_blocker = None
         batch_summary_es = f"Lote listo: {commit_count}/{threshold}. Ya corresponde tag y GitHub Release."
         batch_summary_en = f"Batch ready: {commit_count}/{threshold}. Tag and GitHub Release can be prepared."
     elif commit_count == 0:
         batch_state = "fresh"
+        publish_decision = "hold"
+        release_blocker = "release_batch_fresh"
         batch_summary_es = f"Lote reiniciado: 0/{threshold}. No crear tag todavia."
         batch_summary_en = f"Batch reset: 0/{threshold}. Do not tag yet."
     else:
         batch_state = "collecting"
+        publish_decision = "hold"
+        release_blocker = "release_batch_incomplete"
         batch_summary_es = f"Lote en progreso: {commit_count}/{threshold}; faltan {remaining} mejora(s)."
         batch_summary_en = f"Batch in progress: {commit_count}/{threshold}; {remaining} improvement(s) remaining."
+
+    release_blocker_es = (
+        None
+        if ready
+        else (
+            "El lote acaba de reiniciarse; acumular 5 mejoras publicables antes del siguiente tag."
+            if commit_count == 0
+            else f"El lote aun no llega a {threshold} mejoras publicables desde el ultimo tag."
+        )
+    )
+    release_blocker_en = (
+        None
+        if ready
+        else (
+            "The batch has just reset; collect 5 publishable improvements before the next tag."
+            if commit_count == 0
+            else f"The batch has not reached {threshold} publishable improvements since the latest tag."
+        )
+    )
 
     return {
         "project": "AuralisVoiceKit",
@@ -92,6 +117,11 @@ def build_release_batch_status(
         "batch_summary_en": batch_summary_en,
         "next_tag_after_commit_count": threshold,
         "publishable_commits_needed": remaining,
+        "publish_decision": publish_decision,
+        "release_blocker": release_blocker,
+        "release_blocker_es": release_blocker_es,
+        "release_blocker_en": release_blocker_en,
+        "explicit_user_override_required": not ready,
         "ready_for_tag": ready,
         "should_create_release": ready,
         "compare_command": compare_command,
@@ -122,6 +152,9 @@ def _format_text(report: dict[str, object]) -> str:
         f"Commits since latest tag: {report['commit_count']}/{report['threshold']}",
         f"Batch state: {report['batch_state']}",
         f"Publishable commits needed: {report['publishable_commits_needed']}",
+        f"Publish decision: {report['publish_decision']}",
+        f"Release blocker: {report['release_blocker'] or 'none'}",
+        f"Explicit user override required: {str(report['explicit_user_override_required']).lower()}",
         f"Ready for tag: {str(report['ready_for_tag']).lower()}",
         f"Compare command: {report['compare_command']}",
         f"Batch summary: {report['batch_summary_es']}",

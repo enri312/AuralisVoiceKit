@@ -35,6 +35,10 @@ class ReleaseBatchStatusTests(unittest.TestCase):
         self.assertEqual(report["remaining"], 4)
         self.assertEqual(report["batch_state"], "collecting")
         self.assertEqual(report["publishable_commits_needed"], 4)
+        self.assertEqual(report["publish_decision"], "hold")
+        self.assertEqual(report["release_blocker"], "release_batch_incomplete")
+        self.assertIn("no llega", report["release_blocker_es"])
+        self.assertTrue(report["explicit_user_override_required"])
         self.assertEqual(report["next_tag_after_commit_count"], 5)
         self.assertIn("Lote en progreso", report["batch_summary_es"])
         self.assertFalse(report["ready_for_tag"])
@@ -60,6 +64,10 @@ class ReleaseBatchStatusTests(unittest.TestCase):
         self.assertEqual(report["remaining"], 5)
         self.assertEqual(report["batch_state"], "fresh")
         self.assertEqual(report["publishable_commits_needed"], 5)
+        self.assertEqual(report["publish_decision"], "hold")
+        self.assertEqual(report["release_blocker"], "release_batch_fresh")
+        self.assertIn("reiniciarse", report["release_blocker_es"])
+        self.assertTrue(report["explicit_user_override_required"])
         self.assertIn("Lote reiniciado", report["batch_summary_es"])
         self.assertFalse(report["ready_for_tag"])
 
@@ -80,6 +88,10 @@ class ReleaseBatchStatusTests(unittest.TestCase):
         self.assertEqual(report["remaining"], 0)
         self.assertEqual(report["batch_state"], "ready")
         self.assertEqual(report["publishable_commits_needed"], 0)
+        self.assertEqual(report["publish_decision"], "prepare_release")
+        self.assertIsNone(report["release_blocker"])
+        self.assertIsNone(report["release_blocker_es"])
+        self.assertFalse(report["explicit_user_override_required"])
         self.assertIn("Lote listo", report["batch_summary_es"])
         self.assertTrue(report["ready_for_tag"])
         self.assertTrue(report["should_create_release"])
@@ -96,6 +108,8 @@ class ReleaseBatchStatusTests(unittest.TestCase):
         self.assertIn("Ready for tag: false", output.getvalue())
         self.assertIn("Batch state:", output.getvalue())
         self.assertIn("Publishable commits needed:", output.getvalue())
+        self.assertIn("Publish decision: hold", output.getvalue())
+        self.assertIn("Explicit user override required: true", output.getvalue())
 
 
 if __name__ == "__main__":

@@ -623,6 +623,9 @@ class DocumentationTests(unittest.TestCase):
             self.assertIn("release_batch_status.py", content)
             self.assertIn("batch_state", content)
             self.assertIn("publishable_commits_needed", content)
+            self.assertIn("publish_decision", content)
+            self.assertIn("release_blocker", content)
+            self.assertIn("explicit_user_override_required", content)
             self.assertIn("alpha releases are batched", content)
         self.assertTrue(RELEASE_BATCH_STATUS.exists())
 

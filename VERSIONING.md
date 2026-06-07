@@ -54,7 +54,7 @@ git log <ultimo_tag>..HEAD --oneline
 python tools/release_batch_status.py --json
 ```
 
-Si hay menos de 5 commits/mejoras publicables, el cambio queda como pendiente o version de desarrollo en `CHANGELOG.md`; no se sube tag ni GitHub Release todavia. Para automatizaciones, `python tools/release_batch_status.py --fail-if-not-ready` devuelve codigo 1 cuando aun no corresponde tag. El JSON expone `batch_state` (`fresh`, `collecting` o `ready`) y `publishable_commits_needed` para distinguir un lote recien reiniciado de un lote en progreso.
+Si hay menos de 5 commits/mejoras publicables, el cambio queda como pendiente o version de desarrollo en `CHANGELOG.md`; no se sube tag ni GitHub Release todavia. Para automatizaciones, `python tools/release_batch_status.py --fail-if-not-ready` devuelve codigo 1 cuando aun no corresponde tag. El JSON expone `batch_state` (`fresh`, `collecting` o `ready`), `publishable_commits_needed`, `publish_decision`, `release_blocker` y `explicit_user_override_required` para distinguir un lote recien reiniciado de un lote en progreso y bloquear tags prematuros.
 
 English: alpha releases are batched; tag only after 5 publishable improvements since the latest tag, unless an explicit release is requested.
 
