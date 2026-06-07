@@ -51,6 +51,9 @@ def build_evidence_requirements_report() -> dict[str, Any]:
                     _required_field("system_guard.expected_system_matched", True),
                     _required_field("capture_backend", "wasapi"),
                     _required_field("target_capture_backend.available", True),
+                    _required_field("target_capture_backend.freedom_policy.category", "free-local"),
+                    _required_field("target_capture_backend.freedom_policy.proprietary", False),
+                    _required_field("target_capture_backend.freedom_policy.network_required", False),
                     _required_field("capture_backend_ready_required", True),
                     _required_field("hardware_capture_tested", True),
                     _required_field("input_review_confirmed", True),
@@ -78,6 +81,7 @@ def build_evidence_requirements_report() -> dict[str, Any]:
                     _required_field("project", "AuralisVoiceKit"),
                     _required_field("real_transcription_requested", True),
                     _required_field("target_backend.available", True),
+                    _required_field("target_backend.freedom_policy.category", "free-local | proprietary-api"),
                     _required_field("target_backend_ready_required", True),
                     _required_field("preflight_readiness.status", "ready"),
                     _required_field("preflight_readiness.decision", "ready_for_real_transcription"),
@@ -129,10 +133,21 @@ def build_evidence_requirements_report() -> dict[str, Any]:
                     {
                         "when": _required_field("target_backend.name", "openai"),
                         "fields": [
+                            _required_field("target_backend.freedom_policy.category", "proprietary-api"),
+                            _required_field("target_backend.freedom_policy.proprietary", True),
+                            _required_field("target_backend.freedom_policy.network_required", True),
                             _required_field("credentials.checked", True),
                             _required_field("credentials.openai_api_key_required", True),
                             _required_field("credentials.openai_api_key_present", True),
                             _required_field("credentials.records_openai_api_key", False),
+                        ],
+                    },
+                    {
+                        "when": _required_field("target_backend.name", "whisper"),
+                        "fields": [
+                            _required_field("target_backend.freedom_policy.category", "free-local"),
+                            _required_field("target_backend.freedom_policy.proprietary", False),
+                            _required_field("target_backend.freedom_policy.network_required", False),
                         ],
                     }
                 ],
@@ -154,6 +169,9 @@ def build_evidence_requirements_report() -> dict[str, Any]:
                     _required_field("backend", "system"),
                     _required_field("system_guard.expected_system_matched", True),
                     _required_field("target_output_backend.available", True),
+                    _required_field("target_output_backend.freedom_policy.category", "system-local"),
+                    _required_field("target_output_backend.freedom_policy.proprietary", False),
+                    _required_field("target_output_backend.freedom_policy.network_required", False),
                     _required_field("target_output_backend.readiness_plan.uses_pip_extra", False),
                     _required_field("target_output_backend.readiness_plan.python_extra", None),
                     _required_field("target_output_backend.readiness_plan.pip_command", None),
@@ -196,6 +214,9 @@ def build_evidence_requirements_report() -> dict[str, Any]:
                     _required_field("system_guard.expected_system_matched", True),
                     _required_field("capture_backend", "sounddevice | pyaudio"),
                     _required_field("target_capture_backend.available", True),
+                    _required_field("target_capture_backend.freedom_policy.category", "free-local"),
+                    _required_field("target_capture_backend.freedom_policy.proprietary", False),
+                    _required_field("target_capture_backend.freedom_policy.network_required", False),
                     _required_field("capture_backend_ready_required", True),
                     _required_field("hardware_capture_tested", True),
                     _required_field("input_review_confirmed", True),
@@ -222,6 +243,9 @@ def build_evidence_requirements_report() -> dict[str, Any]:
                     _required_field("system_guard.expected_system_matched", True),
                     _required_field("capture_backend", "sounddevice | pyaudio"),
                     _required_field("target_capture_backend.available", True),
+                    _required_field("target_capture_backend.freedom_policy.category", "free-local"),
+                    _required_field("target_capture_backend.freedom_policy.proprietary", False),
+                    _required_field("target_capture_backend.freedom_policy.network_required", False),
                     _required_field("capture_backend_ready_required", True),
                     _required_field("hardware_capture_tested", True),
                     _required_field("input_review_confirmed", True),
@@ -362,6 +386,7 @@ def build_beta_readiness_report(
                 "Check `capture-test:wasapi`: `ok`",
                 "Expected system matched: True",
                 "Target capture backend available: True",
+                "Target capture backend freedom policy: free-local",
                 "Capture backend readiness required: True",
                 "Capture readiness uses pip extra: True",
                 "Capture readiness python extra: sounddevice",
@@ -386,6 +411,7 @@ def build_beta_readiness_report(
             required_terms=(
                 "Real transcription requested: True",
                 "Target backend available: True",
+                "Target backend freedom policy: free-local",
                 "Target backend readiness required: True",
                 "Generated synthetic audio: False",
                 "Audio decode passed: True",
@@ -419,6 +445,7 @@ def build_beta_readiness_report(
                 "--require-openai-api-key when using the proprietary --backend openai path, "
                 "and --confirm-quality-reviewed after human review, "
                 "then keep target_backend.available=true, target_backend_ready_required=true, "
+                "target_backend.freedom_policy.category=free-local for Whisper or proprietary-api for OpenAI, "
                 "credentials.checked=true, credentials.openai_api_key_required=true, "
                 "credentials.openai_api_key_present=true and credentials.records_openai_api_key=false for OpenAI, "
                 "transcription-review-checklist.md and real-transcription-next-step.md."
@@ -460,6 +487,7 @@ def build_beta_readiness_report(
                 "Commands available: True",
                 "Ready for real audio: True",
                 "Operator checklist ready for beta evidence: True",
+                "Target output backend freedom policy: system-local",
                 "Target output backend readiness uses pip extra: False",
                 "Target output backend readiness python extra: not-set",
                 "Target output backend readiness pip command: not-set",
@@ -479,6 +507,7 @@ def build_beta_readiness_report(
                 "output-operator-checklist.md, system-output-next-step.md, "
                 "system_guard.expected_system_matched=true, "
                 "target_output_backend.available=true, output_backend_ready_required=true, "
+                "target_output_backend.freedom_policy.category=system-local, "
                 "target_output_backend.readiness_plan.uses_pip_extra=false, "
                 "target_output_backend.readiness_plan.python_extra=null, "
                 "target_output_backend.readiness_plan.pip_command=null, "
@@ -519,6 +548,7 @@ def build_beta_readiness_report(
                 "Sistema: Ubuntu/Linux",
                 "Piloto manual: `passed=true`",
                 "Target capture backend available: True",
+                "Target capture backend freedom policy: free-local",
                 "Capture backend readiness required: True",
                 "Capture readiness uses pip extra: True",
             ),
@@ -529,6 +559,7 @@ def build_beta_readiness_report(
                 "manual-capture-checklist.md, manual-capture-command.md, "
                 "system_guard.expected_system_matched=true, capture_backend=sounddevice|pyaudio, "
                 "target_capture_backend.available=true, capture_backend_ready_required=true, "
+                "target_capture_backend.freedom_policy.category=free-local, "
                 "input_review_confirmed=true, "
                 "capture_checklist.input_review_confirmed=true, capture_checklist.ready_for_beta_evidence=true "
                 "and manual_capture_command_card safe-to-share redaction flags plus "
@@ -547,6 +578,7 @@ def build_beta_readiness_report(
                 "Sistema: macOS",
                 "Piloto manual: `passed=true`",
                 "Target capture backend available: True",
+                "Target capture backend freedom policy: free-local",
                 "Capture backend readiness required: True",
                 "Capture readiness uses pip extra: True",
             ),
@@ -557,6 +589,7 @@ def build_beta_readiness_report(
                 "manual-capture-checklist.md, manual-capture-command.md, "
                 "system_guard.expected_system_matched=true, "
                 "capture_backend=sounddevice|pyaudio, target_capture_backend.available=true, "
+                "target_capture_backend.freedom_policy.category=free-local, "
                 "capture_backend_ready_required=true, input_review_confirmed=true, "
                 "capture_checklist.input_review_confirmed=true, capture_checklist.ready_for_beta_evidence=true "
                 "and manual_capture_command_card safe-to-share redaction flags plus "
@@ -1714,6 +1747,7 @@ def _is_windows_wasapi_capture_evidence(report: dict[str, Any]) -> bool:
         and report.get("capture_backend") == "wasapi"
         and isinstance(target_capture_backend, dict)
         and target_capture_backend.get("available") is True
+        and _backend_policy_matches(target_capture_backend, category="free-local", proprietary=False, network_required=False)
         and report.get("capture_backend_ready_required") is True
         and report.get("hardware_capture_tested") is True
         and report.get("input_review_confirmed") is True
@@ -1769,6 +1803,41 @@ def _transcription_python_extra(backend: object) -> str | None:
     if normalized in {"whisper", "openai"}:
         return normalized
     return None
+
+
+def _backend_policy_matches(
+    target_backend: dict[str, Any],
+    *,
+    category: str,
+    proprietary: bool,
+    network_required: bool,
+) -> bool:
+    policy = target_backend.get("freedom_policy", {})
+    return (
+        isinstance(policy, dict)
+        and policy.get("category") == category
+        and policy.get("proprietary") is proprietary
+        and policy.get("network_required") is network_required
+    )
+
+
+def _transcription_backend_policy_ok(target_backend: dict[str, Any]) -> bool:
+    backend = str(target_backend.get("name") or "").strip().casefold()
+    if backend == "openai":
+        return _backend_policy_matches(
+            target_backend,
+            category="proprietary-api",
+            proprietary=True,
+            network_required=True,
+        )
+    if backend == "whisper":
+        return _backend_policy_matches(
+            target_backend,
+            category="free-local",
+            proprietary=False,
+            network_required=False,
+        )
+    return False
 
 
 def _has_ready_capture_operator_gate(report: dict[str, Any], blocker: str) -> bool:
@@ -1977,6 +2046,7 @@ def _is_ubuntu_linux_capture_evidence(report: dict[str, Any]) -> bool:
         and _is_cross_platform_capture_backend(report.get("capture_backend"))
         and isinstance(target_capture_backend, dict)
         and target_capture_backend.get("available") is True
+        and _backend_policy_matches(target_capture_backend, category="free-local", proprietary=False, network_required=False)
         and report.get("capture_backend_ready_required") is True
         and report.get("hardware_capture_tested") is True
         and report.get("input_review_confirmed") is True
@@ -2001,6 +2071,7 @@ def _is_macos_capture_evidence(report: dict[str, Any]) -> bool:
         and _is_cross_platform_capture_backend(report.get("capture_backend"))
         and isinstance(target_capture_backend, dict)
         and target_capture_backend.get("available") is True
+        and _backend_policy_matches(target_capture_backend, category="free-local", proprietary=False, network_required=False)
         and report.get("capture_backend_ready_required") is True
         and report.get("hardware_capture_tested") is True
         and report.get("input_review_confirmed") is True
@@ -2025,6 +2096,7 @@ def _is_system_output_audible_evidence(report: dict[str, Any]) -> bool:
         and system_guard.get("expected_system_matched") is True
         and isinstance(target_output_backend, dict)
         and target_output_backend.get("available") is True
+        and _backend_policy_matches(target_output_backend, category="system-local", proprietary=False, network_required=False)
         and _has_safe_system_output_readiness_plan(target_output_backend)
         and report.get("output_backend_ready_required") is True
         and report.get("real_audio_requested") is True
@@ -2084,6 +2156,7 @@ def _is_real_transcription_quality_evidence(report: dict[str, Any]) -> bool:
         report.get("real_transcription_requested") is True
         and isinstance(target_backend, dict)
         and target_backend.get("available") is True
+        and _transcription_backend_policy_ok(target_backend)
         and report.get("target_backend_ready_required") is True
         and isinstance(preflight_readiness, dict)
         and preflight_readiness.get("status") == "ready"

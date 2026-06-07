@@ -226,6 +226,46 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertFalse(checks["real_transcription_quality"]["ok"])
         self.assertIn("real_transcription_quality", report["blockers"])
 
+    def test_real_transcription_evidence_requires_backend_freedom_policy(self):
+        module = _load_beta_readiness()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            evidence_path = Path(tmpdir) / "transcription-pilot-report.json"
+            evidence = _transcription_evidence()
+            del evidence["target_backend"]["freedom_policy"]
+            _write_json(evidence_path, evidence)
+
+            report = module.build_beta_readiness_report(ROOT, evidence_paths=[evidence_path])
+            audit = module.build_evidence_audit_report(ROOT, evidence_paths=[evidence_path])
+            checks = {check["name"]: check for check in report["checks"]}
+
+        self.assertFalse(checks["real_transcription_quality"]["ok"])
+        self.assertIn("real_transcription_quality", report["blockers"])
+        transcription = audit["artifacts"][0]["candidates"][0]
+        missing_fields = [field["path"] for field in transcription["fields"] if not field["ok"]]
+        self.assertIn("target_backend.freedom_policy.category", missing_fields)
+
+    def test_openai_transcription_evidence_requires_proprietary_policy(self):
+        module = _load_beta_readiness()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            evidence_path = Path(tmpdir) / "transcription-pilot-report.json"
+            evidence = _transcription_evidence(backend="openai")
+            evidence["target_backend"]["freedom_policy"] = _freedom_policy("transcription", "whisper")
+            _write_json(evidence_path, evidence)
+
+            report = module.build_beta_readiness_report(ROOT, evidence_paths=[evidence_path])
+            audit = module.build_evidence_audit_report(ROOT, evidence_paths=[evidence_path])
+            checks = {check["name"]: check for check in report["checks"]}
+
+        self.assertFalse(checks["real_transcription_quality"]["ok"])
+        self.assertIn("real_transcription_quality", report["blockers"])
+        transcription = audit["artifacts"][0]["candidates"][0]
+        missing_fields = [field["path"] for field in transcription["fields"] if not field["ok"]]
+        self.assertIn("target_backend.freedom_policy.category", missing_fields)
+        self.assertIn("target_backend.freedom_policy.proprietary", missing_fields)
+        self.assertIn("target_backend.freedom_policy.network_required", missing_fields)
+
     def test_real_transcription_evidence_requires_preflight_readiness_ready(self):
         module = _load_beta_readiness()
 
@@ -617,6 +657,29 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertFalse(checks["system_output_audible"]["ok"])
         self.assertIn("system_output_audible", report["blockers"])
 
+    def test_system_output_evidence_requires_system_local_freedom_policy(self):
+        module = _load_beta_readiness()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            evidence_path = Path(tmpdir) / "output-pilot-report.json"
+            payload = _output_evidence()
+            payload["target_output_backend"]["freedom_policy"]["category"] = "proprietary-api"
+            payload["target_output_backend"]["freedom_policy"]["proprietary"] = True
+            payload["target_output_backend"]["freedom_policy"]["network_required"] = True
+            _write_json(evidence_path, payload)
+
+            report = module.build_beta_readiness_report(ROOT, evidence_paths=[evidence_path])
+            audit = module.build_evidence_audit_report(ROOT, evidence_paths=[evidence_path])
+            checks = {check["name"]: check for check in report["checks"]}
+
+        self.assertFalse(checks["system_output_audible"]["ok"])
+        self.assertIn("system_output_audible", report["blockers"])
+        output = audit["artifacts"][0]["candidates"][0]
+        missing_fields = [field["path"] for field in output["fields"] if not field["ok"]]
+        self.assertIn("target_output_backend.freedom_policy.category", missing_fields)
+        self.assertIn("target_output_backend.freedom_policy.proprietary", missing_fields)
+        self.assertIn("target_output_backend.freedom_policy.network_required", missing_fields)
+
     def test_system_output_evidence_requires_voice_review_confirmation(self):
         module = _load_beta_readiness()
 
@@ -988,6 +1051,29 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertFalse(checks["ubuntu_linux_capture"]["ok"])
         self.assertIn("ubuntu_linux_capture", report["blockers"])
 
+    def test_cross_platform_capture_evidence_requires_free_local_policy(self):
+        module = _load_beta_readiness()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            evidence_path = Path(tmpdir) / "manual-pilot-report.json"
+            evidence = _capture_evidence("Linux", "sounddevice")
+            evidence["target_capture_backend"]["freedom_policy"]["category"] = "unknown"
+            evidence["target_capture_backend"]["freedom_policy"]["proprietary"] = None
+            evidence["target_capture_backend"]["freedom_policy"]["network_required"] = None
+            _write_json(evidence_path, evidence)
+
+            report = module.build_beta_readiness_report(ROOT, evidence_paths=[evidence_path])
+            audit = module.build_evidence_audit_report(ROOT, evidence_paths=[evidence_path])
+            checks = {check["name"]: check for check in report["checks"]}
+
+        self.assertFalse(checks["ubuntu_linux_capture"]["ok"])
+        self.assertIn("ubuntu_linux_capture", report["blockers"])
+        capture = next(candidate for candidate in audit["artifacts"][0]["candidates"] if candidate["name"] == "ubuntu_linux_capture")
+        missing_fields = [field["path"] for field in capture["fields"] if not field["ok"]]
+        self.assertIn("target_capture_backend.freedom_policy.category", missing_fields)
+        self.assertIn("target_capture_backend.freedom_policy.proprietary", missing_fields)
+        self.assertIn("target_capture_backend.freedom_policy.network_required", missing_fields)
+
     def test_cross_platform_capture_evidence_requires_backend_ready_guard(self):
         module = _load_beta_readiness()
 
@@ -1234,6 +1320,12 @@ class BetaReadinessTests(unittest.TestCase):
             for conditional in requirements["real_transcription_quality"]["conditional_fields"]
             for field in conditional["fields"]
         }
+        transcription_conditional_groups = {
+            conditional["when"]["expected"]: {
+                field["path"]: field["expected"] for field in conditional["fields"]
+            }
+            for conditional in requirements["real_transcription_quality"]["conditional_fields"]
+        }
         output_fields = {
             field["path"]: field["expected"] for field in requirements["system_output_audible"]["fields"]
         }
@@ -1246,6 +1338,7 @@ class BetaReadinessTests(unittest.TestCase):
         macos_fields = {field["path"]: field["expected"] for field in requirements["macos_capture"]["fields"]}
         self.assertEqual(transcription_fields["audio_confirmed_non_sensitive"], True)
         self.assertEqual(transcription_fields["target_backend.available"], True)
+        self.assertEqual(transcription_fields["target_backend.freedom_policy.category"], "free-local | proprietary-api")
         self.assertEqual(transcription_fields["target_backend_ready_required"], True)
         self.assertEqual(transcription_fields["preflight_readiness.status"], "ready")
         self.assertEqual(transcription_fields["preflight_readiness.decision"], "ready_for_real_transcription")
@@ -1339,8 +1432,19 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertEqual(transcription_conditional_fields["credentials.openai_api_key_required"], True)
         self.assertEqual(transcription_conditional_fields["credentials.openai_api_key_present"], True)
         self.assertEqual(transcription_conditional_fields["credentials.records_openai_api_key"], False)
+        openai_fields = transcription_conditional_groups["openai"]
+        whisper_fields = transcription_conditional_groups["whisper"]
+        self.assertEqual(openai_fields["target_backend.freedom_policy.category"], "proprietary-api")
+        self.assertEqual(openai_fields["target_backend.freedom_policy.proprietary"], True)
+        self.assertEqual(openai_fields["target_backend.freedom_policy.network_required"], True)
+        self.assertEqual(whisper_fields["target_backend.freedom_policy.category"], "free-local")
+        self.assertEqual(whisper_fields["target_backend.freedom_policy.proprietary"], False)
+        self.assertEqual(whisper_fields["target_backend.freedom_policy.network_required"], False)
         self.assertIn("system_guard.expected_system_matched", output_fields)
         self.assertIn("target_output_backend.available", output_fields)
+        self.assertEqual(output_fields["target_output_backend.freedom_policy.category"], "system-local")
+        self.assertEqual(output_fields["target_output_backend.freedom_policy.proprietary"], False)
+        self.assertEqual(output_fields["target_output_backend.freedom_policy.network_required"], False)
         self.assertEqual(output_fields["target_output_backend.readiness_plan.uses_pip_extra"], False)
         self.assertIsNone(output_fields["target_output_backend.readiness_plan.python_extra"])
         self.assertIsNone(output_fields["target_output_backend.readiness_plan.pip_command"])
@@ -1399,12 +1503,18 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertEqual(output_fields["system_output_operator_gate.records_operator_identity"], False)
         self.assertEqual(output_fields["system_output_operator_gate.records_local_paths"], False)
         self.assertEqual(windows_fields["target_capture_backend.available"], True)
+        self.assertEqual(windows_fields["target_capture_backend.freedom_policy.category"], "free-local")
+        self.assertEqual(windows_fields["target_capture_backend.freedom_policy.proprietary"], False)
+        self.assertEqual(windows_fields["target_capture_backend.freedom_policy.network_required"], False)
         self.assertEqual(windows_fields["capture_backend_ready_required"], True)
         self.assertEqual(windows_fields["manual_capture_command_card.uses_pip_extra"], True)
         self.assertEqual(windows_fields["manual_capture_command_card.python_extra"], "sounddevice")
         self.assertIn("system_guard.expected_system_matched", linux_fields)
         self.assertEqual(linux_fields["capture_backend"], "sounddevice | pyaudio")
         self.assertEqual(linux_fields["target_capture_backend.available"], True)
+        self.assertEqual(linux_fields["target_capture_backend.freedom_policy.category"], "free-local")
+        self.assertEqual(linux_fields["target_capture_backend.freedom_policy.proprietary"], False)
+        self.assertEqual(linux_fields["target_capture_backend.freedom_policy.network_required"], False)
         self.assertEqual(linux_fields["capture_backend_ready_required"], True)
         self.assertEqual(linux_fields["manual_capture_command_card.uses_pip_extra"], True)
         self.assertEqual(linux_fields["manual_capture_command_card.python_extra"], "sounddevice | pyaudio")
@@ -1413,6 +1523,9 @@ class BetaReadinessTests(unittest.TestCase):
         self.assertIn("capture_checklist.ready_for_beta_evidence", linux_fields)
         self.assertEqual(macos_fields["capture_backend"], "sounddevice | pyaudio")
         self.assertEqual(macos_fields["target_capture_backend.available"], True)
+        self.assertEqual(macos_fields["target_capture_backend.freedom_policy.category"], "free-local")
+        self.assertEqual(macos_fields["target_capture_backend.freedom_policy.proprietary"], False)
+        self.assertEqual(macos_fields["target_capture_backend.freedom_policy.network_required"], False)
         self.assertEqual(macos_fields["capture_backend_ready_required"], True)
         self.assertEqual(macos_fields["manual_capture_command_card.uses_pip_extra"], True)
         self.assertEqual(macos_fields["manual_capture_command_card.python_extra"], "sounddevice | pyaudio")
@@ -1907,6 +2020,7 @@ def _capture_backend_status(backend: str) -> dict:
         "available": True,
         "dependencies": [backend],
         "reason": None,
+        "freedom_policy": _freedom_policy("capture", backend),
     }
 
 
@@ -2024,6 +2138,7 @@ def _output_evidence() -> dict:
             "available": True,
             "dependencies": ["test-tts"],
             "reason": None,
+            "freedom_policy": _freedom_policy("output", "system"),
             "readiness_plan": _system_output_readiness_plan(),
         },
         "output_backend_ready_required": True,
@@ -2258,6 +2373,7 @@ def _transcription_evidence(
             "available": True,
             "dependencies": ["openai"] if backend == "openai" else ["faster-whisper"],
             "reason": None,
+            "freedom_policy": _freedom_policy("transcription", backend),
         },
         "target_backend_ready_required": True,
         "preflight_readiness": {
@@ -2347,6 +2463,29 @@ def _transcription_python_extra(backend: str) -> str | None:
     if backend in {"whisper", "openai"}:
         return backend
     return None
+
+
+def _freedom_policy(kind: str, backend: str) -> dict:
+    if kind == "output" and backend == "system":
+        return {
+            "category": "system-local",
+            "free_default": True,
+            "network_required": False,
+            "proprietary": False,
+        }
+    if kind == "transcription" and backend == "openai":
+        return {
+            "category": "proprietary-api",
+            "free_default": False,
+            "network_required": True,
+            "proprietary": True,
+        }
+    return {
+        "category": "free-local",
+        "free_default": True,
+        "network_required": False,
+        "proprietary": False,
+    }
 
 
 def _system_guard() -> dict[str, bool]:

@@ -20,6 +20,9 @@ Este documento describe los campos JSON que pueden cerrar blockers de beta. No r
   - `system_guard.expected_system_matched` = `True`
   - `capture_backend` = `wasapi`
   - `target_capture_backend.available` = `True`
+  - `target_capture_backend.freedom_policy.category` = `free-local`
+  - `target_capture_backend.freedom_policy.proprietary` = `False`
+  - `target_capture_backend.freedom_policy.network_required` = `False`
   - `capture_backend_ready_required` = `True`
   - `hardware_capture_tested` = `True`
   - `input_review_confirmed` = `True`
@@ -64,6 +67,7 @@ Este documento describe los campos JSON que pueden cerrar blockers de beta. No r
   - `project` = `AuralisVoiceKit`
   - `real_transcription_requested` = `True`
   - `target_backend.available` = `True`
+  - `target_backend.freedom_policy.category` = `free-local | proprietary-api`
   - `target_backend_ready_required` = `True`
   - `preflight_readiness.status` = `ready`
   - `preflight_readiness.decision` = `ready_for_real_transcription`
@@ -147,10 +151,17 @@ Este documento describe los campos JSON que pueden cerrar blockers de beta. No r
   - `real_transcription_operator_gate.records_operator_identity` = `False`
 - Campos condicionales:
   - Si `target_backend.name` = `openai`:
+    - `target_backend.freedom_policy.category` = `proprietary-api`
+    - `target_backend.freedom_policy.proprietary` = `True`
+    - `target_backend.freedom_policy.network_required` = `True`
     - `credentials.checked` = `True`
     - `credentials.openai_api_key_required` = `True`
     - `credentials.openai_api_key_present` = `True`
     - `credentials.records_openai_api_key` = `False`
+  - Si `target_backend.name` = `whisper`:
+    - `target_backend.freedom_policy.category` = `free-local`
+    - `target_backend.freedom_policy.proprietary` = `False`
+    - `target_backend.freedom_policy.network_required` = `False`
 
 ### system_output_audible
 
@@ -161,6 +172,9 @@ Este documento describe los campos JSON que pueden cerrar blockers de beta. No r
   - `backend` = `system`
   - `system_guard.expected_system_matched` = `True`
   - `target_output_backend.available` = `True`
+  - `target_output_backend.freedom_policy.category` = `system-local`
+  - `target_output_backend.freedom_policy.proprietary` = `False`
+  - `target_output_backend.freedom_policy.network_required` = `False`
   - `target_output_backend.readiness_plan.uses_pip_extra` = `False`
   - `target_output_backend.readiness_plan.python_extra` = `None`
   - `target_output_backend.readiness_plan.pip_command` = `None`
@@ -227,6 +241,9 @@ Este documento describe los campos JSON que pueden cerrar blockers de beta. No r
   - `system_guard.expected_system_matched` = `True`
   - `capture_backend` = `sounddevice | pyaudio`
   - `target_capture_backend.available` = `True`
+  - `target_capture_backend.freedom_policy.category` = `free-local`
+  - `target_capture_backend.freedom_policy.proprietary` = `False`
+  - `target_capture_backend.freedom_policy.network_required` = `False`
   - `capture_backend_ready_required` = `True`
   - `hardware_capture_tested` = `True`
   - `input_review_confirmed` = `True`
@@ -274,6 +291,9 @@ Este documento describe los campos JSON que pueden cerrar blockers de beta. No r
   - `system_guard.expected_system_matched` = `True`
   - `capture_backend` = `sounddevice | pyaudio`
   - `target_capture_backend.available` = `True`
+  - `target_capture_backend.freedom_policy.category` = `free-local`
+  - `target_capture_backend.freedom_policy.proprietary` = `False`
+  - `target_capture_backend.freedom_policy.network_required` = `False`
   - `capture_backend_ready_required` = `True`
   - `hardware_capture_tested` = `True`
   - `input_review_confirmed` = `True`

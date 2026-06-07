@@ -6,6 +6,18 @@ El formato sigue la idea de "Keep a Changelog" y el proyecto usa versionado sema
 
 ## [Unreleased]
 
+## [0.166.0] - 2026-06-07
+
+### Mejorado
+
+- `tools/beta_readiness.py` ahora exige `freedom_policy` en evidencias beta de captura, salida `system` y transcripcion real.
+- Las evidencias de Whisper deben declararse `free-local`; las de salida `system`, `system-local`; y las de OpenAI solo pasan si quedan marcadas como `proprietary-api`, con red requerida y credenciales saneadas.
+- `BETA_EVIDENCE_REQUIREMENTS.md` y `BETA_CHECKLIST.md` publican el nuevo contrato para artifacts modernos.
+
+### Pruebas
+
+- `tests/test_beta_readiness.py` valida que artifacts sin politica de libertad/localidad, o con politica falsa, no cierren blockers beta.
+
 ## [0.165.0] - 2026-06-07
 
 ### Mejorado

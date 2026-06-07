@@ -1921,6 +1921,7 @@ class PilotRunTests(unittest.TestCase):
                         "available": True,
                         "dependencies": ["pyaudio"],
                         "reason": None,
+                        "freedom_policy": _free_local_policy(),
                     },
                     "capture_backend_ready_required": True,
                     "system_guard": {"expected_system_matched": True},
@@ -2026,6 +2027,7 @@ class PilotRunTests(unittest.TestCase):
                         "available": True,
                         "dependencies": ["pyaudio"],
                         "reason": None,
+                        "freedom_policy": _free_local_policy(),
                     },
                     "capture_backend_ready_required": True,
                     "system_guard": {"expected_system_matched": True},
@@ -2169,6 +2171,15 @@ def _capture_python_extra(backend: str) -> str | None:
     if backend == "pyaudio":
         return "pyaudio"
     return None
+
+
+def _free_local_policy() -> dict:
+    return {
+        "category": "free-local",
+        "free_default": True,
+        "network_required": False,
+        "proprietary": False,
+    }
 
 
 if __name__ == "__main__":
